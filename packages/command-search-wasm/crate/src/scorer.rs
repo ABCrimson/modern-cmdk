@@ -1,30 +1,37 @@
 /// Levenshtein distance for fuzzy matching with typo tolerance.
-/// ≤2 for short queries (len < 5), ≤3 for longer queries.
+/// Uses two-row DP (O(min(a,b)) memory) instead of full matrix (O(a*b)).
 pub fn levenshtein_distance(a: &str, b: &str) -> usize {
     let a_chars: Vec<char> = a.chars().collect();
     let b_chars: Vec<char> = b.chars().collect();
     let a_len = a_chars.len();
     let b_len = b_chars.len();
 
-    let mut matrix = vec![vec![0usize; b_len + 1]; a_len + 1];
+    // Optimize: always iterate over the shorter string for the inner loop
+    if a_len > b_len {
+        return levenshtein_distance(b, a);
+    }
+
+    // Two-row DP — O(min(a,b)) memory instead of O(a*b)
+    let mut prev = Vec::with_capacity(a_len + 1);
+    let mut curr = Vec::with_capacity(a_len + 1);
 
     for i in 0..=a_len {
-        matrix[i][0] = i;
+        prev.push(i);
     }
-    for j in 0..=b_len {
-        matrix[0][j] = j;
-    }
+    curr.resize(a_len + 1, 0);
 
-    for i in 1..=a_len {
-        for j in 1..=b_len {
+    for j in 1..=b_len {
+        curr[0] = j;
+        for i in 1..=a_len {
             let cost = if a_chars[i - 1] == b_chars[j - 1] { 0 } else { 1 };
-            matrix[i][j] = (matrix[i - 1][j] + 1)
-                .min(matrix[i][j - 1] + 1)
-                .min(matrix[i - 1][j - 1] + cost);
+            curr[i] = (prev[i] + 1)
+                .min(curr[i - 1] + 1)
+                .min(prev[i - 1] + cost);
         }
+        std::mem::swap(&mut prev, &mut curr);
     }
 
-    matrix[a_len][b_len]
+    prev[a_len]
 }
 
 /// Maximum allowed edit distance based on query length.

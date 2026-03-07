@@ -25,8 +25,11 @@ impl TrigramIndex {
         let parsed: Vec<(String, String)> =
             serde_json::from_str(json).map_err(|e| e.to_string())?;
 
+        // Pre-allocate trigram map with estimated capacity (avg 8 trigrams per item)
+        let estimated_trigrams = parsed.len() * 8;
         self.items = parsed;
         self.trigram_map.clear();
+        self.trigram_map.reserve(estimated_trigrams);
 
         for (idx, (_, value)) in self.items.iter().enumerate() {
             let lower = value.to_lowercase();
@@ -46,7 +49,8 @@ impl TrigramIndex {
             return Vec::new();
         }
 
-        let mut scores: HashMap<usize, f64> = HashMap::new();
+        // Pre-allocate score map — most queries match a fraction of items
+        let mut scores: HashMap<usize, f64> = HashMap::with_capacity(self.items.len() / 4);
 
         for trigram in &query_trigrams {
             if let Some(indices) = self.trigram_map.get(trigram) {
@@ -57,22 +61,22 @@ impl TrigramIndex {
         }
 
         let trigram_count = query_trigrams.len() as f64;
-        let mut results: Vec<SearchResult> = scores
-            .into_iter()
-            .map(|(idx, count)| {
+        let mut results: Vec<SearchResult> = Vec::with_capacity(scores.len().min(max_results));
+
+        for (idx, count) in scores {
+            let score = count / trigram_count;
+            if score > 0.1 {
                 let (id, value) = &self.items[idx];
-                let score = count / trigram_count;
                 let matches = find_match_ranges(&value.to_lowercase(), &lower_query);
-                SearchResult {
+                results.push(SearchResult {
                     id: id.clone(),
                     score,
                     matches,
-                }
-            })
-            .filter(|r| r.score > 0.1)
-            .collect();
+                });
+            }
+        }
 
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        results.sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
         results.truncate(max_results);
         results
     }

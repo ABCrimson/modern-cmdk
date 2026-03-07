@@ -1,6 +1,6 @@
 [package]
 name = "command-search-wasm"
-version = "0.1.0"
+version = "0.9.0"
 edition = "2024"
 authors = ["Crimson Dev"]
 description = "WASM-accelerated fuzzy search engine for @crimson_dev/command"
@@ -18,3 +18,4 @@ serde-wasm-bindgen = "0.6"
 opt-level = "s"
 lto = true
 strip = true
+codegen-units = 1
