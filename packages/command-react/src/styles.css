@@ -3,6 +3,7 @@
 /* Spring easing via linear() approximation — perceptually smooth */
 /* Scroll-driven animations via animation-timeline: scroll() */
 /* WCAG 2.1 AA: forced-colors, prefers-contrast, prefers-reduced-motion */
+/* CSS Logical Properties: full RTL/LTR support */
 
 /* ─── CSS Custom Properties ─── */
 
@@ -36,9 +37,36 @@
   initial-value: 8px;
 }
 
+/* ─── User-Customizable Animation Properties ─── */
+/* Override these on [data-command-root] or :root to customize all animations */
+
+[data-command-root] {
+  --command-spring-easing: linear(0, 0.006, 0.025, 0.058, 0.104, 0.163, 0.234, 0.315, 0.404, 0.499, 0.596, 0.693, 0.784, 0.867, 0.939, 0.998, 1.0);
+  --command-spring-easing-bouncy: linear(0, 0.009, 0.035, 0.078, 0.138, 0.213, 0.303, 0.404, 0.511, 0.621, 0.726, 0.822, 0.905, 0.971, 1.015, 1.033, 1.026, 1.0);
+  --command-easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  --command-duration-enter: 200ms;
+  --command-duration-enter-scale: 250ms;
+  --command-duration-exit: 150ms;
+  --command-duration-item: 120ms;
+  --command-duration-list: 200ms;
+  --command-duration-page: 200ms;
+  --command-duration-loading: 1.5s;
+  --command-scale-from: 0.96;
+  --command-translate-from: 8px;
+  --command-overlay-blur: 4px;
+  --command-dialog-radius: 12px;
+  --command-dialog-max-width: 640px;
+  --command-dialog-max-height: 480px;
+  --command-item-height: 44px;
+  --command-fade-edge-size: 16px;
+  --command-highlight-color: oklch(0.85 0.15 90 / 0.3);
+}
+
 /* ─── Spring Easing ─── */
 /* linear() approximation of a critically-damped spring (stiffness: 100, damping: 15) */
-/* Generated from spring physics: x(t) = 1 - e^(-ζωt)(cos(ωd·t) + (ζω/ωd)sin(ωd·t)) */
+/* Generated from spring physics: x(t) = 1 - e^(-zt)(cos(wd*t) + (zw/wd)sin(wd*t)) */
+
+@layer command {
 
 /* ─── Overlay ─── */
 
@@ -47,8 +75,8 @@
   inset: 0;
   z-index: 9998;
   background: oklch(0 0 0 / var(--command-overlay-opacity, 0.4));
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(var(--command-overlay-blur));
+  -webkit-backdrop-filter: blur(var(--command-overlay-blur));
 }
 
 [data-command-overlay][data-state="open"] {
@@ -59,20 +87,20 @@
   --command-overlay-opacity: 0.4;
   opacity: 1;
   transition:
-    opacity 200ms linear(0, 0.006, 0.025, 0.058, 0.104, 0.163, 0.234, 0.315, 0.404, 0.499, 0.596, 0.693, 0.784, 0.867, 0.939, 0.998, 1.0),
-    --command-overlay-opacity 200ms ease-out,
-    display 200ms allow-discrete,
-    overlay 200ms allow-discrete;
+    opacity var(--command-duration-enter) var(--command-spring-easing),
+    --command-overlay-opacity var(--command-duration-enter) ease-out,
+    display var(--command-duration-enter) allow-discrete,
+    overlay var(--command-duration-enter) allow-discrete;
 }
 
 [data-command-overlay][data-state="closed"] {
   --command-overlay-opacity: 0;
   opacity: 0;
   transition:
-    opacity 150ms cubic-bezier(0.4, 0, 1, 1),
-    --command-overlay-opacity 150ms ease-in,
-    display 150ms allow-discrete,
-    overlay 150ms allow-discrete;
+    opacity var(--command-duration-exit) var(--command-easing-exit),
+    --command-overlay-opacity var(--command-duration-exit) ease-in,
+    display var(--command-duration-exit) allow-discrete,
+    overlay var(--command-duration-exit) allow-discrete;
 }
 
 /* ─── Dialog ─── */
@@ -93,14 +121,14 @@
 }
 
 /* GPU-composited dialog animation — zero layout thrash */
-/* Spring easing via linear() approximation — 200ms entrance */
+/* Spring easing via linear() approximation */
 [data-command-dialog][data-state="open"] {
   @starting-style {
-    --command-dialog-scale: 0.96;
-    --command-dialog-translate: 8px;
+    --command-dialog-scale: var(--command-scale-from);
+    --command-dialog-translate: var(--command-translate-from);
     opacity: 0;
-    scale: 0.96;
-    translate: 0 8px;
+    scale: var(--command-scale-from);
+    translate: 0 var(--command-translate-from);
   }
   --command-dialog-scale: 1;
   --command-dialog-translate: 0px;
@@ -108,41 +136,41 @@
   scale: 1;
   translate: 0 0;
   transition:
-    opacity 200ms linear(0, 0.006, 0.025, 0.058, 0.104, 0.163, 0.234, 0.315, 0.404, 0.499, 0.596, 0.693, 0.784, 0.867, 0.939, 0.998, 1.0),
-    scale 250ms linear(0, 0.009, 0.035, 0.078, 0.138, 0.213, 0.303, 0.404, 0.511, 0.621, 0.726, 0.822, 0.905, 0.971, 1.015, 1.033, 1.026, 1.0),
-    translate 250ms linear(0, 0.009, 0.035, 0.078, 0.138, 0.213, 0.303, 0.404, 0.511, 0.621, 0.726, 0.822, 0.905, 0.971, 1.015, 1.033, 1.026, 1.0),
-    display 250ms allow-discrete,
-    overlay 250ms allow-discrete;
+    opacity var(--command-duration-enter) var(--command-spring-easing),
+    scale var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
+    translate var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
+    display var(--command-duration-enter-scale) allow-discrete,
+    overlay var(--command-duration-enter-scale) allow-discrete;
 }
 
 /* Exit animation — quicker, no spring overshoot */
 [data-command-dialog][data-state="closed"] {
-  --command-dialog-scale: 0.96;
+  --command-dialog-scale: var(--command-scale-from);
   --command-dialog-translate: 4px;
   opacity: 0;
-  scale: 0.96;
+  scale: var(--command-scale-from);
   translate: 0 4px;
   transition:
-    opacity 150ms cubic-bezier(0.4, 0, 1, 1),
-    scale 150ms cubic-bezier(0.4, 0, 1, 1),
-    translate 150ms cubic-bezier(0.4, 0, 1, 1),
-    display 150ms allow-discrete,
-    overlay 150ms allow-discrete;
+    opacity var(--command-duration-exit) var(--command-easing-exit),
+    scale var(--command-duration-exit) var(--command-easing-exit),
+    translate var(--command-duration-exit) var(--command-easing-exit),
+    display var(--command-duration-exit) allow-discrete,
+    overlay var(--command-duration-exit) allow-discrete;
 }
 
 /* Dialog content container */
 [data-command-dialog-content] {
-  width: min(640px, calc(100vw - 32px));
-  max-height: min(480px, calc(100vh - 200px));
+  inline-size: min(var(--command-dialog-max-width), calc(100vi - 32px));
+  max-block-size: min(var(--command-dialog-max-height), calc(100vb - 200px));
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--command-dialog-radius);
   contain: layout style;
 }
 
 /* ─── Input ─── */
 
 [data-command-input] {
-  width: 100%;
+  inline-size: 100%;
   border: none;
   outline: none;
   background: transparent;
@@ -161,7 +189,7 @@
   overscroll-behavior: contain;
   scroll-timeline: --list-scroll block;
   will-change: height;
-  transition: height 200ms linear(0, 0.006, 0.025, 0.058, 0.104, 0.163, 0.234, 0.315, 0.404, 0.499, 0.596, 0.693, 0.784, 0.867, 0.939, 0.998, 1.0);
+  transition: height var(--command-duration-list) var(--command-spring-easing);
   /* Smooth scrollbar */
   scrollbar-gutter: stable;
   scrollbar-width: thin;
@@ -179,18 +207,17 @@
   content: '';
   display: block;
   position: sticky;
-  left: 0;
-  right: 0;
-  height: 16px;
+  inset-inline: 0;
+  block-size: var(--command-fade-edge-size);
   pointer-events: none;
   z-index: 1;
   opacity: 0;
-  transition: opacity 150ms ease-out;
+  transition: opacity var(--command-duration-exit) ease-out;
 }
 
 /* Top fade — visible when scrolled down */
 [data-command-list]::before {
-  top: 0;
+  inset-block-start: 0;
   background: linear-gradient(to bottom, currentColor, transparent);
   opacity: 0.08;
   animation: fade-edge-top linear both;
@@ -200,7 +227,7 @@
 
 /* Bottom fade — visible when not scrolled to bottom */
 [data-command-list]::after {
-  bottom: 0;
+  inset-block-end: 0;
   background: linear-gradient(to top, currentColor, transparent);
   opacity: 0.08;
   animation: fade-edge-bottom linear both;
@@ -221,8 +248,8 @@
 /* ─── Scroll-Driven Progress Indicator ─── */
 
 [data-command-scroll-indicator] {
-  height: 2px;
-  transform-origin: left;
+  block-size: 2px;
+  transform-origin: inline-start;
   scale: 0 1;
   animation: scroll-progress linear both;
   animation-timeline: --list-scroll;
@@ -240,11 +267,11 @@
   cursor: pointer;
   user-select: none;
   will-change: background-color;
-  transition: background-color 120ms linear(0, 0.25, 0.5, 0.75, 1.0);
+  transition: background-color var(--command-duration-item) linear(0, 0.25, 0.5, 0.75, 1.0);
   scroll-margin-block: 8px;
   /* content-visibility: auto for off-screen rendering skip */
   content-visibility: auto;
-  contain-intrinsic-size: auto 44px;
+  contain-intrinsic-size: auto var(--command-item-height);
 }
 
 [data-command-item][data-active] {
@@ -274,7 +301,7 @@
 
 [data-command-virtual-item] {
   content-visibility: auto;
-  contain-intrinsic-size: auto 44px;
+  contain-intrinsic-size: auto var(--command-item-height);
 }
 
 [data-command-list-virtual] {
@@ -295,7 +322,7 @@
 /* ─── Separator ─── */
 
 [data-command-separator] {
-  height: 1px;
+  block-size: 1px;
   opacity: 0.15;
   background: currentColor;
 }
@@ -303,7 +330,7 @@
 /* ─── Highlight ─── */
 
 [data-command-highlight] {
-  background: oklch(0.85 0.15 90 / 0.3);
+  background: var(--command-highlight-color);
   border-radius: 2px;
   color: inherit;
 }
@@ -311,7 +338,7 @@
 /* ─── Loading ─── */
 
 [data-command-loading] {
-  animation: command-loading-pulse 1.5s ease-in-out infinite;
+  animation: command-loading-pulse var(--command-duration-loading) ease-in-out infinite;
   animation-composition: accumulate;
 }
 
@@ -330,13 +357,13 @@
 /* ─── Page Transitions ─── */
 
 [data-command-page] {
-  animation: page-enter 200ms ease-out;
+  animation: page-enter var(--command-duration-page) ease-out;
 }
 
 @keyframes page-enter {
   from {
     opacity: 0;
-    translate: 8px 0;
+    translate: var(--command-translate-from) 0;
   }
   to {
     opacity: 1;
@@ -364,8 +391,8 @@
 
 .sr-only {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  inline-size: 1px;
+  block-size: 1px;
   padding: 0;
   margin: -1px;
   overflow: hidden;
@@ -373,6 +400,8 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+} /* end @layer command */
 
 /* ═══════════════════════════════════════════════════════════ */
 /* ─── Accessibility: Reduced Motion ─── */
@@ -459,7 +488,7 @@
   }
 
   [data-command-input] {
-    border-bottom: 1px solid ButtonText;
+    border-block-end: 1px solid ButtonText;
   }
 
   [data-command-separator] {
