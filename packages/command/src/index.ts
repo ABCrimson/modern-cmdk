@@ -41,3 +41,5 @@ export { IdbFrecencyStorage } from './frecency/idb-storage.js';
 export { parseShortcut, formatShortcut } from './keyboard/parser.js';
 export { matchesShortcut, findMatchingShortcut, detectConflicts } from './keyboard/matcher.js';
 export { KeyboardShortcutRegistry } from './keyboard/index.js';
+export { createTelemetryMiddleware } from './telemetry.js';
+export type { CommandTelemetryHooks, TelemetryMiddleware } from './telemetry.js';

@@ -1,6 +1,6 @@
 {
   "name": "@crimson_dev/command",
-  "version": "0.0.1",
+  "version": "0.9.0",
   "type": "module",
   "description": "Framework-agnostic headless command palette engine",
   "license": "MIT",
@@ -30,7 +30,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/crimson-dev/command",
+    "url": "https://github.com/ABCrimson/modern-cmdk",
     "directory": "packages/command"
   },
   "dependencies": {
