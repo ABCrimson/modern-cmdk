@@ -15,6 +15,7 @@
     "test:e2e": "playwright test",
     "bench": "vitest bench",
     "bench:ci": "node --import tsx benchmarks/standalone/ci-bench.ts",
+    "bench:compare": "node --import tsx benchmarks/standalone/compare-baseline.ts",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "format": "biome format . --write",

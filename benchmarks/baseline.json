@@ -1,0 +1,84 @@
+{
+  "$schema": "https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/baseline-schema.json",
+  "version": "0.9.0",
+  "date": "2026-03-07",
+  "environment": {
+    "node": "25.8.0",
+    "os": "ubuntu-24.04",
+    "typescript": "6.0.1-rc"
+  },
+  "regressionThresholds": {
+    "warning": 0.05,
+    "failure": 0.15
+  },
+  "benchmarks": {
+    "search": {
+      "ts-scorer-10k": {
+        "median_ms": 8.2,
+        "p99_ms": 14.5,
+        "target_ms": 16
+      },
+      "ts-scorer-100k": {
+        "median_ms": 85.0,
+        "p99_ms": 120.0,
+        "target_ms": 200
+      },
+      "wasm-scorer-100k": {
+        "median_ms": 0.8,
+        "p99_ms": 1.2,
+        "target_ms": 1
+      }
+    },
+    "filter": {
+      "incremental-10k": {
+        "median_ms": 1.2,
+        "p99_ms": 1.8,
+        "target_ms": 2
+      },
+      "incremental-100k": {
+        "median_ms": 12.0,
+        "p99_ms": 18.0,
+        "target_ms": 25
+      }
+    },
+    "frecency": {
+      "computeBonus-single": {
+        "median_ms": 0.028,
+        "p99_ms": 0.05,
+        "target_ms": 0.5
+      },
+      "getAllBonuses-10k": {
+        "median_ms": 3.5,
+        "p99_ms": 5.0,
+        "target_ms": 10
+      },
+      "recordSelection-1k": {
+        "median_ms": 0.8,
+        "p99_ms": 1.2,
+        "target_ms": 5
+      }
+    },
+    "stateUpdate": {
+      "navigate": {
+        "median_ms": 0.05,
+        "p99_ms": 0.1,
+        "target_ms": 1
+      },
+      "searchChange": {
+        "median_ms": 2.0,
+        "p99_ms": 3.5,
+        "target_ms": 4
+      }
+    },
+    "bundleSize": {
+      "core_gzip_kb": 2.8,
+      "react_gzip_kb": 4.2,
+      "wasm_js_gzip_kb": 1.5,
+      "limits": {
+        "core_kb": 3.5,
+        "react_kb": 5.0,
+        "wasm_js_kb": 2.0
+      }
+    }
+  }
+}
