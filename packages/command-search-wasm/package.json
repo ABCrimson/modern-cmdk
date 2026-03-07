@@ -1,0 +1,31 @@
+{
+  "name": "@crimson_dev/command-search-wasm",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Optional WASM-accelerated fuzzy search for @crimson_dev/command",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "pkg"],
+  "scripts": {
+    "build": "tsdown",
+    "build:wasm": "wasm-pack build crate --target web --out-dir ../pkg",
+    "typecheck": "tsc --noEmit"
+  },
+  "sideEffects": false,
+  "peerDependencies": {
+    "@crimson_dev/command": "workspace:*"
+  },
+  "keywords": ["wasm", "fuzzy-search", "trigram", "command-palette"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crimson-dev/command",
+    "directory": "packages/command-search-wasm"
+  }
+}

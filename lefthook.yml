@@ -1,0 +1,20 @@
+# Lefthook 2.1.2 — parallel execution, skip conditions, zero npm deps
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      glob: "*.{ts,tsx,js,jsx,json,css}"
+      run: biome check --staged --no-errors-on-unmatched {staged_files}
+    typecheck:
+      glob: "*.{ts,tsx}"
+      run: tsc --noEmit
+      skip:
+        - merge
+        - rebase
+
+pre-push:
+  commands:
+    test:
+      run: vitest run --reporter=dot
+    size:
+      run: pnpm build && size-limit

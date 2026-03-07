@@ -1,0 +1,111 @@
+/* OKLCH color space — perceptually uniform, P3-gamut capable */
+/* GPU-composited transitions — will-change, translate3d, @property */
+
+@property --color-hue {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 265;
+}
+
+@property --command-count {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --gradient-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+:root {
+  /* OKLCH primary palette — perceptually uniform lightness */
+  --color-primary: oklch(0.65 0.25 var(--color-hue));
+  --color-primary-hover: oklch(0.60 0.28 var(--color-hue));
+  --color-primary-active: oklch(0.55 0.30 var(--color-hue));
+  --color-primary-subtle: oklch(0.95 0.05 var(--color-hue));
+
+  /* Surface hierarchy — 5 levels for depth perception */
+  --color-surface-0: oklch(0.99 0.002 var(--color-hue));
+  --color-surface-1: oklch(0.97 0.005 var(--color-hue));
+  --color-surface-2: oklch(0.95 0.008 var(--color-hue));
+  --color-surface-3: oklch(0.93 0.010 var(--color-hue));
+  --color-surface-overlay: oklch(0.99 0.002 var(--color-hue) / 0.9);
+
+  /* Text hierarchy */
+  --color-text: oklch(0.20 0.02 var(--color-hue));
+  --color-text-secondary: oklch(0.40 0.02 var(--color-hue));
+  --color-text-muted: oklch(0.55 0.02 var(--color-hue));
+  --color-text-on-primary: oklch(0.99 0.005 var(--color-hue));
+
+  /* Semantic colors */
+  --color-accent: oklch(0.70 0.20 145);
+  --color-success: oklch(0.72 0.19 145);
+  --color-warning: oklch(0.80 0.18 85);
+  --color-danger: oklch(0.65 0.25 25);
+  --color-info: oklch(0.68 0.20 240);
+
+  /* Borders */
+  --color-border: oklch(0.90 0.01 var(--color-hue));
+  --color-border-hover: oklch(0.80 0.02 var(--color-hue));
+  --color-border-focus: oklch(0.65 0.25 var(--color-hue) / 0.5);
+
+  /* Variable fonts — Geist family */
+  --font-sans: 'Geist Sans Variable', 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  /* Font feature settings for optimal rendering */
+  --font-features-body: "kern" 1, "liga" 1, "calt" 1;
+  --font-features-code: "kern" 1, "liga" 0, "zero" 1, "ss01" 1;
+
+  /* GPU-composited transitions — cubic-bezier curves for perceived speed */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-expo: cubic-bezier(0.87, 0, 0.13, 1);
+  --ease-spring: linear(
+    0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%,
+    1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%,
+    1.129 32%, 1.051 36.4%, 1.017 38.8%, 0.991, 0.977 43%, 0.974 44.8%,
+    0.975 47.2%, 0.997 53.3%, 1.003 55.5%, 1.003 58.1%, 1 63.2%, 0.999 70.2%, 1
+  );
+
+  --transition-fast: 120ms var(--ease-out-expo);
+  --transition-normal: 200ms var(--ease-out-expo);
+  --transition-slow: 350ms var(--ease-out-expo);
+  --transition-spring: 500ms var(--ease-spring);
+
+  /* VitePress theme overrides */
+  --vp-c-brand-1: oklch(0.65 0.25 265);
+  --vp-c-brand-2: oklch(0.60 0.22 265);
+  --vp-c-brand-3: oklch(0.55 0.20 265);
+  --vp-font-family-base: var(--font-sans);
+  --vp-font-family-mono: var(--font-mono);
+}
+
+/* Dark mode — automatic via oklch lightness inversion */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: oklch(0.75 0.20 var(--color-hue));
+    --color-primary-hover: oklch(0.80 0.22 var(--color-hue));
+    --color-surface-0: oklch(0.15 0.01 var(--color-hue));
+    --color-surface-1: oklch(0.18 0.015 var(--color-hue));
+    --color-surface-2: oklch(0.21 0.018 var(--color-hue));
+    --color-surface-3: oklch(0.24 0.020 var(--color-hue));
+    --color-surface-overlay: oklch(0.15 0.01 var(--color-hue) / 0.9);
+    --color-text: oklch(0.93 0.01 var(--color-hue));
+    --color-text-secondary: oklch(0.75 0.015 var(--color-hue));
+    --color-text-muted: oklch(0.60 0.015 var(--color-hue));
+    --color-border: oklch(0.30 0.02 var(--color-hue));
+    --color-border-hover: oklch(0.40 0.03 var(--color-hue));
+  }
+}
+
+/* Forced colors / high contrast support */
+@media (forced-colors: active) {
+  :root {
+    --color-primary: LinkText;
+    --color-text: CanvasText;
+    --color-surface-0: Canvas;
+    --color-border: ButtonBorder;
+  }
+}

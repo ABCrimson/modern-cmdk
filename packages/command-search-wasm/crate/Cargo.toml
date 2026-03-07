@@ -1,0 +1,20 @@
+[package]
+name = "command-search-wasm"
+version = "0.1.0"
+edition = "2024"
+authors = ["Crimson Dev"]
+description = "WASM-accelerated fuzzy search engine for @crimson_dev/command"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.100"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde-wasm-bindgen = "0.6"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true

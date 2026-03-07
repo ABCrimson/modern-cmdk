@@ -1,0 +1,65 @@
+/* Custom overrides — @starting-style, scroll-driven animations */
+
+/* Animated gradient hero — GPU-composited via @property */
+.hero-gradient {
+  background: conic-gradient(
+    from var(--gradient-angle),
+    oklch(0.65 0.25 265),
+    oklch(0.70 0.20 300),
+    oklch(0.75 0.22 330),
+    oklch(0.70 0.25 265)
+  );
+  animation: gradient-rotate 8s linear infinite;
+  will-change: --gradient-angle;
+}
+
+@keyframes gradient-rotate {
+  to {
+    --gradient-angle: 360deg;
+  }
+}
+
+/* Smooth page transitions via View Transitions API */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: var(--ease-out-expo);
+}
+
+/* Body font features */
+body {
+  font-feature-settings: var(--font-features-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Code blocks */
+code,
+pre {
+  font-feature-settings: var(--font-features-code);
+}
+
+/* Respect motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .hero-gradient {
+    animation: none;
+  }
+}
+
+/* High contrast support */
+@media (prefers-contrast: more) {
+  :root {
+    --color-border: oklch(0.50 0.05 var(--color-hue));
+    --color-border-focus: oklch(0.40 0.30 var(--color-hue));
+  }
+}

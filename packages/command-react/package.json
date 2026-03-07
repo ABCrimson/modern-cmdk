@@ -1,0 +1,36 @@
+{
+  "name": "@crimson_dev/command-react",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "React 19 adapter for @crimson_dev/command",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "sideEffects": false,
+  "peerDependencies": {
+    "@crimson_dev/command": "workspace:*",
+    "react": "19.3.0-canary-46103596-20260305",
+    "react-dom": "19.3.0-canary-46103596-20260305"
+  },
+  "dependencies": {
+    "radix-ui": "1.4.4-rc.1766004502650"
+  },
+  "keywords": ["command-palette", "react", "react-19", "cmdk", "headless"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crimson-dev/command",
+    "directory": "packages/command-react"
+  }
+}

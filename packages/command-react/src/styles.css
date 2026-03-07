@@ -1,0 +1,485 @@
+/* @crimson_dev/command-react — GPU-composited animations */
+/* All animations respect prefers-reduced-motion */
+/* Spring easing via linear() approximation — perceptually smooth */
+/* Scroll-driven animations via animation-timeline: scroll() */
+/* WCAG 2.1 AA: forced-colors, prefers-contrast, prefers-reduced-motion */
+
+/* ─── CSS Custom Properties ─── */
+
+@property --command-list-height {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --command-count {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --command-overlay-opacity {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --command-dialog-scale {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.96;
+}
+
+@property --command-dialog-translate {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 8px;
+}
+
+/* ─── Spring Easing ─── */
+/* linear() approximation of a critically-damped spring (stiffness: 100, damping: 15) */
+/* Generated from spring physics: x(t) = 1 - e^(-ζωt)(cos(ωd·t) + (ζω/ωd)sin(ωd·t)) */
+
+/* ─── Overlay ─── */
+
+[data-command-overlay] {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: oklch(0 0 0 / var(--command-overlay-opacity, 0.4));
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+[data-command-overlay][data-state="open"] {
+  @starting-style {
+    --command-overlay-opacity: 0;
+    opacity: 0;
+  }
+  --command-overlay-opacity: 0.4;
+  opacity: 1;
+  transition:
+    opacity 200ms linear(0, 0.006, 0.025, 0.058, 0.104, 0.163, 0.234, 0.315, 0.404, 0.499, 0.596, 0.693, 0.784, 0.867, 0.939, 0.998, 1.0),
+    --command-overlay-opacity 200ms ease-out,
+    display 200ms allow-discrete,
+    overlay 200ms allow-discrete;
+}
+
+[data-command-overlay][data-state="closed"] {
+  --command-overlay-opacity: 0;
+  opacity: 0;
+  transition:
+    opacity 150ms cubic-bezier(0.4, 0, 1, 1),
+    --command-overlay-opacity 150ms ease-in,
+    display 150ms allow-discrete,
+    overlay 150ms allow-discrete;
+}
+
+/* ─── Dialog ─── */
+
+[data-command-dialog] {
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-block-start: min(20vh, 140px);
+  pointer-events: none;
+}
+
+[data-command-dialog] > * {
+  pointer-events: auto;
+}
+
+/* GPU-composited dialog animation — zero layout thrash */
+/* Spring easing via linear() approximation — 200ms entrance */
+[data-command-dialog][data-state="open"] {
+  @starting-style {
+    --command-dialog-scale: 0.96;
+    --command-dialog-translate: 8px;
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 8px;
+  }
+  --command-dialog-scale: 1;
+  --command-dialog-translate: 0px;
+  opacity: 1;
+  scale: 1;
+  translate: 0 0;
+  transition:
+    opacity 200ms linear(0, 0.006, 0.025, 0.058, 0.104, 0.163, 0.234, 0.315, 0.404, 0.499, 0.596, 0.693, 0.784, 0.867, 0.939, 0.998, 1.0),
+    scale 250ms linear(0, 0.009, 0.035, 0.078, 0.138, 0.213, 0.303, 0.404, 0.511, 0.621, 0.726, 0.822, 0.905, 0.971, 1.015, 1.033, 1.026, 1.0),
+    translate 250ms linear(0, 0.009, 0.035, 0.078, 0.138, 0.213, 0.303, 0.404, 0.511, 0.621, 0.726, 0.822, 0.905, 0.971, 1.015, 1.033, 1.026, 1.0),
+    display 250ms allow-discrete,
+    overlay 250ms allow-discrete;
+}
+
+/* Exit animation — quicker, no spring overshoot */
+[data-command-dialog][data-state="closed"] {
+  --command-dialog-scale: 0.96;
+  --command-dialog-translate: 4px;
+  opacity: 0;
+  scale: 0.96;
+  translate: 0 4px;
+  transition:
+    opacity 150ms cubic-bezier(0.4, 0, 1, 1),
+    scale 150ms cubic-bezier(0.4, 0, 1, 1),
+    translate 150ms cubic-bezier(0.4, 0, 1, 1),
+    display 150ms allow-discrete,
+    overlay 150ms allow-discrete;
+}
+
+/* Dialog content container */
+[data-command-dialog-content] {
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(480px, calc(100vh - 200px));
+  overflow: hidden;
+  border-radius: 12px;
+  contain: layout style;
+}
+
+/* ─── Input ─── */
+
+[data-command-input] {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  caret-color: currentColor;
+  font: inherit;
+}
+
+[data-command-input]::placeholder {
+  opacity: 0.5;
+}
+
+/* ─── List ─── */
+
+[data-command-list] {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-timeline: --list-scroll block;
+  will-change: height;
+  transition: height 200ms linear(0, 0.006, 0.025, 0.058, 0.104, 0.163, 0.234, 0.315, 0.404, 0.499, 0.596, 0.693, 0.784, 0.867, 0.939, 0.998, 1.0);
+  /* Smooth scrollbar */
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+/* ─── Fading Edge Indicators (Scroll-Driven) ─── */
+
+[data-command-list-inner] {
+  position: relative;
+  contain: layout style paint;
+}
+
+[data-command-list]::before,
+[data-command-list]::after {
+  content: '';
+  display: block;
+  position: sticky;
+  left: 0;
+  right: 0;
+  height: 16px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+
+/* Top fade — visible when scrolled down */
+[data-command-list]::before {
+  top: 0;
+  background: linear-gradient(to bottom, currentColor, transparent);
+  opacity: 0.08;
+  animation: fade-edge-top linear both;
+  animation-timeline: --list-scroll;
+  animation-range: 0px 24px;
+}
+
+/* Bottom fade — visible when not scrolled to bottom */
+[data-command-list]::after {
+  bottom: 0;
+  background: linear-gradient(to top, currentColor, transparent);
+  opacity: 0.08;
+  animation: fade-edge-bottom linear both;
+  animation-timeline: --list-scroll;
+  animation-range: calc(100% - 24px) 100%;
+}
+
+@keyframes fade-edge-top {
+  from { opacity: 0; }
+  to { opacity: 0.08; }
+}
+
+@keyframes fade-edge-bottom {
+  from { opacity: 0.08; }
+  to { opacity: 0; }
+}
+
+/* ─── Scroll-Driven Progress Indicator ─── */
+
+[data-command-scroll-indicator] {
+  height: 2px;
+  transform-origin: left;
+  scale: 0 1;
+  animation: scroll-progress linear both;
+  animation-timeline: --list-scroll;
+  will-change: scale;
+}
+
+@keyframes scroll-progress {
+  from { scale: 0 1; }
+  to { scale: 1 1; }
+}
+
+/* ─── Item ─── */
+
+[data-command-item] {
+  cursor: pointer;
+  user-select: none;
+  will-change: background-color;
+  transition: background-color 120ms linear(0, 0.25, 0.5, 0.75, 1.0);
+  scroll-margin-block: 8px;
+  /* content-visibility: auto for off-screen rendering skip */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 44px;
+}
+
+[data-command-item][data-active] {
+  /* will-change on parent already promotes the layer; no translate3d hack needed */
+}
+
+[data-command-item][data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ─── Focus Indicators ─── */
+
+[data-command-item]:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+[data-command-input]:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ─── Virtualization ─── */
+
+[data-command-virtual-item] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 44px;
+}
+
+[data-command-list-virtual] {
+  position: relative;
+  will-change: transform;
+}
+
+/* ─── Group ─── */
+
+[data-command-group-heading] {
+  user-select: none;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+
+/* ─── Separator ─── */
+
+[data-command-separator] {
+  height: 1px;
+  opacity: 0.15;
+  background: currentColor;
+}
+
+/* ─── Highlight ─── */
+
+[data-command-highlight] {
+  background: oklch(0.85 0.15 90 / 0.3);
+  border-radius: 2px;
+  color: inherit;
+}
+
+/* ─── Loading ─── */
+
+[data-command-loading] {
+  animation: command-loading-pulse 1.5s ease-in-out infinite;
+  animation-composition: accumulate;
+}
+
+@keyframes command-loading-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ─── Empty ─── */
+
+[data-command-empty] {
+  text-align: center;
+  opacity: 0.6;
+}
+
+/* ─── Page Transitions ─── */
+
+[data-command-page] {
+  animation: page-enter 200ms ease-out;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    translate: 8px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* ─── Shortcut Badge ─── */
+
+[data-command-shortcut] {
+  font-family: inherit;
+  font-size: 0.75em;
+  opacity: 0.5;
+  letter-spacing: 0.05em;
+}
+
+[data-command-badge] {
+  font-size: 0.7em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Screen Reader Only (for Radix Title/Description) ─── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ─── Accessibility: Reduced Motion ─── */
+/* ═══════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-command-dialog][data-state="open"],
+  [data-command-overlay][data-state="open"] {
+    transition: none !important;
+  }
+
+  [data-command-dialog][data-state="closed"],
+  [data-command-overlay][data-state="closed"] {
+    transition: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ─── Accessibility: High Contrast ─── */
+/* ═══════════════════════════════════════════════════════════ */
+
+@media (prefers-contrast: more) {
+  [data-command-item][data-active] {
+    outline: 3px solid currentColor;
+    outline-offset: -3px;
+  }
+
+  [data-command-item]:focus-visible {
+    outline-width: 3px;
+  }
+
+  [data-command-input]:focus-visible {
+    outline-width: 3px;
+  }
+
+  [data-command-separator] {
+    opacity: 0.4;
+  }
+
+  [data-command-group-heading] {
+    opacity: 0.8;
+  }
+
+  [data-command-highlight] {
+    background: oklch(0.85 0.2 90 / 0.5);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ─── Accessibility: Windows High Contrast (forced-colors) ─── */
+/* ═══════════════════════════════════════════════════════════ */
+
+@media (forced-colors: active) {
+  [data-command-item][data-active] {
+    background-color: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+
+  [data-command-item]:focus-visible {
+    outline-color: ButtonText;
+    outline-style: solid;
+  }
+
+  [data-command-overlay] {
+    background-color: Canvas;
+    opacity: 0.8;
+  }
+
+  [data-command-dialog-content] {
+    border: 2px solid ButtonText;
+    background-color: Canvas;
+  }
+
+  [data-command-input] {
+    border-bottom: 1px solid ButtonText;
+  }
+
+  [data-command-separator] {
+    background: ButtonText;
+    opacity: 1;
+  }
+
+  [data-command-highlight] {
+    background: transparent;
+    color: LinkText;
+    text-decoration: underline;
+  }
+
+  [data-command-group-heading] {
+    color: GrayText;
+    opacity: 1;
+  }
+
+  [data-command-item][data-disabled] {
+    color: GrayText;
+    opacity: 1;
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@crimson_dev/command-codemod",
+  "version": "0.7.1",
+  "type": "module",
+  "description": "Codemods for migrating from cmdk to @crimson_dev/command-react",
+  "license": "MIT",
+  "bin": {
+    "command-codemod": "./dist/cli.js"
+  },
+  "exports": {
+    "./transforms/*": "./dist/transforms/*.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsdown src/cli.ts src/transforms/*.ts --format esm --dts"
+  },
+  "dependencies": {
+    "jscodeshift": "17.1.1",
+    "globby": "^14.1.0"
+  },
+  "devDependencies": {
+    "tsdown": "0.21.0",
+    "typescript": "6.0.1-rc"
+  },
+  "engines": {
+    "node": ">=25.8.0"
+  }
+}
