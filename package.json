@@ -44,7 +44,7 @@
     "fake-indexeddb": "^6.2.5",
     "happy-dom": "20.8.3",
     "idb-keyval": "6.2.2",
-    "jscodeshift": "17.1.1",
+    "jscodeshift": "17.3.0",
     "lefthook": "2.1.2",
     "react": "19.3.0-canary-46103596-20260305",
     "react-dom": "19.3.0-canary-46103596-20260305",

@@ -57,8 +57,8 @@ importers:
         specifier: 6.2.2
         version: 6.2.2
       jscodeshift:
-        specifier: 17.1.1
-        version: 17.1.1
+        specifier: 17.3.0
+        version: 17.3.0
       lefthook:
         specifier: 2.1.2
         version: 2.1.2
@@ -139,8 +139,8 @@ importers:
         specifier: ^14.1.0
         version: 14.1.0
       jscodeshift:
-        specifier: 17.1.1
-        version: 17.1.1
+        specifier: 17.3.0
+        version: 17.3.0
     devDependencies:
       '@types/jscodeshift':
         specifier: ^17.3.0
@@ -2607,8 +2607,8 @@ packages:
   jsbi@4.3.2:
     resolution: {integrity: sha512-9fqMSQbhJykSeii05nxKl4m6Eqn2P6rOlYiS+C5Dr/HPIU/7yZxu5qzbs40tgaFORiw2Amd0mirjxatXYMkIew==}
 
-  jscodeshift@17.1.1:
-    resolution: {integrity: sha512-4vq5B1sD37aa9qed3zWq2XQPun5XjxebIv+Folr57lt8B4HLGDHEz1UG7pfcxzSaelzPbcY7yZSs033/S0i6wQ==}
+  jscodeshift@17.3.0:
+    resolution: {integrity: sha512-LjFrGOIORqXBU+jwfC9nbkjmQfFldtMIoS6d9z2LG/lkmyNXsJAySPT+2SWXJEoE68/bCWcxKpXH37npftgmow==}
     engines: {node: '>=16'}
     hasBin: true
     peerDependencies:
@@ -5836,7 +5836,7 @@ snapshots:
 
   jsbi@4.3.2: {}
 
-  jscodeshift@17.1.1:
+  jscodeshift@17.3.0:
     dependencies:
       '@babel/core': 7.29.0
       '@babel/parser': 7.29.0
