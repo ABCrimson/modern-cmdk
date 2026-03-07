@@ -3,6 +3,7 @@
 // Exit codes: 0 = pass, 1 = warning (>5% regression), 2 = failure (>15% regression)
 // Requires: tinybench 6.0.0, built packages (pnpm build), Node 25.8.0+
 
+import './setup.js';
 import { readFile } from 'node:fs/promises';
 import { Bench } from 'tinybench';
 

@@ -44,7 +44,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!@crimson_dev/command-monorepo' --parallel run build
+      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!@crimson_dev/command-monorepo' --parallel run build
       - run: pnpm vitest run --coverage --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v4
         if: always()
@@ -65,7 +65,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!@crimson_dev/command-monorepo' --parallel run build
+      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!@crimson_dev/command-monorepo' --parallel run build
       - run: pnpm playwright install --with-deps chromium firefox webkit
       - run: pnpm playwright test
       - uses: actions/upload-artifact@v4
@@ -87,7 +87,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!@crimson_dev/command-monorepo' --parallel run build
+      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!@crimson_dev/command-monorepo' --parallel run build
       - run: pnpm size-limit --json > size-report.json
       - uses: actions/upload-artifact@v4
         with:
@@ -121,7 +121,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!@crimson_dev/command-monorepo' --parallel run build
+      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!@crimson_dev/command-monorepo' --parallel run build
       - run: pnpm bench:ci
       - run: pnpm bench:compare
       - uses: actions/upload-artifact@v4

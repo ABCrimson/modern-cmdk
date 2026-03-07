@@ -1,4 +1,5 @@
 // Standalone tinybench 6.0.0 script for CI regression tracking
+import './setup.js';
 import { Bench } from 'tinybench';
 
 const bench = new Bench({
