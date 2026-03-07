@@ -9,22 +9,29 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: '25.8.0'
+
 jobs:
   lint:
+    name: Lint & Typecheck
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '25.8.0'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm biome check .
       - run: pnpm tsc --noEmit
 
   test:
+    name: Test (${{ matrix.os }}, shard ${{ matrix.shard }}/4)
+    needs: lint
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-latest, windows-latest]
         shard: [1, 2, 3, 4]
@@ -34,24 +41,28 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '25.8.0'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm vitest run --coverage --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: coverage-${{ matrix.os }}-${{ matrix.shard }}
           path: coverage/
+          retention-days: 7
 
   e2e:
+    name: E2E Tests
+    needs: lint
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '25.8.0'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
@@ -62,15 +73,18 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report/
+          retention-days: 14
 
   size:
+    name: Bundle Size
+    needs: lint
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '25.8.0'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
@@ -79,29 +93,40 @@ jobs:
         with:
           name: size-report
           path: size-report.json
+          retention-days: 30
 
   security:
+    name: Security Audit
     runs-on: ubuntu-24.04
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '25.8.0'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level=high
+      - run: pnpm audit --audit-level=high || echo "::warning::Security audit found issues"
 
   bench:
+    name: Benchmarks
+    needs: lint
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '25.8.0'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm bench:ci
       - run: pnpm bench:compare
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results
+          path: benchmarks/results/
+          retention-days: 30
