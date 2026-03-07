@@ -24,8 +24,8 @@ importers:
         specifier: ^0.5.1
         version: 0.5.1
       '@playwright/test':
-        specifier: 1.59.0-alpha-2026-03-06
-        version: 1.59.0-alpha-2026-03-06
+        specifier: 1.59.0-alpha-1771260841000
+        version: 1.59.0-alpha-1771260841000
       '@size-limit/preset-small-lib':
         specifier: 12.0.1
         version: 12.0.1(size-limit@12.0.1)
@@ -776,8 +776,8 @@ packages:
   '@oxc-project/types@0.115.0':
     resolution: {integrity: sha512-4n91DKnebUS4yjUHl2g3/b2T+IUdCfmoZGhmwsovZCDaJSs+QkVAM+0AqqTxHSsHfeiMuueT75cZaZcT/m0pSw==}
 
-  '@playwright/test@1.59.0-alpha-2026-03-06':
-    resolution: {integrity: sha512-XqRqRAlLn4gtJF0Ac677l43mYkxAAarQBacZjemXh+dUZzTlTszrQN4oYXIa207lYw6jmCp79itS0FT+0opDPA==}
+  '@playwright/test@1.59.0-alpha-1771260841000':
+    resolution: {integrity: sha512-kD7xy7Rn/Gs2Ft9Xb+i7s9ptNW9tH9jKOJ5gC9EOLSE2FjJmPM+2nsPUbvt+zos0z+fTCLg0gAnhk20WAbebtQ==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -2840,13 +2840,18 @@ packages:
     resolution: {integrity: sha512-/E57AYkoeQ25qkxMj5PBOVgF8Kiu/h7cYS30Z5+R7WaiCCBfLq58ZI/dSeaEKb9WVJV5n/03QwrN3IeWIFllvw==}
     engines: {node: '>=6'}
 
+  playwright-core@1.59.0-alpha-1771260841000:
+    resolution: {integrity: sha512-UH0pprK1JaM+XaHvfJBGxBdbSGTdJzD6DZtwK6fSzWoc/pxDZYFGit8/ncfaKx27u3ONRnfJAbHSeOoTf/eRnQ==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   playwright-core@1.59.0-alpha-2026-03-06:
     resolution: {integrity: sha512-3BxGdyyIFnLiOupanmaQ6SW/y1SdxSGgVdkhdJOJWgYFsqOUD5EqUltnoxLgmgtDfY0hp8ikXZ6w6hbBI+jlgA==}
     engines: {node: '>=18'}
     hasBin: true
 
-  playwright@1.59.0-alpha-2026-03-06:
-    resolution: {integrity: sha512-D7Mds1OL6m5nH4LzAs5LtsuT2J5B2/FJ+IrxE8MjcRsvSyDv6LZrdVRxZriT3+I2W5/IIQK8Fxc/Dx+HK/12tg==}
+  playwright@1.59.0-alpha-1771260841000:
+    resolution: {integrity: sha512-UzGIyvsclWogv3XAJZkXikdkraXwOEkfLVbyJ3Ihg+zgxrl2NnBJlBOxwRhDndsx+fe1H/D/vDbCVxA1aL9bNA==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -4048,9 +4053,9 @@ snapshots:
 
   '@oxc-project/types@0.115.0': {}
 
-  '@playwright/test@1.59.0-alpha-2026-03-06':
+  '@playwright/test@1.59.0-alpha-1771260841000':
     dependencies:
-      playwright: 1.59.0-alpha-2026-03-06
+      playwright: 1.59.0-alpha-1771260841000
 
   '@quansync/fs@1.0.0':
     dependencies:
@@ -5842,11 +5847,13 @@ snapshots:
     dependencies:
       find-up: 3.0.0
 
+  playwright-core@1.59.0-alpha-1771260841000: {}
+
   playwright-core@1.59.0-alpha-2026-03-06: {}
 
-  playwright@1.59.0-alpha-2026-03-06:
+  playwright@1.59.0-alpha-1771260841000:
     dependencies:
-      playwright-core: 1.59.0-alpha-2026-03-06
+      playwright-core: 1.59.0-alpha-1771260841000
     optionalDependencies:
       fsevents: 2.3.2
 
