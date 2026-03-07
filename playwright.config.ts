@@ -15,7 +15,6 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-    { name: 'edge', use: { ...devices['Desktop Edge'] } },
   ],
   webServer: {
     command: 'pnpm --filter playground run dev',
