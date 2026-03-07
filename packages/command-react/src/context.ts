@@ -4,7 +4,7 @@
 // React context definitions — use() for consuming in Suspense boundaries
 
 import type { CommandMachine, CommandState, ItemId } from '@crimson_dev/command';
-import { createContext } from 'react';
+import { type Context, createContext } from 'react';
 
 export interface CommandContextValue {
   readonly machine: CommandMachine;
@@ -18,7 +18,8 @@ export interface CommandContextValue {
   readonly label: string;
 }
 
-export const CommandContext = createContext<CommandContextValue | null>(null);
+export const CommandContext: Context<CommandContextValue | null> =
+  createContext<CommandContextValue | null>(null);
 CommandContext.displayName = 'CommandContext';
 
 export interface CommandGroupContextValue {
@@ -26,5 +27,6 @@ export interface CommandGroupContextValue {
   readonly headingId: string;
 }
 
-export const CommandGroupContext = createContext<CommandGroupContextValue | null>(null);
+export const CommandGroupContext: Context<CommandGroupContextValue | null> =
+  createContext<CommandGroupContextValue | null>(null);
 CommandGroupContext.displayName = 'CommandGroupContext';

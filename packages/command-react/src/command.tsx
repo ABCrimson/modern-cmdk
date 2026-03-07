@@ -101,7 +101,22 @@ function CommandRoot({
 }
 
 /** Compound component namespace */
-export const Command = Object.assign(CommandRoot, {
+export const Command: typeof CommandRoot & {
+  Input: typeof CommandInput;
+  List: typeof CommandList;
+  Item: typeof CommandItem;
+  Group: typeof CommandGroup;
+  Empty: typeof CommandEmpty;
+  Loading: typeof CommandLoading;
+  Separator: typeof CommandSeparator;
+  Dialog: typeof CommandDialog;
+  Highlight: typeof CommandHighlight;
+  Shortcut: typeof CommandShortcut;
+  Badge: typeof CommandBadge;
+  Page: typeof CommandPage;
+  AsyncItems: typeof CommandAsyncItems;
+  Activity: typeof CommandActivity;
+} = Object.assign(CommandRoot, {
   Input: CommandInput,
   List: CommandList,
   Item: CommandItem,
