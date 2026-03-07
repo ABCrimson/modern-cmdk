@@ -52,7 +52,7 @@ pnpm --version    # 11.0.0-alpha.12 or higher
 
 ```bash
 # Clone the repository
-git clone https://github.com/crimson-dev/command.git
+git clone https://github.com/ABCrimson/modern-cmdk.git
 cd command
 
 # Install dependencies (all packages + apps)
@@ -762,4 +762,4 @@ The WASM build is not required for developing the core or React packages.
 
 ## Questions?
 
-Open a [GitHub Discussion](https://github.com/crimson-dev/command/discussions) for questions, or file an [issue](https://github.com/crimson-dev/command/issues) for bugs and feature requests.
+Open a [GitHub Discussion](https://github.com/ABCrimson/modern-cmdk/discussions) for questions, or file an [issue](https://github.com/ABCrimson/modern-cmdk/issues) for bugs and feature requests.

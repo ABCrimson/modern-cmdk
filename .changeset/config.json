@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.0.0-next.1/schema.json",
-  "changelog": ["@changesets/changelog-github", { "repo": "crimson-dev/command" }],
+  "changelog": ["@changesets/changelog-github", { "repo": "ABCrimson/modern-cmdk" }],
   "commit": false,
   "fixed": [],
   "linked": [],

@@ -1,6 +1,6 @@
 {
   "name": "@crimson_dev/command-codemod",
-  "version": "0.7.1",
+  "version": "0.9.0",
   "type": "module",
   "description": "Codemods for migrating from cmdk to @crimson_dev/command-react",
   "license": "MIT",
@@ -24,5 +24,10 @@
   },
   "engines": {
     "node": ">=25.8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ABCrimson/modern-cmdk",
+    "directory": "packages/command-codemod"
   }
 }
