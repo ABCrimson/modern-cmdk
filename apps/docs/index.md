@@ -13,7 +13,7 @@ hero:
       link: /api/command
     - theme: alt
       text: GitHub
-      link: https://github.com/crimson-dev/command
+      link: https://github.com/ABCrimson/modern-cmdk
 features:
   - title: Framework Agnostic
     details: Pure TypeScript state machine core with zero dependencies. React 19 adapter included.

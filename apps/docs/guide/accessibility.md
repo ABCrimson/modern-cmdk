@@ -268,7 +268,7 @@ The active item has a visible focus indicator styled via `[data-command-item][da
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
   /* GPU layer promotion */
-  translate: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
 }
 
 [data-command-item]:focus-visible {

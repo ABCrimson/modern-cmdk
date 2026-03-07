@@ -48,6 +48,7 @@ export default defineConfig({
       { text: 'API', link: '/api/command' },
       { text: 'Examples', link: '/examples/basic' },
       { text: 'Architecture', link: '/architecture/overview' },
+      { text: 'Benchmarks', link: '/benchmarks' },
     ],
     sidebar: {
       '/guide/': [
@@ -69,6 +70,9 @@ export default defineConfig({
             { text: 'Keyboard Shortcuts', link: '/guide/shortcuts' },
             { text: 'Theming', link: '/guide/theming' },
             { text: 'Accessibility', link: '/guide/accessibility' },
+            { text: 'SSR / Next.js', link: '/guide/ssr' },
+            { text: 'Controlled Dialog', link: '/guide/controlled-dialog' },
+            { text: 'TypeScript Integration', link: '/guide/typescript-integration' },
           ],
         },
         {
@@ -105,6 +109,19 @@ export default defineConfig({
             { text: 'Frecency Ranking', link: '/examples/frecency' },
             { text: 'Keyboard Shortcuts', link: '/examples/shortcuts' },
             { text: 'Custom Theme', link: '/examples/theming' },
+            { text: 'Vanilla JS', link: '/examples/vanilla' },
+          ],
+        },
+      ],
+      '/recipes/': [
+        {
+          text: 'Recipes',
+          items: [
+            { text: 'File Picker', link: '/recipes/file-picker' },
+            { text: 'Emoji Picker', link: '/recipes/emoji-picker' },
+            { text: 'AI Chat Commands', link: '/recipes/ai-chat-commands' },
+            { text: 'Nested Commands', link: '/recipes/nested-commands' },
+            { text: 'Spotlight Search', link: '/recipes/spotlight-search' },
           ],
         },
       ],
@@ -118,7 +135,7 @@ export default defineConfig({
       ],
     },
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/crimson-dev/command' },
+      { icon: 'github', link: 'https://github.com/ABCrimson/modern-cmdk' },
     ],
   },
 });
