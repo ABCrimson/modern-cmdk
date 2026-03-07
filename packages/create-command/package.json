@@ -1,0 +1,22 @@
+{
+  "name": "@crimson_dev/create-command",
+  "version": "0.9.0",
+  "type": "module",
+  "description": "Scaffold a new @crimson_dev/command project",
+  "license": "MIT",
+  "bin": {
+    "create-command": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsdown": "0.21.0",
+    "typescript": "6.0.1-rc"
+  }
+}
