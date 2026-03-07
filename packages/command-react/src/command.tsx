@@ -92,6 +92,7 @@ function CommandRoot({
         className={className}
         role="application"
         aria-label={label}
+        aria-roledescription="command palette"
       >
         {children}
       </div>

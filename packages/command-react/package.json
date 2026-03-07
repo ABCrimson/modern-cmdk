@@ -1,6 +1,6 @@
 {
   "name": "@crimson_dev/command-react",
-  "version": "0.0.1",
+  "version": "0.9.0",
   "type": "module",
   "description": "React 19 adapter for @crimson_dev/command",
   "license": "MIT",
@@ -30,7 +30,7 @@
   "keywords": ["command-palette", "react", "react-19", "cmdk", "headless"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/crimson-dev/command",
+    "url": "https://github.com/ABCrimson/modern-cmdk",
     "directory": "packages/command-react"
   }
 }

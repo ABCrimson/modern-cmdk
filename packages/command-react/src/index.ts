@@ -6,8 +6,10 @@ export { useCommand } from './hooks/use-command.js';
 export { useCommandState } from './hooks/use-command-state.js';
 export { useRegisterItem, useRegisterGroup } from './hooks/use-register.js';
 export { useVirtualizer } from './hooks/use-virtualizer.js';
+export { useCommandDevtools } from './hooks/use-devtools.js';
 export { CommandHighlight } from './highlight.js';
 export { CommandActivity } from './activity.js';
+export { CommandErrorBoundary } from './error-boundary.js';
 
 export type { CommandRootProps } from './command.js';
 export type { CommandInputProps } from './input.js';
@@ -24,6 +26,7 @@ export type { CommandShortcutProps } from './shortcut.js';
 export type { CommandPageProps } from './page.js';
 export type { CommandAsyncItemsProps } from './async-items.js';
 export type { CommandActivityProps } from './activity.js';
+export type { CommandErrorBoundaryProps } from './error-boundary.js';
 export type { VirtualizerOptions, VirtualItem, VirtualizerReturn } from './hooks/use-virtualizer.js';
 export type { UseCommandReturn } from './hooks/use-command.js';
 export type { CommandContextValue } from './context.js';
