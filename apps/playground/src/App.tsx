@@ -8,13 +8,23 @@ import { useCallback, useEffect, useState } from 'react';
 import { BasicDemo } from './demos/BasicDemo.js';
 import { DialogDemo } from './demos/DialogDemo.js';
 import { VirtualizedDemo } from './demos/VirtualizedDemo.js';
+import { AllStatesDemo } from './demos/AllStatesDemo.js';
+import { RTLDemo } from './demos/RTLDemo.js';
+import { ErrorBoundaryDemo } from './demos/ErrorBoundaryDemo.js';
+import { DarkModeDemo } from './demos/DarkModeDemo.js';
+import { HighContrastDemo } from './demos/HighContrastDemo.js';
 
-type Route = '/' | '/dialog' | '/virtualization';
+type Route = '/' | '/dialog' | '/virtualization' | '/all-states' | '/rtl' | '/error-boundary' | '/dark-mode' | '/high-contrast';
 
 const ROUTES: readonly { path: Route; label: string }[] = [
   { path: '/', label: 'Basic' },
   { path: '/dialog', label: 'Dialog' },
   { path: '/virtualization', label: 'Virtualized (10K)' },
+  { path: '/all-states', label: 'All States' },
+  { path: '/rtl', label: 'RTL' },
+  { path: '/error-boundary', label: 'Error Boundary' },
+  { path: '/dark-mode', label: 'Dark Mode' },
+  { path: '/high-contrast', label: 'High Contrast' },
 ] as const;
 
 function getRouteFromPathname(): Route {
@@ -66,6 +76,11 @@ export function App(): React.ReactNode {
         {route === '/' && <BasicDemo />}
         {route === '/dialog' && <DialogDemo />}
         {route === '/virtualization' && <VirtualizedDemo />}
+        {route === '/all-states' && <AllStatesDemo />}
+        {route === '/rtl' && <RTLDemo />}
+        {route === '/error-boundary' && <ErrorBoundaryDemo />}
+        {route === '/dark-mode' && <DarkModeDemo />}
+        {route === '/high-contrast' && <HighContrastDemo />}
       </main>
     </div>
   );
