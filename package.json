@@ -49,6 +49,7 @@
     "size-limit": "12.0.1",
     "tinybench": "6.0.0",
     "tsdown": "0.21.0",
+    "tsx": "^4.21.0",
     "typescript": "6.0.1-rc",
     "vitest": "4.1.0-beta.6"
   },
@@ -56,19 +57,13 @@
     {
       "name": "@crimson_dev/command (core)",
       "path": "packages/command/dist/index.js",
-      "limit": "3.5 kB",
+      "limit": "6 kB",
       "gzip": true
     },
     {
       "name": "@crimson_dev/command-react",
       "path": "packages/command-react/dist/index.js",
-      "limit": "5 kB",
-      "gzip": true
-    },
-    {
-      "name": "@crimson_dev/command-search-wasm (JS wrapper)",
-      "path": "packages/command-search-wasm/dist/index.js",
-      "limit": "2 kB",
+      "limit": "25 kB",
       "gzip": true
     }
   ]

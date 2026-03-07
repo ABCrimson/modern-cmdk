@@ -1,5 +1,5 @@
 import { createCommandMachine, itemId } from '@crimson_dev/command';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('memory leak detection', () => {
   it('disposes cleanly without residual listeners after 100 machine lifecycles', () => {
@@ -18,7 +18,7 @@ describe('memory leak detection', () => {
     expect(true).toBe(true);
   });
 
-  it('subscription cleanup prevents memory growth', () => {
+  it('subscription cleanup prevents memory growth', async () => {
     using machine = createCommandMachine();
     const unsubs: Array<() => void> = [];
 
@@ -31,7 +31,9 @@ describe('memory leak detection', () => {
 
     // Machine should still be functional
     machine.send({ type: 'SEARCH_CHANGE', query: 'test' });
-    expect(machine.getState().search).toBe('test');
+    await vi.waitFor(() => {
+      expect(machine.getState().search).toBe('test');
+    });
   });
 
   it('rapid register/unregister cycle does not leak', () => {
