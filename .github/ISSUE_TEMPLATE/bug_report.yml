@@ -1,0 +1,61 @@
+name: Bug Report
+description: Report a bug in @crimson_dev/command
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill out the sections below.
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      description: Which package is affected?
+      options:
+        - "@crimson_dev/command (core)"
+        - "@crimson_dev/command-react"
+        - "@crimson_dev/command-search-wasm"
+        - "@crimson_dev/command-codemod"
+        - "Documentation"
+        - "Playground"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of the bug.
+      placeholder: What happened? What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Steps to reproduce, or a link to a minimal reproduction.
+      placeholder: |
+        1. Install @crimson_dev/command-react
+        2. Create a Command with ...
+        3. Type "..." in the input
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Node, browser, OS, and package versions.
+      render: shell
+      placeholder: |
+        Node: 22.x
+        Browser: Chrome 130
+        OS: macOS 15.2
+        @crimson_dev/command: 0.8.0
+        React: 19.3.0-canary
+    validations:
+      required: false
