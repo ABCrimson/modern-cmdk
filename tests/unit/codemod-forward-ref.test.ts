@@ -90,7 +90,7 @@ describe('codemod: forward-ref', () => {
     // forwardRef specifier should be removed but useState should remain
     expect(output).not.toContain('forwardRef');
     expect(output).toContain('useState');
-    expect(output).toContain(`from 'react'`);
+    expect(output).toMatch(/from\s+['"]react['"]/);
   });
 
   it('skips files without forwardRef', () => {

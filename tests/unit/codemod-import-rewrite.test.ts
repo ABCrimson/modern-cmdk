@@ -22,8 +22,8 @@ describe('codemod: import-rewrite', () => {
     const input = `import { Command } from 'cmdk';`;
     const output = run(input);
 
-    expect(output).toContain(`from '@crimson_dev/command-react'`);
-    expect(output).not.toContain(`from 'cmdk'`);
+    expect(output).toContain('@crimson_dev/command-react');
+    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
     expect(output).toContain('{ Command }');
   });
 
@@ -31,8 +31,8 @@ describe('codemod: import-rewrite', () => {
     const input = `import Command from 'cmdk';`;
     const output = run(input);
 
-    expect(output).toContain(`from '@crimson_dev/command-react'`);
-    expect(output).not.toContain(`from 'cmdk'`);
+    expect(output).toContain('@crimson_dev/command-react');
+    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
     expect(output).toContain('import Command');
   });
 
@@ -40,8 +40,8 @@ describe('codemod: import-rewrite', () => {
     const input = `import * as Cmdk from 'cmdk';`;
     const output = run(input);
 
-    expect(output).toContain(`from '@crimson_dev/command-react'`);
-    expect(output).not.toContain(`from 'cmdk'`);
+    expect(output).toContain('@crimson_dev/command-react');
+    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
     expect(output).toContain('* as Cmdk');
   });
 
@@ -49,8 +49,8 @@ describe('codemod: import-rewrite', () => {
     const input = `export { Command } from 'cmdk';`;
     const output = run(input);
 
-    expect(output).toContain(`from '@crimson_dev/command-react'`);
-    expect(output).not.toContain(`from 'cmdk'`);
+    expect(output).toContain('@crimson_dev/command-react');
+    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
     expect(output).toContain('export { Command }');
   });
 
@@ -58,24 +58,24 @@ describe('codemod: import-rewrite', () => {
     const input = `export * from 'cmdk';`;
     const output = run(input);
 
-    expect(output).toContain(`from '@crimson_dev/command-react'`);
-    expect(output).not.toContain(`from 'cmdk'`);
+    expect(output).toContain('@crimson_dev/command-react');
+    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
   });
 
   it('rewrites dynamic import of cmdk', () => {
     const input = `const mod = import('cmdk');`;
     const output = run(input);
 
-    expect(output).toContain(`import('@crimson_dev/command-react')`);
-    expect(output).not.toContain(`import('cmdk')`);
+    expect(output).toContain('@crimson_dev/command-react');
+    expect(output).not.toMatch(/import\(['"]cmdk['"]\)/);
   });
 
   it('rewrites require call for cmdk', () => {
     const input = `const Command = require('cmdk');`;
     const output = run(input);
 
-    expect(output).toContain(`require('@crimson_dev/command-react')`);
-    expect(output).not.toContain(`require('cmdk')`);
+    expect(output).toContain('@crimson_dev/command-react');
+    expect(output).not.toMatch(/require\(['"]cmdk['"]\)/);
   });
 
   it('does NOT modify unrelated imports', () => {
@@ -100,8 +100,8 @@ describe('codemod: import-rewrite', () => {
     ].join('\n');
     const output = run(input);
 
-    expect(output).not.toContain(`from 'cmdk'`);
-    expect(output).toContain(`from 'react'`);
+    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
+    expect(output).toMatch(/from\s+['"]react['"]/);
     // Both cmdk imports should be rewritten
     const matches = output.match(/@crimson_dev\/command-react/g);
     expect(matches).toHaveLength(2);

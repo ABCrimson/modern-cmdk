@@ -29,12 +29,9 @@ export default defineConfig({
         '**/command-codemod/**',
         '**/create-command/**',
       ],
-      thresholds: {
-        statements: 40,
-        branches: 35,
-        functions: 35,
-        lines: 40,
-      },
+      // Thresholds disabled: sharded CI runs produce partial coverage per shard.
+      // Check merged coverage report for overall thresholds.
+      thresholds: undefined,
     },
     benchmark: {
       include: ['benchmarks/**/*.bench.ts'],

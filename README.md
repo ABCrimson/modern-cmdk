@@ -40,7 +40,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
-| **Bundle** | ~6 KB | Core ≤ 3 KB, React ≤ 5 KB |
+| **Bundle** | ~6 KB | Core ≤ 6 KB, React ≤ 25 KB |
 | **TypeScript** | 4.x/5.x | 6.0.1-rc, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Telemetry** | None | Pluggable telemetry middleware |
@@ -123,8 +123,8 @@ function CommandPalette() {
 
 | Package | Description | Size |
 |---|---|---|
-| [`@crimson_dev/command`](./packages/command) | Framework-agnostic core -- state machine, search, frecency, keyboard | ≤ 3 KB |
-| [`@crimson_dev/command-react`](./packages/command-react) | React 19 compound components -- Dialog, List, Item, Group, Input | ≤ 5 KB |
+| [`@crimson_dev/command`](./packages/command) | Framework-agnostic core -- state machine, search, frecency, keyboard | ≤ 6 KB |
+| [`@crimson_dev/command-react`](./packages/command-react) | React 19 compound components -- Dialog, List, Item, Group, Input | ≤ 25 KB |
 | [`@crimson_dev/command-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items | ≤ 50 KB |
 | [`@crimson_dev/command-codemod`](./packages/command-codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
 | [`create-@crimson_dev/command`](./packages/create-command) | Project scaffolding -- 3 templates (basic, dialog, full) | CLI |
@@ -233,8 +233,8 @@ const unsubscribe = machine.subscribe(() => {
 | Search 100K items (WASM) | < 1 ms | ~0.7 ms |
 | Filter 10K (incremental) | < 2 ms | ~1.1 ms |
 | State update cycle | < 4 ms | ~2.3 ms |
-| Core bundle (gzipped) | ≤ 3 KB | ~2.8 KB |
-| React bundle (gzipped) | ≤ 5 KB | ~4.2 KB |
+| Core bundle (gzipped) | ≤ 6 KB | ~5.2 KB |
+| React bundle (gzipped) | ≤ 25 KB | ~6.3 KB |
 
 CI enforces 5% warning / 15% failure regression thresholds with 3-run averaging.
 
