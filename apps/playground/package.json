@@ -10,8 +10,8 @@
   "dependencies": {
     "@crimson_dev/command": "workspace:*",
     "@crimson_dev/command-react": "workspace:*",
-    "react": "19.3.0-canary-46103596-20260305",
-    "react-dom": "19.3.0-canary-46103596-20260305"
+    "react": "19.3.0-canary-52684925-20251110",
+    "react-dom": "19.3.0-canary-52684925-20251110"
   },
   "devDependencies": {
     "vite": "^7.0.0",
