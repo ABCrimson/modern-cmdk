@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { createSearchEngine, itemId } from '@crimson_dev/command';
 import type { CommandItem } from '@crimson_dev/command';
+import { createSearchEngine, itemId } from '@crimson_dev/command';
+import { describe, expect, it } from 'vitest';
 
 function makeItem(id: string, value: string, keywords?: string[]): CommandItem {
   return { id: itemId(id), value, keywords };
@@ -52,7 +52,7 @@ describe('Incremental Filtering (0.0.6)', () => {
     // Now search "b" — not incremental, should find Banana
     const results = engine.search('b', items).toArray();
     expect(results.length).toBe(1);
-    expect(results[0]!.id).toBe(itemId('banana'));
+    expect(results[0]?.id).toBe(itemId('banana'));
   });
 
   it('should do full rescan when query is shorter than previous', () => {
@@ -74,11 +74,7 @@ describe('Incremental Filtering (0.0.6)', () => {
 
   it('should return all items for empty query', () => {
     using engine = createSearchEngine();
-    const items = [
-      makeItem('a', 'Apple'),
-      makeItem('b', 'Banana'),
-      makeItem('c', 'Cherry'),
-    ];
+    const items = [makeItem('a', 'Apple'), makeItem('b', 'Banana'), makeItem('c', 'Cherry')];
     engine.index(items);
 
     const results = engine.search('', items).toArray();
@@ -120,7 +116,7 @@ describe('Incremental Filtering (0.0.6)', () => {
 
     // Results should be sorted by score (descending)
     for (let i = 1; i < results.length; i++) {
-      expect(results[i - 1]!.score).toBeGreaterThanOrEqual(results[i]!.score);
+      expect(results[i - 1]?.score).toBeGreaterThanOrEqual(results[i]?.score);
     }
   });
 

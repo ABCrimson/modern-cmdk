@@ -41,8 +41,45 @@
 /* Override these on [data-command-root] or :root to customize all animations */
 
 [data-command-root] {
-  --command-spring-easing: linear(0, 0.006, 0.025, 0.058, 0.104, 0.163, 0.234, 0.315, 0.404, 0.499, 0.596, 0.693, 0.784, 0.867, 0.939, 0.998, 1.0);
-  --command-spring-easing-bouncy: linear(0, 0.009, 0.035, 0.078, 0.138, 0.213, 0.303, 0.404, 0.511, 0.621, 0.726, 0.822, 0.905, 0.971, 1.015, 1.033, 1.026, 1.0);
+  --command-spring-easing: linear(
+    0,
+    0.006,
+    0.025,
+    0.058,
+    0.104,
+    0.163,
+    0.234,
+    0.315,
+    0.404,
+    0.499,
+    0.596,
+    0.693,
+    0.784,
+    0.867,
+    0.939,
+    0.998,
+    1
+  );
+  --command-spring-easing-bouncy: linear(
+    0,
+    0.009,
+    0.035,
+    0.078,
+    0.138,
+    0.213,
+    0.303,
+    0.404,
+    0.511,
+    0.621,
+    0.726,
+    0.822,
+    0.905,
+    0.971,
+    1.015,
+    1.033,
+    1.026,
+    1
+  );
   --command-easing-exit: cubic-bezier(0.4, 0, 1, 1);
   --command-duration-enter: 200ms;
   --command-duration-enter-scale: 250ms;
@@ -67,340 +104,355 @@
 /* Generated from spring physics: x(t) = 1 - e^(-zt)(cos(wd*t) + (zw/wd)sin(wd*t)) */
 
 @layer command {
+  /* ─── Overlay ─── */
 
-/* ─── Overlay ─── */
+  [data-command-overlay] {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: oklch(0 0 0 / var(--command-overlay-opacity, 0.4));
+    backdrop-filter: blur(var(--command-overlay-blur));
+    -webkit-backdrop-filter: blur(var(--command-overlay-blur));
+  }
 
-[data-command-overlay] {
-  position: fixed;
-  inset: 0;
-  z-index: 9998;
-  background: oklch(0 0 0 / var(--command-overlay-opacity, 0.4));
-  backdrop-filter: blur(var(--command-overlay-blur));
-  -webkit-backdrop-filter: blur(var(--command-overlay-blur));
-}
+  [data-command-overlay][data-state="open"] {
+    @starting-style {
+      --command-overlay-opacity: 0;
+      opacity: 0;
+    }
+    --command-overlay-opacity: 0.4;
+    opacity: 1;
+    transition:
+      opacity var(--command-duration-enter) var(--command-spring-easing),
+      --command-overlay-opacity var(--command-duration-enter) ease-out,
+      display var(--command-duration-enter) allow-discrete,
+      overlay var(--command-duration-enter) allow-discrete;
+  }
 
-[data-command-overlay][data-state="open"] {
-  @starting-style {
+  [data-command-overlay][data-state="closed"] {
     --command-overlay-opacity: 0;
     opacity: 0;
+    transition:
+      opacity var(--command-duration-exit) var(--command-easing-exit),
+      --command-overlay-opacity var(--command-duration-exit) ease-in,
+      display var(--command-duration-exit) allow-discrete,
+      overlay var(--command-duration-exit) allow-discrete;
   }
-  --command-overlay-opacity: 0.4;
-  opacity: 1;
-  transition:
-    opacity var(--command-duration-enter) var(--command-spring-easing),
-    --command-overlay-opacity var(--command-duration-enter) ease-out,
-    display var(--command-duration-enter) allow-discrete,
-    overlay var(--command-duration-enter) allow-discrete;
-}
 
-[data-command-overlay][data-state="closed"] {
-  --command-overlay-opacity: 0;
-  opacity: 0;
-  transition:
-    opacity var(--command-duration-exit) var(--command-easing-exit),
-    --command-overlay-opacity var(--command-duration-exit) ease-in,
-    display var(--command-duration-exit) allow-discrete,
-    overlay var(--command-duration-exit) allow-discrete;
-}
+  /* ─── Dialog ─── */
 
-/* ─── Dialog ─── */
+  [data-command-dialog] {
+    position: fixed;
+    z-index: 9999;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-block-start: min(20vh, 140px);
+    pointer-events: none;
+  }
 
-[data-command-dialog] {
-  position: fixed;
-  z-index: 9999;
-  inset: 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-block-start: min(20vh, 140px);
-  pointer-events: none;
-}
+  [data-command-dialog] > * {
+    pointer-events: auto;
+  }
 
-[data-command-dialog] > * {
-  pointer-events: auto;
-}
+  /* GPU-composited dialog animation — zero layout thrash */
+  /* Spring easing via linear() approximation */
+  [data-command-dialog][data-state="open"] {
+    @starting-style {
+      --command-dialog-scale: var(--command-scale-from);
+      --command-dialog-translate: var(--command-translate-from);
+      opacity: 0;
+      scale: var(--command-scale-from);
+      translate: 0 var(--command-translate-from);
+    }
+    --command-dialog-scale: 1;
+    --command-dialog-translate: 0px;
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+    transition:
+      opacity var(--command-duration-enter) var(--command-spring-easing),
+      scale var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
+      translate var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
+      display var(--command-duration-enter-scale) allow-discrete,
+      overlay var(--command-duration-enter-scale) allow-discrete;
+  }
 
-/* GPU-composited dialog animation — zero layout thrash */
-/* Spring easing via linear() approximation */
-[data-command-dialog][data-state="open"] {
-  @starting-style {
+  /* Exit animation — quicker, no spring overshoot */
+  [data-command-dialog][data-state="closed"] {
     --command-dialog-scale: var(--command-scale-from);
-    --command-dialog-translate: var(--command-translate-from);
+    --command-dialog-translate: 4px;
     opacity: 0;
     scale: var(--command-scale-from);
-    translate: 0 var(--command-translate-from);
+    translate: 0 4px;
+    transition:
+      opacity var(--command-duration-exit) var(--command-easing-exit),
+      scale var(--command-duration-exit) var(--command-easing-exit),
+      translate var(--command-duration-exit) var(--command-easing-exit),
+      display var(--command-duration-exit) allow-discrete,
+      overlay var(--command-duration-exit) allow-discrete;
   }
-  --command-dialog-scale: 1;
-  --command-dialog-translate: 0px;
-  opacity: 1;
-  scale: 1;
-  translate: 0 0;
-  transition:
-    opacity var(--command-duration-enter) var(--command-spring-easing),
-    scale var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
-    translate var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
-    display var(--command-duration-enter-scale) allow-discrete,
-    overlay var(--command-duration-enter-scale) allow-discrete;
-}
 
-/* Exit animation — quicker, no spring overshoot */
-[data-command-dialog][data-state="closed"] {
-  --command-dialog-scale: var(--command-scale-from);
-  --command-dialog-translate: 4px;
-  opacity: 0;
-  scale: var(--command-scale-from);
-  translate: 0 4px;
-  transition:
-    opacity var(--command-duration-exit) var(--command-easing-exit),
-    scale var(--command-duration-exit) var(--command-easing-exit),
-    translate var(--command-duration-exit) var(--command-easing-exit),
-    display var(--command-duration-exit) allow-discrete,
-    overlay var(--command-duration-exit) allow-discrete;
-}
+  /* Dialog content container */
+  [data-command-dialog-content] {
+    inline-size: min(var(--command-dialog-max-width), calc(100vi - 32px));
+    max-block-size: min(var(--command-dialog-max-height), calc(100vb - 200px));
+    overflow: hidden;
+    border-radius: var(--command-dialog-radius);
+    contain: layout style;
+  }
 
-/* Dialog content container */
-[data-command-dialog-content] {
-  inline-size: min(var(--command-dialog-max-width), calc(100vi - 32px));
-  max-block-size: min(var(--command-dialog-max-height), calc(100vb - 200px));
-  overflow: hidden;
-  border-radius: var(--command-dialog-radius);
-  contain: layout style;
-}
+  /* ─── Input ─── */
 
-/* ─── Input ─── */
+  [data-command-input] {
+    inline-size: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    caret-color: currentColor;
+    font: inherit;
+  }
 
-[data-command-input] {
-  inline-size: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  caret-color: currentColor;
-  font: inherit;
-}
+  [data-command-input]::placeholder {
+    opacity: 0.5;
+  }
 
-[data-command-input]::placeholder {
-  opacity: 0.5;
-}
+  /* ─── List ─── */
 
-/* ─── List ─── */
+  [data-command-list] {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-timeline: --list-scroll block;
+    will-change: height;
+    transition: height var(--command-duration-list) var(--command-spring-easing);
+    /* Smooth scrollbar */
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
 
-[data-command-list] {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scroll-timeline: --list-scroll block;
-  will-change: height;
-  transition: height var(--command-duration-list) var(--command-spring-easing);
-  /* Smooth scrollbar */
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-}
+  /* ─── Fading Edge Indicators (Scroll-Driven) ─── */
 
-/* ─── Fading Edge Indicators (Scroll-Driven) ─── */
+  [data-command-list-inner] {
+    position: relative;
+    contain: layout style paint;
+  }
 
-[data-command-list-inner] {
-  position: relative;
-  contain: layout style paint;
-}
-
-[data-command-list]::before,
-[data-command-list]::after {
-  content: '';
-  display: block;
-  position: sticky;
-  inset-inline: 0;
-  block-size: var(--command-fade-edge-size);
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0;
-  transition: opacity var(--command-duration-exit) ease-out;
-}
-
-/* Top fade — visible when scrolled down */
-[data-command-list]::before {
-  inset-block-start: 0;
-  background: linear-gradient(to bottom, currentColor, transparent);
-  opacity: 0.08;
-  animation: fade-edge-top linear both;
-  animation-timeline: --list-scroll;
-  animation-range: 0px 24px;
-}
-
-/* Bottom fade — visible when not scrolled to bottom */
-[data-command-list]::after {
-  inset-block-end: 0;
-  background: linear-gradient(to top, currentColor, transparent);
-  opacity: 0.08;
-  animation: fade-edge-bottom linear both;
-  animation-timeline: --list-scroll;
-  animation-range: calc(100% - 24px) 100%;
-}
-
-@keyframes fade-edge-top {
-  from { opacity: 0; }
-  to { opacity: 0.08; }
-}
-
-@keyframes fade-edge-bottom {
-  from { opacity: 0.08; }
-  to { opacity: 0; }
-}
-
-/* ─── Scroll-Driven Progress Indicator ─── */
-
-[data-command-scroll-indicator] {
-  block-size: 2px;
-  transform-origin: inline-start;
-  scale: 0 1;
-  animation: scroll-progress linear both;
-  animation-timeline: --list-scroll;
-  will-change: scale;
-}
-
-@keyframes scroll-progress {
-  from { scale: 0 1; }
-  to { scale: 1 1; }
-}
-
-/* ─── Item ─── */
-
-[data-command-item] {
-  cursor: pointer;
-  user-select: none;
-  will-change: background-color;
-  transition: background-color var(--command-duration-item) linear(0, 0.25, 0.5, 0.75, 1.0);
-  scroll-margin-block: 8px;
-  /* content-visibility: auto for off-screen rendering skip */
-  content-visibility: auto;
-  contain-intrinsic-size: auto var(--command-item-height);
-}
-
-[data-command-item][data-active] {
-  /* will-change on parent already promotes the layer; no translate3d hack needed */
-}
-
-[data-command-item][data-disabled] {
-  cursor: not-allowed;
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-/* ─── Focus Indicators ─── */
-
-[data-command-item]:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: -2px;
-  border-radius: 4px;
-}
-
-[data-command-input]:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
-}
-
-/* ─── Virtualization ─── */
-
-[data-command-virtual-item] {
-  content-visibility: auto;
-  contain-intrinsic-size: auto var(--command-item-height);
-}
-
-[data-command-list-virtual] {
-  position: relative;
-  will-change: transform;
-}
-
-/* ─── Group ─── */
-
-[data-command-group-heading] {
-  user-select: none;
-  font-size: 0.75em;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.6;
-}
-
-/* ─── Separator ─── */
-
-[data-command-separator] {
-  block-size: 1px;
-  opacity: 0.15;
-  background: currentColor;
-}
-
-/* ─── Highlight ─── */
-
-[data-command-highlight] {
-  background: var(--command-highlight-color);
-  border-radius: 2px;
-  color: inherit;
-}
-
-/* ─── Loading ─── */
-
-[data-command-loading] {
-  animation: command-loading-pulse var(--command-duration-loading) ease-in-out infinite;
-  animation-composition: accumulate;
-}
-
-@keyframes command-loading-pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-
-/* ─── Empty ─── */
-
-[data-command-empty] {
-  text-align: center;
-  opacity: 0.6;
-}
-
-/* ─── Page Transitions ─── */
-
-[data-command-page] {
-  animation: page-enter var(--command-duration-page) ease-out;
-}
-
-@keyframes page-enter {
-  from {
+  [data-command-list]::before,
+  [data-command-list]::after {
+    content: "";
+    display: block;
+    position: sticky;
+    inset-inline: 0;
+    block-size: var(--command-fade-edge-size);
+    pointer-events: none;
+    z-index: 1;
     opacity: 0;
-    translate: var(--command-translate-from) 0;
+    transition: opacity var(--command-duration-exit) ease-out;
   }
-  to {
-    opacity: 1;
-    translate: 0 0;
+
+  /* Top fade — visible when scrolled down */
+  [data-command-list]::before {
+    inset-block-start: 0;
+    background: linear-gradient(to bottom, currentColor, transparent);
+    opacity: 0.08;
+    animation: fade-edge-top linear both;
+    animation-timeline: --list-scroll;
+    animation-range: 0px 24px;
   }
-}
 
-/* ─── Shortcut Badge ─── */
+  /* Bottom fade — visible when not scrolled to bottom */
+  [data-command-list]::after {
+    inset-block-end: 0;
+    background: linear-gradient(to top, currentColor, transparent);
+    opacity: 0.08;
+    animation: fade-edge-bottom linear both;
+    animation-timeline: --list-scroll;
+    animation-range: calc(100% - 24px) 100%;
+  }
 
-[data-command-shortcut] {
-  font-family: inherit;
-  font-size: 0.75em;
-  opacity: 0.5;
-  letter-spacing: 0.05em;
-}
+  @keyframes fade-edge-top {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 0.08;
+    }
+  }
 
-[data-command-badge] {
-  font-size: 0.7em;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+  @keyframes fade-edge-bottom {
+    from {
+      opacity: 0.08;
+    }
+    to {
+      opacity: 0;
+    }
+  }
 
-/* ─── Screen Reader Only (for Radix Title/Description) ─── */
+  /* ─── Scroll-Driven Progress Indicator ─── */
 
-.sr-only {
-  position: absolute;
-  inline-size: 1px;
-  block-size: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
+  [data-command-scroll-indicator] {
+    block-size: 2px;
+    transform-origin: inline-start;
+    scale: 0 1;
+    animation: scroll-progress linear both;
+    animation-timeline: --list-scroll;
+    will-change: scale;
+  }
 
+  @keyframes scroll-progress {
+    from {
+      scale: 0 1;
+    }
+    to {
+      scale: 1 1;
+    }
+  }
+
+  /* ─── Item ─── */
+
+  [data-command-item] {
+    cursor: pointer;
+    user-select: none;
+    will-change: background-color;
+    transition: background-color var(--command-duration-item) linear(0, 0.25, 0.5, 0.75, 1);
+    scroll-margin-block: 8px;
+    /* content-visibility: auto for off-screen rendering skip */
+    content-visibility: auto;
+    contain-intrinsic-size: auto var(--command-item-height);
+  }
+
+  [data-command-item][data-active] {
+    /* will-change on parent already promotes the layer; no translate3d hack needed */
+  }
+
+  [data-command-item][data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* ─── Focus Indicators ─── */
+
+  [data-command-item]:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+    border-radius: 4px;
+  }
+
+  [data-command-input]:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  /* ─── Virtualization ─── */
+
+  [data-command-virtual-item] {
+    content-visibility: auto;
+    contain-intrinsic-size: auto var(--command-item-height);
+  }
+
+  [data-command-list-virtual] {
+    position: relative;
+    will-change: transform;
+  }
+
+  /* ─── Group ─── */
+
+  [data-command-group-heading] {
+    user-select: none;
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.6;
+  }
+
+  /* ─── Separator ─── */
+
+  [data-command-separator] {
+    block-size: 1px;
+    opacity: 0.15;
+    background: currentColor;
+  }
+
+  /* ─── Highlight ─── */
+
+  [data-command-highlight] {
+    background: var(--command-highlight-color);
+    border-radius: 2px;
+    color: inherit;
+  }
+
+  /* ─── Loading ─── */
+
+  [data-command-loading] {
+    animation: command-loading-pulse var(--command-duration-loading) ease-in-out infinite;
+    animation-composition: accumulate;
+  }
+
+  @keyframes command-loading-pulse {
+    0%,
+    100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* ─── Empty ─── */
+
+  [data-command-empty] {
+    text-align: center;
+    opacity: 0.6;
+  }
+
+  /* ─── Page Transitions ─── */
+
+  [data-command-page] {
+    animation: page-enter var(--command-duration-page) ease-out;
+  }
+
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      translate: var(--command-translate-from) 0;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  /* ─── Shortcut Badge ─── */
+
+  [data-command-shortcut] {
+    font-family: inherit;
+    font-size: 0.75em;
+    opacity: 0.5;
+    letter-spacing: 0.05em;
+  }
+
+  [data-command-badge] {
+    font-size: 0.7em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ─── Screen Reader Only (for Radix Title/Description) ─── */
+
+  .sr-only {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
 } /* end @layer command */
 
 /* ═══════════════════════════════════════════════════════════ */
@@ -411,20 +463,20 @@
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 
   [data-command-dialog][data-state="open"],
   [data-command-overlay][data-state="open"] {
-    transition: none !important;
+    transition: none;
   }
 
   [data-command-dialog][data-state="closed"],
   [data-command-overlay][data-state="closed"] {
-    transition: none !important;
+    transition: none;
   }
 }
 

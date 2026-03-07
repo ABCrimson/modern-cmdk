@@ -3,9 +3,9 @@
 // packages/command-react/src/hooks/use-register.ts
 // Item/group registration — useInsertionEffect for paint-before-commit
 
-import { use, useId, useInsertionEffect } from 'react';
 import type { CommandGroup, CommandItem, GroupId, ItemId } from '@crimson_dev/command';
 import { groupId, itemId } from '@crimson_dev/command';
+import { use, useId, useInsertionEffect } from 'react';
 import { CommandContext } from '../context.js';
 
 /** Register a command item with the machine — auto-deregisters on unmount */
@@ -47,7 +47,17 @@ export function useRegisterItem(
     return () => {
       ctx.machine.send({ type: 'UNREGISTER_ITEM', id });
     };
-  }, [ctx.machine, id, value]);
+  }, [
+    ctx.machine,
+    id,
+    value,
+    options.groupId,
+    options?.data,
+    options?.disabled,
+    options?.keywords,
+    options?.onSelect,
+    options?.shortcut,
+  ]);
 
   return id;
 }
@@ -77,7 +87,7 @@ export function useRegisterGroup(
     return () => {
       ctx.machine.send({ type: 'UNREGISTER_GROUP', id });
     };
-  }, [ctx.machine, id, heading]);
+  }, [ctx.machine, id, heading, options?.priority]);
 
   return id;
 }

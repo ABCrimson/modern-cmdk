@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest';
 import {
-  parseShortcut,
-  matchesShortcut,
   detectConflicts,
   formatShortcut,
+  matchesShortcut,
+  parseShortcut,
 } from '@crimson_dev/command';
+import { describe, expect, it } from 'vitest';
 
 describe('parseShortcut', () => {
   it('should parse simple key', () => {
@@ -56,12 +56,15 @@ describe('parseShortcut', () => {
 });
 
 describe('matchesShortcut', () => {
-  function makeEvent(key: string, modifiers: Partial<{
-    metaKey: boolean;
-    ctrlKey: boolean;
-    shiftKey: boolean;
-    altKey: boolean;
-  }> = {}): KeyboardEvent {
+  function makeEvent(
+    key: string,
+    modifiers: Partial<{
+      metaKey: boolean;
+      ctrlKey: boolean;
+      shiftKey: boolean;
+      altKey: boolean;
+    }> = {},
+  ): KeyboardEvent {
     return new KeyboardEvent('keydown', {
       key,
       metaKey: modifiers.metaKey ?? false,
@@ -104,22 +107,14 @@ describe('matchesShortcut', () => {
 
 describe('detectConflicts', () => {
   it('should detect duplicate bindings', () => {
-    const shortcuts = [
-      parseShortcut('Ctrl+K'),
-      parseShortcut('Ctrl+K'),
-      parseShortcut('Ctrl+J'),
-    ];
+    const shortcuts = [parseShortcut('Ctrl+K'), parseShortcut('Ctrl+K'), parseShortcut('Ctrl+J')];
 
     const conflicts = detectConflicts(shortcuts);
     expect(conflicts.size).toBe(1);
   });
 
   it('should return empty map with no conflicts', () => {
-    const shortcuts = [
-      parseShortcut('Ctrl+K'),
-      parseShortcut('Ctrl+J'),
-      parseShortcut('Ctrl+L'),
-    ];
+    const shortcuts = [parseShortcut('Ctrl+K'), parseShortcut('Ctrl+J'), parseShortcut('Ctrl+L')];
 
     const conflicts = detectConflicts(shortcuts);
     expect(conflicts.size).toBe(0);

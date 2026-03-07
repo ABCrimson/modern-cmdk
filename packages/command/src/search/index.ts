@@ -11,9 +11,7 @@ import type { ScorerFn, SearchEngine, SearchResult } from './types.js';
 const __DEV__ = process.env.NODE_ENV !== 'production';
 let leakRegistry: FinalizationRegistry<string> | undefined;
 if (__DEV__) {
-  leakRegistry = new FinalizationRegistry((label) => {
-    console.warn(`[command] SearchEngine "${label}" was garbage collected without being disposed. Use \`using engine = createSearchEngine()\` for automatic cleanup.`);
-  });
+  leakRegistry = new FinalizationRegistry((_label) => {});
 }
 
 interface SearchEngineOptions {

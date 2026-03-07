@@ -40,6 +40,8 @@ export function detectConflicts(
   return new Map(
     Object.entries(grouped)
       .values()
-      .filter((entry): entry is [string, ParsedShortcut[]] => entry[1] != null && entry[1].length > 1),
+      .filter(
+        (entry): entry is [string, ParsedShortcut[]] => entry[1] != null && entry[1].length > 1,
+      ),
   );
 }

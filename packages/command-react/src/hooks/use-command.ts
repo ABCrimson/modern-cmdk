@@ -3,14 +3,8 @@
 // packages/command-react/src/hooks/use-command.ts
 // Core hook — useSyncExternalStore (native React 19), useTransition, useOptimistic, useId
 
-import {
-  useCallback,
-  useId,
-  useOptimistic,
-  useSyncExternalStore,
-  useTransition,
-} from 'react';
 import type { CommandMachine, CommandState, ItemId } from '@crimson_dev/command';
+import { useCallback, useId, useOptimistic, useSyncExternalStore, useTransition } from 'react';
 
 export interface UseCommandReturn {
   readonly state: CommandState;
@@ -41,7 +35,7 @@ export function useCommand(machine: CommandMachine): UseCommandReturn {
         machine.send({ type: 'SEARCH_CHANGE', query });
       });
     },
-    [machine, startTransition],
+    [machine],
   );
 
   return {

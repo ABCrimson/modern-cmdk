@@ -5,7 +5,8 @@ export function HighContrastDemo() {
     <div>
       <h3>High Contrast Demo</h3>
       <p style={{ opacity: 0.6 }}>
-        Enable Windows High Contrast mode or use <code>prefers-contrast: more</code> in devtools to see enhanced styles.
+        Enable Windows High Contrast mode or use <code>prefers-contrast: more</code> in devtools to
+        see enhanced styles.
       </p>
       <div
         style={{
@@ -21,7 +22,9 @@ export function HighContrastDemo() {
           <Command.List>
             <Command.Item value="item-1">High Contrast Item 1</Command.Item>
             <Command.Item value="item-2">High Contrast Item 2</Command.Item>
-            <Command.Item value="disabled" disabled>Disabled Item</Command.Item>
+            <Command.Item value="disabled" disabled>
+              Disabled Item
+            </Command.Item>
             <Command.Separator />
             <Command.Item value="item-3">High Contrast Item 3</Command.Item>
           </Command.List>

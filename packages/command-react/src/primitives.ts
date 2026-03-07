@@ -5,10 +5,10 @@
 
 import {
   type ComponentPropsWithRef,
-  type ElementType,
-  type ReactNode,
   cloneElement,
+  type ElementType,
   isValidElement,
+  type ReactNode,
 } from 'react';
 
 export interface SlotProps {

@@ -37,11 +37,11 @@ export function createScheduler(): Scheduler {
 
     // For large batches, check if the browser has pending user input
     // and yield to the main thread to keep the UI responsive
-    if (batch.length > 10 && hasInputPending && navigator.scheduling!.isInputPending!()) {
+    if (batch.length > 10 && hasInputPending && navigator.scheduling?.isInputPending?.()) {
       // Re-queue unprocessed updates so user input is handled first
       pending = batch;
       if (canYield) {
-        void globalThis.scheduler!.yield!().then(() => void executeBatch());
+        void globalThis.scheduler?.yield?.().then(() => void executeBatch());
       } else {
         rafId ??= requestAnimationFrame(() => void executeBatch());
       }

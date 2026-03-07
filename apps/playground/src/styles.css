@@ -2,7 +2,7 @@
 /* OKLCH color tokens, GPU-composited animations */
 /* forced-colors + prefers-reduced-motion support */
 
-@import '@crimson_dev/command-react/src/styles.css';
+@import "@crimson_dev/command-react/src/styles.css";
 
 /* ─── OKLCH Color Tokens ─── */
 
@@ -40,7 +40,7 @@
 }
 
 html {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -89,7 +89,10 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
   will-change: background-color;
 }
 
@@ -155,7 +158,9 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
   will-change: background-color;
   align-self: flex-start;
 }
@@ -207,7 +212,7 @@ body {
   font-size: 0.875rem;
   color: var(--text-secondary);
   transition:
-    background-color 120ms linear(0, 0.25, 0.5, 0.75, 1.0),
+    background-color 120ms linear(0, 0.25, 0.5, 0.75, 1),
     color 120ms ease;
   will-change: background-color;
 }
@@ -266,7 +271,7 @@ body {
 }
 
 .command-overlay {
-  background: oklch(0 0 0 / 0.5) !important;
+  background: oklch(0 0 0 / 0.5);
 }
 
 /* ─── Accessibility: Reduced Motion ─── */
@@ -275,7 +280,7 @@ body {
   .nav-tab,
   .trigger-button,
   .command-palette [data-command-item] {
-    transition: none !important;
+    transition: none;
   }
 }
 

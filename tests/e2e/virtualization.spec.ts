@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Virtualization — 10K Items', () => {
   test.beforeEach(async ({ page }) => {
@@ -63,7 +63,7 @@ test.describe('Virtualization — 10K Items', () => {
 
     // The items should be different (we scrolled past the initial viewport)
     const initialSet = new Set(initialItems);
-    const afterSet = new Set(afterScrollItems);
+    const _afterSet = new Set(afterScrollItems);
     const overlap = afterScrollItems.filter((item) => initialSet.has(item));
 
     // Most items should be different after scrolling 5000px
@@ -397,7 +397,9 @@ test.describe('Virtualization — 10K Items', () => {
     await expect(listbox).toBeVisible();
   });
 
-  test('should update aria-activedescendant correctly in virtualized navigation', async ({ page }) => {
+  test('should update aria-activedescendant correctly in virtualized navigation', async ({
+    page,
+  }) => {
     const input = page.getByRole('combobox');
     await input.focus();
 

@@ -20,7 +20,7 @@ if (typeof Math.sumPrecise !== 'function') {
     for (const value of values) {
       const y = value - compensation;
       const t = sum + y;
-      compensation = (t - sum) - y;
+      compensation = t - sum - y;
       sum = t;
     }
     return sum;

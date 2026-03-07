@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { CommandRegistry, itemId, groupId } from '@crimson_dev/command';
-import type { CommandItem, ItemId } from '@crimson_dev/command';
+import type { CommandItem } from '@crimson_dev/command';
+import { CommandRegistry, groupId, itemId } from '@crimson_dev/command';
+import { describe, expect, it } from 'vitest';
 
 function makeItem(id: string, value?: string, gid?: string): CommandItem {
   return {

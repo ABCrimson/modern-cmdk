@@ -10,7 +10,9 @@
   "exports": {
     "./transforms/*": "./dist/transforms/*.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown src/cli.ts src/transforms/*.ts --format esm --dts"
   },

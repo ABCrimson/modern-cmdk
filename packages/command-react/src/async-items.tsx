@@ -3,9 +3,9 @@
 // packages/command-react/src/async-items.tsx
 // <Command.AsyncItems> — use() hook for resolving async item sources with Suspense
 
+import type { CommandItem } from '@crimson_dev/command';
 import type { ReactNode } from 'react';
 import { Suspense, use, useEffect } from 'react';
-import type { CommandItem } from '@crimson_dev/command';
 import { CommandContext } from './context.js';
 
 export interface CommandAsyncItemsProps {

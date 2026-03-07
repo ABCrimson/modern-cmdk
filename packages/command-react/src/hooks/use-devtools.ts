@@ -2,7 +2,6 @@
 
 import { use, useEffect, useRef } from 'react';
 import { CommandContext } from '../context.js';
-import type { CommandContextValue } from '../context.js';
 
 declare const __DEV__: boolean;
 
@@ -54,7 +53,10 @@ export function useCommandDevtools(label = 'default'): void {
       };
       stateRef.current = devState;
 
-      const instances = ((globalThis as Record<string, unknown>)[DEVTOOLS_KEY] ??= new Map<string, DevtoolsState>()) as Map<string, DevtoolsState>;
+      const instances = ((globalThis as Record<string, unknown>)[DEVTOOLS_KEY] ??= new Map<
+        string,
+        DevtoolsState
+      >()) as Map<string, DevtoolsState>;
       instances.set(label, devState);
 
       globalThis.dispatchEvent?.(
@@ -67,7 +69,9 @@ export function useCommandDevtools(label = 'default'): void {
 
     return () => {
       unsub();
-      const instances = (globalThis as Record<string, unknown>)[DEVTOOLS_KEY] as Map<string, DevtoolsState> | undefined;
+      const instances = (globalThis as Record<string, unknown>)[DEVTOOLS_KEY] as
+        | Map<string, DevtoolsState>
+        | undefined;
       instances?.delete(label);
     };
   }, [ctx, label]);

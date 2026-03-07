@@ -5,7 +5,6 @@
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use, useCallback } from 'react';
-import type { ItemId } from '@crimson_dev/command';
 import { CommandContext } from './context.js';
 import { useRegisterItem } from './hooks/use-register.js';
 

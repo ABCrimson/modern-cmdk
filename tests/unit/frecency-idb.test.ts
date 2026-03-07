@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { IdbFrecencyStorage } from '@crimson_dev/command';
-import { itemId } from '@crimson_dev/command';
 import type { FrecencyData, FrecencyRecord, ItemId } from '@crimson_dev/command';
+import { IdbFrecencyStorage, itemId } from '@crimson_dev/command';
+import { describe, expect, it } from 'vitest';
 
 // Each test gets a unique DB name to avoid cross-test contamination
 let dbCounter = 0;
@@ -47,12 +46,12 @@ describe('IdbFrecencyStorage', () => {
 
       const copyRecord = loaded.records.get(itemId('cmd-copy'));
       expect(copyRecord).toBeDefined();
-      expect(copyRecord!.frequency).toBe(5);
-      expect(copyRecord!.lastUsed.equals(now)).toBe(true);
+      expect(copyRecord?.frequency).toBe(5);
+      expect(copyRecord?.lastUsed.equals(now)).toBe(true);
 
       const pasteRecord = loaded.records.get(itemId('cmd-paste'));
       expect(pasteRecord).toBeDefined();
-      expect(pasteRecord!.frequency).toBe(3);
+      expect(pasteRecord?.frequency).toBe(3);
     });
 
     it('should handle single-item data', async () => {
@@ -68,7 +67,7 @@ describe('IdbFrecencyStorage', () => {
 
       expect(loaded.records.size).toBe(1);
       const record = loaded.records.get(itemId('solo'));
-      expect(record!.lastUsed.epochNanoseconds).toBe(1_700_000_000_000_000_000n);
+      expect(record?.lastUsed.epochNanoseconds).toBe(1_700_000_000_000_000_000n);
     });
   });
 
@@ -120,8 +119,8 @@ describe('IdbFrecencyStorage', () => {
       const record = loaded.records.get(itemId('precise'));
 
       expect(record).toBeDefined();
-      expect(record!.lastUsed.epochNanoseconds).toBe(1_709_251_200_123_456_789n);
-      expect(record!.lastUsed.equals(precise)).toBe(true);
+      expect(record?.lastUsed.epochNanoseconds).toBe(1_709_251_200_123_456_789n);
+      expect(record?.lastUsed.equals(precise)).toBe(true);
     });
 
     it('should handle Temporal.Instant at epoch zero', async () => {
@@ -134,7 +133,7 @@ describe('IdbFrecencyStorage', () => {
 
       const loaded = await storage.load('epoch');
       const record = loaded.records.get(itemId('zero'));
-      expect(record!.lastUsed.epochNanoseconds).toBe(0n);
+      expect(record?.lastUsed.epochNanoseconds).toBe(0n);
     });
   });
 
@@ -166,7 +165,7 @@ describe('IdbFrecencyStorage', () => {
         loadedOutside = await storage.load('dispose-test');
       }
 
-      expect(loadedOutside!.records.size).toBe(1);
+      expect(loadedOutside?.records.size).toBe(1);
     });
 
     it('should reject operations after dispose', async () => {
@@ -227,7 +226,7 @@ describe('IdbFrecencyStorage', () => {
       expect(loaded.records.size).toBe(1);
       expect(loaded.records.has(itemId('a'))).toBe(false);
       expect(loaded.records.has(itemId('b'))).toBe(true);
-      expect(loaded.records.get(itemId('b'))!.frequency).toBe(2);
+      expect(loaded.records.get(itemId('b'))?.frequency).toBe(2);
     });
   });
 });

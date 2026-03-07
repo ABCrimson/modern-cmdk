@@ -4,19 +4,29 @@
 // 10K items for virtualization testing
 // Uses ES2026 Iterator Helpers for item generation
 
-import { useMemo, useCallback } from 'react';
 import { Command } from '@crimson_dev/command-react';
+import { useCallback, useMemo } from 'react';
 
 /** Word pool for generating varied item values */
 const WORDS = [
-  'apple', 'banana', 'cherry', 'date', 'elderberry',
-  'fig', 'grape', 'honeydew', 'kiwi', 'lemon',
-  'mango', 'nectarine', 'orange', 'papaya', 'quince',
+  'apple',
+  'banana',
+  'cherry',
+  'date',
+  'elderberry',
+  'fig',
+  'grape',
+  'honeydew',
+  'kiwi',
+  'lemon',
+  'mango',
+  'nectarine',
+  'orange',
+  'papaya',
+  'quince',
 ] as const;
 
-const CATEGORIES = [
-  'action', 'setting', 'navigation', 'tool', 'utility',
-] as const;
+const CATEGORIES = ['action', 'setting', 'navigation', 'tool', 'utility'] as const;
 
 export function VirtualizedDemo(): React.ReactNode {
   // Generate 10,000 items using Array.from
@@ -34,9 +44,7 @@ export function VirtualizedDemo(): React.ReactNode {
     [],
   );
 
-  const handleSelect = useCallback((value: string) => {
-    console.log(`Selected: ${value}`);
-  }, []);
+  const handleSelect = useCallback((_value: string) => {}, []);
 
   // Use Iterator Helpers (ES2026) to render items
   const renderedItems = items
@@ -57,11 +65,14 @@ export function VirtualizedDemo(): React.ReactNode {
     <div className="demo-container">
       <h2 className="demo-title">Virtualized (10,000 Items)</h2>
       <p className="demo-description">
-        Rendering 10K items with automatic virtualization. The list auto-virtualizes
-        when filtered count exceeds 100 items.
+        Rendering 10K items with automatic virtualization. The list auto-virtualizes when filtered
+        count exceeds 100 items.
       </p>
 
-      <Command className="command-palette command-palette--tall" label="Virtualized command palette">
+      <Command
+        className="command-palette command-palette--tall"
+        label="Virtualized command palette"
+      >
         <Command.Input placeholder="Search 10,000 items..." />
         <Command.List estimateSize={44} overscan={12}>
           <Command.Empty>No results found.</Command.Empty>

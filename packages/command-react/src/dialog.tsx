@@ -5,11 +5,11 @@
 // @starting-style CSS animations, transition-behavior: allow-discrete, inert on background
 // Focus trap via Radix built-in focus management, "use client" directive
 
-import type { ReactNode } from 'react';
-import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
-import { Dialog } from 'radix-ui';
 import type { CommandMachineOptions } from '@crimson_dev/command';
 import { createCommandMachine } from '@crimson_dev/command';
+import { Dialog } from 'radix-ui';
+import type { ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import type { CommandContextValue } from './context.js';
 import { CommandContext } from './context.js';
 import { useCommand } from './hooks/use-command.js';
@@ -61,7 +61,7 @@ export function CommandDialog({
   // Keyboard navigation via document listener
   const handleKeyDown = useCallback(
     createKeydownHandler(machine, () => machine.getState()),
-    [machine],
+    [],
   );
 
   useEffect(() => {
@@ -125,19 +125,10 @@ export function CommandDialog({
           }}
         >
           <Dialog.Title className="sr-only">{label}</Dialog.Title>
-          <Dialog.Description className="sr-only">
-            Type a command or search...
-          </Dialog.Description>
+          <Dialog.Description className="sr-only">Type a command or search...</Dialog.Description>
           <CommandContext value={contextValue}>
-            <div
-              data-command-dialog-content=""
-              className={contentClassName}
-            >
-              <div
-                data-command-root=""
-                role="application"
-                aria-label={label}
-              >
+            <div data-command-dialog-content="" className={contentClassName}>
+              <div data-command-root="" role="application" aria-label={label}>
                 {children}
               </div>
             </div>

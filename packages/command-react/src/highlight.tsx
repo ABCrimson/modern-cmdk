@@ -38,11 +38,7 @@ export function CommandHighlight({
 
     // Highlighted match
     parts.push(
-      <mark
-        key={i}
-        data-command-highlight=""
-        className={highlightClassName}
-      >
+      <mark key={i} data-command-highlight="" className={highlightClassName}>
         {text.slice(start, end)}
       </mark>,
     );

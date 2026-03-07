@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createScheduler } from '@crimson_dev/command';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('Scheduler (0.0.3)', () => {
   it('should create a scheduler', () => {
@@ -81,7 +81,9 @@ describe('Scheduler (0.0.3)', () => {
     let counter = 0;
 
     for (let i = 0; i < 50; i++) {
-      scheduler.schedule(() => { counter++; });
+      scheduler.schedule(() => {
+        counter++;
+      });
     }
 
     await scheduler.flush();

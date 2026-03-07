@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
 
 test.describe('Accessibility — WCAG 2.1 AA', () => {
   test.beforeEach(async ({ page }) => {
@@ -158,7 +158,9 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     expect(!ad || ad === '').toBeTruthy();
   });
 
-  test('should update aria-activedescendant to match first result after filtering', async ({ page }) => {
+  test('should update aria-activedescendant to match first result after filtering', async ({
+    page,
+  }) => {
     const input = page.getByRole('combobox');
     await input.focus();
 
@@ -201,7 +203,9 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     expect(updatedText).not.toBe(initialText);
   });
 
-  test('should announce "0 results" (or similar) in live region when no matches', async ({ page }) => {
+  test('should announce "0 results" (or similar) in live region when no matches', async ({
+    page,
+  }) => {
     const input = page.getByRole('combobox');
     await input.pressSequentially('zzzznonexistent', { delay: 20 });
 
@@ -381,9 +385,12 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
       // Focus should still be within the dialog
       const focusedElement = page.locator(':focus');
-      const isInsideDialog = await focusedElement.evaluate((el, dialogEl) => {
-        return dialogEl?.contains(el) ?? false;
-      }, await dialog.elementHandle());
+      const isInsideDialog = await focusedElement.evaluate(
+        (el, dialogEl) => {
+          return dialogEl?.contains(el) ?? false;
+        },
+        await dialog.elementHandle(),
+      );
 
       expect(isInsideDialog).toBeTruthy();
     }
@@ -412,9 +419,7 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     await expect(activeItem).toHaveCount(1);
 
     // Should still pass basic axe checks in forced-colors mode
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa'])
-      .analyze();
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
 
     expect(results.violations).toEqual([]);
   });

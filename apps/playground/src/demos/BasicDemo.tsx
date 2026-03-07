@@ -3,13 +3,11 @@
 // apps/playground/src/demos/BasicDemo.tsx
 // Basic inline command palette with ~15 items across 3 groups
 
-import { useCallback } from 'react';
 import { Command } from '@crimson_dev/command-react';
+import { useCallback } from 'react';
 
 export function BasicDemo(): React.ReactNode {
-  const handleSelect = useCallback((item: string) => {
-    console.log(`Selected: ${item}`);
-  }, []);
+  const handleSelect = useCallback((_item: string) => {}, []);
 
   return (
     <div className="demo-container">
@@ -21,11 +19,7 @@ export function BasicDemo(): React.ReactNode {
 
           {/* Suggestions group */}
           <Command.Group heading="Suggestions" forceId="group-suggestions">
-            <Command.Item
-              value="apple"
-              forceId="item-apple"
-              onSelect={() => handleSelect('apple')}
-            >
+            <Command.Item value="apple" forceId="item-apple" onSelect={() => handleSelect('apple')}>
               Apple
             </Command.Item>
             <Command.Item
@@ -43,11 +37,7 @@ export function BasicDemo(): React.ReactNode {
             >
               Orange
             </Command.Item>
-            <Command.Item
-              value="grape"
-              forceId="item-grape"
-              onSelect={() => handleSelect('grape')}
-            >
+            <Command.Item value="grape" forceId="item-grape" onSelect={() => handleSelect('grape')}>
               Grape
             </Command.Item>
             <Command.Item

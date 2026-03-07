@@ -29,7 +29,9 @@ export function AllStatesDemo() {
           <Command.Input placeholder="Search..." />
           <Command.List>
             <Command.Item value="enabled">Enabled Item</Command.Item>
-            <Command.Item value="disabled" disabled>Disabled Item</Command.Item>
+            <Command.Item value="disabled" disabled>
+              Disabled Item
+            </Command.Item>
             <Command.Item value="also-enabled">Also Enabled</Command.Item>
           </Command.List>
         </Command>

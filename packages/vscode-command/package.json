@@ -8,7 +8,9 @@
   "engines": {
     "vscode": "^1.96.0"
   },
-  "categories": ["Snippets"],
+  "categories": [
+    "Snippets"
+  ],
   "contributes": {
     "snippets": [
       {

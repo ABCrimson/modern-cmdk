@@ -3,14 +3,13 @@
 // apps/playground/src/demos/DialogDemo.tsx
 // Dialog mode with Ctrl+K trigger, overlay animation
 
-import { useCallback, useEffect, useState } from 'react';
 import { Command } from '@crimson_dev/command-react';
+import { useCallback, useEffect, useState } from 'react';
 
 export function DialogDemo(): React.ReactNode {
   const [open, setOpen] = useState(false);
 
-  const handleSelect = useCallback((item: string) => {
-    console.log(`Selected: ${item}`);
+  const handleSelect = useCallback((_item: string) => {
     setOpen(false);
   }, []);
 

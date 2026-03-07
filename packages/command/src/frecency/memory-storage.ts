@@ -1,7 +1,7 @@
 // packages/command/src/frecency/memory-storage.ts
 // In-memory storage (default) — Map with Iterator.prototype.toArray()
 
-import type { FrecencyData, FrecencyStorage, ItemId, FrecencyRecord } from '../types.js';
+import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';
 
 /**
  * In-memory implementation of FrecencyStorage using a Map.
@@ -24,10 +24,7 @@ export class MemoryFrecencyStorage implements FrecencyStorage {
     return Object.fromEntries(
       this.#store
         .entries()
-        .map(([namespace, data]) => [
-          namespace,
-          { records: data.records.entries().toArray() },
-        ]),
+        .map(([namespace, data]) => [namespace, { records: data.records.entries().toArray() }]),
     );
   }
 

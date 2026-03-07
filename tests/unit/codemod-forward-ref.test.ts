@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import jscodeshift from 'jscodeshift';
 import type { API, FileInfo } from 'jscodeshift';
+import jscodeshift from 'jscodeshift';
+import { describe, expect, it } from 'vitest';
 import transform from '../../packages/command-codemod/src/transforms/forward-ref.js';
 
 function createApi(parser = 'tsx'): API {
@@ -94,10 +94,7 @@ describe('codemod: forward-ref', () => {
   });
 
   it('skips files without forwardRef', () => {
-    const input = [
-      `import React from 'react';`,
-      `const MyComponent = () => <div />;`,
-    ].join('\n');
+    const input = [`import React from 'react';`, `const MyComponent = () => <div />;`].join('\n');
     const output = run(input);
 
     expect(output).toBe(input);

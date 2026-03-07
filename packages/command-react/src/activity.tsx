@@ -17,12 +17,13 @@ export interface CommandActivityProps {
 }
 
 // Check if React.Activity (unstable) is available in this canary build
-const ActivityComponent = 'Activity' in React
-  ? (React as Record<string, unknown>)['Activity'] as React.ComponentType<{
-      mode: 'visible' | 'hidden';
-      children: ReactNode;
-    }>
-  : null;
+const ActivityComponent =
+  'Activity' in React
+    ? ((React as Record<string, unknown>).Activity as React.ComponentType<{
+        mode: 'visible' | 'hidden';
+        children: ReactNode;
+      }>)
+    : null;
 
 /**
  * Wraps content in React 19.3.0-canary Activity API.

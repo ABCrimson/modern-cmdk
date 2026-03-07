@@ -1,10 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import {
-  createCommandMachine,
-  itemId,
-  groupId,
-} from '@crimson_dev/command';
-import type { CommandItem, CommandMachine } from '@crimson_dev/command';
+import type { CommandItem } from '@crimson_dev/command';
+import { createCommandMachine, groupId, itemId } from '@crimson_dev/command';
+import { describe, expect, it, vi } from 'vitest';
 
 function makeItem(id: string, value: string, opts?: Partial<CommandItem>): CommandItem {
   return { id: itemId(id), value, ...opts };
@@ -154,9 +150,7 @@ describe('Machine Integration (0.0.9)', () => {
   it('should handle keyboard shortcut registration via items', async () => {
     const handler = vi.fn();
     using machine = createCommandMachine({
-      items: [
-        makeItem('copy', 'Copy', { shortcut: 'Ctrl+C', onSelect: handler }),
-      ],
+      items: [makeItem('copy', 'Copy', { shortcut: 'Ctrl+C', onSelect: handler })],
     });
 
     const registry = machine.getKeyboardRegistry();
@@ -166,11 +160,7 @@ describe('Machine Integration (0.0.9)', () => {
 
   it('should support custom filter function', async () => {
     using machine = createCommandMachine({
-      items: [
-        makeItem('a', 'Apple'),
-        makeItem('b', 'Banana'),
-        makeItem('c', 'Cherry'),
-      ],
+      items: [makeItem('a', 'Apple'), makeItem('b', 'Banana'), makeItem('c', 'Cherry')],
       filter: (item, query) => {
         // Only match exact start
         if (item.value.toLowerCase().startsWith(query.toLowerCase())) {
@@ -188,10 +178,7 @@ describe('Machine Integration (0.0.9)', () => {
 
   it('should support filter=false to disable filtering', async () => {
     using machine = createCommandMachine({
-      items: [
-        makeItem('a', 'Apple'),
-        makeItem('b', 'Banana'),
-      ],
+      items: [makeItem('a', 'Apple'), makeItem('b', 'Banana')],
       filter: false,
     });
 
@@ -205,9 +192,7 @@ describe('Machine Integration (0.0.9)', () => {
   it('should not select disabled items', async () => {
     const onSelect = vi.fn();
     using machine = createCommandMachine({
-      items: [
-        makeItem('disabled', 'Disabled Item', { disabled: true, onSelect }),
-      ],
+      items: [makeItem('disabled', 'Disabled Item', { disabled: true, onSelect })],
     });
 
     machine.send({ type: 'ITEM_SELECT', id: itemId('disabled') });
@@ -220,10 +205,7 @@ describe('Machine Integration (0.0.9)', () => {
 
     machine.send({
       type: 'ITEMS_LOADED',
-      items: [
-        makeItem('x', 'Loaded Item X'),
-        makeItem('y', 'Loaded Item Y'),
-      ],
+      items: [makeItem('x', 'Loaded Item X'), makeItem('y', 'Loaded Item Y')],
     });
 
     await vi.waitFor(() => {

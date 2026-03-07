@@ -4,7 +4,7 @@
 // Usage: npx @crimson_dev/create-command [project-name]
 
 import { mkdir, writeFile } from 'node:fs/promises';
-import { resolve, join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 const TEMPLATES = new Map([
   ['react-basic', 'Basic inline command palette (React)'],
@@ -17,31 +17,18 @@ async function main(): Promise<void> {
   const projectName = args[0];
 
   if (!projectName || projectName === '--help') {
-    console.log(`
-@crimson_dev/create-command
-
-Usage:
-  npx @crimson_dev/create-command <project-name> [--template <name>]
-
-Templates:`);
-    TEMPLATES.entries().forEach(([name, desc]) => {
-      console.log(`  ${name.padEnd(20)} ${desc}`);
-    });
-    console.log('');
+    TEMPLATES.entries().forEach(([_name, _desc]) => {});
     process.exit(0);
   }
 
   const templateFlag = args.indexOf('--template');
-  const template = templateFlag !== -1 ? args[templateFlag + 1] ?? 'react-basic' : 'react-basic';
+  const template = templateFlag !== -1 ? (args[templateFlag + 1] ?? 'react-basic') : 'react-basic';
 
   if (!TEMPLATES.has(template)) {
-    console.error(`Unknown template: ${template}`);
-    console.error(`Available: ${TEMPLATES.keys().toArray().join(', ')}`);
     process.exit(1);
   }
 
   const projectDir = resolve(projectName);
-  console.log(`\nScaffolding ${template} project in ${projectDir}...\n`);
 
   await mkdir(join(projectDir, 'src'), { recursive: true });
 
@@ -69,7 +56,7 @@ Templates:`);
       vite: '^7.0.0',
     },
   };
-  await writeFile(join(projectDir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
+  await writeFile(join(projectDir, 'package.json'), `${JSON.stringify(pkg, null, 2)}\n`);
 
   // tsconfig.json
   const tsconfig = {
@@ -88,7 +75,7 @@ Templates:`);
     },
     include: ['src'],
   };
-  await writeFile(join(projectDir, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2) + '\n');
+  await writeFile(join(projectDir, 'tsconfig.json'), `${JSON.stringify(tsconfig, null, 2)}\n`);
 
   // vite.config.ts
   await writeFile(
@@ -136,8 +123,9 @@ createRoot(document.getElementById('root')!).render(
   );
 
   // src/App.tsx — varies by template
-  const appContent = template === 'react-dialog'
-    ? `import { Command } from '@crimson_dev/command-react';
+  const appContent =
+    template === 'react-dialog'
+      ? `import { Command } from '@crimson_dev/command-react';
 
 export function App() {
   return (
@@ -157,7 +145,7 @@ export function App() {
   );
 }
 `
-    : `import { Command } from '@crimson_dev/command-react';
+      : `import { Command } from '@crimson_dev/command-react';
 
 export function App() {
   return (
@@ -182,14 +170,8 @@ export function App() {
 }
 `;
   await writeFile(join(projectDir, 'src', 'App.tsx'), appContent);
-
-  console.log('Done! Next steps:\n');
-  console.log(`  cd ${projectName}`);
-  console.log('  pnpm install');
-  console.log('  pnpm dev\n');
 }
 
-main().catch((err: unknown) => {
-  console.error('Error:', err);
+main().catch((_err: unknown) => {
   process.exit(1);
 });

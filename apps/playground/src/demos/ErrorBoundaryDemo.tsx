@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Command, CommandErrorBoundary } from '@crimson_dev/command-react';
+import { useState } from 'react';
 
 function BrokenItem() {
   throw new Error('This item intentionally crashes!');
@@ -12,7 +12,7 @@ export function ErrorBoundaryDemo() {
     <div>
       <h3>Error Boundary Demo</h3>
       <p>
-        <button onClick={() => setShowBroken(!showBroken)}>
+        <button type="button" onClick={() => setShowBroken(!showBroken)}>
           {showBroken ? 'Reset' : 'Trigger Error'}
         </button>
       </p>
@@ -23,7 +23,7 @@ export function ErrorBoundaryDemo() {
             <p>{error.message}</p>
           </div>
         )}
-        onError={(error) => console.error('Caught:', error)}
+        onError={(_error) => {}}
       >
         <Command label="Error boundary demo">
           <Command.Input placeholder="Search..." />

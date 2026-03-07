@@ -3,8 +3,8 @@
 // packages/command-react/src/context.ts
 // React context definitions — use() for consuming in Suspense boundaries
 
-import { createContext } from 'react';
 import type { CommandMachine, CommandState, ItemId } from '@crimson_dev/command';
+import { createContext } from 'react';
 
 export interface CommandContextValue {
   readonly machine: CommandMachine;

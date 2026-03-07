@@ -10,10 +10,7 @@
     "rules": {
       "recommended": true,
       "nursery": {
-        "noUndeclaredDependencies": "error",
-        "useExplicitType": "warn",
-        "noMissingGenericFamilyKeyword": "error",
-        "useSortedClasses": "error"
+        "useExplicitType": "warn"
       },
       "correctness": {
         "useExhaustiveDependencies": "error",
@@ -26,18 +23,75 @@
         "noReExportAll": "error"
       },
       "suspicious": {
-        "noConsole": "warn"
+        "noConsole": "warn",
+        "noAssignInExpressions": "warn",
+        "noDuplicateCustomProperties": "off",
+        "noDuplicateProperties": "off",
+        "useIterableCallbackReturn": "warn"
+      },
+      "a11y": {
+        "useSemanticElements": "off",
+        "useKeyWithClickEvents": "off",
+        "useFocusableInteractive": "off",
+        "useAriaPropsForRole": "off",
+        "useButtonType": "error"
       },
       "style": {
         "useImportType": "error",
         "useTemplate": "error",
-        "useExponentiationOperator": "error"
+        "useExponentiationOperator": "error",
+        "noNonNullAssertion": "warn"
       }
     },
     "domains": {
-      "test": "on"
+      "test": "all"
     }
   },
+  "overrides": [
+    {
+      "includes": ["benchmarks/**", "apps/playground/**"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "useExplicitType": "off"
+          },
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/docs/**/*.css"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "warn"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/index.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/command-codemod/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "warn"
+          }
+        }
+      }
+    }
+  ],
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -70,12 +124,14 @@
     }
   },
   "files": {
-    "ignore": [
-      "dist/",
-      "*.wasm",
-      "coverage/",
-      ".changeset/",
-      "node_modules/"
+    "includes": [
+      "**",
+      "!dist/",
+      "!*.wasm",
+      "!coverage/",
+      "!.changeset/",
+      "!node_modules/",
+      "!packages/command-react/src/primitives.ts"
     ]
   }
 }

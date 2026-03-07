@@ -50,11 +50,7 @@
   },
   "Command Group": {
     "prefix": "cmd-group",
-    "body": [
-      "<Command.Group heading=\"${1:Group}\">",
-      "  $0",
-      "</Command.Group>"
-    ],
+    "body": ["<Command.Group heading=\"${1:Group}\">", "  $0", "</Command.Group>"],
     "description": "Command palette group"
   },
   "Command with Frecency": {

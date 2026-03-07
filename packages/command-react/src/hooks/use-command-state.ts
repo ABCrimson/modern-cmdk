@@ -3,8 +3,8 @@
 // packages/command-react/src/hooks/use-command-state.ts
 // Derived state selectors — React Compiler auto-memoizes
 
-import { use } from 'react';
 import type { CommandState } from '@crimson_dev/command';
+import { use } from 'react';
 import { CommandContext } from '../context.js';
 
 /** Get the full command state from context */

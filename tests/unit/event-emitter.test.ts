@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
 import { TypedEmitter } from '@crimson_dev/command';
+import { describe, expect, it, vi } from 'vitest';
 
 interface TestEvents {
   message: string;

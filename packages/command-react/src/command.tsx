@@ -4,21 +4,21 @@
 // <Command.Root> — useTransition for search, React Compiler compatible
 // Keyboard navigation is attached to the root element, not called as a hook before context
 
-import type { ReactNode } from 'react';
-import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import type { CommandMachineOptions } from '@crimson_dev/command';
 import { createCommandMachine } from '@crimson_dev/command';
-import type { CommandContextValue } from './context.js';
-import { CommandContext } from './context.js';
-import { useCommand } from './hooks/use-command.js';
-import { createKeydownHandler } from './hooks/use-keyboard.js';
+import type { ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import { CommandActivity } from './activity.js';
 import { CommandAsyncItems } from './async-items.js';
 import { CommandBadge } from './badge.js';
+import type { CommandContextValue } from './context.js';
+import { CommandContext } from './context.js';
 import { CommandDialog } from './dialog.js';
 import { CommandEmpty } from './empty.js';
 import { CommandGroup } from './group.js';
 import { CommandHighlight } from './highlight.js';
+import { useCommand } from './hooks/use-command.js';
+import { createKeydownHandler } from './hooks/use-keyboard.js';
 import { CommandInput } from './input.js';
 import { CommandItem } from './item.js';
 import { CommandList } from './list.js';
@@ -56,7 +56,7 @@ function CommandRoot({
   // Attach keyboard navigation to the root element — avoids hook-before-context issue
   const handleKeyDown = useCallback(
     createKeydownHandler(machine, () => machine.getState()),
-    [machine],
+    [],
   );
 
   useEffect(() => {

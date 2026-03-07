@@ -12,7 +12,10 @@ interface CommandErrorBoundaryState {
   readonly error: Error | null;
 }
 
-export class CommandErrorBoundary extends Component<CommandErrorBoundaryProps, CommandErrorBoundaryState> {
+export class CommandErrorBoundary extends Component<
+  CommandErrorBoundaryProps,
+  CommandErrorBoundaryState
+> {
   override state: CommandErrorBoundaryState = { error: null };
 
   static getDerivedStateFromError(error: Error): CommandErrorBoundaryState {

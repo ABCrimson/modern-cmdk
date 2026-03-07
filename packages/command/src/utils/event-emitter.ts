@@ -32,16 +32,14 @@ export class TypedEmitter<T extends EventMap> implements Disposable {
     // Iterator Helpers (ES2026) — filter dead refs, deref, execute
     const dead: WeakRef<(data: never) => void>[] = [];
 
-    set
-      .values()
-      .forEach((ref) => {
-        const fn = ref.deref();
-        if (fn != null) {
-          fn(data as never);
-        } else {
-          dead.push(ref);
-        }
-      });
+    set.values().forEach((ref) => {
+      const fn = ref.deref();
+      if (fn != null) {
+        fn(data as never);
+      } else {
+        dead.push(ref);
+      }
+    });
 
     // Prune GC'd refs in a separate pass to avoid mutation during iteration
     dead.values().forEach((ref) => set.delete(ref));
@@ -58,7 +56,10 @@ export class TypedEmitter<T extends EventMap> implements Disposable {
   listenerCount<K extends keyof T>(event: K): number {
     const set = this.#listeners.get(event);
     if (!set) return 0;
-    return set.values().filter((ref) => ref.deref() != null).toArray().length;
+    return set
+      .values()
+      .filter((ref) => ref.deref() != null)
+      .toArray().length;
   }
 
   /** Remove all listeners */

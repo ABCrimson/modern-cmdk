@@ -1,17 +1,32 @@
-import { bench, describe } from 'vitest';
-import { createSearchEngine, itemId } from '@crimson_dev/command';
 import type { CommandItem } from '@crimson_dev/command';
+import { createSearchEngine, itemId } from '@crimson_dev/command';
 import { createWasmSearchEngine } from '@crimson_dev/command-search-wasm';
+import { bench, describe } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Item generation
 // ---------------------------------------------------------------------------
 
 const words = [
-  'apple', 'banana', 'cherry', 'date', 'elderberry',
-  'fig', 'grape', 'honeydew', 'kiwi', 'lemon',
-  'mango', 'nectarine', 'orange', 'papaya', 'quince',
-  'raspberry', 'strawberry', 'tangerine', 'watermelon',
+  'apple',
+  'banana',
+  'cherry',
+  'date',
+  'elderberry',
+  'fig',
+  'grape',
+  'honeydew',
+  'kiwi',
+  'lemon',
+  'mango',
+  'nectarine',
+  'orange',
+  'papaya',
+  'quince',
+  'raspberry',
+  'strawberry',
+  'tangerine',
+  'watermelon',
 ];
 
 function generateItems(count: number): CommandItem[] {

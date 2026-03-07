@@ -55,20 +55,21 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   const registry = new CommandRegistry();
   // Pluggable search engine: use options.search if provided, otherwise create default.
   // Automatic fallback: if a custom engine is provided but throws, the machine still functions.
-  const searchEngine: SearchEngine = options.search ?? createSearchEngine(
-    typeof options.filter === 'function'
-      ? {
-          scorer: (query, item) => {
-            const score = (options.filter as (item: CommandItem, query: string) => number | false)(
-              item,
-              query,
-            );
-            if (score === false) return null;
-            return { id: item.id, score, matches: [] };
-          },
-        }
-      : undefined,
-  );
+  const searchEngine: SearchEngine =
+    options.search ??
+    createSearchEngine(
+      typeof options.filter === 'function'
+        ? {
+            scorer: (query, item) => {
+              const score = (
+                options.filter as (item: CommandItem, query: string) => number | false
+              )(item, query);
+              if (score === false) return null;
+              return { id: item.id, score, matches: [] };
+            },
+          }
+        : undefined,
+    );
   const scheduler: Scheduler = createScheduler();
   const emitter = new TypedEmitter<MachineEvents>();
   const keyboardRegistry = new KeyboardShortcutRegistry();
@@ -146,9 +147,10 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
     // Select first item if no active or active is no longer visible
     // Use includes() to avoid allocating a Set for a single membership check
-    const activeId = state.activeId && filteredIds.includes(state.activeId)
-      ? state.activeId
-      : filteredIds[0] ?? null;
+    const activeId =
+      state.activeId && filteredIds.includes(state.activeId)
+        ? state.activeId
+        : (filteredIds[0] ?? null);
 
     setState({
       ...state,

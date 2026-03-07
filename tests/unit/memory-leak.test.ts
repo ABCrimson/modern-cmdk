@@ -1,6 +1,5 @@
+import { createCommandMachine, itemId } from '@crimson_dev/command';
 import { describe, expect, it } from 'vitest';
-import { createCommandMachine } from '@crimson_dev/command';
-import { itemId } from '@crimson_dev/command';
 
 describe('memory leak detection', () => {
   it('disposes cleanly without residual listeners after 100 machine lifecycles', () => {

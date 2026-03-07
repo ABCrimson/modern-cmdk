@@ -2,8 +2,7 @@
 // Uses: await using for WASM module lifecycle, Iterator Helpers (ES2026)
 // Falls back to TypeScript scorer from @crimson_dev/command if WASM fails to load
 
-import type { SearchEngine, SearchResult } from '@crimson_dev/command';
-import type { ItemId } from '@crimson_dev/command';
+import type { ItemId, SearchEngine, SearchResult } from '@crimson_dev/command';
 
 const __DEV__ = process.env.NODE_ENV !== 'production';
 
@@ -49,13 +48,13 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
           matches: Array<[number, number]>;
         }>;
 
-        yield* results
-          .values()
-          .map((result): SearchResult => ({
+        yield* results.values().map(
+          (result): SearchResult => ({
             id: result.id as ItemId,
             score: result.score,
             matches: result.matches,
-          }));
+          }),
+        );
       },
 
       remove(_ids): void {
@@ -79,10 +78,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
     return engine;
   } catch (error: unknown) {
     if (__DEV__) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.warn(
-        `[@crimson_dev/command-search-wasm] WASM initialization failed, falling back to TypeScript search engine: ${message}`,
-      );
+      const _message = error instanceof Error ? error.message : String(error);
     }
 
     const { createSearchEngine } = await import('@crimson_dev/command');

@@ -6,8 +6,8 @@ import { detectConflicts, matchesShortcut } from './matcher.js';
 import type { ParsedShortcut } from './parser.js';
 import { parseShortcut } from './parser.js';
 
-export { parseShortcut, formatShortcut } from './parser.js';
-export { matchesShortcut, findMatchingShortcut, detectConflicts } from './matcher.js';
+export { detectConflicts, findMatchingShortcut, matchesShortcut } from './matcher.js';
+export { formatShortcut, parseShortcut } from './parser.js';
 
 interface ShortcutBinding {
   readonly shortcut: ParsedShortcut;
@@ -67,7 +67,10 @@ export class KeyboardShortcutRegistry implements Disposable {
 
   /** Check for conflicting shortcuts */
   getConflicts(): ReadonlyMap<string, readonly ParsedShortcut[]> {
-    const shortcuts = this.#bindings.values().map((b) => b.shortcut).toArray();
+    const shortcuts = this.#bindings
+      .values()
+      .map((b) => b.shortcut)
+      .toArray();
     return detectConflicts(shortcuts);
   }
 
@@ -88,9 +91,9 @@ export class KeyboardShortcutRegistry implements Disposable {
       if (!this.#enabled) return;
 
       // Iterator Helpers .find() — short-circuits on first match
-      const matched = this.#bindings.values().find(
-        (binding) => matchesShortcut(event, binding.shortcut),
-      );
+      const matched = this.#bindings
+        .values()
+        .find((binding) => matchesShortcut(event, binding.shortcut));
 
       if (matched) {
         event.preventDefault();

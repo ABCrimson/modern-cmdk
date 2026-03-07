@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitepress';
 import { transformerTwoslash } from '@shikijs/twoslash';
+import { defineConfig } from 'vitepress';
 
 export default defineConfig({
   title: '@crimson_dev/command',
@@ -7,13 +7,27 @@ export default defineConfig({
 
   head: [
     ['meta', { property: 'og:title', content: '@crimson_dev/command' }],
-    ['meta', { property: 'og:description', content: 'Headless command palette engine for React 19. Framework-agnostic core, WASM search, frecency ranking, full WAI-ARIA.' }],
+    [
+      'meta',
+      {
+        property: 'og:description',
+        content:
+          'Headless command palette engine for React 19. Framework-agnostic core, WASM search, frecency ranking, full WAI-ARIA.',
+      },
+    ],
     ['meta', { property: 'og:image', content: 'https://command.crimson.dev/og-image.png' }],
     ['meta', { property: 'og:url', content: 'https://command.crimson.dev' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:title', content: '@crimson_dev/command' }],
-    ['meta', { name: 'twitter:description', content: 'Headless command palette engine for React 19. ES2026. GPU-composited. Accessible.' }],
+    [
+      'meta',
+      {
+        name: 'twitter:description',
+        content:
+          'Headless command palette engine for React 19. ES2026. GPU-composited. Accessible.',
+      },
+    ],
     ['meta', { name: 'twitter:image', content: 'https://command.crimson.dev/og-image.png' }],
   ],
 
@@ -22,7 +36,7 @@ export default defineConfig({
       transformerTwoslash({
         twoslashOptions: {
           compilerOptions: {
-            target: 99,  // ESNext
+            target: 99, // ESNext
             module: 199, // ES2025
             lib: ['ES2026', 'DOM'],
           },
@@ -77,15 +91,11 @@ export default defineConfig({
         },
         {
           text: 'Architecture',
-          items: [
-            { text: 'Overview', link: '/architecture/overview' },
-          ],
+          items: [{ text: 'Overview', link: '/architecture/overview' }],
         },
         {
           text: 'Migration',
-          items: [
-            { text: 'From cmdk', link: '/guide/migration-from-cmdk' },
-          ],
+          items: [{ text: 'From cmdk', link: '/guide/migration-from-cmdk' }],
         },
       ],
       '/api/': [
@@ -128,14 +138,10 @@ export default defineConfig({
       '/architecture/': [
         {
           text: 'Architecture',
-          items: [
-            { text: 'Overview', link: '/architecture/overview' },
-          ],
+          items: [{ text: 'Overview', link: '/architecture/overview' }],
         },
       ],
     },
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/ABCrimson/modern-cmdk' },
-    ],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/ABCrimson/modern-cmdk' }],
   },
 });

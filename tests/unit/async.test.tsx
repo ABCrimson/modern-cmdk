@@ -2,12 +2,12 @@
 // Command.AsyncItems tests — React 19 use() + Suspense with happy-dom
 // Vitest 4.1.0-beta.6, React 19.3.0-canary, TypeScript 6.0.1-rc, ES2026
 
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { createRoot, type Root } from 'react-dom/client';
-import { act, Component, type ReactNode, type ErrorInfo } from 'react';
-import { Command } from '@crimson_dev/command-react';
 import type { CommandItem as CommandItemType } from '@crimson_dev/command';
 import { itemId } from '@crimson_dev/command';
+import { Command } from '@crimson_dev/command-react';
+import { act, Component, type ErrorInfo, type ReactNode } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -68,7 +68,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
-  override componentDidCatch(error: Error, _info: ErrorInfo): void {
+  override componentDidCatch(_error: Error, _info: ErrorInfo): void {
     // Silence console errors in test output
   }
 
@@ -122,7 +122,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     // Fallback should be visible while the promise is pending
     const fallback = container.querySelector('[data-testid="fallback"]');
     expect(fallback).not.toBeNull();
-    expect(fallback!.textContent).toBe('Loading async items...');
+    expect(fallback?.textContent).toBe('Loading async items...');
 
     // No items should be rendered yet
     expect(container.querySelectorAll('[data-command-item]').length).toBe(0);
@@ -162,9 +162,9 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     await vi.waitFor(() => {
       const items = container.querySelectorAll('[data-command-item]');
       expect(items.length).toBe(3);
-      expect(items[0]!.textContent).toBe('Async Item 0');
-      expect(items[1]!.textContent).toBe('Async Item 1');
-      expect(items[2]!.textContent).toBe('Async Item 2');
+      expect(items[0]?.textContent).toBe('Async Item 0');
+      expect(items[1]?.textContent).toBe('Async Item 1');
+      expect(items[2]?.textContent).toBe('Async Item 2');
     });
 
     // Fallback should be gone
@@ -179,10 +179,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.AsyncItems
-            items={promise}
-            fallback={<div>Loading...</div>}
-          >
+          <Command.AsyncItems items={promise} fallback={<div>Loading...</div>}>
             {(items) =>
               items.map((item) => (
                 <Command.Item key={item.id} value={item.value} forceId={item.id}>
@@ -245,7 +242,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     await vi.waitFor(() => {
       const errorEl = container.querySelector('[data-testid="error"]');
       expect(errorEl).not.toBeNull();
-      expect(errorEl!.textContent).toBe('Something went wrong');
+      expect(errorEl?.textContent).toBe('Something went wrong');
     });
 
     consoleSpy.mockRestore();
@@ -295,7 +292,11 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     const { promise: promise1, resolve: resolve1 } =
       Promise.withResolvers<readonly CommandItemType[]>();
 
-    function AsyncApp({ itemsPromise }: { readonly itemsPromise: Promise<readonly CommandItemType[]> }): ReactNode {
+    function AsyncApp({
+      itemsPromise,
+    }: {
+      readonly itemsPromise: Promise<readonly CommandItemType[]>;
+    }): ReactNode {
       return (
         <Command>
           <Command.Input />
@@ -327,7 +328,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
 
     await vi.waitFor(() => {
       expect(container.querySelectorAll('[data-command-item]').length).toBe(2);
-      expect(container.querySelector('#async-item-0')!.textContent).toBe('Async Item 0');
+      expect(container.querySelector('#async-item-0')?.textContent).toBe('Async Item 0');
     });
 
     // Now render with a new, already-resolved promise
@@ -340,7 +341,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     await vi.waitFor(() => {
       const items = container.querySelectorAll('[data-command-item]');
       expect(items.length).toBe(3);
-      expect(container.querySelector('#new-1')!.textContent).toBe('New Item 1');
+      expect(container.querySelector('#new-1')?.textContent).toBe('New Item 1');
     });
   });
 
@@ -384,7 +385,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
       // Badges
       const badges = container.querySelectorAll('[data-command-badge]');
       expect(badges.length).toBe(3);
-      expect(badges[0]!.textContent).toBe('async');
+      expect(badges[0]?.textContent).toBe('async');
     });
   });
 
@@ -418,7 +419,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     // The Suspense fallback should be shown
     const skeleton = container.querySelector('[data-testid="skeleton"]');
     expect(skeleton).not.toBeNull();
-    expect(skeleton!.getAttribute('role')).toBe('status');
+    expect(skeleton?.getAttribute('role')).toBe('status');
 
     // No command items should be in the DOM
     expect(container.querySelectorAll('[data-command-item]').length).toBe(0);

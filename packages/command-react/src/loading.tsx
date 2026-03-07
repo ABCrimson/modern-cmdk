@@ -28,14 +28,7 @@ export function CommandLoading({
   if (!isLoading) return null;
 
   return (
-    <div
-      ref={ref}
-      data-command-loading=""
-      aria-busy
-      aria-live="assertive"
-      role="status"
-      {...props}
-    >
+    <div ref={ref} data-command-loading="" aria-busy aria-live="assertive" role="status" {...props}>
       {children}
     </div>
   );

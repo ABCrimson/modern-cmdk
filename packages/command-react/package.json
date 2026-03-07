@@ -12,7 +12,9 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
@@ -27,7 +29,13 @@
   "dependencies": {
     "radix-ui": "1.4.4-rc.1766004502650"
   },
-  "keywords": ["command-palette", "react", "react-19", "cmdk", "headless"],
+  "keywords": [
+    "command-palette",
+    "react",
+    "react-19",
+    "cmdk",
+    "headless"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/ABCrimson/modern-cmdk",

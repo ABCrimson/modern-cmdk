@@ -2,8 +2,7 @@
 // Uses: Promise.withResolvers(), await using / AsyncDisposable, Iterator Helpers, branded ItemId
 // Falls back to main-thread WASM when SharedArrayBuffer is unavailable (no COOP/COEP)
 
-import type { CommandItem, ItemId } from '@crimson_dev/command';
-import type { SearchEngine, SearchResult } from '@crimson_dev/command';
+import type { CommandItem, ItemId, SearchEngine, SearchResult } from '@crimson_dev/command';
 import type { WorkerMessage, WorkerResponse } from './worker.js';
 
 // ─── Configuration ───────────────────────────────────────────────────────────
@@ -39,9 +38,11 @@ export interface WorkerSearchEngine extends SearchEngine, AsyncDisposable {
  */
 function isSharedArrayBufferAvailable(): boolean {
   try {
-    return typeof SharedArrayBuffer !== 'undefined'
-      && typeof crossOriginIsolated !== 'undefined'
-      && crossOriginIsolated;
+    return (
+      typeof SharedArrayBuffer !== 'undefined' &&
+      typeof crossOriginIsolated !== 'undefined' &&
+      crossOriginIsolated
+    );
   } catch {
     return false;
   }
@@ -75,14 +76,14 @@ export async function createWorkerSearchEngine(
 
   // ── Worker lifecycle ───────────────────────────────────────────────────────
 
-  const worker = new Worker(
-    new URL('./worker.ts', import.meta.url),
-    { type: 'module' },
-  );
+  const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
 
   // Wait for the worker to signal readiness (WASM module loaded)
-  const { promise: readyPromise, resolve: readyResolve, reject: readyReject } =
-    Promise.withResolvers<void>();
+  const {
+    promise: readyPromise,
+    resolve: readyResolve,
+    reject: readyReject,
+  } = Promise.withResolvers<void>();
 
   // ── Request queue ──────────────────────────────────────────────────────────
 
@@ -198,11 +199,13 @@ export async function createWorkerSearchEngine(
           const scoresView = new Float32Array(scoresBuffer);
           const results: readonly SearchResult[] = response.ids
             .values()
-            .map((id, index): SearchResult => ({
-              id: id as ItemId,
-              score: scoresView[index]!,
-              matches: response.matches[index]!,
-            }))
+            .map(
+              (id, index): SearchResult => ({
+                id: id as ItemId,
+                score: scoresView[index]!,
+                matches: response.matches[index]!,
+              }),
+            )
             .toArray();
 
           cachedResults = results;
@@ -224,11 +227,13 @@ export async function createWorkerSearchEngine(
       if (response.type === 'results') {
         const results: readonly SearchResult[] = response.results
           .values()
-          .map((result): SearchResult => ({
-            id: result.id as ItemId,
-            score: result.score,
-            matches: result.matches,
-          }))
+          .map(
+            (result): SearchResult => ({
+              id: result.id as ItemId,
+              score: result.score,
+              matches: result.matches,
+            }),
+          )
           .toArray();
 
         cachedResults = results;

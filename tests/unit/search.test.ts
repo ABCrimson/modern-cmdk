@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { scoreItem, createSearchEngine, itemId } from '@crimson_dev/command';
 import type { CommandItem } from '@crimson_dev/command';
+import { createSearchEngine, itemId, scoreItem } from '@crimson_dev/command';
+import { describe, expect, it } from 'vitest';
 
 function makeItem(value: string, keywords?: string[]): CommandItem {
   return { id: itemId(value.toLowerCase().replace(/\s/g, '-')), value, keywords };
@@ -10,26 +10,26 @@ describe('scoreItem', () => {
   it('should return score 1 for empty query', () => {
     const result = scoreItem('', makeItem('Apple'));
     expect(result).not.toBeNull();
-    expect(result!.score).toBe(1);
-    expect(result!.matches).toEqual([]);
+    expect(result?.score).toBe(1);
+    expect(result?.matches).toEqual([]);
   });
 
   it('should return highest score for exact match', () => {
     const result = scoreItem('apple', makeItem('Apple'));
     expect(result).not.toBeNull();
-    expect(result!.score).toBe(1);
+    expect(result?.score).toBe(1);
   });
 
   it('should score starts-with match very high', () => {
     const result = scoreItem('app', makeItem('Apple Pie'));
     expect(result).not.toBeNull();
-    expect(result!.score).toBeGreaterThan(0.9);
+    expect(result?.score).toBeGreaterThan(0.9);
   });
 
   it('should score substring match', () => {
     const result = scoreItem('pie', makeItem('Apple Pie'));
     expect(result).not.toBeNull();
-    expect(result!.score).toBeGreaterThan(0.5);
+    expect(result?.score).toBeGreaterThan(0.5);
   });
 
   it('should return null for no match', () => {
@@ -40,39 +40,39 @@ describe('scoreItem', () => {
   it('should match keywords', () => {
     const result = scoreItem('duplicate', makeItem('Copy', ['duplicate', 'clone']));
     expect(result).not.toBeNull();
-    expect(result!.score).toBe(1); // Exact match on keyword
+    expect(result?.score).toBe(1); // Exact match on keyword
   });
 
   it('should handle single character queries', () => {
     const result = scoreItem('a', makeItem('Apple'));
     expect(result).not.toBeNull();
-    expect(result!.score).toBeGreaterThan(0);
+    expect(result?.score).toBeGreaterThan(0);
   });
 
   it('should handle Unicode characters', () => {
     const result = scoreItem('café', makeItem('Café Latte'));
     expect(result).not.toBeNull();
-    expect(result!.score).toBeGreaterThan(0.9);
+    expect(result?.score).toBeGreaterThan(0.9);
   });
 
   it('should provide match ranges', () => {
     const result = scoreItem('app', makeItem('Apple'));
     expect(result).not.toBeNull();
-    expect(result!.matches.length).toBeGreaterThan(0);
-    expect(result!.matches[0]![0]).toBe(0); // Start at 0
-    expect(result!.matches[0]![1]).toBe(3); // End at 3
+    expect(result?.matches.length).toBeGreaterThan(0);
+    expect(result?.matches[0]?.[0]).toBe(0); // Start at 0
+    expect(result?.matches[0]?.[1]).toBe(3); // End at 3
   });
 
   it('should score word boundary matches', () => {
     const wordBoundary = scoreItem('fc', makeItem('File Copy'));
     expect(wordBoundary).not.toBeNull();
-    expect(wordBoundary!.score).toBeGreaterThan(0.3);
+    expect(wordBoundary?.score).toBeGreaterThan(0.3);
   });
 
   it('should score fuzzy character matches', () => {
     const fuzzy = scoreItem('ale', makeItem('Apple'));
     expect(fuzzy).not.toBeNull();
-    expect(fuzzy!.score).toBeGreaterThan(0);
+    expect(fuzzy?.score).toBeGreaterThan(0);
   });
 
   it('should give higher score to contiguous matches', () => {
@@ -102,16 +102,12 @@ describe('createSearchEngine', () => {
 
   it('should search items and return ordered results', () => {
     using engine = createSearchEngine();
-    const items = [
-      makeItem('Apple'),
-      makeItem('Banana'),
-      makeItem('Apricot'),
-    ];
+    const items = [makeItem('Apple'), makeItem('Banana'), makeItem('Apricot')];
     engine.index(items);
 
     const results = engine.search('ap', items).toArray();
     expect(results.length).toBe(2); // Apple and Apricot
-    expect(results[0]!.score).toBeGreaterThanOrEqual(results[1]!.score);
+    expect(results[0]?.score).toBeGreaterThanOrEqual(results[1]?.score);
   });
 
   it('should return all items for empty query', () => {
@@ -147,9 +143,9 @@ describe('createSearchEngine', () => {
     const items = [makeItem('Apple'), makeItem('Banana')];
     engine.index(items);
 
-    engine.remove(new Set([items[0]!.id]));
+    engine.remove(new Set([items[0]?.id]));
     const results = engine.search('a', [items[1]!]).toArray();
-    expect(results.every((r) => r.id !== items[0]!.id)).toBe(true);
+    expect(results.every((r) => r.id !== items[0]?.id)).toBe(true);
   });
 
   it('should support custom scorer', () => {
@@ -165,6 +161,6 @@ describe('createSearchEngine', () => {
     engine.index(items);
 
     const results = engine.search('World', items).toArray();
-    expect(results[0]!.score).toBe(42);
+    expect(results[0]?.score).toBe(42);
   });
 });

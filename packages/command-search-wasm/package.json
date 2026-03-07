@@ -12,7 +12,10 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "pkg"],
+  "files": [
+    "dist",
+    "pkg"
+  ],
   "scripts": {
     "build": "tsdown",
     "build:wasm": "wasm-pack build crate --target web --out-dir ../pkg",
@@ -22,7 +25,12 @@
   "peerDependencies": {
     "@crimson_dev/command": "workspace:*"
   },
-  "keywords": ["wasm", "fuzzy-search", "trigram", "command-palette"],
+  "keywords": [
+    "wasm",
+    "fuzzy-search",
+    "trigram",
+    "command-palette"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/ABCrimson/modern-cmdk",

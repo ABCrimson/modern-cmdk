@@ -9,11 +9,7 @@ export interface CommandBadgeProps extends ComponentPropsWithRef<'span'> {}
 
 export function CommandBadge({ ref, children, ...props }: CommandBadgeProps): ReactNode {
   return (
-    <span
-      ref={ref}
-      data-command-badge=""
-      {...props}
-    >
+    <span ref={ref} data-command-badge="" {...props}>
       {children}
     </span>
   );

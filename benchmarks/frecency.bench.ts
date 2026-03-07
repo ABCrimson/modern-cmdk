@@ -1,7 +1,11 @@
-import { bench, describe } from 'vitest';
-import { FrecencyEngine, computeFrecencyBonus, itemId } from '@crimson_dev/command';
 import type { FrecencyRecord, ItemId } from '@crimson_dev/command';
-import { MemoryFrecencyStorage } from '@crimson_dev/command';
+import {
+  computeFrecencyBonus,
+  FrecencyEngine,
+  itemId,
+  MemoryFrecencyStorage,
+} from '@crimson_dev/command';
+import { bench, describe } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -15,7 +19,7 @@ function makeRecord(hoursAgo: number, frequency: number): FrecencyRecord {
   return { lastUsed: past, frequency };
 }
 
-function generateRecords(count: number): Map<ItemId, FrecencyRecord> {
+function _generateRecords(count: number): Map<ItemId, FrecencyRecord> {
   const records = new Map<ItemId, FrecencyRecord>();
   for (let i = 0; i < count; i++) {
     const hoursAgo = (i * 7) % 2000;
@@ -69,7 +73,7 @@ describe('FrecencyEngine.getBonus — 10K Records', () => {
   for (let i = 0; i < 10_000; i++) {
     const id = itemId(`item-${i}`);
     ids.push(id);
-    for (let j = 0; j < ((i % 5) + 1); j++) {
+    for (let j = 0; j < (i % 5) + 1; j++) {
       engine.recordSelection(id);
     }
   }

@@ -1,28 +1,23 @@
-import { describe, it, expect, expectTypeOf } from 'vitest';
 import type {
-  CommandState,
   CommandEvent,
   CommandItem,
-  CommandGroup,
-  CommandMachineOptions,
-  ItemId,
-  GroupId,
-  FrecencyRecord,
-  FrecencyData,
-  FrecencyStorage,
-  FrecencyDecayConfig,
-  SearchResult,
-  ScorerFn,
-  SearchEngine,
   CommandMachine,
+  CommandMachineOptions,
+  CommandState,
+  FrecencyDecayConfig,
+  FrecencyStorage,
+  GroupId,
+  ItemId,
+  SearchEngine,
 } from '@crimson_dev/command';
 import {
-  itemId,
-  groupId,
   createInitialState,
   DEFAULT_FRECENCY_DECAY,
   DEFAULT_MACHINE_OPTIONS,
+  groupId,
+  itemId,
 } from '@crimson_dev/command';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
 describe('Type Foundation (0.0.2)', () => {
   describe('Branded types', () => {
@@ -65,7 +60,9 @@ describe('Type Foundation (0.0.2)', () => {
     });
 
     it('should use ReadonlyMap for groupedIds', () => {
-      expectTypeOf<CommandState['groupedIds']>().toMatchTypeOf<ReadonlyMap<GroupId, readonly ItemId[]>>();
+      expectTypeOf<CommandState['groupedIds']>().toMatchTypeOf<
+        ReadonlyMap<GroupId, readonly ItemId[]>
+      >();
     });
   });
 

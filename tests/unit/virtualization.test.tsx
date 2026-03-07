@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { createRoot } from 'react-dom/client';
-import { act } from 'react';
 import { Command } from '@crimson_dev/command-react';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -35,9 +35,7 @@ describe('Virtualization (0.2.2)', () => {
     await render(
       <Command>
         <Command.Input />
-        <Command.List>
-          {items}
-        </Command.List>
+        <Command.List>{items}</Command.List>
       </Command>,
     );
 
@@ -52,7 +50,9 @@ describe('Virtualization (0.2.2)', () => {
       <Command>
         <Command.Input />
         <Command.List virtualize={false}>
-          <Command.Item value="one" forceId="one">One</Command.Item>
+          <Command.Item value="one" forceId="one">
+            One
+          </Command.Item>
         </Command.List>
       </Command>,
     );
@@ -70,14 +70,16 @@ describe('Virtualization (0.2.2)', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="test" forceId="test">Test</Command.Item>
+          <Command.Item value="test" forceId="test">
+            Test
+          </Command.Item>
         </Command.List>
       </Command>,
     );
 
     const list = container.querySelector('[data-command-list]');
     expect(list).not.toBeNull();
-    expect(list!.getAttribute('role')).toBe('listbox');
+    expect(list?.getAttribute('role')).toBe('listbox');
   });
 
   it('should have aria-live region for screen reader announcements', async () => {
@@ -85,8 +87,12 @@ describe('Virtualization (0.2.2)', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="apple" forceId="apple">Apple</Command.Item>
-          <Command.Item value="banana" forceId="banana">Banana</Command.Item>
+          <Command.Item value="apple" forceId="apple">
+            Apple
+          </Command.Item>
+          <Command.Item value="banana" forceId="banana">
+            Banana
+          </Command.Item>
         </Command.List>
       </Command>,
     );
@@ -94,7 +100,7 @@ describe('Virtualization (0.2.2)', () => {
     await vi.waitFor(() => {
       const ariaLive = container.querySelector('[aria-live="polite"]');
       expect(ariaLive).not.toBeNull();
-      expect(ariaLive!.textContent).toContain('result');
+      expect(ariaLive?.textContent).toContain('result');
     });
   });
 
@@ -103,7 +109,9 @@ describe('Virtualization (0.2.2)', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="test" forceId="test">Test</Command.Item>
+          <Command.Item value="test" forceId="test">
+            Test
+          </Command.Item>
         </Command.List>
       </Command>,
     );
@@ -119,7 +127,9 @@ describe('Virtualization (0.2.2)', () => {
       <Command>
         <Command.Input />
         <Command.List estimateSize={48} overscan={4}>
-          <Command.Item value="test" forceId="test">Test</Command.Item>
+          <Command.Item value="test" forceId="test">
+            Test
+          </Command.Item>
         </Command.List>
       </Command>,
     );

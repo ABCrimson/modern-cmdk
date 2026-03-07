@@ -2,11 +2,11 @@
 // React adapter compound component tests — Vitest + happy-dom
 // React 19.3.0-canary, TypeScript 6.0.1-rc, ES2026
 
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { createRoot, type Root } from 'react-dom/client';
-import { act, type ReactNode } from 'react';
+import { groupId, itemId } from '@crimson_dev/command';
 import { Command } from '@crimson_dev/command-react';
-import { itemId, groupId } from '@crimson_dev/command';
+import { act, type ReactNode } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -40,10 +40,8 @@ async function render(ui: ReactNode): Promise<void> {
 /** Fire a native input event (works in happy-dom) */
 async function typeInInput(input: HTMLInputElement, value: string): Promise<void> {
   await act(async () => {
-    const nativeSet = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      'value',
-    )!.set!;
+    const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
+      ?.set as (v: string) => void;
     nativeSet.call(input, value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -57,9 +55,7 @@ async function typeInInput(input: HTMLInputElement, value: string): Promise<void
 /** Dispatch a keyboard event on document */
 async function pressKey(key: string, opts?: KeyboardEventInit): Promise<void> {
   await act(async () => {
-    document.dispatchEvent(
-      new KeyboardEvent('keydown', { key, bubbles: true, ...opts }),
-    );
+    document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...opts }));
   });
   await act(async () => {
     await new Promise<void>((r) => queueMicrotask(r));
@@ -86,8 +82,8 @@ describe('Command — React Compound Components', () => {
 
       const rootEl = container.querySelector('[data-command-root]');
       expect(rootEl).not.toBeNull();
-      expect(rootEl!.getAttribute('role')).toBe('application');
-      expect(rootEl!.getAttribute('aria-label')).toBe('Test palette');
+      expect(rootEl?.getAttribute('role')).toBe('application');
+      expect(rootEl?.getAttribute('aria-label')).toBe('Test palette');
     });
 
     it('should render Input with combobox ARIA role', async () => {
@@ -121,7 +117,7 @@ describe('Command — React Compound Components', () => {
 
       const list = container.querySelector('[data-command-list]');
       expect(list).not.toBeNull();
-      expect(list!.getAttribute('role')).toBe('listbox');
+      expect(list?.getAttribute('role')).toBe('listbox');
     });
 
     it('should render Item with option role and data attributes', async () => {
@@ -129,16 +125,18 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="my-item" forceId="item-1">My Item</Command.Item>
+            <Command.Item value="my-item" forceId="item-1">
+              My Item
+            </Command.Item>
           </Command.List>
         </Command>,
       );
 
       const item = container.querySelector('[data-command-item]');
       expect(item).not.toBeNull();
-      expect(item!.getAttribute('role')).toBe('option');
-      expect(item!.getAttribute('data-value')).toBe('my-item');
-      expect(item!.textContent).toBe('My Item');
+      expect(item?.getAttribute('role')).toBe('option');
+      expect(item?.getAttribute('data-value')).toBe('my-item');
+      expect(item?.textContent).toBe('My Item');
     });
   });
 
@@ -165,8 +163,12 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="alpha" forceId="alpha-id">Alpha</Command.Item>
-            <Command.Item value="beta" forceId="beta-id">Beta</Command.Item>
+            <Command.Item value="alpha" forceId="alpha-id">
+              Alpha
+            </Command.Item>
+            <Command.Item value="beta" forceId="beta-id">
+              Beta
+            </Command.Item>
           </Command.List>
         </Command>,
       );
@@ -200,8 +202,12 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="first" forceId="first">First</Command.Item>
-            <Command.Item value="second" forceId="second">Second</Command.Item>
+            <Command.Item value="first" forceId="first">
+              First
+            </Command.Item>
+            <Command.Item value="second" forceId="second">
+              Second
+            </Command.Item>
           </Command.List>
         </Command>,
       );
@@ -239,9 +245,15 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="apple" forceId="apple">Apple</Command.Item>
-            <Command.Item value="banana" forceId="banana">Banana</Command.Item>
-            <Command.Item value="cherry" forceId="cherry">Cherry</Command.Item>
+            <Command.Item value="apple" forceId="apple">
+              Apple
+            </Command.Item>
+            <Command.Item value="banana" forceId="banana">
+              Banana
+            </Command.Item>
+            <Command.Item value="cherry" forceId="cherry">
+              Cherry
+            </Command.Item>
           </Command.List>
         </Command>,
       );
@@ -256,7 +268,7 @@ describe('Command — React Compound Components', () => {
       await vi.waitFor(() => {
         const items = container.querySelectorAll('[data-command-item]');
         expect(items.length).toBe(1);
-        expect(items[0]!.textContent).toBe('Apple');
+        expect(items[0]?.textContent).toBe('Apple');
       });
     });
 
@@ -265,8 +277,12 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="apple" forceId="apple">Apple</Command.Item>
-            <Command.Item value="banana" forceId="banana">Banana</Command.Item>
+            <Command.Item value="apple" forceId="apple">
+              Apple
+            </Command.Item>
+            <Command.Item value="banana" forceId="banana">
+              Banana
+            </Command.Item>
           </Command.List>
         </Command>,
       );
@@ -294,23 +310,29 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="one" forceId="one">One</Command.Item>
-            <Command.Item value="two" forceId="two">Two</Command.Item>
-            <Command.Item value="three" forceId="three">Three</Command.Item>
+            <Command.Item value="one" forceId="one">
+              One
+            </Command.Item>
+            <Command.Item value="two" forceId="two">
+              Two
+            </Command.Item>
+            <Command.Item value="three" forceId="three">
+              Three
+            </Command.Item>
           </Command.List>
         </Command>,
       );
 
       // First item is active by default
       await vi.waitFor(() => {
-        expect(container.querySelector('#one')!.hasAttribute('data-active')).toBe(true);
+        expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
       });
 
       await pressKey('ArrowDown');
 
       await vi.waitFor(() => {
-        expect(container.querySelector('#two')!.hasAttribute('data-active')).toBe(true);
-        expect(container.querySelector('#one')!.hasAttribute('data-active')).toBe(false);
+        expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
+        expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(false);
       });
     });
 
@@ -319,8 +341,12 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="one" forceId="one">One</Command.Item>
-            <Command.Item value="two" forceId="two">Two</Command.Item>
+            <Command.Item value="one" forceId="one">
+              One
+            </Command.Item>
+            <Command.Item value="two" forceId="two">
+              Two
+            </Command.Item>
           </Command.List>
         </Command>,
       );
@@ -329,13 +355,13 @@ describe('Command — React Compound Components', () => {
       await pressKey('ArrowDown');
 
       await vi.waitFor(() => {
-        expect(container.querySelector('#two')!.hasAttribute('data-active')).toBe(true);
+        expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
       });
 
       await pressKey('ArrowUp');
 
       await vi.waitFor(() => {
-        expect(container.querySelector('#one')!.hasAttribute('data-active')).toBe(true);
+        expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
       });
     });
 
@@ -344,8 +370,12 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="one" forceId="one">One</Command.Item>
-            <Command.Item value="two" forceId="two">Two</Command.Item>
+            <Command.Item value="one" forceId="one">
+              One
+            </Command.Item>
+            <Command.Item value="two" forceId="two">
+              Two
+            </Command.Item>
           </Command.List>
         </Command>,
       );
@@ -353,13 +383,13 @@ describe('Command — React Compound Components', () => {
       // Move to second item
       await pressKey('ArrowDown');
       await vi.waitFor(() => {
-        expect(container.querySelector('#two')!.hasAttribute('data-active')).toBe(true);
+        expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
       });
 
       // Arrow down from last should loop to first
       await pressKey('ArrowDown');
       await vi.waitFor(() => {
-        expect(container.querySelector('#one')!.hasAttribute('data-active')).toBe(true);
+        expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
       });
     });
   });
@@ -425,7 +455,9 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="enabled" forceId="enabled">Enabled</Command.Item>
+            <Command.Item value="enabled" forceId="enabled">
+              Enabled
+            </Command.Item>
             <Command.Item value="disabled" forceId="disabled-item" disabled>
               Disabled
             </Command.Item>
@@ -448,7 +480,12 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="disabled-click" forceId="disabled-click" disabled onSelect={onSelect}>
+            <Command.Item
+              value="disabled-click"
+              forceId="disabled-click"
+              disabled
+              onSelect={onSelect}
+            >
               Can't click me
             </Command.Item>
           </Command.List>
@@ -480,7 +517,9 @@ describe('Command — React Compound Components', () => {
           <Command.Input />
           <Command.List>
             <Command.Group heading="Fruits" forceId="fruits-group">
-              <Command.Item value="apple" forceId="apple">Apple</Command.Item>
+              <Command.Item value="apple" forceId="apple">
+                Apple
+              </Command.Item>
             </Command.Group>
           </Command.List>
         </Command>,
@@ -518,12 +557,12 @@ describe('Command — React Compound Components', () => {
       await vi.waitFor(() => {
         const group = container.querySelector('[data-command-group]');
         expect(group).not.toBeNull();
-        expect(group!.getAttribute('role')).toBe('group');
+        expect(group?.getAttribute('role')).toBe('group');
 
-        const heading = group!.querySelector('[data-command-group-heading]');
+        const heading = group?.querySelector('[data-command-group-heading]');
         expect(heading).not.toBeNull();
-        expect(heading!.textContent).toBe('Fruits');
-        expect(group!.getAttribute('aria-labelledby')).toBe(heading!.id);
+        expect(heading?.textContent).toBe('Fruits');
+        expect(group?.getAttribute('aria-labelledby')).toBe(heading?.id);
       });
     });
 
@@ -557,7 +596,9 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="apple" forceId="apple">Apple</Command.Item>
+            <Command.Item value="apple" forceId="apple">
+              Apple
+            </Command.Item>
             <Command.Empty>No results found.</Command.Empty>
           </Command.List>
         </Command>,
@@ -572,8 +613,8 @@ describe('Command — React Compound Components', () => {
       await vi.waitFor(() => {
         const empty = container.querySelector('[data-command-empty]');
         expect(empty).not.toBeNull();
-        expect(empty!.textContent).toBe('No results found.');
-        expect(empty!.getAttribute('role')).toBe('status');
+        expect(empty?.textContent).toBe('No results found.');
+        expect(empty?.getAttribute('role')).toBe('status');
       });
     });
   });
@@ -593,10 +634,10 @@ describe('Command — React Compound Components', () => {
 
       const loading = container.querySelector('[data-command-loading]');
       expect(loading).not.toBeNull();
-      expect(loading!.textContent).toBe('Loading items...');
+      expect(loading?.textContent).toBe('Loading items...');
       // React renders boolean aria-busy as "true" string
-      expect(loading!.hasAttribute('aria-busy')).toBe(true);
-      expect(loading!.getAttribute('role')).toBe('status');
+      expect(loading?.hasAttribute('aria-busy')).toBe(true);
+      expect(loading?.getAttribute('role')).toBe('status');
     });
 
     it('should hide Loading when loading is false', async () => {
@@ -621,16 +662,20 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item value="one" forceId="one">One</Command.Item>
+            <Command.Item value="one" forceId="one">
+              One
+            </Command.Item>
             <Command.Separator />
-            <Command.Item value="two" forceId="two">Two</Command.Item>
+            <Command.Item value="two" forceId="two">
+              Two
+            </Command.Item>
           </Command.List>
         </Command>,
       );
 
       const separator = container.querySelector('[data-command-separator]');
       expect(separator).not.toBeNull();
-      expect(separator!.getAttribute('role')).toBe('separator');
+      expect(separator?.getAttribute('role')).toBe('separator');
     });
   });
 
@@ -643,10 +688,14 @@ describe('Command — React Compound Components', () => {
           <Command.Input />
           <Command.List>
             <Command.Page id="root">
-              <Command.Item value="home" forceId="home">Home</Command.Item>
+              <Command.Item value="home" forceId="home">
+                Home
+              </Command.Item>
             </Command.Page>
             <Command.Page id="settings">
-              <Command.Item value="profile" forceId="profile">Profile</Command.Item>
+              <Command.Item value="profile" forceId="profile">
+                Profile
+              </Command.Item>
             </Command.Page>
           </Command.List>
         </Command>,
@@ -666,24 +715,18 @@ describe('Command — React Compound Components', () => {
   describe('Highlight component', () => {
     it('should render mark elements for match ranges', async () => {
       await render(
-        <Command.Highlight
-          text="Application"
-          ranges={[[0, 3]]}
-          highlightClassName="hl"
-        />,
+        <Command.Highlight text="Application" ranges={[[0, 3]]} highlightClassName="hl" />,
       );
 
       const marks = container.querySelectorAll('mark');
       expect(marks.length).toBe(1);
-      expect(marks[0]!.textContent).toBe('App');
-      expect(marks[0]!.className).toBe('hl');
-      expect(marks[0]!.getAttribute('data-command-highlight')).toBe('');
+      expect(marks[0]?.textContent).toBe('App');
+      expect(marks[0]?.className).toBe('hl');
+      expect(marks[0]?.getAttribute('data-command-highlight')).toBe('');
     });
 
     it('should render plain text when ranges is empty', async () => {
-      await render(
-        <Command.Highlight text="Hello World" ranges={[]} />,
-      );
+      await render(<Command.Highlight text="Hello World" ranges={[]} />);
 
       expect(container.querySelectorAll('mark').length).toBe(0);
       expect(container.textContent).toBe('Hello World');
@@ -693,14 +736,17 @@ describe('Command — React Compound Components', () => {
       await render(
         <Command.Highlight
           text="Hello World"
-          ranges={[[0, 2], [6, 11]]}
+          ranges={[
+            [0, 2],
+            [6, 11],
+          ]}
         />,
       );
 
       const marks = container.querySelectorAll('mark');
       expect(marks.length).toBe(2);
-      expect(marks[0]!.textContent).toBe('He');
-      expect(marks[1]!.textContent).toBe('World');
+      expect(marks[0]?.textContent).toBe('He');
+      expect(marks[1]?.textContent).toBe('World');
     });
   });
 
@@ -708,25 +754,21 @@ describe('Command — React Compound Components', () => {
 
   describe('Shortcut component', () => {
     it('should render kbd element with data-command-shortcut', async () => {
-      await render(
-        <Command.Shortcut>Ctrl+K</Command.Shortcut>,
-      );
+      await render(<Command.Shortcut>Ctrl+K</Command.Shortcut>);
 
       const kbd = container.querySelector('kbd');
       expect(kbd).not.toBeNull();
-      expect(kbd!.getAttribute('data-command-shortcut')).toBe('');
-      expect(kbd!.textContent).toBe('Ctrl+K');
+      expect(kbd?.getAttribute('data-command-shortcut')).toBe('');
+      expect(kbd?.textContent).toBe('Ctrl+K');
     });
 
     it('should format shortcut string when shortcut prop is provided', async () => {
-      await render(
-        <Command.Shortcut shortcut="Shift+K" />,
-      );
+      await render(<Command.Shortcut shortcut="Shift+K" />);
 
       const kbd = container.querySelector('kbd')!;
       expect(kbd).not.toBeNull();
       // formatShortcut produces platform-specific text; just check it rendered something
-      expect(kbd.textContent!.length).toBeGreaterThan(0);
+      expect(kbd.textContent?.length).toBeGreaterThan(0);
       // Should contain 'K' as the key
       expect(kbd.textContent).toContain('K');
     });
@@ -736,15 +778,13 @@ describe('Command — React Compound Components', () => {
 
   describe('Badge component', () => {
     it('should render badge span with data-command-badge', async () => {
-      await render(
-        <Command.Badge className="tag">New</Command.Badge>,
-      );
+      await render(<Command.Badge className="tag">New</Command.Badge>);
 
       const badge = container.querySelector('[data-command-badge]');
       expect(badge).not.toBeNull();
-      expect(badge!.tagName).toBe('SPAN');
-      expect(badge!.textContent).toBe('New');
-      expect(badge!.className).toBe('tag');
+      expect(badge?.tagName).toBe('SPAN');
+      expect(badge?.textContent).toBe('New');
+      expect(badge?.className).toBe('tag');
     });
   });
 
@@ -757,7 +797,9 @@ describe('Command — React Compound Components', () => {
         <Command.Dialog open label="Command dialog" container={container}>
           <Command.Input />
           <Command.List>
-            <Command.Item value="test" forceId="test">Test</Command.Item>
+            <Command.Item value="test" forceId="test">
+              Test
+            </Command.Item>
           </Command.List>
         </Command.Dialog>,
       );
@@ -770,7 +812,7 @@ describe('Command — React Compound Components', () => {
           const dialog = container.querySelector('[data-command-dialog]');
           expect(overlay).not.toBeNull();
           expect(dialog).not.toBeNull();
-          expect(dialog!.getAttribute('aria-label')).toBe('Command dialog');
+          expect(dialog?.getAttribute('aria-label')).toBe('Command dialog');
         },
         { timeout: 3000 },
       );
@@ -781,7 +823,9 @@ describe('Command — React Compound Components', () => {
         <Command.Dialog open={false} label="Closed dialog" container={container}>
           <Command.Input />
           <Command.List>
-            <Command.Item value="hidden" forceId="hidden">Hidden</Command.Item>
+            <Command.Item value="hidden" forceId="hidden">
+              Hidden
+            </Command.Item>
           </Command.List>
         </Command.Dialog>,
       );
@@ -795,7 +839,9 @@ describe('Command — React Compound Components', () => {
         <Command.Dialog open label="Dialog root" container={container}>
           <Command.Input />
           <Command.List>
-            <Command.Item value="inner" forceId="inner">Inner</Command.Item>
+            <Command.Item value="inner" forceId="inner">
+              Inner
+            </Command.Item>
           </Command.List>
         </Command.Dialog>,
       );
@@ -813,10 +859,17 @@ describe('Command — React Compound Components', () => {
       const onOpenChange = vi.fn();
 
       await render(
-        <Command.Dialog open onOpenChange={onOpenChange} label="Closable dialog" container={container}>
+        <Command.Dialog
+          open
+          onOpenChange={onOpenChange}
+          label="Closable dialog"
+          container={container}
+        >
           <Command.Input />
           <Command.List>
-            <Command.Item value="test" forceId="test">Test</Command.Item>
+            <Command.Item value="test" forceId="test">
+              Test
+            </Command.Item>
           </Command.List>
         </Command.Dialog>,
       );
@@ -853,7 +906,9 @@ describe('Command — React Compound Components', () => {
         <Command>
           <Command.Input onValueChange={onValueChange} />
           <Command.List>
-            <Command.Item value="one" forceId="one">One</Command.Item>
+            <Command.Item value="one" forceId="one">
+              One
+            </Command.Item>
           </Command.List>
         </Command>,
       );

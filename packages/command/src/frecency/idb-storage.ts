@@ -3,7 +3,7 @@
 // Implements both Disposable and AsyncDisposable for await using support
 // ES2026: Iterator Helpers, Temporal, using/await using
 
-import { get, set, del, type UseStore, createStore } from 'idb-keyval';
+import { createStore, del, get, set, type UseStore } from 'idb-keyval';
 import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';
 
 /** JSON-safe serialized form of a FrecencyRecord */

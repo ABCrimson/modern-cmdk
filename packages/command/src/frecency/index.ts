@@ -48,11 +48,15 @@ export function computeFrecencyBonus(
 
   // Exponential decay with Temporal.Duration-based bucket boundaries
   const recencyWeight =
-    hours < hourBound ? hourWeight :
-    hours < dayBound ? dayWeight :
-    hours < weekBound ? weekWeight :
-    hours < monthBound ? monthWeight :
-    olderWeight;
+    hours < hourBound
+      ? hourWeight
+      : hours < dayBound
+        ? dayWeight
+        : hours < weekBound
+          ? weekWeight
+          : hours < monthBound
+            ? monthWeight
+            : olderWeight;
 
   return history.frequency * recencyWeight;
 }

@@ -1,22 +1,37 @@
-import { describe, it, expect, vi } from 'vitest';
+import type { CommandItem } from '@crimson_dev/command';
 import {
-  createSearchEngine,
   createCommandMachine,
+  createSearchEngine,
   FrecencyEngine,
   itemId,
+  MemoryFrecencyStorage,
 } from '@crimson_dev/command';
-import { MemoryFrecencyStorage } from '@crimson_dev/command';
-import type { CommandItem } from '@crimson_dev/command';
+import { describe, expect, it } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 const WORDS = [
-  'apple', 'banana', 'cherry', 'date', 'elderberry',
-  'fig', 'grape', 'honeydew', 'kiwi', 'lemon',
-  'mango', 'nectarine', 'orange', 'papaya', 'quince',
-  'raspberry', 'strawberry', 'tangerine', 'watermelon',
+  'apple',
+  'banana',
+  'cherry',
+  'date',
+  'elderberry',
+  'fig',
+  'grape',
+  'honeydew',
+  'kiwi',
+  'lemon',
+  'mango',
+  'nectarine',
+  'orange',
+  'papaya',
+  'quince',
+  'raspberry',
+  'strawberry',
+  'tangerine',
+  'watermelon',
 ];
 
 function generateItems(count: number): CommandItem[] {
@@ -39,7 +54,7 @@ describe('Stress Tests (0.8.6)', () => {
 
     const results = engine.search('apple', items).toArray();
     expect(results.length).toBeGreaterThan(0);
-    expect(results[0]!.score).toBeGreaterThan(0);
+    expect(results[0]?.score).toBeGreaterThan(0);
   });
 
   it('should handle rapid typing simulation — 50 incremental queries', () => {
@@ -96,7 +111,7 @@ describe('Stress Tests (0.8.6)', () => {
       const results = searchEngine.search(query, items).toArray();
 
       if (results.length > 0) {
-        frecencyEngine.recordSelection(results[0]!.id);
+        frecencyEngine.recordSelection(results[0]?.id);
       }
     }
 
@@ -163,7 +178,7 @@ describe('Stress Tests (0.8.6)', () => {
 
     // Rapid state transitions
     for (let i = 0; i < 100; i++) {
-      const query = WORDS[i % WORDS.length]!.slice(0, (i % 5) + 1);
+      const query = WORDS[i % WORDS.length]?.slice(0, (i % 5) + 1);
       machine.send({ type: 'SEARCH_CHANGE', query });
     }
 

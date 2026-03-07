@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Keyboard Navigation', () => {
   test.beforeEach(async ({ page }) => {
@@ -74,7 +74,9 @@ test.describe('Keyboard Navigation', () => {
     await expect(firstItem).toHaveAttribute('data-active', '');
   });
 
-  test('should wrap around to last item when pressing ArrowUp at the beginning', async ({ page }) => {
+  test('should wrap around to last item when pressing ArrowUp at the beginning', async ({
+    page,
+  }) => {
     const input = page.getByRole('combobox');
     await input.focus();
     const items = page.locator('[data-command-item]');
@@ -247,7 +249,7 @@ test.describe('Keyboard Navigation', () => {
 
     // If there are pages, the initial page should be visible
     const pages = page.locator('[data-command-page]');
-    const initialPageCount = await pages.count();
+    const _initialPageCount = await pages.count();
 
     // Pressing Backspace with empty input should attempt to pop page
     await expect(input).toHaveValue('');

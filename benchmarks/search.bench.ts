@@ -1,6 +1,6 @@
-import { bench, describe } from 'vitest';
-import { createCommandMachine, itemId } from '@crimson_dev/command';
 import type { CommandItem } from '@crimson_dev/command';
+import { createCommandMachine, itemId } from '@crimson_dev/command';
+import { bench, describe } from 'vitest';
 
 function generateItems(count: number): CommandItem[] {
   const words = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];

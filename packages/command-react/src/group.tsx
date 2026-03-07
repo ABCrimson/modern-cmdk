@@ -54,17 +54,11 @@ export function CommandGroup({
         {...props}
       >
         {heading && (
-          <div
-            data-command-group-heading=""
-            id={headingId}
-            aria-hidden
-          >
+          <div data-command-group-heading="" id={headingId} aria-hidden>
             {heading}
           </div>
         )}
-        <div data-command-group-items="">
-          {children}
-        </div>
+        <div data-command-group-items="">{children}</div>
       </div>
     </CommandGroupContext>
   );

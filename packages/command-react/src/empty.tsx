@@ -19,13 +19,7 @@ export function CommandEmpty({ ref, children, ...props }: CommandEmptyProps): Re
   if (ctx.state.filteredCount > 0 || ctx.state.loading) return null;
 
   return (
-    <div
-      ref={ref}
-      data-command-empty=""
-      role="status"
-      aria-live="polite"
-      {...props}
-    >
+    <div ref={ref} data-command-empty="" role="status" aria-live="polite" {...props}>
       {children}
     </div>
   );

@@ -18,9 +18,7 @@ const ATTR_MAP = new Map<string, string>([
 ]);
 
 /** CSS custom property renames */
-const CSS_VAR_MAP = new Map<string, string>([
-  ['--cmdk-list-height', '--command-list-height'],
-]);
+const CSS_VAR_MAP = new Map<string, string>([['--cmdk-list-height', '--command-list-height']]);
 
 /**
  * Replace all cmdk attribute selectors (bracketed) and CSS vars in a string.
@@ -67,31 +65,27 @@ export default function transform(fileInfo: FileInfo, api: API): string {
   }
 
   // 2. Replace in string literals (e.g. querySelector('[cmdk-item]'))
-  root
-    .find(j.StringLiteral)
-    .forEach((path) => {
-      const original = path.node.value;
-      const replaced = replaceInString(original);
-      if (replaced !== original) {
-        path.node.value = replaced;
-        hasChanges = true;
-      }
-    });
+  root.find(j.StringLiteral).forEach((path) => {
+    const original = path.node.value;
+    const replaced = replaceInString(original);
+    if (replaced !== original) {
+      path.node.value = replaced;
+      hasChanges = true;
+    }
+  });
 
   // 3. Replace in template literals
-  root
-    .find(j.TemplateLiteral)
-    .forEach((path) => {
-      for (const quasi of path.node.quasis) {
-        const original = quasi.value.raw;
-        const replaced = replaceInString(original);
-        if (replaced !== original) {
-          quasi.value.raw = replaced;
-          quasi.value.cooked = replaced;
-          hasChanges = true;
-        }
+  root.find(j.TemplateLiteral).forEach((path) => {
+    for (const quasi of path.node.quasis) {
+      const original = quasi.value.raw;
+      const replaced = replaceInString(original);
+      if (replaced !== original) {
+        quasi.value.raw = replaced;
+        quasi.value.cooked = replaced;
+        hasChanges = true;
       }
-    });
+    }
+  });
 
   return hasChanges ? root.toSource() : fileInfo.source;
 }

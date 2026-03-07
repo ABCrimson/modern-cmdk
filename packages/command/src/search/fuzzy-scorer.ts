@@ -2,8 +2,8 @@
 // Advanced fuzzy matcher (pure TS) — Promise.try for safe async scoring
 
 import type { CommandItem } from '../types.js';
-import type { SearchResult } from './types.js';
 import { scoreItem } from './default-scorer.js';
+import type { SearchResult } from './types.js';
 
 /**
  * Async-safe fuzzy scorer — wraps scoring in Promise.try for error resilience.
@@ -24,11 +24,7 @@ export async function batchScoreItems(
   query: string,
   items: readonly CommandItem[],
 ): Promise<SearchResult[]> {
-  const results = await Promise.all(
-    items.map((item) => Promise.try(() => scoreItem(query, item))),
-  );
+  const results = await Promise.all(items.map((item) => Promise.try(() => scoreItem(query, item))));
 
-  return results
-    .filter((r): r is SearchResult => r != null)
-    .sort((a, b) => b.score - a.score);
+  return results.filter((r): r is SearchResult => r != null).sort((a, b) => b.score - a.score);
 }

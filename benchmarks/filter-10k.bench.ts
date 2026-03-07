@@ -1,6 +1,6 @@
-import { bench, describe } from 'vitest';
-import { createSearchEngine, scoreItem, itemId } from '@crimson_dev/command';
 import type { CommandItem } from '@crimson_dev/command';
+import { createSearchEngine, itemId, scoreItem } from '@crimson_dev/command';
+import { bench, describe } from 'vitest';
 
 function generateItems(count: number): CommandItem[] {
   const words = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
@@ -23,7 +23,7 @@ describe('Filter 10K Items', () => {
   bench('search engine — full search pipeline', () => {
     using engine = createSearchEngine();
     engine.index(items10K);
-    const results = engine.search('apple', items10K).toArray();
+    const _results = engine.search('apple', items10K).toArray();
   });
 
   bench('search engine — incremental append', () => {

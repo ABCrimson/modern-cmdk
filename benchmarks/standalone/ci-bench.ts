@@ -34,17 +34,10 @@ async function run(): Promise<void> {
   });
 
   const results = await bench.run();
-
-  // Output results for CI
-  console.log('\n=== Benchmark Results ===\n');
   for (const task of results) {
     if (task.result) {
-      console.log(
-        `${task.name}: p75=${task.result.p75?.toFixed(3)}ms p99=${task.result.p99?.toFixed(3)}ms avg=${(task.result.mean ?? 0).toFixed(3)}ms`,
-      );
     }
   }
-  console.log('');
 }
 
 run().catch(console.error);

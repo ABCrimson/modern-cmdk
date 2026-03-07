@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { FrecencyRecord } from '@crimson_dev/command';
 import {
   computeFrecencyBonus,
   FrecencyEngine,
-  MemoryFrecencyStorage,
   itemId,
+  MemoryFrecencyStorage,
 } from '@crimson_dev/command';
-import type { FrecencyRecord } from '@crimson_dev/command';
+import { describe, expect, it } from 'vitest';
 
 describe('computeFrecencyBonus', () => {
   it('should give highest weight to items used within the last hour', () => {
@@ -155,7 +155,7 @@ describe('MemoryFrecencyStorage', () => {
     storage.save('test', { records });
     const json = storage.toJSON();
 
-    expect(json['test']).toBeDefined();
-    expect(json['test']!.records.length).toBe(1);
+    expect(json.test).toBeDefined();
+    expect(json.test?.records.length).toBe(1);
   });
 });

@@ -5,16 +5,24 @@
 // Vite dev server is configured with SPA fallback so /dialog etc. serve index.html
 
 import { useCallback, useEffect, useState } from 'react';
-import { BasicDemo } from './demos/BasicDemo.js';
-import { DialogDemo } from './demos/DialogDemo.js';
-import { VirtualizedDemo } from './demos/VirtualizedDemo.js';
 import { AllStatesDemo } from './demos/AllStatesDemo.js';
-import { RTLDemo } from './demos/RTLDemo.js';
-import { ErrorBoundaryDemo } from './demos/ErrorBoundaryDemo.js';
+import { BasicDemo } from './demos/BasicDemo.js';
 import { DarkModeDemo } from './demos/DarkModeDemo.js';
+import { DialogDemo } from './demos/DialogDemo.js';
+import { ErrorBoundaryDemo } from './demos/ErrorBoundaryDemo.js';
 import { HighContrastDemo } from './demos/HighContrastDemo.js';
+import { RTLDemo } from './demos/RTLDemo.js';
+import { VirtualizedDemo } from './demos/VirtualizedDemo.js';
 
-type Route = '/' | '/dialog' | '/virtualization' | '/all-states' | '/rtl' | '/error-boundary' | '/dark-mode' | '/high-contrast';
+type Route =
+  | '/'
+  | '/dialog'
+  | '/virtualization'
+  | '/all-states'
+  | '/rtl'
+  | '/error-boundary'
+  | '/dark-mode'
+  | '/high-contrast';
 
 const ROUTES: readonly { path: Route; label: string }[] = [
   { path: '/', label: 'Basic' },

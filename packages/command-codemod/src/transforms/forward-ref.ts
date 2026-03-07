@@ -60,10 +60,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
       if (!renderFn) return;
 
       // Only handle arrow functions and function expressions
-      if (
-        renderFn.type !== 'ArrowFunctionExpression' &&
-        renderFn.type !== 'FunctionExpression'
-      ) {
+      if (renderFn.type !== 'ArrowFunctionExpression' && renderFn.type !== 'FunctionExpression') {
         return;
       }
 
@@ -77,10 +74,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
       const refName = refParam.type === 'Identifier' ? refParam.name : 'ref';
 
       // Build a shorthand property for ref
-      const refProperty = j.objectProperty(
-        j.identifier(refName),
-        j.identifier(refName),
-      );
+      const refProperty = j.objectProperty(j.identifier(refName), j.identifier(refName));
       refProperty.shorthand = true;
 
       if (propsParam.type === 'ObjectPattern') {

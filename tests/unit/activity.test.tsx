@@ -1,7 +1,7 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { createRoot } from 'react-dom/client';
-import { act } from 'react';
 import { CommandActivity } from '@crimson_dev/command-react';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import { afterEach, describe, expect, it } from 'vitest';
 
 let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -30,7 +30,7 @@ describe('CommandActivity (0.2.5)', () => {
 
     const child = container.querySelector('[data-testid="child"]');
     expect(child).not.toBeNull();
-    expect(child!.textContent).toBe('Hello');
+    expect(child?.textContent).toBe('Hello');
   });
 
   it('should hide children when mode is hidden', async () => {

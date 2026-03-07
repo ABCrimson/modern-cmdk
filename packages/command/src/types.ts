@@ -162,7 +162,10 @@ export interface CommandMachineOptions {
   /** Pre-registered groups for item categorization */
   readonly groups?: readonly CommandGroup[] | undefined;
   /** Custom filter function, or `false` to disable filtering entirely */
-  readonly filter?: ((item: CommandItem, query: NoInfer<string>) => number | false) | false | undefined;
+  readonly filter?:
+    | ((item: CommandItem, query: NoInfer<string>) => number | false)
+    | false
+    | undefined;
   /** Accessible label for the command palette */
   readonly label?: string | undefined;
   /** Initial open state */

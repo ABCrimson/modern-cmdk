@@ -5,7 +5,12 @@
 /** Messages sent from the main thread to the worker */
 export type WorkerMessage =
   | { readonly type: 'index'; readonly items: string }
-  | { readonly type: 'search'; readonly query: string; readonly maxResults: number; readonly scoresBuffer?: SharedArrayBuffer }
+  | {
+      readonly type: 'search';
+      readonly query: string;
+      readonly maxResults: number;
+      readonly scoresBuffer?: SharedArrayBuffer;
+    }
   | { readonly type: 'remove'; readonly ids: readonly string[] }
   | { readonly type: 'clear' }
   | { readonly type: 'dispose' };
@@ -13,8 +18,20 @@ export type WorkerMessage =
 /** Messages sent from the worker back to the main thread */
 export type WorkerResponse =
   | { readonly type: 'indexed' }
-  | { readonly type: 'results'; readonly results: ReadonlyArray<{ readonly id: string; readonly score: number; readonly matches: ReadonlyArray<readonly [number, number]> }> }
-  | { readonly type: 'results-sab'; readonly count: number; readonly ids: readonly string[]; readonly matches: ReadonlyArray<ReadonlyArray<readonly [number, number]>> }
+  | {
+      readonly type: 'results';
+      readonly results: ReadonlyArray<{
+        readonly id: string;
+        readonly score: number;
+        readonly matches: ReadonlyArray<readonly [number, number]>;
+      }>;
+    }
+  | {
+      readonly type: 'results-sab';
+      readonly count: number;
+      readonly ids: readonly string[];
+      readonly matches: ReadonlyArray<ReadonlyArray<readonly [number, number]>>;
+    }
   | { readonly type: 'cleared' }
   | { readonly type: 'ready' }
   | { readonly type: 'error'; readonly message: string };
@@ -67,13 +84,11 @@ async function initWorker(): Promise<void> {
             const ids: string[] = [];
             const matches: Array<ReadonlyArray<readonly [number, number]>> = [];
 
-            rawResults
-              .values()
-              .forEach((result, index) => {
-                scoresView[index] = result.score;
-                ids.push(result.id);
-                matches.push(result.matches);
-              });
+            rawResults.values().forEach((result, index) => {
+              scoresView[index] = result.score;
+              ids.push(result.id);
+              matches.push(result.matches);
+            });
 
             self.postMessage({
               type: 'results-sab',

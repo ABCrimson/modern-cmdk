@@ -5,9 +5,9 @@
   background: conic-gradient(
     from var(--gradient-angle),
     oklch(0.65 0.25 265),
-    oklch(0.70 0.20 300),
+    oklch(0.7 0.2 300),
     oklch(0.75 0.22 330),
-    oklch(0.70 0.25 265)
+    oklch(0.7 0.25 265)
   );
   animation: gradient-rotate 8s linear infinite;
   will-change: --gradient-angle;
@@ -45,10 +45,10 @@ pre {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 
   .hero-gradient {
@@ -59,7 +59,7 @@ pre {
 /* High contrast support */
 @media (prefers-contrast: more) {
   :root {
-    --color-border: oklch(0.50 0.05 var(--color-hue));
-    --color-border-focus: oklch(0.40 0.30 var(--color-hue));
+    --color-border: oklch(0.5 0.05 var(--color-hue));
+    --color-border-focus: oklch(0.4 0.3 var(--color-hue));
   }
 }

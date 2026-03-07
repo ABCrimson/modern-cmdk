@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Command } from '@crimson_dev/command-react';
+import { useState } from 'react';
 
 export function DarkModeDemo() {
   const [dark, setDark] = useState(true);
@@ -7,7 +7,9 @@ export function DarkModeDemo() {
   return (
     <div>
       <h3>Dark Mode Demo</h3>
-      <button onClick={() => setDark(!dark)}>Toggle: {dark ? 'Dark' : 'Light'}</button>
+      <button type="button" onClick={() => setDark(!dark)}>
+        Toggle: {dark ? 'Dark' : 'Light'}
+      </button>
       <div
         style={{
           marginBlockStart: '1rem',
@@ -23,8 +25,12 @@ export function DarkModeDemo() {
           <Command.Input placeholder="Search commands..." />
           <Command.List>
             <Command.Group heading="Theme">
-              <Command.Item value="light" onSelect={() => setDark(false)}>Light Mode</Command.Item>
-              <Command.Item value="dark" onSelect={() => setDark(true)}>Dark Mode</Command.Item>
+              <Command.Item value="light" onSelect={() => setDark(false)}>
+                Light Mode
+              </Command.Item>
+              <Command.Item value="dark" onSelect={() => setDark(true)}>
+                Dark Mode
+              </Command.Item>
               <Command.Item value="system">System Default</Command.Item>
             </Command.Group>
             <Command.Group heading="Actions">

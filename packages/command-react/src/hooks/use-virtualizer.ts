@@ -53,7 +53,7 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     if (!scrollElement || !enabled) return;
 
     function handleScroll(): void {
-      setScrollOffset(scrollElement!.scrollTop);
+      setScrollOffset(scrollElement?.scrollTop);
     }
 
     scrollElement.addEventListener('scroll', handleScroll, { passive: true });
@@ -131,7 +131,7 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     (element: HTMLElement | null): void => {
       if (!element || !enabled) return;
 
-      const index = Number(element.dataset['index']);
+      const index = Number(element.dataset.index);
       if (Number.isNaN(index)) return;
 
       if ('requestIdleCallback' in globalThis) {

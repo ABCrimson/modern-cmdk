@@ -1,10 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  createCommandMachine,
-  itemId,
-  groupId,
-} from '@crimson_dev/command';
-import type { CommandItem, CommandMachine, ItemId } from '@crimson_dev/command';
+import type { CommandItem, CommandMachine } from '@crimson_dev/command';
+import { createCommandMachine, groupId, itemId } from '@crimson_dev/command';
+import { describe, expect, it, vi } from 'vitest';
 
 function generateItems(count: number): CommandItem[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -32,7 +28,7 @@ describe('CommandMachine', () => {
     using machine = createCommandMachine({ items });
 
     expect(machine.getState().filteredCount).toBe(5);
-    expect(machine.getState().activeId).toBe(items[0]!.id);
+    expect(machine.getState().activeId).toBe(items[0]?.id);
   });
 
   it('should auto-dispose via using declaration', () => {
@@ -73,7 +69,7 @@ describe('CommandMachine', () => {
 
     machine.send({ type: 'NAVIGATE', direction: 'next' });
     await vi.waitFor(() => {
-      expect(machine.getState().activeId).toBe(items[1]!.id);
+      expect(machine.getState().activeId).toBe(items[1]?.id);
     });
   });
 
@@ -129,12 +125,10 @@ describe('CommandMachine', () => {
 
   it('should handle ITEM_SELECT with onSelect callback', async () => {
     const onSelect = vi.fn();
-    const items = [
-      { id: itemId('test'), value: 'Test', onSelect },
-    ];
+    const items = [{ id: itemId('test'), value: 'Test', onSelect }];
     using machine = createCommandMachine({ items });
 
-    machine.send({ type: 'ITEM_SELECT', id: items[0]!.id });
+    machine.send({ type: 'ITEM_SELECT', id: items[0]?.id });
     await vi.waitFor(() => {
       expect(onSelect).toHaveBeenCalledOnce();
     });
@@ -142,12 +136,10 @@ describe('CommandMachine', () => {
 
   it('should not select disabled items', async () => {
     const onSelect = vi.fn();
-    const items = [
-      { id: itemId('disabled'), value: 'Disabled', disabled: true, onSelect },
-    ];
+    const items = [{ id: itemId('disabled'), value: 'Disabled', disabled: true, onSelect }];
     using machine = createCommandMachine({ items });
 
-    machine.send({ type: 'ITEM_SELECT', id: items[0]!.id });
+    machine.send({ type: 'ITEM_SELECT', id: items[0]?.id });
     // Give scheduler time to process
     await new Promise((r) => setTimeout(r, 50));
     expect(onSelect).not.toHaveBeenCalled();
@@ -166,12 +158,12 @@ describe('CommandMachine', () => {
     // Navigate past the end — should loop to first
     machine.send({ type: 'NAVIGATE', direction: 'last' });
     await vi.waitFor(() => {
-      expect(machine.getState().activeId).toBe(items[2]!.id);
+      expect(machine.getState().activeId).toBe(items[2]?.id);
     });
 
     machine.send({ type: 'NAVIGATE', direction: 'next' });
     await vi.waitFor(() => {
-      expect(machine.getState().activeId).toBe(items[0]!.id);
+      expect(machine.getState().activeId).toBe(items[0]?.id);
     });
   });
 

@@ -48,16 +48,14 @@ interface ComparisonRow {
 
 function median(sorted: readonly number[]): number {
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1]! + sorted[mid]!) / 2
-    : sorted[mid]!;
+  return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
 }
 
-function padRight(str: string, len: number): string {
+function _padRight(str: string, len: number): string {
   return str.length >= len ? str : str + ' '.repeat(len - str.length);
 }
 
-function padLeft(str: string, len: number): string {
+function _padLeft(str: string, len: number): string {
   return str.length >= len ? str : ' '.repeat(len - str.length) + str;
 }
 
@@ -189,56 +187,31 @@ async function main(): Promise<void> {
   const colDelta = 12;
   const colStatus = 8;
 
-  console.log('\n=== Benchmark Regression Comparison ===\n');
-  console.log(
-    `Thresholds: warning=${(warnThreshold * 100).toFixed(0)}%, failure=${(failThreshold * 100).toFixed(0)}%`,
-  );
-  console.log(`Runs: ${RUNS} (averaged)\n`);
-
-  const separator = '-'.repeat(colName + colBaseline + colCurrent + colDelta + colStatus + 8);
-  console.log(separator);
-  console.log(
-    `${padRight('Benchmark', colName)} | ${padLeft('Baseline', colBaseline)} | ${padLeft('Current', colCurrent)} | ${padLeft('Delta', colDelta)} | ${padLeft('Status', colStatus)}`,
-  );
-  console.log(separator);
+  const _separator = '-'.repeat(colName + colBaseline + colCurrent + colDelta + colStatus + 8);
 
   for (const row of rows) {
-    const baselineStr = row.baseline_ms > 0 ? `${row.baseline_ms.toFixed(3)} ms` : 'N/A';
-    const currentStr = `${row.current_ms.toFixed(3)} ms`;
-    const deltaStr =
+    const _baselineStr = row.baseline_ms > 0 ? `${row.baseline_ms.toFixed(3)} ms` : 'N/A';
+    const _currentStr = `${row.current_ms.toFixed(3)} ms`;
+    const _deltaStr =
       row.baseline_ms > 0
         ? `${row.delta_pct >= 0 ? '+' : ''}${(row.delta_pct * 100).toFixed(1)}%`
         : 'N/A';
-    const statusStr = STATUS_ICONS[row.status];
-
-    console.log(
-      `${padRight(row.name, colName)} | ${padLeft(baselineStr, colBaseline)} | ${padLeft(currentStr, colCurrent)} | ${padLeft(deltaStr, colDelta)} | ${padLeft(statusStr, colStatus)}`,
-    );
+    const _statusStr = STATUS_ICONS[row.status];
   }
-
-  console.log(separator);
 
   // 8. Determine overall exit code
   const hasFailure = rows.some((r) => r.status === 'fail');
   const hasWarning = rows.some((r) => r.status === 'warn');
 
   if (hasFailure) {
-    console.log(
-      `\nRESULT: FAILURE — one or more benchmarks regressed by >${(failThreshold * 100).toFixed(0)}%\n`,
-    );
     process.exit(2);
   } else if (hasWarning) {
-    console.log(
-      `\nRESULT: WARNING — one or more benchmarks regressed by >${(warnThreshold * 100).toFixed(0)}%\n`,
-    );
     process.exit(1);
   } else {
-    console.log('\nRESULT: PASS — all benchmarks within acceptable thresholds\n');
     process.exit(0);
   }
 }
 
-main().catch((err) => {
-  console.error('Benchmark comparison failed:', err);
+main().catch((_err) => {
   process.exit(2);
 });
