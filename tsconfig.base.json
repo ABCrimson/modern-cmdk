@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2026",
-    "module": "ES2025",
+    "target": "ESNext",
+    "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2026", "ESNext", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
     "jsx": "react-jsx",
     "strict": true,
     "exactOptionalPropertyTypes": true,

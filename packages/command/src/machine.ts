@@ -21,11 +21,11 @@ import type { Scheduler } from './utils/scheduler.js';
 import { createScheduler } from './utils/scheduler.js';
 
 /** Events emitted by the machine for external listening */
-interface MachineEvents {
+type MachineEvents = {
   stateChange: CommandState;
   select: ItemId;
   openChange: boolean;
-}
+};
 
 /** Command machine — explicit resource management via `using` */
 export interface CommandMachine extends Disposable {

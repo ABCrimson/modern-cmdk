@@ -118,13 +118,13 @@ export class CommandRegistry implements Disposable {
     // Populate groups using Iterator Helpers pipeline
     this.getGroups()
       .values()
-      .filter((group) => grouped[group.id as string] != null)
+      .filter((group) => (grouped as Record<string, CommandItem[]>)[group.id as string] != null)
       .forEach((group) => {
-        result.set(group.id, grouped[group.id as string]!);
+        result.set(group.id, (grouped as Record<string, CommandItem[]>)[group.id as string]!);
       });
 
     // Add ungrouped items
-    const ungrouped = grouped['__ungrouped' as string];
+    const ungrouped = (grouped as Record<string, CommandItem[]>)['__ungrouped'];
     if (ungrouped) {
       result.set('__ungrouped' as GroupId, ungrouped);
     }

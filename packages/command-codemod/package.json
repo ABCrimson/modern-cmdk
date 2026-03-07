@@ -17,10 +17,11 @@
     "build": "tsdown src/cli.ts src/transforms/*.ts --format esm --dts"
   },
   "dependencies": {
-    "jscodeshift": "17.1.1",
-    "globby": "^14.1.0"
+    "globby": "^14.1.0",
+    "jscodeshift": "17.1.1"
   },
   "devDependencies": {
+    "@types/jscodeshift": "^17.3.0",
     "tsdown": "0.21.0",
     "typescript": "6.0.1-rc"
   },

@@ -1,7 +1,7 @@
 // packages/command/src/utils/event-emitter.ts
 // Uses: WeakRef for GC-safe listeners, Iterator Helpers (ES2026) for pipeline, `using` for auto-unsub
 
-type EventMap = Record<string, unknown>;
+type EventMap = { [key: string]: unknown };
 
 /**
  * Type-safe event emitter with WeakRef-based listeners for GC-safe subscriptions.

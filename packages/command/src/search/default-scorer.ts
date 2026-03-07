@@ -114,7 +114,7 @@ function scoreWordBoundary(
 
   // Score based on how many query chars matched at word boundaries
   const scores = matches.map(([, end], i) => {
-    const start = matches[i]?.[0];
+    const start = matches[i]?.[0] ?? 0;
     return (end - start) * 2; // Word boundary matches get 2x weight
   });
 

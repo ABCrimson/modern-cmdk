@@ -8,7 +8,10 @@ import type { ScorerFn, SearchEngine, SearchResult } from './types.js';
 
 // Dev-only leak detection via FinalizationRegistry — warns if a search engine
 // instance is garbage collected without being explicitly disposed
-const __DEV__ = process.env.NODE_ENV !== 'production';
+const __DEV__ = (globalThis as Record<string, unknown>).process
+  ? ((globalThis as Record<string, unknown>).process as { env: Record<string, string | undefined> })
+      .env.NODE_ENV !== 'production'
+  : false;
 let leakRegistry: FinalizationRegistry<string> | undefined;
 if (__DEV__) {
   leakRegistry = new FinalizationRegistry((_label) => {});
