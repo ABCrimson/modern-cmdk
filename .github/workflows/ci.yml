@@ -16,6 +16,8 @@ jobs:
   lint:
     name: Lint & Typecheck
     runs-on: ubuntu-24.04
+    outputs:
+      lint-passed: ${{ steps.lint.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -24,7 +26,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm biome check .
+      - id: lint
+        run: pnpm biome check .
       - run: pnpm --filter '@crimson_dev/command' exec tsc --noEmit
 
   test:
@@ -36,6 +39,8 @@ jobs:
         os: [ubuntu-24.04, macos-latest, windows-latest]
         shard: [1, 2, 3, 4]
     runs-on: ${{ matrix.os }}
+    outputs:
+      test-passed: ${{ steps.test.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -45,13 +50,15 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!@crimson_dev/command-monorepo' --parallel run build
-      - run: pnpm vitest run --coverage --shard=${{ matrix.shard }}/4
+      - id: test
+        run: pnpm vitest run --coverage --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-${{ matrix.os }}-${{ matrix.shard }}
           path: coverage/
           retention-days: 7
+          include-hidden-files: true
 
   e2e:
     name: E2E Tests
@@ -75,11 +82,14 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+          include-hidden-files: true
 
   size:
     name: Bundle Size
     needs: lint
     runs-on: ubuntu-24.04
+    outputs:
+      size-report: ${{ steps.size.outputs.report }}
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -89,7 +99,10 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!@crimson_dev/command-monorepo' --parallel run build
-      - run: pnpm size-limit --json > size-report.json
+      - id: size
+        run: |
+          pnpm size-limit --json > size-report.json
+          echo "report=$(cat size-report.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v7
         with:
           name: size-report
@@ -131,3 +144,25 @@ jobs:
           name: benchmark-results
           path: benchmarks/results/
           retention-days: 30
+
+  summary:
+    name: CI Summary
+    needs: [lint, test, e2e, size, bench, security]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## CI Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Job | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Lint & Typecheck | ${{ needs.lint.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tests | ${{ needs.test.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| E2E | ${{ needs.e2e.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Bundle Size | ${{ needs.size.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Benchmarks | ${{ needs.bench.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Security Audit | ${{ needs.security.result }} |" >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail if critical jobs failed
+        if: needs.lint.result == 'failure' || needs.test.result == 'failure'
+        run: exit 1

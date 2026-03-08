@@ -6,7 +6,7 @@ import { App } from './App.js';
 import './styles.css';
 
 const root = document.getElementById('root');
-if (!root) throw new Error('Missing #root element');
+if (!root) throw new Error('Missing #root element — ensure index.html has <div id="root"></div>');
 
 createRoot(root).render(
   <StrictMode>

@@ -1,8 +1,11 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
   - name: Documentation
     url: https://command.crimson.dev
     about: Check the docs before opening an issue
+  - name: Discussions
+    url: https://github.com/ABCrimson/modern-cmdk/discussions
+    about: Ask questions and share ideas in GitHub Discussions
   - name: Wiki
     url: https://github.com/ABCrimson/modern-cmdk/wiki
     about: Browse the comprehensive wiki

@@ -2,6 +2,7 @@ name: Feature Request
 description: Suggest a new feature or enhancement
 title: "[Feature]: "
 labels: ["enhancement"]
+assignees: []
 body:
   - type: markdown
     attributes:
@@ -20,6 +21,7 @@ body:
         - "@crimson_dev/command-codemod"
         - "New package"
         - "Documentation"
+        - "Playground"
     validations:
       required: true
 
@@ -27,7 +29,7 @@ body:
     id: problem
     attributes:
       label: Problem
-      description: What problem does this solve?
+      description: What problem does this solve? Why is it needed?
       placeholder: I'm frustrated when...
     validations:
       required: true
@@ -36,7 +38,7 @@ body:
     id: solution
     attributes:
       label: Proposed Solution
-      description: How would you like it to work?
+      description: How would you like it to work? Include API examples if possible.
     validations:
       required: true
 
@@ -44,6 +46,29 @@ body:
     id: alternatives
     attributes:
       label: Alternatives Considered
-      description: Any other approaches you've thought about?
+      description: Any other approaches you've thought about or tried?
     validations:
       required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - "Nice to have"
+        - "Would improve my workflow"
+        - "Blocking adoption of the library"
+      default: 0
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to submit a PR for this feature
+          required: false
+        - label: I have searched existing issues for duplicates
+          required: true

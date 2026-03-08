@@ -1,8 +1,10 @@
 ## Summary
 
-<!-- Brief description of what this PR does and why -->
+<!-- Brief description of what this PR does and why. Link to related issues. -->
 
 ## Changes
+
+<!-- Bullet list of what changed -->
 
 -
 
@@ -11,10 +13,10 @@
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Performance improvement
-- [ ] Refactoring
+- [ ] Refactoring (no behavior change)
 - [ ] Documentation
 - [ ] Tests
-- [ ] CI/Build
+- [ ] CI / Build / Tooling
 
 ## Packages Affected
 
@@ -22,8 +24,16 @@
 - [ ] `@crimson_dev/command-react`
 - [ ] `@crimson_dev/command-search-wasm`
 - [ ] `@crimson_dev/command-codemod`
-- [ ] Documentation
-- [ ] Playground
+- [ ] Documentation (apps/docs)
+- [ ] Playground (apps/playground)
+
+## Testing
+
+<!-- How did you verify this change works? -->
+
+- [ ] Unit tests added/updated
+- [ ] E2E tests added/updated
+- [ ] Manually tested in playground
 
 ## Checklist
 
@@ -34,7 +44,16 @@
 - [ ] Benchmarks not regressed (`pnpm bench`)
 - [ ] Changeset added (if publishing change) (`pnpm changeset`)
 - [ ] Documentation updated (if applicable)
+- [ ] Accessibility verified (`forced-colors`, `prefers-reduced-motion`, keyboard nav)
+
+## Screenshots / Recordings
+
+<!-- If applicable, add screenshots or screen recordings of the change -->
 
 ## Related Issues
 
 <!-- Closes #123, Fixes #456 -->
+
+## Additional Context
+
+<!-- Any other context about the PR -->

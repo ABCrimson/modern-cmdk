@@ -11,6 +11,9 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'retain-on-failure',
+    // Playwright 1.59 — locator-first assertions are the default
+    // Enable actionability logging for better CI debugging
+    actionTimeout: 10_000,
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
