@@ -1,148 +1,199 @@
 // packages/command/src/search/default-scorer.ts
-// Uses: Math.sumPrecise (ES2026), for...of on hot paths, String.isWellFormed() for input validation
+// Hot-path optimized: toLowerCase (not locale), inline iteration, no regex split,
+// plain arithmetic (no Math.sumPrecise on 2-5 values), zero unnecessary allocations.
+// Items validated at itemId() creation — no isWellFormed() re-checks in scoring.
 
 import type { CommandItem } from '../types.js';
 import type { SearchResult } from './types.js';
 
+// ── Word boundary detection via charCode — no regex, no split, no allocation ──
+function isWordSeparator(code: number): boolean {
+  // space(32) tab(9) hyphen(45) underscore(95) period(46) slash(47) backslash(92)
+  return code === 32 || code === 9 || code === 45 || code === 95 ||
+    code === 46 || code === 47 || code === 92;
+}
+
 /**
- * Scores a command item against a search query using multi-strategy matching:
- * exact, prefix, substring, word-boundary, and fuzzy. Returns null if no match.
- * Uses Math.sumPrecise (ES2026) for floating-point-safe score aggregation.
- * Hot paths use for...of to minimize closure allocation overhead.
+ * Public API: scores a command item against a search query.
+ * Multi-strategy: exact → prefix → substring → word-boundary → fuzzy.
+ * Returns null if no match. For batch use, prefer the search engine
+ * which pre-caches lowercase and normalizes query once.
  */
 export function scoreItem(query: string, item: CommandItem): SearchResult | null {
   if (query === '') {
     return { id: item.id, score: 1, matches: [] };
   }
 
-  // Ensure well-formed Unicode for safe comparison (ES2026)
-  const lowerQuery = (query.isWellFormed() ? query : query.toWellFormed()).toLocaleLowerCase();
-  const targets = [item.value, ...(item.keywords ?? [])];
+  const lowerQuery = query.toLowerCase();
 
-  // Score each target and pick the best match — for...of (no closure overhead)
-  // Single-pass reduction avoids materializing an intermediate array
-  let bestResult: { score: number; matches: Array<readonly [number, number]> } | null = null;
+  // Inline target iteration — no array allocation
+  // Score value first, then keywords, keep best
+  let bestScore = 0;
+  let bestMatches: Array<readonly [number, number]> | null = null;
 
-  for (const target of targets) {
-    const result = scoreTarget(lowerQuery, target.toLocaleLowerCase());
-    if (result != null && (bestResult == null || result.score > bestResult.score)) {
-      bestResult = result;
-      // Early termination: perfect score can't be beaten
-      if (result.score >= 1) break;
+  const valueResult = scoreTarget(lowerQuery, item.value.toLowerCase());
+  if (valueResult !== null) {
+    bestScore = valueResult.score;
+    bestMatches = valueResult.matches;
+    if (bestScore >= 1) return { id: item.id, score: 1, matches: bestMatches };
+  }
+
+  const kw = item.keywords;
+  if (kw !== undefined) {
+    for (let i = 0; i < kw.length; i++) {
+      const result = scoreTarget(lowerQuery, kw[i]!.toLowerCase());
+      if (result !== null && result.score > bestScore) {
+        bestScore = result.score;
+        bestMatches = result.matches;
+        if (bestScore >= 1) break;
+      }
     }
   }
 
-  if (!bestResult) return null;
+  return bestMatches !== null ? { id: item.id, score: bestScore, matches: bestMatches } : null;
+}
 
-  // bestResult is narrowed to non-null by the guard above
-  const { score, matches } = bestResult as NonNullable<typeof bestResult>;
-  return { id: item.id, score, matches };
+/**
+ * Internal fast path: called by search engine with pre-lowered query and targets.
+ * Eliminates all toLowerCase() calls on the hot path.
+ */
+export function scoreItemPreLowered(
+  lowerQuery: string,
+  id: import('../types.js').ItemId,
+  lowerValue: string,
+  lowerKeywords: readonly string[] | undefined,
+): SearchResult | null {
+  let bestScore = 0;
+  let bestMatches: Array<readonly [number, number]> | null = null;
+
+  const valueResult = scoreTarget(lowerQuery, lowerValue);
+  if (valueResult !== null) {
+    bestScore = valueResult.score;
+    bestMatches = valueResult.matches;
+    if (bestScore >= 1) return { id, score: 1, matches: bestMatches };
+  }
+
+  if (lowerKeywords !== undefined) {
+    for (let i = 0; i < lowerKeywords.length; i++) {
+      const result = scoreTarget(lowerQuery, lowerKeywords[i]!);
+      if (result !== null && result.score > bestScore) {
+        bestScore = result.score;
+        bestMatches = result.matches;
+        if (bestScore >= 1) break;
+      }
+    }
+  }
+
+  return bestMatches !== null ? { id, score: bestScore, matches: bestMatches } : null;
 }
 
 function scoreTarget(
   query: string,
   lowerTarget: string,
 ): { score: number; matches: Array<readonly [number, number]> } | null {
-  if (lowerTarget.length === 0) return null;
-  if (query.length === 0) return { score: 1, matches: [] };
+  const tLen = lowerTarget.length;
+  if (tLen === 0) return null;
+
+  const qLen = query.length;
+  if (qLen === 0) return { score: 1, matches: [] };
 
   // Early bailout: query longer than target can never fully match
-  if (query.length > lowerTarget.length) {
-    return scoreFuzzy(query, lowerTarget);
+  if (qLen > tLen) {
+    return scoreFuzzy(query, qLen, lowerTarget, tLen);
   }
 
   // Exact match — highest score
   if (lowerTarget === query) {
-    return { score: 1, matches: [[0, query.length]] };
+    return { score: 1, matches: [[0, qLen]] };
   }
 
   // Starts-with match — very high score
   if (lowerTarget.startsWith(query)) {
-    return { score: 0.9 + 0.1 * (query.length / lowerTarget.length), matches: [[0, query.length]] };
+    return { score: 0.9 + 0.1 * (qLen / tLen), matches: [[0, qLen]] };
   }
 
   // Substring match — medium-high score with position bonus
   const substringIdx = lowerTarget.indexOf(query);
   if (substringIdx !== -1) {
-    const positionBonus = 1 - substringIdx / lowerTarget.length;
-    const lengthRatio = query.length / lowerTarget.length;
+    const positionBonus = 1 - substringIdx / tLen;
+    const lengthRatio = qLen / tLen;
     return {
       score: 0.5 + 0.3 * positionBonus + 0.2 * lengthRatio,
-      matches: [[substringIdx, substringIdx + query.length]],
+      matches: [[substringIdx, substringIdx + qLen]],
     };
   }
 
-  // Word boundary match — check if query matches start of words
-  const wordBoundaryResult = scoreWordBoundary(query, lowerTarget);
+  // Word boundary match — charCode scan, no regex, no split
+  const wordBoundaryResult = scoreWordBoundary(query, qLen, lowerTarget, tLen);
   if (wordBoundaryResult) return wordBoundaryResult;
 
   // Character-by-character fuzzy match
-  return scoreFuzzy(query, lowerTarget);
+  return scoreFuzzy(query, qLen, lowerTarget, tLen);
 }
 
 function scoreWordBoundary(
   query: string,
+  qLen: number,
   lowerTarget: string,
+  tLen: number,
 ): { score: number; matches: Array<readonly [number, number]> } | null {
-  const words = lowerTarget.split(/[\s\-_./]+/);
   let queryIdx = 0;
   const matches: Array<readonly [number, number]> = [];
-  let offset = 0;
+  let totalWeightedLen = 0;
 
-  for (const word of words) {
-    if (queryIdx >= query.length) break;
+  // Scan for word starts using charCode — zero allocation
+  let i = 0;
+  while (i < tLen && queryIdx < qLen) {
+    // Detect word start: position 0 or preceded by separator
+    const atWordStart = i === 0 || isWordSeparator(lowerTarget.charCodeAt(i - 1));
 
-    const wordStart = lowerTarget.indexOf(word, offset);
-    offset = wordStart + word.length;
-
-    if (word.startsWith(query[queryIdx]!)) {
-      const matchStart = wordStart;
+    if (atWordStart && lowerTarget.charCodeAt(i) === query.charCodeAt(queryIdx)) {
+      const matchStart = i;
       let matchLen = 0;
 
+      // Consume contiguous matching characters within this word
       while (
-        queryIdx < query.length &&
-        matchLen < word.length &&
-        word[matchLen] === query[queryIdx]
+        queryIdx < qLen &&
+        i < tLen &&
+        !isWordSeparator(lowerTarget.charCodeAt(i)) &&
+        lowerTarget.charCodeAt(i) === query.charCodeAt(queryIdx)
       ) {
         queryIdx++;
+        i++;
         matchLen++;
       }
 
       matches.push([matchStart, matchStart + matchLen]);
+      totalWeightedLen += matchLen * 2; // Word boundary matches get 2x weight
+    } else {
+      i++;
     }
   }
 
-  if (queryIdx !== query.length) return null;
+  if (queryIdx !== qLen) return null;
 
-  // Use TypedArray for numeric score data — avoids boxed number allocations
-  const scores = new Float64Array(matches.length);
-  for (let i = 0; i < matches.length; i++) {
-    const [start, end] = matches[i]!;
-    scores[i] = (end - start) * 2; // Word boundary matches get 2x weight
-  }
-
-  // Math.sumPrecise (ES2026) — floating-point-safe score aggregation
-  const totalScore = Math.sumPrecise(scores);
-  const maxPossible = query.length * 2;
+  const maxPossible = qLen * 2;
 
   return {
-    score: 0.3 + 0.4 * (totalScore / maxPossible),
+    score: 0.3 + 0.4 * (totalWeightedLen / maxPossible),
     matches,
   };
 }
 
 function scoreFuzzy(
   query: string,
+  qLen: number,
   lowerTarget: string,
+  tLen: number,
 ): { score: number; matches: Array<readonly [number, number]> } | null {
   let queryIdx = 0;
   let targetIdx = 0;
   const matches: Array<readonly [number, number]> = [];
   let currentMatchStart = -1;
-  const segmentScores: number[] = [];
+  let contiguityScore = 0;
 
-  while (queryIdx < query.length && targetIdx < lowerTarget.length) {
-    if (query[queryIdx] === lowerTarget[targetIdx]) {
+  while (queryIdx < qLen && targetIdx < tLen) {
+    if (query.charCodeAt(queryIdx) === lowerTarget.charCodeAt(targetIdx)) {
       if (currentMatchStart === -1) {
         currentMatchStart = targetIdx;
       }
@@ -152,8 +203,7 @@ function scoreFuzzy(
       if (currentMatchStart !== -1) {
         const segmentLen = targetIdx - currentMatchStart;
         matches.push([currentMatchStart, targetIdx]);
-        // Contiguous match bonus — adjacent characters score higher (quadratic)
-        segmentScores.push(segmentLen * segmentLen);
+        contiguityScore += segmentLen * segmentLen;
         currentMatchStart = -1;
       }
       targetIdx++;
@@ -164,23 +214,21 @@ function scoreFuzzy(
   if (currentMatchStart !== -1) {
     const segmentLen = targetIdx - currentMatchStart;
     matches.push([currentMatchStart, targetIdx]);
-    segmentScores.push(segmentLen * segmentLen);
+    contiguityScore += segmentLen * segmentLen;
   }
 
   // All query chars must be matched
-  if (queryIdx !== query.length) return null;
+  if (queryIdx !== qLen) return null;
 
-  // Math.sumPrecise (ES2026) — avoids floating-point drift in score aggregation
-  const contiguityScore = Math.sumPrecise(segmentScores);
-  const maxContiguity = query.length * query.length;
+  const maxContiguity = qLen * qLen;
   const contiguityRatio = contiguityScore / maxContiguity;
 
   // Position bonus — matches earlier in target are better
   const firstMatchPos = matches[0]?.[0] ?? 0;
-  const positionBonus = 1 - firstMatchPos / lowerTarget.length;
+  const positionBonus = 1 - firstMatchPos / tLen;
 
   // Length ratio — longer queries matching shorter targets = better
-  const lengthRatio = query.length / lowerTarget.length;
+  const lengthRatio = qLen / tLen;
 
   const score = 0.1 + 0.3 * contiguityRatio + 0.15 * positionBonus + 0.1 * lengthRatio;
 

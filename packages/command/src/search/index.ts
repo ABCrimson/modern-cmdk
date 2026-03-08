@@ -1,10 +1,10 @@
 // packages/command/src/search/index.ts
 // Search engine factory with pluggable scorer — Iterator Helpers (ES2026) for result pipelines
 // Incremental filtering: query-append optimization using Set.difference for candidate pruning
-// Performance: for...of in hot search paths, WeakRef/FinalizationRegistry for leak detection
+// Performance: pre-cached lowercase at index time, charCode comparison, zero redundant allocation
 
 import type { CommandItem, ItemId } from '../types.js';
-import { scoreItem } from './default-scorer.js';
+import { scoreItem, scoreItemPreLowered } from './default-scorer.js';
 import type { ScorerFn, SearchEngine, SearchResult } from './types.js';
 
 // Dev-only leak detection via FinalizationRegistry — warns if a search engine
@@ -22,15 +22,25 @@ interface SearchEngineOptions {
   readonly scorer?: ScorerFn | undefined;
 }
 
+/** Pre-computed lowercase cache entry — avoids re-lowering on every search */
+interface IndexedEntry {
+  readonly item: CommandItem;
+  readonly lowerValue: string;
+  readonly lowerKeywords: readonly string[] | undefined;
+}
+
 /**
  * Creates a search engine with pluggable scorer and incremental filtering.
  * When the query extends the previous one, only prior matches are re-scored.
+ * Pre-caches lowercase at index time — zero toLowerCase() calls during search.
  * Uses Iterator Helpers (ES2026) for result pipelines and Set.difference for pruning.
- * Hot paths use for...of to avoid closure allocation overhead.
  */
 export function createSearchEngine(options?: SearchEngineOptions): SearchEngine {
-  const scorer: ScorerFn = options?.scorer ?? scoreItem;
-  let indexedItems = new Map<ItemId, CommandItem>();
+  const customScorer: ScorerFn | undefined = options?.scorer;
+  const useDefaultScorer = customScorer === undefined;
+
+  // Pre-cached lowercase index — avoids toLowerCase() on every search
+  let indexedEntries = new Map<ItemId, IndexedEntry>();
   let previousQuery = '';
   let previousResults = new Set<ItemId>();
 
@@ -42,9 +52,13 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
 
   return {
     index(items: readonly CommandItem[]): void {
-      // for...of — hot registration path, avoid closure overhead
+      // Pre-compute and cache lowercase at index time — one-time cost
       for (const item of items) {
-        indexedItems.set(item.id, item);
+        indexedEntries.set(item.id, {
+          item,
+          lowerValue: item.value.toLowerCase(),
+          lowerKeywords: item.keywords?.map((k) => k.toLowerCase()),
+        });
       }
     },
 
@@ -60,18 +74,35 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
         }));
       }
 
+      // Lowercase query ONCE for the entire search — not per-item
+      const lowerQuery = query.toLowerCase();
+
       // Incremental filtering: if new query extends previous, only re-score previous matches
       const isIncremental = query.startsWith(previousQuery) && previousQuery.length > 0;
       const candidateItems = isIncremental
         ? items.filter((item) => previousResults.has(item.id))
         : items;
 
-      // Score candidates — for...of with manual push for hot path (no closure overhead)
+      // Score candidates — hot path with pre-lowered data
       const results: SearchResult[] = [];
-      for (const item of candidateItems) {
-        const result = scorer(query, item);
-        if (result != null) results.push(result);
+
+      if (useDefaultScorer) {
+        // Fast path: use pre-cached lowercase + internal scorer (no toLowerCase per item)
+        for (const item of candidateItems) {
+          const entry = indexedEntries.get(item.id);
+          const result = entry
+            ? scoreItemPreLowered(lowerQuery, item.id, entry.lowerValue, entry.lowerKeywords)
+            : scoreItemPreLowered(lowerQuery, item.id, item.value.toLowerCase(), item.keywords?.map((k) => k.toLowerCase()));
+          if (result !== null) results.push(result);
+        }
+      } else {
+        // Custom scorer path — use the user-provided scorer as-is
+        for (const item of candidateItems) {
+          const result = customScorer(query, item);
+          if (result != null) results.push(result);
+        }
       }
+
       results.sort((a, b) => b.score - a.score);
 
       // Update tracking for incremental filtering
@@ -84,13 +115,13 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
 
     remove(ids: ReadonlySet<ItemId>): void {
       // Use Set.difference (ES2026) for efficient bulk removal + Iterator Helpers
-      const currentIds = new Set(indexedItems.keys());
+      const currentIds = new Set(indexedEntries.keys());
       const remaining = currentIds.difference(ids);
-      indexedItems = new Map(
+      indexedEntries = new Map(
         remaining
           .values()
-          .map((id) => [id, indexedItems.get(id)] as const)
-          .filter((entry): entry is readonly [ItemId, CommandItem] => entry[1] != null),
+          .map((id) => [id, indexedEntries.get(id)] as const)
+          .filter((entry): entry is readonly [ItemId, IndexedEntry] => entry[1] != null),
       );
 
       // Also prune incremental cache
@@ -98,13 +129,13 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
     },
 
     clear(): void {
-      indexedItems.clear();
+      indexedEntries.clear();
       previousQuery = '';
       previousResults.clear();
     },
 
     [Symbol.dispose](): void {
-      indexedItems.clear();
+      indexedEntries.clear();
       previousResults.clear();
       // Unregister from leak detector — this engine was properly disposed
       if (__DEV__ && leakRegistry) {
