@@ -47,6 +47,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 4.1.0-beta.6
         version: 4.1.0-beta.6(vitest@4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)))
+      cmdk:
+        specifier: ^1.1.1
+        version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.3.0-canary-46103596-20260305(react@19.3.0-canary-46103596-20260305))(react@19.3.0-canary-46103596-20260305)
       fake-indexeddb:
         specifier: ^6.2.5
         version: 6.2.5
@@ -2340,6 +2343,12 @@ packages:
   clone-deep@4.0.1:
     resolution: {integrity: sha512-neHB9xuzh/wk0dIHweyAXv2aPGZIVk3pLMe+/RNzINf17fe0OG96QroktYAUm7SM1PBnzTabaLboqqxDyMU+SQ==}
     engines: {node: '>=6'}
+
+  cmdk@1.1.1:
+    resolution: {integrity: sha512-Vsv7kFaXm+ptHDMZ7izaRsP70GgrW9NBNGswt9OZaVBLlE0SNpDq8eu/VGXyF9r7M0azK3Wy7OlYXsuyYLFzHg==}
+    peerDependencies:
+      react: ^18 || ^19 || ^19.0.0-rc
+      react-dom: ^18 || ^19 || ^19.0.0-rc
 
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
@@ -5703,6 +5712,18 @@ snapshots:
       is-plain-object: 2.0.4
       kind-of: 6.0.3
       shallow-clone: 3.0.1
+
+  cmdk@1.1.1(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.3.0-canary-46103596-20260305(react@19.3.0-canary-46103596-20260305))(react@19.3.0-canary-46103596-20260305):
+    dependencies:
+      '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.2.14)(react@19.3.0-canary-46103596-20260305)
+      '@radix-ui/react-dialog': 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.3.0-canary-46103596-20260305(react@19.3.0-canary-46103596-20260305))(react@19.3.0-canary-46103596-20260305)
+      '@radix-ui/react-id': 1.1.1(@types/react@19.2.14)(react@19.3.0-canary-46103596-20260305)
+      '@radix-ui/react-primitive': 2.1.4(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.3.0-canary-46103596-20260305(react@19.3.0-canary-46103596-20260305))(react@19.3.0-canary-46103596-20260305)
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305(react@19.3.0-canary-46103596-20260305)
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
 
   comma-separated-tokens@2.0.3: {}
 
