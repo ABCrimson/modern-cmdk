@@ -34,7 +34,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 | Tool | Version | Notes |
 |---|---|---|
 | Node.js | >= 25.8.0 | Required for ES2026 features (Temporal, Iterator Helpers, Set methods) |
-| pnpm | >= 11.0.0-alpha.12 | Workspace protocol, `pnpm-workspace.yaml` |
+| pnpm | >= 11.0.0-alpha.13 | Workspace protocol, `pnpm-workspace.yaml` |
 | TypeScript | 6.0.1-rc | Installed via devDependencies -- do not install globally |
 | Rust + wasm-pack | Latest stable | Only needed if working on `command-search-wasm` |
 | Git | >= 2.40 | For Lefthook pre-commit/pre-push hooks |
@@ -43,7 +43,7 @@ Verify your setup:
 
 ```bash
 node --version    # v25.8.0 or higher
-pnpm --version    # 11.0.0-alpha.12 or higher
+pnpm --version    # 11.0.0-alpha.13 or higher
 ```
 
 ---
@@ -53,7 +53,7 @@ pnpm --version    # 11.0.0-alpha.12 or higher
 ```bash
 # Clone the repository
 git clone https://github.com/ABCrimson/modern-cmdk.git
-cd command
+cd modern-cmdk
 
 # Install dependencies (all packages + apps)
 pnpm install
@@ -217,7 +217,7 @@ modern-cmdk/
 | `pnpm test` | Run unit tests (Vitest, happy-dom) |
 | `pnpm test:watch` | Run unit tests in watch mode |
 | `pnpm test:coverage` | Run tests with V8 coverage report |
-| `pnpm test:e2e` | Run E2E tests (Playwright, 4 browsers) |
+| `pnpm test:e2e` | Run E2E tests (Playwright 1.59, 4 browsers) |
 | `pnpm bench` | Run benchmarks (Vitest bench mode) |
 | `pnpm bench:ci` | Run CI benchmarks (standalone, no Vitest) |
 | `pnpm lint` | Check lint rules (Biome) |
@@ -238,7 +238,7 @@ modern-cmdk/
 pnpm --filter @crimson_dev/command run dev
 pnpm --filter @crimson_dev/command-react run dev
 
-# Run the playground
+# Run the playground (Vite 8.0.0-beta.16)
 pnpm --filter playground run dev
 # Opens at http://localhost:5173
 
@@ -740,6 +740,10 @@ pnpm install
 pnpm build
 pnpm typecheck
 ```
+
+### Vite 8 HMR not working in the playground
+
+Vite 8.0.0-beta.16 requires `strictPort: true` in development. If port 5173 is already in use, the server will fail to start rather than silently picking another port. Kill any other process on port 5173 or change the port in `apps/playground/vite.config.ts`.
 
 ### WASM build fails
 

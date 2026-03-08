@@ -13,6 +13,7 @@
   <a href="https://bundlephobia.com/package/@crimson_dev/command-react"><img alt="react size" src="https://img.shields.io/bundlephobia/minzip/@crimson_dev/command-react?style=flat-square&color=dc2626&labelColor=0a0e27&label=react"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
   <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6.0.1--rc-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-19.3.0--canary-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/@crimson_dev/command?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
 </p>
 
@@ -40,7 +41,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
-| **Bundle** | ~6 KB | Core ≤ 6 KB, React ≤ 25 KB |
+| **Bundle** | ~6 KB | Core <= 6 KB, React <= 25 KB |
 | **TypeScript** | 4.x/5.x | 6.0.1-rc, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Telemetry** | None | Pluggable telemetry middleware |
@@ -123,9 +124,9 @@ function CommandPalette() {
 
 | Package | Description | Size |
 |---|---|---|
-| [`@crimson_dev/command`](./packages/command) | Framework-agnostic core -- state machine, search, frecency, keyboard | ≤ 6 KB |
-| [`@crimson_dev/command-react`](./packages/command-react) | React 19 compound components -- Dialog, List, Item, Group, Input | ≤ 25 KB |
-| [`@crimson_dev/command-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items | ≤ 50 KB |
+| [`@crimson_dev/command`](./packages/command) | Framework-agnostic core -- state machine, search, frecency, keyboard | <= 6 KB |
+| [`@crimson_dev/command-react`](./packages/command-react) | React 19 compound components -- Dialog, List, Item, Group, Input | <= 25 KB |
+| [`@crimson_dev/command-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items | <= 50 KB |
 | [`@crimson_dev/command-codemod`](./packages/command-codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
 | [`create-@crimson_dev/command`](./packages/create-command) | Project scaffolding -- 3 templates (basic, dialog, full) | CLI |
 | [`vscode-command`](./packages/vscode-command) | VS Code snippets -- 10 snippets for fast development | Extension |
@@ -135,42 +136,43 @@ function CommandPalette() {
 ## Architecture
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│                     Your Application                      │
-└──────────────┬────────────────────────────┬───────────────┘
-               │                            │
-┌──────────────▼──────────────┐  ┌──────────▼──────────────┐
-│  @crimson_dev/command-react │  │  Future: Svelte / Vue   │
-│                             │  │  / Solid / Vanilla       │
-│  Command.Dialog             │  └─────────────────────────┘
-│  Command.Input              │
-│  Command.List               │
-│  Command.Item               │
-│  CommandErrorBoundary       │
-│  useCommandDevtools()       │
-└──────────────┬──────────────┘
-               │ useSyncExternalStore
-               │ useTransition
-┌──────────────▼──────────────────────────────────────────┐
-│              @crimson_dev/command (core)                 │
-│                                                         │
-│  ┌──────────────┐ ┌──────────────┐ ┌────────────────┐  │
-│  │ State Machine│ │ Search Engine│ │ Frecency Engine│  │
-│  │ (Pure TS)    │ │ (Pluggable)  │ │ (Temporal API) │  │
-│  └──────┬───────┘ └──────┬───────┘ └───────┬────────┘  │
-│  ┌──────▼────────────────▼──────────────────▼────────┐  │
-│  │     Command Registry & Event Emitter              │  │
-│  └──────────────────┬───────────────────────────────┘  │
-│  ┌──────────────────▼──────┐ ┌───────────────────────┐  │
-│  │ Keyboard Shortcut Reg.  │ │ Telemetry Middleware  │  │
-│  └─────────────────────────┘ └───────────────────────┘  │
-└────────────────────┬────────────────────────────────────┘
-                     │ Optional
-┌────────────────────▼───────────────┐
-│  @crimson_dev/command-search-wasm  │
-│  Rust trigram index + scorer       │
-│  Graceful TS fallback on failure   │
-└────────────────────────────────────┘
++---------------------------------------------------------------+
+|                       Your Application                         |
++---------------+---------------------------+-------------------+
+                |                           |
++---------------v--------------+  +---------v---------+
+|  @crimson_dev/command-react  |  |  Future: Svelte   |
+|                              |  |  / Vue / Solid    |
+|  Command.Dialog              |  |  / Vanilla        |
+|  Command.Input               |  +-------------------+
+|  Command.List                |
+|  Command.Item                |
+|  CommandErrorBoundary        |
+|  useCommandDevtools()        |
++---------------+--------------+
+                | useSyncExternalStore
+                | useTransition
++---------------v----------------------------------------------+
+|              @crimson_dev/command (core)                      |
+|                                                              |
+|  +-------------+ +-------------+ +------------------+        |
+|  | State       | | Search      | | Frecency         |        |
+|  | Machine     | | Engine      | | Engine           |        |
+|  | (Pure TS)   | | (Pluggable) | | (Temporal API)   |        |
+|  +------+------+ +------+------+ +---------+--------+        |
+|  +------v----------------v------------------v---------+       |
+|  |     Command Registry & Event Emitter               |       |
+|  +------+---------------------------------+-----------+       |
+|  +------v-----------------------+ +-------v-----------+       |
+|  | Keyboard Shortcut Registry   | | Scheduler          |      |
+|  +------------------------------+ +--------------------+      |
++-------------------+------------------------------------------+
+                    | Optional
++-------------------v-------------------+
+|  @crimson_dev/command-search-wasm     |
+|  Rust trigram index + scorer          |
+|  Graceful TS fallback on failure      |
++---------------------------------------+
 ```
 
 ---
@@ -233,8 +235,8 @@ const unsubscribe = machine.subscribe(() => {
 | Search 100K items (WASM) | < 1 ms | ~0.7 ms |
 | Filter 10K (incremental) | < 2 ms | ~1.1 ms |
 | State update cycle | < 4 ms | ~2.3 ms |
-| Core bundle (gzipped) | ≤ 6 KB | ~5.2 KB |
-| React bundle (gzipped) | ≤ 25 KB | ~6.3 KB |
+| Core bundle (gzipped) | <= 6 KB | ~5.2 KB |
+| React bundle (gzipped) | <= 25 KB | ~6.3 KB |
 
 CI enforces 5% warning / 15% failure regression thresholds with 3-run averaging.
 
@@ -278,13 +280,13 @@ See the [migration guide](https://command.crimson.dev/guide/migration-from-cmdk)
 
 **[command.crimson.dev](https://command.crimson.dev)**
 
-**Guides:** [Getting Started](https://command.crimson.dev/guide/getting-started) · [Installation](https://command.crimson.dev/guide/installation) · [Basic Usage](https://command.crimson.dev/guide/basic-usage) · [Async Items](https://command.crimson.dev/guide/async-items) · [WASM Search](https://command.crimson.dev/guide/wasm-search) · [Frecency](https://command.crimson.dev/guide/frecency) · [Shortcuts](https://command.crimson.dev/guide/shortcuts) · [Virtualization](https://command.crimson.dev/guide/virtualization) · [SSR / Next.js](https://command.crimson.dev/guide/ssr) · [TypeScript](https://command.crimson.dev/guide/typescript-integration) · [Theming](https://command.crimson.dev/guide/theming) · [Accessibility](https://command.crimson.dev/guide/accessibility) · [Controlled Dialog](https://command.crimson.dev/guide/controlled-dialog)
+**Guides:** [Getting Started](https://command.crimson.dev/guide/getting-started) | [Installation](https://command.crimson.dev/guide/installation) | [Basic Usage](https://command.crimson.dev/guide/basic-usage) | [Async Items](https://command.crimson.dev/guide/async-items) | [WASM Search](https://command.crimson.dev/guide/wasm-search) | [Frecency](https://command.crimson.dev/guide/frecency) | [Shortcuts](https://command.crimson.dev/guide/shortcuts) | [Virtualization](https://command.crimson.dev/guide/virtualization) | [SSR / Next.js](https://command.crimson.dev/guide/ssr) | [TypeScript](https://command.crimson.dev/guide/typescript-integration) | [Theming](https://command.crimson.dev/guide/theming) | [Accessibility](https://command.crimson.dev/guide/accessibility) | [Controlled Dialog](https://command.crimson.dev/guide/controlled-dialog)
 
-**Recipes:** [File Picker](https://command.crimson.dev/recipes/file-picker) · [Emoji Picker](https://command.crimson.dev/recipes/emoji-picker) · [AI Chat Commands](https://command.crimson.dev/recipes/ai-chat-commands) · [Nested Commands](https://command.crimson.dev/recipes/nested-commands) · [Spotlight Search](https://command.crimson.dev/recipes/spotlight-search)
+**Recipes:** [File Picker](https://command.crimson.dev/recipes/file-picker) | [Emoji Picker](https://command.crimson.dev/recipes/emoji-picker) | [AI Chat Commands](https://command.crimson.dev/recipes/ai-chat-commands) | [Nested Commands](https://command.crimson.dev/recipes/nested-commands) | [Spotlight Search](https://command.crimson.dev/recipes/spotlight-search)
 
-**API:** [Core Engine](https://command.crimson.dev/api/command) · [React Adapter](https://command.crimson.dev/api/command-react) · [WASM Search](https://command.crimson.dev/api/command-search-wasm)
+**API:** [Core Engine](https://command.crimson.dev/api/command) | [React Adapter](https://command.crimson.dev/api/command-react) | [WASM Search](https://command.crimson.dev/api/command-search-wasm)
 
-**[Benchmarks](https://command.crimson.dev/benchmarks)** · **[Architecture](https://command.crimson.dev/architecture/overview)** · **[Migration from cmdk](https://command.crimson.dev/guide/migration-from-cmdk)**
+**[Benchmarks](https://command.crimson.dev/benchmarks)** | **[Architecture](https://command.crimson.dev/architecture/overview)** | **[Migration from cmdk](https://command.crimson.dev/guide/migration-from-cmdk)**
 
 ---
 
@@ -299,7 +301,7 @@ pnpm install && pnpm build && pnpm test
 |---|---|
 | `pnpm build` | Build all packages in parallel |
 | `pnpm test` | Unit tests (Vitest 4.1, happy-dom) |
-| `pnpm test:e2e` | E2E tests (Playwright, 3 browsers, 3 OS) |
+| `pnpm test:e2e` | E2E tests (Playwright 1.59, 3 browsers, 3 OS) |
 | `pnpm bench` | Benchmarks (Vitest bench mode) |
 | `pnpm lint` | Lint (Biome 2.4.6) |
 | `pnpm typecheck` | Type-check (TypeScript 6.0.1-rc) |
@@ -316,7 +318,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 |---|---|---|
 | TypeScript | 6.0.1-rc | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
 | React | 19.3.0-canary | `use()`, `useOptimistic`, `ref` as prop, Activity API |
-| Node.js | 25.8.0 | ES2026: Temporal, Iterator Helpers, Set methods |
+| Vite | 8.0.0-beta.16 | Playground dev server, HMR, build tooling |
+| Node.js | >= 25.8.0 | ES2026: Temporal, Iterator Helpers, Set methods |
 | Vitest | 4.1.0-beta.6 | Unit tests, benchmarks, V8 coverage |
 | Playwright | 1.59.0-alpha | Cross-browser E2E (Chromium, Firefox, WebKit) |
 | Biome | 2.4.6 | Lint + format (no ESLint, no Prettier) |

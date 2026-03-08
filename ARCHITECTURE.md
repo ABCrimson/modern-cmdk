@@ -623,6 +623,15 @@ The `Command.Dialog` component wraps Radix UI's Dialog primitive for:
 
 Building a production-quality dialog from scratch would add significant bundle size and maintenance burden. Radix provides these behaviors in a well-tested, accessible package.
 
+### Why Vite 8 for the playground?
+
+The interactive playground uses **Vite 8.0.0-beta.16** with `@vitejs/plugin-react` 6.0.0-beta.0. Key benefits:
+
+- **ES2026 build target** -- No downleveling of Iterator Helpers, Set methods, or `using` syntax.
+- **Native CSS nesting** -- Vite 8 passes through CSS nesting, `@layer`, and `@starting-style` without transformation.
+- **Environment API** -- Vite 8's new Environment API enables better dev/prod parity.
+- **HMR warmup** -- Frequently used modules are pre-transformed for instant HMR feedback.
+
 ### Why `@starting-style` over JavaScript animations?
 
 `@starting-style` enables CSS-only entry animations:
