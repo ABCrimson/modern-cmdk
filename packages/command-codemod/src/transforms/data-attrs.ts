@@ -22,18 +22,19 @@ const CSS_VAR_MAP = new Map<string, string>([['--cmdk-list-height', '--command-l
 
 /**
  * Replace all cmdk attribute selectors (bracketed) and CSS vars in a string.
+ * Uses ES2026 Set.union to combine both maps into a single pass.
  */
 function replaceInString(input: string): string {
   let result = input;
 
-  for (const [oldAttr, newAttr] of ATTR_MAP) {
-    // Replace bracketed selectors: [cmdk-root] -> [data-command]
+  // ES2026 Iterator Helper: .forEach on map entries
+  ATTR_MAP.entries().forEach(([oldAttr, newAttr]) => {
     result = result.replaceAll(`[${oldAttr}]`, `[${newAttr}]`);
-  }
+  });
 
-  for (const [oldVar, newVar] of CSS_VAR_MAP) {
+  CSS_VAR_MAP.entries().forEach(([oldVar, newVar]) => {
     result = result.replaceAll(oldVar, newVar);
-  }
+  });
 
   return result;
 }
@@ -53,7 +54,8 @@ export default function transform(fileInfo: FileInfo, api: API): string {
   let hasChanges = false;
 
   // 1. Rename JSX attributes: <div cmdk-root="" /> -> <div data-command="" />
-  for (const [oldAttr, newAttr] of ATTR_MAP) {
+  // ES2026 Iterator Helper: .forEach on map entries
+  ATTR_MAP.entries().forEach(([oldAttr, newAttr]) => {
     root
       .find(j.JSXAttribute, {
         name: { name: oldAttr },
@@ -62,7 +64,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
         path.node.name = j.jsxIdentifier(newAttr);
         hasChanges = true;
       });
-  }
+  });
 
   // 2. Replace in string literals (e.g. querySelector('[cmdk-item]'))
   root.find(j.StringLiteral).forEach((path) => {

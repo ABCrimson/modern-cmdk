@@ -103,7 +103,7 @@
       "  $0",
       "});"
     ],
-    "description": "Core state machine (framework-agnostic)"
+    "description": "Core state machine (framework-agnostic, uses Explicit Resource Management)"
   },
   "Command Shortcut": {
     "prefix": "cmd-shortcut",
@@ -130,5 +130,131 @@
       "</Command.Page>"
     ],
     "description": "Command palette page (nested navigation)"
+  },
+  "Command Component with ref (React 19)": {
+    "prefix": "cmd-component-ref",
+    "body": [
+      "import { Command } from '@crimson_dev/command-react';",
+      "import type { Ref } from 'react';",
+      "",
+      "// React 19: ref is a regular prop — no forwardRef needed",
+      "function ${1:CommandWrapper}({ ref, ...props }: { ref?: Ref<HTMLDivElement> } & ${2:Props}) {",
+      "  return (",
+      "    <Command ref={ref} {...props}>",
+      "      <Command.Input placeholder=\"${3:Search...}\" />",
+      "      <Command.List>",
+      "        $0",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Command wrapper component with ref as prop (React 19 pattern, no forwardRef)"
+  },
+  "Command with use() (React 19)": {
+    "prefix": "cmd-use",
+    "body": [
+      "import { use } from 'react';",
+      "import { Command } from '@crimson_dev/command-react';",
+      "",
+      "function ${1:AsyncCommand}({ itemsPromise }: { itemsPromise: Promise<${2:Item}[]> }) {",
+      "  // React 19: use() unwraps promises during render",
+      "  const items = use(itemsPromise);",
+      "",
+      "  return (",
+      "    <Command label=\"${3:Command menu}\">",
+      "      <Command.Input placeholder=\"${4:Search...}\" />",
+      "      <Command.List>",
+      "        <Command.Empty>No results found.</Command.Empty>",
+      "        {items.map((item) => (",
+      "          <Command.Item key={item.${5:id}} value={item.${6:value}} onSelect={item.${7:onSelect}}>",
+      "            {item.${8:label}}",
+      "          </Command.Item>",
+      "        ))}",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Command palette using React 19 use() to read promises"
+  },
+  "Command with useOptimistic (React 19)": {
+    "prefix": "cmd-optimistic",
+    "body": [
+      "import { useOptimistic } from 'react';",
+      "import { Command } from '@crimson_dev/command-react';",
+      "",
+      "function ${1:OptimisticCommand}({ items }: { items: ${2:Item}[] }) {",
+      "  const [optimisticItems, addOptimistic] = useOptimistic(",
+      "    items,",
+      "    (state, newItem: ${2:Item}) => [...state, newItem],",
+      "  );",
+      "",
+      "  return (",
+      "    <Command label=\"${3:Command menu}\">",
+      "      <Command.Input placeholder=\"${4:Search...}\" />",
+      "      <Command.List>",
+      "        {optimisticItems.map((item) => (",
+      "          <Command.Item key={item.${5:id}} value={item.${6:value}}>",
+      "            {item.${7:label}}",
+      "          </Command.Item>",
+      "        ))}",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Command palette with React 19 useOptimistic for instant UI updates"
+  },
+  "Command with useActionState (React 19)": {
+    "prefix": "cmd-action",
+    "body": [
+      "import { useActionState } from 'react';",
+      "import { Command } from '@crimson_dev/command-react';",
+      "",
+      "function ${1:ActionCommand}() {",
+      "  const [state, dispatch, isPending] = useActionState(",
+      "    async (_prev: ${2:State}, formData: FormData) => {",
+      "      const query = formData.get('query') as string;",
+      "      return await ${3:searchItems}(query);",
+      "    },",
+      "    ${4:initialState},",
+      "  );",
+      "",
+      "  return (",
+      "    <Command label=\"${5:Command menu}\">",
+      "      <Command.Input placeholder=\"${6:Search...}\" />",
+      "      <Command.List>",
+      "        {isPending && <Command.Loading>Searching...</Command.Loading>}",
+      "        $0",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Command palette with React 19 useActionState"
+  },
+  "Command WASM Search": {
+    "prefix": "cmd-wasm",
+    "body": [
+      "import { Command } from '@crimson_dev/command-react';",
+      "import { createWasmScorer } from '@crimson_dev/command-search-wasm';",
+      "",
+      "// Initialize WASM scorer (loads .wasm binary once)",
+      "const scorer = await createWasmScorer();",
+      "",
+      "function ${1:WasmCommand}() {",
+      "  return (",
+      "    <Command scorer={scorer} label=\"${2:Command menu}\">",
+      "      <Command.Input placeholder=\"${3:Search...}\" />",
+      "      <Command.List>",
+      "        <Command.Empty>No results found.</Command.Empty>",
+      "        $0",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Command palette with WASM-powered fuzzy search"
   }
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // @crimson_dev/command-codemod — CLI entry point
-// Usage: command-codemod <transform> <glob> [--dry-run]
+// Usage: command-codemod <transform> <glob> [--dry-run] [--concurrency=N]
 // Available transforms: import-rewrite, data-attrs, forward-ref, should-filter
 
 import { readFile, writeFile } from 'node:fs/promises';
@@ -38,6 +38,7 @@ interface CliArgs {
   readonly transformName: string;
   readonly fileGlob: string;
   readonly dryRun: boolean;
+  readonly concurrency: number;
 }
 
 function parseArgs(argv: string[]): CliArgs | null {
@@ -61,8 +62,49 @@ function parseArgs(argv: string[]): CliArgs | null {
   const fileGlob = positional[1]!;
   const dryRun = flags.some((f) => f === '--dry-run');
 
-  return { transformName, fileGlob, dryRun };
+  // Parse --concurrency=N flag using Iterator Helpers
+  const concurrencyFlag = flags.values().find((f) => f.startsWith('--concurrency='));
+  const concurrency = concurrencyFlag ? Number.parseInt(concurrencyFlag.split('=')[1]!, 10) : 8;
+
+  return { transformName, fileGlob, dryRun, concurrency };
 }
+
+// --- Batched concurrent file processing ------------------------------------
+
+async function* chunked<T>(items: T[], size: number): AsyncGenerator<T[]> {
+  for (let i = 0; i < items.length; i += size) {
+    yield items.slice(i, i + size);
+  }
+}
+
+interface TransformResult {
+  readonly filePath: string;
+  readonly changed: boolean;
+  readonly error?: Error;
+}
+
+async function processFile(
+  filePath: string,
+  transformFn: (fileInfo: FileInfo, api: API) => string,
+  apiForParser: (parser: string) => API,
+  dryRun: boolean,
+): Promise<TransformResult> {
+  const source = await readFile(filePath, 'utf-8');
+  const parser = filePath.endsWith('.tsx') || filePath.endsWith('.jsx') ? 'tsx' : 'ts';
+
+  const fileInfo: FileInfo = { path: filePath, source };
+  const result = transformFn(fileInfo, apiForParser(parser));
+
+  if (result !== source) {
+    if (!dryRun) {
+      await writeFile(filePath, result, 'utf-8');
+    }
+    return { filePath, changed: true };
+  }
+  return { filePath, changed: false };
+}
+
+// --- Main ------------------------------------------------------------------
 
 async function main(): Promise<void> {
   const cliArgs = parseArgs(process.argv);
@@ -72,14 +114,14 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const { transformName, fileGlob, dryRun } = cliArgs;
+  const { transformName, fileGlob, dryRun, concurrency } = cliArgs;
 
   // Validate transform name
   if (!AVAILABLE_TRANSFORMS.has(transformName)) {
     process.exit(1);
   }
 
-  // Resolve files
+  // Resolve files — globby 16 API (ESM-only, same function signature)
   const files = await globby([fileGlob], {
     absolute: true,
     ignore: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/.next/**'],
@@ -87,8 +129,6 @@ async function main(): Promise<void> {
 
   if (files.length === 0) {
     process.exit(1);
-  }
-  if (dryRun) {
   }
 
   // Load the transform
@@ -102,37 +142,49 @@ async function main(): Promise<void> {
     report: () => {},
   });
 
-  let filesChanged = 0;
-  let errors = 0;
+  // Process files in concurrent batches using Promise.withResolvers for tracking
+  const { promise: done, resolve: resolveDone } = Promise.withResolvers<TransformResult[]>();
+  const allResults: TransformResult[] = [];
 
-  for (const filePath of files) {
-    try {
-      const source = await readFile(filePath, 'utf-8');
-      const parser = filePath.endsWith('.tsx') || filePath.endsWith('.jsx') ? 'tsx' : 'ts';
+  // Use chunked async generator for batched concurrency
+  for await (const batch of chunked(files, concurrency)) {
+    const settled = await Promise.allSettled(
+      batch.map((filePath) => processFile(filePath, transformFn, apiForParser, dryRun)),
+    );
 
-      const fileInfo: FileInfo = {
-        path: filePath,
-        source,
-      };
-
-      const result = transformFn(fileInfo, apiForParser(parser));
-
-      if (result !== source) {
-        filesChanged++;
-        const _relativePath = filePath.replace(`${resolve('.')}/`, '');
-
-        if (!dryRun) {
-          await writeFile(filePath, result, 'utf-8');
-        }
+    // Collect results using Iterator Helpers
+    settled.values().forEach((result) => {
+      if (result.status === 'fulfilled') {
+        allResults.push(result.value);
+      } else {
+        allResults.push({ filePath: '(unknown)', changed: false, error: result.reason as Error });
       }
-    } catch (err) {
-      errors++;
-      const _message = err instanceof Error ? err.message : String(err);
-    }
+    });
   }
-  if (errors > 0) {
+
+  resolveDone(allResults);
+  const results = await done;
+
+  // Group results using Object.groupBy
+  const grouped = Object.groupBy(results, (r) => {
+    if (r.error) return 'errors';
+    if (r.changed) return 'changed';
+    return 'unchanged';
+  });
+
+  const changedFiles = grouped.changed ?? [];
+  const errorFiles = grouped.errors ?? [];
+
+  // Report results
+  changedFiles.values().forEach((r) => {
+    const _relativePath = r.filePath.replace(`${resolve('.')}/`, '');
+  });
+
+  if (errorFiles.length > 0) {
+    errorFiles.values().forEach((_r) => {});
   }
-  if (dryRun && filesChanged > 0) {
+
+  if (dryRun && changedFiles.length > 0) {
   }
 }
 
