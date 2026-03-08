@@ -2,6 +2,8 @@
 
 // packages/command-react/src/badge.tsx
 // <Command.Badge> — renders a category/type badge on items
+// React 19: ref as prop (no forwardRef)
+// Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 

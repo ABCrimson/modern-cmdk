@@ -3,6 +3,8 @@
 // packages/command-react/src/command.tsx
 // <Command.Root> — useTransition for search, React Compiler compatible
 // Keyboard navigation is attached to the root element, not called as a hook before context
+// ES2026: satisfies operator, branded types
+// Isolated declarations: explicit return types on all exports
 
 import type { CommandMachineOptions } from '@crimson_dev/command';
 import { createCommandMachine } from '@crimson_dev/command';
@@ -11,7 +13,7 @@ import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import { CommandActivity } from './activity.js';
 import { CommandAsyncItems } from './async-items.js';
 import { CommandBadge } from './badge.js';
-import type { CommandContextValue } from './context.js';
+import type { CommandContextValue, CommandRootId } from './context.js';
 import { CommandContext } from './context.js';
 import { CommandDialog } from './dialog.js';
 import { CommandEmpty } from './empty.js';
@@ -39,7 +41,7 @@ function CommandRoot({
   label = 'Command palette',
   ...machineOptions
 }: CommandRootProps): ReactNode {
-  const rootId = useId();
+  const rootId = useId() as CommandRootId;
   const listId = `${rootId}-list`;
   const inputId = `${rootId}-input`;
   const rootRef = useRef<HTMLDivElement>(null);
@@ -65,21 +67,24 @@ function CommandRoot({
 
     // Also listen on document for global keyboard capture
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return (): void => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [handleKeyDown]);
 
   const contextValue = useMemo<CommandContextValue>(
-    () => ({
-      machine,
-      state,
-      isPending,
-      updateSearch,
-      setOptimisticActiveId,
-      rootId: id,
-      listId,
-      inputId,
-      label,
-    }),
+    () =>
+      ({
+        machine,
+        state,
+        isPending,
+        updateSearch,
+        setOptimisticActiveId,
+        rootId: id,
+        listId,
+        inputId,
+        label,
+      }) satisfies CommandContextValue,
     [machine, state, isPending, updateSearch, setOptimisticActiveId, id, listId, inputId, label],
   );
 
@@ -102,20 +107,20 @@ function CommandRoot({
 
 /** Compound component namespace */
 export const Command: typeof CommandRoot & {
-  Input: typeof CommandInput;
-  List: typeof CommandList;
-  Item: typeof CommandItem;
-  Group: typeof CommandGroup;
-  Empty: typeof CommandEmpty;
-  Loading: typeof CommandLoading;
-  Separator: typeof CommandSeparator;
-  Dialog: typeof CommandDialog;
-  Highlight: typeof CommandHighlight;
-  Shortcut: typeof CommandShortcut;
-  Badge: typeof CommandBadge;
-  Page: typeof CommandPage;
-  AsyncItems: typeof CommandAsyncItems;
-  Activity: typeof CommandActivity;
+  readonly Input: typeof CommandInput;
+  readonly List: typeof CommandList;
+  readonly Item: typeof CommandItem;
+  readonly Group: typeof CommandGroup;
+  readonly Empty: typeof CommandEmpty;
+  readonly Loading: typeof CommandLoading;
+  readonly Separator: typeof CommandSeparator;
+  readonly Dialog: typeof CommandDialog;
+  readonly Highlight: typeof CommandHighlight;
+  readonly Shortcut: typeof CommandShortcut;
+  readonly Badge: typeof CommandBadge;
+  readonly Page: typeof CommandPage;
+  readonly AsyncItems: typeof CommandAsyncItems;
+  readonly Activity: typeof CommandActivity;
 } = Object.assign(CommandRoot, {
   Input: CommandInput,
   List: CommandList,
@@ -131,4 +136,4 @@ export const Command: typeof CommandRoot & {
   Page: CommandPage,
   AsyncItems: CommandAsyncItems,
   Activity: CommandActivity,
-});
+} as const);

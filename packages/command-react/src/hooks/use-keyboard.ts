@@ -1,9 +1,21 @@
 'use client';
 
 // packages/command-react/src/hooks/use-keyboard.ts
-// Keyboard navigation — event handler attached to root element, not global document
+// Keyboard navigation — event handler factory, attached to root element
+// Isolated declarations: explicit return types on all exports
+// Uses object lookup (ES2026 style) instead of switch for cleaner dispatch
 
 import type { CommandMachine, CommandState } from '@crimson_dev/command';
+
+/** Navigation key to machine direction mapping */
+const NAVIGATION_KEYS = {
+  ArrowDown: 'next',
+  ArrowUp: 'prev',
+  Home: 'first',
+  End: 'last',
+} as const satisfies Record<string, string>;
+
+type NavigationKey = keyof typeof NAVIGATION_KEYS;
 
 /** Create a keydown handler for command palette keyboard navigation */
 export function createKeydownHandler(
@@ -11,28 +23,21 @@ export function createKeydownHandler(
   getState: () => CommandState,
 ): (event: KeyboardEvent) => void {
   return (event: KeyboardEvent): void => {
+    const { key } = event;
     const state = getState();
 
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        machine.send({ type: 'NAVIGATE', direction: 'next' });
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        machine.send({ type: 'NAVIGATE', direction: 'prev' });
-        break;
-      case 'Home':
-        event.preventDefault();
-        machine.send({ type: 'NAVIGATE', direction: 'first' });
-        break;
-      case 'End':
-        event.preventDefault();
-        machine.send({ type: 'NAVIGATE', direction: 'last' });
-        break;
+    // Navigation keys — ArrowDown/Up/Home/End
+    if (key in NAVIGATION_KEYS) {
+      event.preventDefault();
+      machine.send({ type: 'NAVIGATE', direction: NAVIGATION_KEYS[key as NavigationKey] });
+      return;
+    }
+
+    // Action keys
+    switch (key) {
       case 'Enter': {
         event.preventDefault();
-        const activeId = state.activeId;
+        const { activeId } = state;
         if (activeId) {
           machine.send({ type: 'ITEM_SELECT', id: activeId });
         }

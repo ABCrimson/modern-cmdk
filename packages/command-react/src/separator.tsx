@@ -2,6 +2,8 @@
 
 // packages/command-react/src/separator.tsx
 // <Command.Separator> — role="separator"
+// React 19: ref as prop (no forwardRef)
+// Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 

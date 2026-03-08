@@ -2,9 +2,13 @@
 
 // packages/command-react/src/context.ts
 // React context definitions — use() for consuming in Suspense boundaries
+// Branded types for IDs, isolated declarations with explicit return types
 
 import type { CommandMachine, CommandState, ItemId } from '@crimson_dev/command';
 import { type Context, createContext } from 'react';
+
+/** Branded newtype for the root instance ID */
+export type CommandRootId = string & { readonly __brand: 'CommandRootId' };
 
 export interface CommandContextValue {
   readonly machine: CommandMachine;
@@ -12,7 +16,7 @@ export interface CommandContextValue {
   readonly isPending: boolean;
   readonly updateSearch: (query: string) => void;
   readonly setOptimisticActiveId: (id: ItemId | null) => void;
-  readonly rootId: string;
+  readonly rootId: CommandRootId;
   readonly listId: string;
   readonly inputId: string;
   readonly label: string;

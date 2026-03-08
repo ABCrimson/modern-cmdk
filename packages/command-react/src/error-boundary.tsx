@@ -1,5 +1,9 @@
 'use client';
 
+// packages/command-react/src/error-boundary.tsx
+// Error boundary — class component (required by React for componentDidCatch)
+// Isolated declarations: explicit return types on all exports
+
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 export interface CommandErrorBoundaryProps {
@@ -12,14 +16,19 @@ interface CommandErrorBoundaryState {
   readonly error: Error | null;
 }
 
+/** Initial state — no error captured */
+const INITIAL_STATE: CommandErrorBoundaryState = {
+  error: null,
+} as const satisfies CommandErrorBoundaryState;
+
 export class CommandErrorBoundary extends Component<
   CommandErrorBoundaryProps,
   CommandErrorBoundaryState
 > {
-  override state: CommandErrorBoundaryState = { error: null };
+  override state: CommandErrorBoundaryState = INITIAL_STATE;
 
   static getDerivedStateFromError(error: Error): CommandErrorBoundaryState {
-    return { error };
+    return { error } satisfies CommandErrorBoundaryState;
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {

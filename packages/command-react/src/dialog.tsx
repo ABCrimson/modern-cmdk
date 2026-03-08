@@ -3,14 +3,16 @@
 // packages/command-react/src/dialog.tsx
 // <Command.Dialog> — Radix Dialog.Root + Dialog.Portal + Dialog.Overlay + Dialog.Content
 // @starting-style CSS animations, transition-behavior: allow-discrete, inert on background
-// Focus trap via Radix built-in focus management, "use client" directive
+// Focus trap via Radix built-in focus management
+// ES2026: satisfies operator, branded types
+// Isolated declarations: explicit return types on all exports
 
 import type { CommandMachineOptions } from '@crimson_dev/command';
 import { createCommandMachine } from '@crimson_dev/command';
 import { Dialog } from 'radix-ui';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
-import type { CommandContextValue } from './context.js';
+import type { CommandContextValue, CommandRootId } from './context.js';
 import { CommandContext } from './context.js';
 import { useCommand } from './hooks/use-command.js';
 import { createKeydownHandler } from './hooks/use-keyboard.js';
@@ -38,7 +40,7 @@ export function CommandDialog({
   container,
   ...machineOptions
 }: CommandDialogProps): ReactNode {
-  const rootId = useId();
+  const rootId = useId() as CommandRootId;
   const listId = `${rootId}-list`;
   const inputId = `${rootId}-input`;
 
@@ -48,7 +50,7 @@ export function CommandDialog({
     machineRef.current = createCommandMachine({
       ...machineOptions,
       open: controlledOpen ?? machineOptions.open ?? false,
-      onOpenChange: (open) => {
+      onOpenChange: (open: boolean): void => {
         machineOptions.onOpenChange?.(open);
         onOpenChange?.(open);
       },
@@ -67,7 +69,9 @@ export function CommandDialog({
   useEffect(() => {
     if (!state.open) return;
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return (): void => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [handleKeyDown, state.open]);
 
   // Sync controlled open prop with machine state
@@ -83,24 +87,25 @@ export function CommandDialog({
 
   // Radix onOpenChange callback — syncs dialog state back to machine
   const handleRadixOpenChange = useCallback(
-    (open: boolean) => {
+    (open: boolean): void => {
       machine.send({ type: open ? 'OPEN' : 'CLOSE' });
     },
     [machine],
   );
 
   const contextValue = useMemo<CommandContextValue>(
-    () => ({
-      machine,
-      state,
-      isPending,
-      updateSearch,
-      setOptimisticActiveId,
-      rootId: id,
-      listId,
-      inputId,
-      label,
-    }),
+    () =>
+      ({
+        machine,
+        state,
+        isPending,
+        updateSearch,
+        setOptimisticActiveId,
+        rootId: id,
+        listId,
+        inputId,
+        label,
+      }) satisfies CommandContextValue,
     [machine, state, isPending, updateSearch, setOptimisticActiveId, id, listId, inputId, label],
   );
 
@@ -119,7 +124,7 @@ export function CommandDialog({
           data-state={state.open ? 'open' : 'closed'}
           className={className}
           aria-label={label}
-          onOpenAutoFocus={(e) => {
+          onOpenAutoFocus={(e: Event): void => {
             // Prevent Radix default focus — we manage focus on the input
             e.preventDefault();
           }}

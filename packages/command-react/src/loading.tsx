@@ -2,6 +2,8 @@
 
 // packages/command-react/src/loading.tsx
 // <Command.Loading> — aria-busy, Suspense boundary integration
+// React 19: use() for context, ref as prop
+// Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use } from 'react';
@@ -23,7 +25,7 @@ export function CommandLoading({
     throw new Error('Command.Loading must be used within a <Command> component');
   }
 
-  const isLoading = loadingOverride ?? ctx.state.loading ?? ctx.isPending;
+  const isLoading: boolean = loadingOverride ?? ctx.state.loading ?? ctx.isPending;
 
   if (!isLoading) return null;
 

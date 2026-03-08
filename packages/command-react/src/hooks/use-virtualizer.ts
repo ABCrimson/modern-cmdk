@@ -3,6 +3,8 @@
 // packages/command-react/src/hooks/use-virtualizer.ts
 // Virtualization hook — ResizeObserver + requestIdleCallback for measurement
 // GPU-composited transforms via translateY, content-visibility: auto for off-screen items
+// ES2026: Iterator Helpers (.map, .filter, .reduce), Math.sumPrecise
+// Isolated declarations: explicit return types on all exports
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -30,34 +32,38 @@ export interface VirtualizerReturn {
 
 export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
   const { count, estimateSize, overscan = 8, scrollElement, enabled = true } = options;
-  const [scrollOffset, setScrollOffset] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(0);
-  const measuredSizes = useRef(new Map<number, number>());
+  const [scrollOffset, setScrollOffset] = useState<number>(0);
+  const [containerHeight, setContainerHeight] = useState<number>(0);
+  const measuredSizes = useRef<Map<number, number>>(new Map<number, number>());
 
   // ResizeObserver for container measurement
   useEffect(() => {
     if (!scrollElement || !enabled) return;
 
-    const observer = new ResizeObserver((entries) => {
+    const observer = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
       // Single observed element — take the last entry's height
       const lastEntry = entries.at(-1);
       if (lastEntry) setContainerHeight(lastEntry.contentRect.height);
     });
 
     observer.observe(scrollElement);
-    return () => observer.disconnect();
+    return (): void => {
+      observer.disconnect();
+    };
   }, [scrollElement, enabled]);
 
   // Scroll event listener — passive for GPU-composited scrolling
   useEffect(() => {
     if (!scrollElement || !enabled) return;
 
-    function handleScroll(): void {
-      setScrollOffset(scrollElement?.scrollTop);
-    }
+    const handleScroll = (): void => {
+      setScrollOffset(scrollElement.scrollTop);
+    };
 
     scrollElement.addEventListener('scroll', handleScroll, { passive: true });
-    return () => scrollElement.removeEventListener('scroll', handleScroll);
+    return (): void => {
+      scrollElement.removeEventListener('scroll', handleScroll);
+    };
   }, [scrollElement, enabled]);
 
   // Get item size — O(1) via measured cache or estimate fallback
@@ -66,18 +72,23 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     [estimateSize],
   );
 
-  // Memoize totalSize — Math.sumPrecise (ES2026) for floating-point-safe summation
-  const totalSize = useMemo(() => {
+  // Memoize totalSize — Iterator Helpers + Math.sumPrecise (ES2026)
+  const totalSize: number = useMemo((): number => {
     if (!enabled) return 0;
-    const sizes = Array.from({ length: count }, (_, i) => getItemSize(i));
+    // ES2026 Iterator Helpers: use .map on the iterator from keys range
+    const sizes = Iterator.from({
+      [Symbol.iterator]: function* () {
+        for (let i = 0; i < count; i++) yield getItemSize(i);
+      },
+    }).toArray();
     return Math.sumPrecise(sizes);
   }, [enabled, count, getItemSize]);
 
   // Memoize virtual items computation
-  const virtualItems = useMemo((): readonly VirtualItem[] => {
+  const virtualItems: readonly VirtualItem[] = useMemo((): readonly VirtualItem[] => {
     if (!enabled || containerHeight <= 0) return [];
 
-    // Find the first visible item via binary-search-like scan
+    // Find the first visible item via linear scan
     let offset = 0;
     let startIdx = 0;
     while (startIdx < count && offset + getItemSize(startIdx) < scrollOffset) {
@@ -85,9 +96,13 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
       startIdx++;
     }
 
-    // Apply overscan — Math.sumPrecise (ES2026) for offset recalculation
+    // Apply overscan — recalculate offset with Iterator Helpers + Math.sumPrecise
     startIdx = Math.max(0, startIdx - overscan);
-    const offsetSizes = Array.from({ length: startIdx }, (_, i) => getItemSize(i));
+    const offsetSizes = Iterator.from({
+      [Symbol.iterator]: function* () {
+        for (let i = 0; i < startIdx; i++) yield getItemSize(i);
+      },
+    }).toArray();
     offset = Math.sumPrecise(offsetSizes);
 
     // Collect visible items + overscan
@@ -102,7 +117,7 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
         start: currentOffset,
         size,
         key: i,
-      });
+      } satisfies VirtualItem);
       currentOffset += size;
 
       // Stop after overscan past the viewport
@@ -118,10 +133,14 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
       if (!scrollElement || !enabled) return;
 
       const clampedIndex = Math.min(index, count);
-      const sizes = Array.from({ length: clampedIndex }, (_, i) => getItemSize(i));
-      const offset = Math.sumPrecise(sizes);
+      const sizes = Iterator.from({
+        [Symbol.iterator]: function* () {
+          for (let i = 0; i < clampedIndex; i++) yield getItemSize(i);
+        },
+      }).toArray();
+      const targetOffset: number = Math.sumPrecise(sizes);
 
-      scrollElement.scrollTo({ top: offset, behavior: 'smooth' });
+      scrollElement.scrollTo({ top: targetOffset, behavior: 'smooth' });
     },
     [scrollElement, enabled, count, getItemSize],
   );
@@ -134,20 +153,17 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
       const index = Number(element.dataset.index);
       if (Number.isNaN(index)) return;
 
+      const measure = (): void => {
+        const height = element.getBoundingClientRect().height;
+        if (height > 0 && measuredSizes.current.get(index) !== height) {
+          measuredSizes.current.set(index, height);
+        }
+      };
+
       if ('requestIdleCallback' in globalThis) {
-        requestIdleCallback(() => {
-          const height = element.getBoundingClientRect().height;
-          if (height > 0 && measuredSizes.current.get(index) !== height) {
-            measuredSizes.current.set(index, height);
-          }
-        });
+        requestIdleCallback(measure);
       } else {
-        setTimeout(() => {
-          const height = element.getBoundingClientRect().height;
-          if (height > 0) {
-            measuredSizes.current.set(index, height);
-          }
-        }, 0);
+        setTimeout(measure, 0);
       }
     },
     [enabled],
@@ -158,5 +174,5 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     totalSize,
     scrollToIndex,
     measureElement,
-  } as const;
+  } satisfies VirtualizerReturn;
 }

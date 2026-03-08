@@ -4,6 +4,8 @@
 /* Scroll-driven animations via animation-timeline: scroll() */
 /* WCAG 2.1 AA: forced-colors, prefers-contrast, prefers-reduced-motion */
 /* CSS Logical Properties: full RTL/LTR support */
+/* CSS Nesting, @layer cascade control, oklch() color space */
+/* Container queries for responsive item layout */
 
 /* ─── CSS Custom Properties ─── */
 
@@ -103,7 +105,25 @@
 /* linear() approximation of a critically-damped spring (stiffness: 100, damping: 15) */
 /* Generated from spring physics: x(t) = 1 - e^(-zt)(cos(wd*t) + (zw/wd)sin(wd*t)) */
 
-@layer command {
+@layer command.base, command.layout, command.animation, command.a11y;
+
+@layer command.base {
+  /* ─── Screen Reader Only (for Radix Title/Description) ─── */
+
+  .sr-only {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
+@layer command.layout {
   /* ─── Overlay ─── */
 
   [data-command-overlay] {
@@ -113,30 +133,6 @@
     background: oklch(0 0 0 / var(--command-overlay-opacity, 0.4));
     backdrop-filter: blur(var(--command-overlay-blur));
     -webkit-backdrop-filter: blur(var(--command-overlay-blur));
-  }
-
-  [data-command-overlay][data-state="open"] {
-    @starting-style {
-      --command-overlay-opacity: 0;
-      opacity: 0;
-    }
-    --command-overlay-opacity: 0.4;
-    opacity: 1;
-    transition:
-      opacity var(--command-duration-enter) var(--command-spring-easing),
-      --command-overlay-opacity var(--command-duration-enter) ease-out,
-      display var(--command-duration-enter) allow-discrete,
-      overlay var(--command-duration-enter) allow-discrete;
-  }
-
-  [data-command-overlay][data-state="closed"] {
-    --command-overlay-opacity: 0;
-    opacity: 0;
-    transition:
-      opacity var(--command-duration-exit) var(--command-easing-exit),
-      --command-overlay-opacity var(--command-duration-exit) ease-in,
-      display var(--command-duration-exit) allow-discrete,
-      overlay var(--command-duration-exit) allow-discrete;
   }
 
   /* ─── Dialog ─── */
@@ -150,52 +146,16 @@
     justify-content: center;
     padding-block-start: min(20vh, 140px);
     pointer-events: none;
-  }
 
-  [data-command-dialog] > * {
-    pointer-events: auto;
-  }
-
-  /* GPU-composited dialog animation — zero layout thrash */
-  /* Spring easing via linear() approximation */
-  [data-command-dialog][data-state="open"] {
-    @starting-style {
-      --command-dialog-scale: var(--command-scale-from);
-      --command-dialog-translate: var(--command-translate-from);
-      opacity: 0;
-      scale: var(--command-scale-from);
-      translate: 0 var(--command-translate-from);
+    & > * {
+      pointer-events: auto;
     }
-    --command-dialog-scale: 1;
-    --command-dialog-translate: 0px;
-    opacity: 1;
-    scale: 1;
-    translate: 0 0;
-    transition:
-      opacity var(--command-duration-enter) var(--command-spring-easing),
-      scale var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
-      translate var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
-      display var(--command-duration-enter-scale) allow-discrete,
-      overlay var(--command-duration-enter-scale) allow-discrete;
   }
 
-  /* Exit animation — quicker, no spring overshoot */
-  [data-command-dialog][data-state="closed"] {
-    --command-dialog-scale: var(--command-scale-from);
-    --command-dialog-translate: 4px;
-    opacity: 0;
-    scale: var(--command-scale-from);
-    translate: 0 4px;
-    transition:
-      opacity var(--command-duration-exit) var(--command-easing-exit),
-      scale var(--command-duration-exit) var(--command-easing-exit),
-      translate var(--command-duration-exit) var(--command-easing-exit),
-      display var(--command-duration-exit) allow-discrete,
-      overlay var(--command-duration-exit) allow-discrete;
-  }
-
-  /* Dialog content container */
+  /* Dialog content container — container query context */
   [data-command-dialog-content] {
+    container-type: inline-size;
+    container-name: command-dialog;
     inline-size: min(var(--command-dialog-max-width), calc(100vi - 32px));
     max-block-size: min(var(--command-dialog-max-height), calc(100vb - 200px));
     overflow: hidden;
@@ -212,10 +172,10 @@
     background: transparent;
     caret-color: currentColor;
     font: inherit;
-  }
 
-  [data-command-input]::placeholder {
-    opacity: 0.5;
+    &::placeholder {
+      opacity: 0.5;
+    }
   }
 
   /* ─── List ─── */
@@ -226,87 +186,15 @@
     scroll-timeline: --list-scroll block;
     will-change: height;
     transition: height var(--command-duration-list) var(--command-spring-easing);
-    /* Smooth scrollbar */
     scrollbar-gutter: stable;
     scrollbar-width: thin;
   }
 
-  /* ─── Fading Edge Indicators (Scroll-Driven) ─── */
+  /* ─── List Inner ─── */
 
   [data-command-list-inner] {
     position: relative;
     contain: layout style paint;
-  }
-
-  [data-command-list]::before,
-  [data-command-list]::after {
-    content: "";
-    display: block;
-    position: sticky;
-    inset-inline: 0;
-    block-size: var(--command-fade-edge-size);
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity var(--command-duration-exit) ease-out;
-  }
-
-  /* Top fade — visible when scrolled down */
-  [data-command-list]::before {
-    inset-block-start: 0;
-    background: linear-gradient(to bottom, currentColor, transparent);
-    opacity: 0.08;
-    animation: fade-edge-top linear both;
-    animation-timeline: --list-scroll;
-    animation-range: 0px 24px;
-  }
-
-  /* Bottom fade — visible when not scrolled to bottom */
-  [data-command-list]::after {
-    inset-block-end: 0;
-    background: linear-gradient(to top, currentColor, transparent);
-    opacity: 0.08;
-    animation: fade-edge-bottom linear both;
-    animation-timeline: --list-scroll;
-    animation-range: calc(100% - 24px) 100%;
-  }
-
-  @keyframes fade-edge-top {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 0.08;
-    }
-  }
-
-  @keyframes fade-edge-bottom {
-    from {
-      opacity: 0.08;
-    }
-    to {
-      opacity: 0;
-    }
-  }
-
-  /* ─── Scroll-Driven Progress Indicator ─── */
-
-  [data-command-scroll-indicator] {
-    block-size: 2px;
-    transform-origin: inline-start;
-    scale: 0 1;
-    animation: scroll-progress linear both;
-    animation-timeline: --list-scroll;
-    will-change: scale;
-  }
-
-  @keyframes scroll-progress {
-    from {
-      scale: 0 1;
-    }
-    to {
-      scale: 1 1;
-    }
   }
 
   /* ─── Item ─── */
@@ -317,32 +205,14 @@
     will-change: background-color;
     transition: background-color var(--command-duration-item) linear(0, 0.25, 0.5, 0.75, 1);
     scroll-margin-block: 8px;
-    /* content-visibility: auto for off-screen rendering skip */
     content-visibility: auto;
     contain-intrinsic-size: auto var(--command-item-height);
-  }
 
-  [data-command-item][data-active] {
-    /* will-change on parent already promotes the layer; no translate3d hack needed */
-  }
-
-  [data-command-item][data-disabled] {
-    cursor: not-allowed;
-    opacity: 0.5;
-    pointer-events: none;
-  }
-
-  /* ─── Focus Indicators ─── */
-
-  [data-command-item]:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: -2px;
-    border-radius: 4px;
-  }
-
-  [data-command-input]:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: 2px;
+    &[data-disabled] {
+      cursor: not-allowed;
+      opacity: 0.5;
+      pointer-events: none;
+    }
   }
 
   /* ─── Virtualization ─── */
@@ -383,45 +253,11 @@
     color: inherit;
   }
 
-  /* ─── Loading ─── */
-
-  [data-command-loading] {
-    animation: command-loading-pulse var(--command-duration-loading) ease-in-out infinite;
-    animation-composition: accumulate;
-  }
-
-  @keyframes command-loading-pulse {
-    0%,
-    100% {
-      opacity: 0.5;
-    }
-    50% {
-      opacity: 1;
-    }
-  }
-
   /* ─── Empty ─── */
 
   [data-command-empty] {
     text-align: center;
     opacity: 0.6;
-  }
-
-  /* ─── Page Transitions ─── */
-
-  [data-command-page] {
-    animation: page-enter var(--command-duration-page) ease-out;
-  }
-
-  @keyframes page-enter {
-    from {
-      opacity: 0;
-      translate: var(--command-translate-from) 0;
-    }
-    to {
-      opacity: 1;
-      translate: 0 0;
-    }
   }
 
   /* ─── Shortcut Badge ─── */
@@ -440,127 +276,334 @@
     letter-spacing: 0.04em;
   }
 
-  /* ─── Screen Reader Only (for Radix Title/Description) ─── */
+  /* ─── Container Queries — responsive item layout ─── */
 
-  .sr-only {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
-} /* end @layer command */
+  @container command-dialog (inline-size < 400px) {
+    [data-command-item] {
+      /* Stack shortcut below item text on narrow containers */
+      flex-wrap: wrap;
 
-/* ═══════════════════════════════════════════════════════════ */
-/* ─── Accessibility: Reduced Motion ─── */
-/* ═══════════════════════════════════════════════════════════ */
+      & [data-command-shortcut] {
+        inline-size: 100%;
+        margin-block-start: 4px;
+      }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms;
-    animation-iteration-count: 1;
-    transition-duration: 0.01ms;
-    scroll-behavior: auto;
+      & [data-command-badge] {
+        display: none;
+      }
+    }
+
+    [data-command-group-heading] {
+      font-size: 0.65em;
+    }
   }
 
-  [data-command-dialog][data-state="open"],
-  [data-command-overlay][data-state="open"] {
-    transition: none;
-  }
-
-  [data-command-dialog][data-state="closed"],
-  [data-command-overlay][data-state="closed"] {
-    transition: none;
+  @container command-dialog (inline-size >= 400px) {
+    [data-command-item] {
+      /* Horizontal layout with shortcut inline */
+      flex-wrap: nowrap;
+    }
   }
 }
 
-/* ═══════════════════════════════════════════════════════════ */
-/* ─── Accessibility: High Contrast ─── */
-/* ═══════════════════════════════════════════════════════════ */
+@layer command.animation {
+  /* ─── Overlay Animations ─── */
 
-@media (prefers-contrast: more) {
-  [data-command-item][data-active] {
-    outline: 3px solid currentColor;
-    outline-offset: -3px;
+  [data-command-overlay][data-state="open"] {
+    @starting-style {
+      --command-overlay-opacity: 0;
+      opacity: 0;
+    }
+    --command-overlay-opacity: 0.4;
+    opacity: 1;
+    transition:
+      opacity var(--command-duration-enter) var(--command-spring-easing),
+      --command-overlay-opacity var(--command-duration-enter) ease-out,
+      display var(--command-duration-enter) allow-discrete,
+      overlay var(--command-duration-enter) allow-discrete;
   }
 
+  [data-command-overlay][data-state="closed"] {
+    --command-overlay-opacity: 0;
+    opacity: 0;
+    transition:
+      opacity var(--command-duration-exit) var(--command-easing-exit),
+      --command-overlay-opacity var(--command-duration-exit) ease-in,
+      display var(--command-duration-exit) allow-discrete,
+      overlay var(--command-duration-exit) allow-discrete;
+  }
+
+  /* ─── Dialog Animations ─── */
+  /* GPU-composited dialog animation — zero layout thrash */
+  /* Spring easing via linear() approximation */
+
+  [data-command-dialog][data-state="open"] {
+    @starting-style {
+      --command-dialog-scale: var(--command-scale-from);
+      --command-dialog-translate: var(--command-translate-from);
+      opacity: 0;
+      scale: var(--command-scale-from);
+      translate: 0 var(--command-translate-from);
+    }
+    --command-dialog-scale: 1;
+    --command-dialog-translate: 0px;
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+    transition:
+      opacity var(--command-duration-enter) var(--command-spring-easing),
+      scale var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
+      translate var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
+      display var(--command-duration-enter-scale) allow-discrete,
+      overlay var(--command-duration-enter-scale) allow-discrete;
+  }
+
+  /* Exit animation — quicker, no spring overshoot */
+  [data-command-dialog][data-state="closed"] {
+    --command-dialog-scale: var(--command-scale-from);
+    --command-dialog-translate: 4px;
+    opacity: 0;
+    scale: var(--command-scale-from);
+    translate: 0 4px;
+    transition:
+      opacity var(--command-duration-exit) var(--command-easing-exit),
+      scale var(--command-duration-exit) var(--command-easing-exit),
+      translate var(--command-duration-exit) var(--command-easing-exit),
+      display var(--command-duration-exit) allow-discrete,
+      overlay var(--command-duration-exit) allow-discrete;
+  }
+
+  /* ─── Fading Edge Indicators (Scroll-Driven) ─── */
+
+  [data-command-list] {
+    &::before,
+    &::after {
+      content: "";
+      display: block;
+      position: sticky;
+      inset-inline: 0;
+      block-size: var(--command-fade-edge-size);
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity var(--command-duration-exit) ease-out;
+    }
+
+    /* Top fade — visible when scrolled down */
+    &::before {
+      inset-block-start: 0;
+      background: linear-gradient(to bottom, currentColor, transparent);
+      opacity: 0.08;
+      animation: fade-edge-top linear both;
+      animation-timeline: --list-scroll;
+      animation-range: 0px 24px;
+    }
+
+    /* Bottom fade — visible when not scrolled to bottom */
+    &::after {
+      inset-block-end: 0;
+      background: linear-gradient(to top, currentColor, transparent);
+      opacity: 0.08;
+      animation: fade-edge-bottom linear both;
+      animation-timeline: --list-scroll;
+      animation-range: calc(100% - 24px) 100%;
+    }
+  }
+
+  @keyframes fade-edge-top {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 0.08;
+    }
+  }
+
+  @keyframes fade-edge-bottom {
+    from {
+      opacity: 0.08;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  /* ─── Scroll-Driven Progress Indicator ─── */
+
+  [data-command-scroll-indicator] {
+    block-size: 2px;
+    transform-origin: inline-start;
+    scale: 0 1;
+    animation: scroll-progress linear both;
+    animation-timeline: --list-scroll;
+    will-change: scale;
+  }
+
+  @keyframes scroll-progress {
+    from {
+      scale: 0 1;
+    }
+    to {
+      scale: 1 1;
+    }
+  }
+
+  /* ─── Focus Indicators ─── */
+
   [data-command-item]:focus-visible {
-    outline-width: 3px;
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+    border-radius: 4px;
   }
 
   [data-command-input]:focus-visible {
-    outline-width: 3px;
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
   }
 
-  [data-command-separator] {
-    opacity: 0.4;
+  /* ─── Loading ─── */
+
+  [data-command-loading] {
+    animation: command-loading-pulse var(--command-duration-loading) ease-in-out infinite;
+    animation-composition: accumulate;
   }
 
-  [data-command-group-heading] {
-    opacity: 0.8;
+  @keyframes command-loading-pulse {
+    0%,
+    100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 
-  [data-command-highlight] {
-    background: oklch(0.85 0.2 90 / 0.5);
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
+  /* ─── Page Transitions ─── */
+
+  [data-command-page] {
+    animation: page-enter var(--command-duration-page) ease-out;
+  }
+
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      translate: var(--command-translate-from) 0;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
   }
 }
 
 /* ═══════════════════════════════════════════════════════════ */
-/* ─── Accessibility: Windows High Contrast (forced-colors) ─── */
+/* ─── Accessibility Layer ─── */
 /* ═══════════════════════════════════════════════════════════ */
 
-@media (forced-colors: active) {
-  [data-command-item][data-active] {
-    background-color: Highlight;
-    color: HighlightText;
-    forced-color-adjust: none;
+@layer command.a11y {
+  /* ─── Reduced Motion ─── */
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms;
+      animation-iteration-count: 1;
+      transition-duration: 0.01ms;
+      scroll-behavior: auto;
+    }
+
+    [data-command-dialog],
+    [data-command-overlay] {
+      &[data-state="open"],
+      &[data-state="closed"] {
+        transition: none;
+      }
+    }
   }
 
-  [data-command-item]:focus-visible {
-    outline-color: ButtonText;
-    outline-style: solid;
+  /* ─── High Contrast ─── */
+
+  @media (prefers-contrast: more) {
+    [data-command-item] {
+      &[data-active] {
+        outline: 3px solid currentColor;
+        outline-offset: -3px;
+      }
+
+      &:focus-visible {
+        outline-width: 3px;
+      }
+    }
+
+    [data-command-input]:focus-visible {
+      outline-width: 3px;
+    }
+
+    [data-command-separator] {
+      opacity: 0.4;
+    }
+
+    [data-command-group-heading] {
+      opacity: 0.8;
+    }
+
+    [data-command-highlight] {
+      background: oklch(0.85 0.2 90 / 0.5);
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+    }
   }
 
-  [data-command-overlay] {
-    background-color: Canvas;
-    opacity: 0.8;
-  }
+  /* ─── Windows High Contrast (forced-colors) ─── */
 
-  [data-command-dialog-content] {
-    border: 2px solid ButtonText;
-    background-color: Canvas;
-  }
+  @media (forced-colors: active) {
+    [data-command-item] {
+      &[data-active] {
+        background-color: Highlight;
+        color: HighlightText;
+        forced-color-adjust: none;
+      }
 
-  [data-command-input] {
-    border-block-end: 1px solid ButtonText;
-  }
+      &:focus-visible {
+        outline-color: ButtonText;
+        outline-style: solid;
+      }
 
-  [data-command-separator] {
-    background: ButtonText;
-    opacity: 1;
-  }
+      &[data-disabled] {
+        color: GrayText;
+        opacity: 1;
+      }
+    }
 
-  [data-command-highlight] {
-    background: transparent;
-    color: LinkText;
-    text-decoration: underline;
-  }
+    [data-command-overlay] {
+      background-color: Canvas;
+      opacity: 0.8;
+    }
 
-  [data-command-group-heading] {
-    color: GrayText;
-    opacity: 1;
-  }
+    [data-command-dialog-content] {
+      border: 2px solid ButtonText;
+      background-color: Canvas;
+    }
 
-  [data-command-item][data-disabled] {
-    color: GrayText;
-    opacity: 1;
+    [data-command-input] {
+      border-block-end: 1px solid ButtonText;
+    }
+
+    [data-command-separator] {
+      background: ButtonText;
+      opacity: 1;
+    }
+
+    [data-command-highlight] {
+      background: transparent;
+      color: LinkText;
+      text-decoration: underline;
+    }
+
+    [data-command-group-heading] {
+      color: GrayText;
+      opacity: 1;
+    }
   }
 }

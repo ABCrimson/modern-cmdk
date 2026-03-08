@@ -2,6 +2,8 @@
 
 // packages/command-react/src/item.tsx
 // <Command.Item> — ref as prop (no forwardRef), useId for ARIA
+// React 19: use() for context
+// Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use, useCallback } from 'react';
@@ -41,16 +43,16 @@ export function CommandItem({
     forceId,
   });
 
-  const isActive = ctx.state.activeId === id;
-  const isFiltered = ctx.state.filteredIds.includes(id);
+  const isActive: boolean = ctx.state.activeId === id;
+  const isFiltered: boolean = ctx.state.filteredIds.includes(id);
 
-  const handleSelect = useCallback(() => {
+  const handleSelect = useCallback((): void => {
     if (!disabled) {
       ctx.machine.send({ type: 'ITEM_SELECT', id });
     }
   }, [ctx.machine, id, disabled]);
 
-  const handlePointerMove = useCallback(() => {
+  const handlePointerMove = useCallback((): void => {
     if (!disabled && ctx.state.activeId !== id) {
       ctx.setOptimisticActiveId(id);
       ctx.machine.send({ type: 'ITEM_ACTIVATE', id });

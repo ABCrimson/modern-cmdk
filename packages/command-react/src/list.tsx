@@ -3,8 +3,11 @@
 // packages/command-react/src/list.tsx
 // <Command.List> — auto-virtualization when filteredCount > 100, ResizeObserver for height
 // GPU-composited scroll container, aria-live announcements, scroll-to-active on keyboard nav
+// React 19: use() for context, ref as prop (no forwardRef)
+// ES2026: Iterator Helpers for virtual item mapping
+// Isolated declarations: explicit return types on all exports
 
-import type { ComponentPropsWithRef, ReactNode } from 'react';
+import type { ComponentPropsWithRef, CSSProperties, ReactNode, RefObject } from 'react';
 import { use, useCallback, useEffect, useRef, useState } from 'react';
 import { CommandContext } from './context.js';
 import { useVirtualizer } from './hooks/use-virtualizer.js';
@@ -37,21 +40,23 @@ export function CommandList({
   const [height, setHeight] = useState<number>(0);
 
   // Auto-virtualize when filteredCount > 100 (cmdk threshold)
-  const shouldVirtualize = virtualize ?? ctx.state.filteredCount > 100;
+  const shouldVirtualize: boolean = virtualize ?? ctx.state.filteredCount > 100;
 
   // ResizeObserver for --command-list-height CSS custom property
   useEffect(() => {
     const element = innerRef.current;
     if (!element) return;
 
-    const observer = new ResizeObserver((entries) => {
+    const observer = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
       // Single observed element — take the last entry's height
       const lastEntry = entries.at(-1);
       if (lastEntry) setHeight(lastEntry.contentRect.height);
     });
 
     observer.observe(element);
-    return () => observer.disconnect();
+    return (): void => {
+      observer.disconnect();
+    };
   }, []);
 
   // Virtualizer — only active when shouldVirtualize is true
@@ -64,7 +69,7 @@ export function CommandList({
   });
 
   // Scroll-to-active on keyboard navigation
-  const prevActiveId = useRef(ctx.state.activeId);
+  const prevActiveId = useRef<string | null>(ctx.state.activeId);
   useEffect(() => {
     if (ctx.state.activeId && ctx.state.activeId !== prevActiveId.current) {
       prevActiveId.current = ctx.state.activeId;
@@ -84,15 +89,14 @@ export function CommandList({
   const mergedStyle = {
     ...style,
     '--command-list-height': `${height.toFixed(1)}px`,
-    // will-change: height is set in styles.css — no need to duplicate inline
-  } as React.CSSProperties;
+  } satisfies CSSProperties as CSSProperties;
 
-  // Ref merge callback
+  // Ref merge callback — combines internal scrollRef with external ref prop
   const setScrollRef = useCallback(
-    (el: HTMLDivElement | null) => {
-      (scrollRef as React.RefObject<HTMLDivElement | null>).current = el;
+    (el: HTMLDivElement | null): void => {
+      (scrollRef as RefObject<HTMLDivElement | null>).current = el;
       if (typeof ref === 'function') ref(el);
-      else if (ref) (ref as React.RefObject<HTMLDivElement | null>).current = el;
+      else if (ref) (ref as RefObject<HTMLDivElement | null>).current = el;
     },
     [ref],
   );

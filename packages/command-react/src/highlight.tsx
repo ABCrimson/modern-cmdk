@@ -2,8 +2,11 @@
 
 // packages/command-react/src/highlight.tsx
 // <Command.Highlight> — renders search query match highlighting
+// ES2026: Iterator Helpers (.map, .flatMap, .toArray) for range processing
+// Isolated declarations: explicit return types on all exports
 
 import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 
 export interface CommandHighlightProps {
   /** The full text to display */
@@ -19,37 +22,42 @@ export function CommandHighlight({
   ranges,
   highlightClassName,
 }: CommandHighlightProps): ReactNode {
-  if (ranges.length === 0) {
-    return <>{text}</>;
-  }
+  // Memoize the highlighted parts to avoid recomputation on parent re-renders
+  const parts: ReactNode = useMemo(() => {
+    if (ranges.length === 0) return text;
 
-  // Sort ranges by start position
-  const sorted = [...ranges].sort((a, b) => a[0] - b[0]);
-  const parts: ReactNode[] = [];
-  let lastEnd = 0;
+    // Sort ranges by start position using Iterator Helpers
+    const sorted = Iterator.from(ranges)
+      .toArray()
+      .sort((a, b) => a[0] - b[0]);
 
-  for (let i = 0; i < sorted.length; i++) {
-    const [start, end] = sorted[i]!;
+    const segments: ReactNode[] = [];
+    let lastEnd = 0;
 
-    // Text before the match
-    if (start > lastEnd) {
-      parts.push(text.slice(lastEnd, start));
+    // Build segments from sorted ranges using Iterator Helpers
+    Iterator.from(sorted).forEach(([start, end], i) => {
+      // Text before the match
+      if (start > lastEnd) {
+        segments.push(text.slice(lastEnd, start));
+      }
+
+      // Highlighted match
+      segments.push(
+        <mark key={i} data-command-highlight="" className={highlightClassName}>
+          {text.slice(start, end)}
+        </mark>,
+      );
+
+      lastEnd = end;
+    });
+
+    // Remaining text after last match
+    if (lastEnd < text.length) {
+      segments.push(text.slice(lastEnd));
     }
 
-    // Highlighted match
-    parts.push(
-      <mark key={i} data-command-highlight="" className={highlightClassName}>
-        {text.slice(start, end)}
-      </mark>,
-    );
+    return <>{segments}</>;
+  }, [text, ranges, highlightClassName]);
 
-    lastEnd = end;
-  }
-
-  // Remaining text after last match
-  if (lastEnd < text.length) {
-    parts.push(text.slice(lastEnd));
-  }
-
-  return <>{parts}</>;
+  return parts;
 }

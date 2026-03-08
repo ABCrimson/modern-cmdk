@@ -2,14 +2,19 @@
 
 // packages/command-react/src/page.tsx
 // <Command.Page> — page stack management, View Transitions API
+// React 19: use() for context
+// Isolated declarations: explicit return types on all exports
 
 import type { ReactNode } from 'react';
 import { use } from 'react';
 import { CommandContext } from './context.js';
 
+/** Branded page identifier */
+export type CommandPageId = string & { readonly __brand: 'CommandPageId' };
+
 export interface CommandPageProps {
   /** Page identifier */
-  readonly id: string;
+  readonly id: CommandPageId | string;
   readonly children?: ReactNode;
 }
 

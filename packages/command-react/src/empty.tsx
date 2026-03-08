@@ -2,6 +2,8 @@
 
 // packages/command-react/src/empty.tsx
 // <Command.Empty> — role="status", aria-live="polite"
+// React 19: use() for context, ref as prop
+// Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use } from 'react';

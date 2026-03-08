@@ -2,6 +2,8 @@
 
 // packages/command-react/src/async-items.tsx
 // <Command.AsyncItems> — use() hook for resolving async item sources with Suspense
+// React 19: use() for both context and promise resolution
+// Isolated declarations: explicit return types on all exports
 
 import type { CommandItem } from '@crimson_dev/command';
 import type { ReactNode } from 'react';
@@ -17,12 +19,13 @@ export interface CommandAsyncItemsProps {
   readonly children: (items: readonly CommandItem[]) => ReactNode;
 }
 
+/** Inner component that suspends via use() until items resolve */
 function AsyncItemsInner({
   items: itemsPromise,
   children,
 }: {
-  items: Promise<readonly CommandItem[]>;
-  children: (items: readonly CommandItem[]) => ReactNode;
+  readonly items: Promise<readonly CommandItem[]>;
+  readonly children: (items: readonly CommandItem[]) => ReactNode;
 }): ReactNode {
   const ctx = use(CommandContext);
   if (!ctx) {
@@ -30,7 +33,7 @@ function AsyncItemsInner({
   }
 
   // React 19 use() — suspends until items resolve
-  const items = use(itemsPromise);
+  const items: readonly CommandItem[] = use(itemsPromise);
 
   // Register loaded items with the machine
   useEffect(() => {

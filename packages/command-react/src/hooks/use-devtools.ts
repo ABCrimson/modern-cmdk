@@ -1,5 +1,9 @@
 'use client';
 
+// packages/command-react/src/hooks/use-devtools.ts
+// Development-only devtools bridge — tree-shaken in production
+// Isolated declarations: explicit return types on all exports
+
 import { use, useEffect, useRef } from 'react';
 import { CommandContext } from '../context.js';
 
@@ -16,7 +20,11 @@ interface DevtoolsState {
   readonly loading: boolean;
 }
 
-const DEVTOOLS_KEY = '__CRIMSON_COMMAND_DEVTOOLS__';
+/** Branded key for the global devtools instance map */
+const DEVTOOLS_KEY = '__CRIMSON_COMMAND_DEVTOOLS__' as const;
+
+/** Type-safe global devtools registry */
+type DevtoolsRegistry = Map<string, DevtoolsState>;
 
 /**
  * Exposes command palette internals to browser devtools.
@@ -33,9 +41,12 @@ const DEVTOOLS_KEY = '__CRIMSON_COMMAND_DEVTOOLS__';
 export function useCommandDevtools(label = 'default'): void {
   if (!__DEV__) return;
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- __DEV__ is compile-time constant
   const ctx = use(CommandContext);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const stateRef = useRef<DevtoolsState | null>(null);
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (!ctx) return;
 
@@ -50,13 +61,15 @@ export function useCommandDevtools(label = 'default'): void {
         pageStack: s.pageStack,
         open: s.open,
         loading: s.loading,
-      };
+      } satisfies DevtoolsState;
       stateRef.current = devState;
 
-      const instances = ((globalThis as Record<string, unknown>)[DEVTOOLS_KEY] ??= new Map<
+      // Use Map.groupBy-style registry via global singleton
+      const globals = globalThis as Record<string, unknown>;
+      const instances: DevtoolsRegistry = (globals[DEVTOOLS_KEY] ??= new Map<
         string,
         DevtoolsState
-      >()) as Map<string, DevtoolsState>;
+      >()) as DevtoolsRegistry;
       instances.set(label, devState);
 
       globalThis.dispatchEvent?.(
@@ -67,10 +80,10 @@ export function useCommandDevtools(label = 'default'): void {
     const unsub = ctx.machine.subscribe(update);
     update();
 
-    return () => {
+    return (): void => {
       unsub();
       const instances = (globalThis as Record<string, unknown>)[DEVTOOLS_KEY] as
-        | Map<string, DevtoolsState>
+        | DevtoolsRegistry
         | undefined;
       instances?.delete(label);
     };

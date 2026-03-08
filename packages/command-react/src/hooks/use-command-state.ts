@@ -2,6 +2,7 @@
 
 // packages/command-react/src/hooks/use-command-state.ts
 // Derived state selectors — React Compiler auto-memoizes
+// Isolated declarations: explicit return types on all exports
 
 import type { CommandState } from '@crimson_dev/command';
 import { use } from 'react';

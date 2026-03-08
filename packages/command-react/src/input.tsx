@@ -2,6 +2,8 @@
 
 // packages/command-react/src/input.tsx
 // <Command.Input> — stable callbacks, ARIA combobox role
+// React 19: use() for context, ref as prop (no forwardRef)
+// Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use, useCallback } from 'react';
@@ -24,8 +26,8 @@ export function CommandInput({
   }
 
   const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value;
+    (event: React.ChangeEvent<HTMLInputElement>): void => {
+      const { value } = event.target;
       ctx.updateSearch(value);
       onValueChange?.(value);
     },
