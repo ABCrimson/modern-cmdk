@@ -1,6 +1,7 @@
 // Opt-in telemetry hooks for enterprise observability
 // Measures: open->select latency, search->result time, command usage frequency
 // Zero overhead when not configured — all hooks are optional
+// ES2026: Temporal.Now.instant() for all time measurements
 
 export interface CommandTelemetryHooks {
   /** Called when the command palette opens */
@@ -16,12 +17,14 @@ export interface CommandTelemetryHooks {
 export interface TelemetryMiddleware {
   readonly onOpen: () => void;
   readonly onClose: () => void;
-  readonly onSearch: (query: string, resultCount: number, startTime: number) => void;
+  readonly onSearch: (query: string, resultCount: number, startTime: Temporal.Instant) => void;
   readonly onSelect: (itemId: string, query: string, position: number) => void;
 }
 
 /**
  * Creates a telemetry middleware that measures command palette interactions.
+ * Uses Temporal.Now.instant() (ES2026) for nanosecond-precision timestamps
+ * and Temporal.Instant.since() for accurate duration computation.
  *
  * @example
  * ```ts
@@ -32,23 +35,25 @@ export interface TelemetryMiddleware {
  * ```
  */
 export function createTelemetryMiddleware(hooks: CommandTelemetryHooks): TelemetryMiddleware {
-  let openTimestamp: number | null = null;
+  let openTimestamp: Temporal.Instant | null = null;
 
   return {
     onOpen(): void {
-      openTimestamp = performance.now();
+      openTimestamp = Temporal.Now.instant();
       hooks.onPaletteOpen?.();
     },
 
     onClose(): void {
       if (openTimestamp != null) {
-        hooks.onPaletteClose?.(performance.now() - openTimestamp);
+        const elapsed = Temporal.Now.instant().since(openTimestamp);
+        hooks.onPaletteClose?.(elapsed.total('milliseconds'));
         openTimestamp = null;
       }
     },
 
-    onSearch(query: string, resultCount: number, startTime: number): void {
-      hooks.onSearchComplete?.(query, resultCount, performance.now() - startTime);
+    onSearch(query: string, resultCount: number, startTime: Temporal.Instant): void {
+      const elapsed = Temporal.Now.instant().since(startTime);
+      hooks.onSearchComplete?.(query, resultCount, elapsed.total('milliseconds'));
     },
 
     onSelect(itemId: string, query: string, position: number): void {

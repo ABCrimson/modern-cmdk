@@ -18,7 +18,7 @@ interface ShortcutBinding {
 /**
  * Manages keyboard shortcut bindings with global keydown listening.
  * Supports `using` for automatic cleanup of both individual bindings and the
- * global document listener. Detects conflicts via Object.groupBy.
+ * global document listener. Detects conflicts via Map.groupBy (ES2026).
  */
 export class KeyboardShortcutRegistry implements Disposable {
   #bindings = new Map<string, ShortcutBinding>();
@@ -53,16 +53,15 @@ export class KeyboardShortcutRegistry implements Disposable {
     this.#bindings.delete(shortcut.normalized);
   }
 
-  /** Unregister all shortcuts for a given item — Iterator Helpers pipeline */
+  /** Unregister all shortcuts for a given item — for...of with deferred delete (avoids mutation during iteration) */
   unregisterByItem(itemId: ItemId): void {
     // Two-pass: collect keys to delete, then delete (avoids mutation during iteration)
-    const keysToDelete = this.#bindings
-      .entries()
-      .filter(([, binding]) => binding.itemId === itemId)
-      .map(([key]) => key)
-      .toArray();
+    const keysToDelete: string[] = [];
+    for (const [key, binding] of this.#bindings) {
+      if (binding.itemId === itemId) keysToDelete.push(key);
+    }
 
-    keysToDelete.forEach((key) => this.#bindings.delete(key));
+    for (const key of keysToDelete) this.#bindings.delete(key);
   }
 
   /** Check for conflicting shortcuts */
@@ -90,15 +89,14 @@ export class KeyboardShortcutRegistry implements Disposable {
     this.#globalListener = (event: KeyboardEvent): void => {
       if (!this.#enabled) return;
 
-      // Iterator Helpers .find() — short-circuits on first match
-      const matched = this.#bindings
-        .values()
-        .find((binding) => matchesShortcut(event, binding.shortcut));
-
-      if (matched) {
-        event.preventDefault();
-        event.stopPropagation();
-        matched.handler();
+      // for...of — hot keydown path, short-circuits on first match (no closure overhead)
+      for (const binding of this.#bindings.values()) {
+        if (matchesShortcut(event, binding.shortcut)) {
+          event.preventDefault();
+          event.stopPropagation();
+          binding.handler();
+          return;
+        }
       }
     };
 

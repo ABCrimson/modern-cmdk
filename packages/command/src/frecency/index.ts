@@ -110,13 +110,13 @@ export class FrecencyEngine implements Disposable {
     return computeFrecencyBonus(record, now, this.#config);
   }
 
-  /** Get all frecency bonuses as a map — Iterator Helpers pipeline (ES2026) */
+  /** Get all frecency bonuses as a map — for...of for hot ranking path (no closure overhead) */
   getAllBonuses(now: Temporal.Instant = Temporal.Now.instant()): ReadonlyMap<ItemId, number> {
-    return new Map(
-      this.#data.records
-        .entries()
-        .map(([id, record]) => [id, computeFrecencyBonus(record, now, this.#config)] as const),
-    );
+    const bonuses = new Map<ItemId, number>();
+    for (const [id, record] of this.#data.records) {
+      bonuses.set(id, computeFrecencyBonus(record, now, this.#config));
+    }
+    return bonuses;
   }
 
   /** Get the decay configuration */

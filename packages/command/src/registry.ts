@@ -30,20 +30,20 @@ export class CommandRegistry implements Disposable {
     };
   }
 
-  /** Register multiple items at once — single Disposable for batch cleanup */
+  /** Register multiple items at once — single Disposable for batch cleanup. for...of for hot path. */
   registerItems(items: readonly CommandItem[]): Disposable {
-    items.values().forEach((item) => {
+    for (const item of items) {
       this.#items.set(item.id, item);
       if (!this.#itemOrderSet.has(item.id)) {
         this.#itemOrder.push(item.id);
         this.#itemOrderSet.add(item.id);
       }
-    });
+    }
 
     const ids = new Set(items.values().map((i) => i.id));
     return {
       [Symbol.dispose]: (): void => {
-        ids.values().forEach((id) => this.unregisterItem(id));
+        for (const id of ids) this.unregisterItem(id);
       },
     };
   }
@@ -57,11 +57,11 @@ export class CommandRegistry implements Disposable {
     this.#itemOrder = this.#itemOrder.filter((orderId) => orderId !== id);
   }
 
-  /** Bulk unregister using Set.difference (ES2026) */
+  /** Bulk unregister using Set.difference (ES2026) — for...of for hot path */
   unregisterItems(ids: ReadonlySet<ItemId>): void {
-    ids.values().forEach((id) => {
+    for (const id of ids) {
       this.#items.delete(id);
-    });
+    }
     // Rebuild order using Set.difference for remaining IDs
     this.#itemOrderSet = this.#itemOrderSet.difference(ids);
     this.#itemOrder = this.#itemOrder.filter((id) => !ids.has(id));
@@ -109,22 +109,24 @@ export class CommandRegistry implements Disposable {
       .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
   }
 
-  /** Get items grouped by groupId using Object.groupBy (ES2026) + Iterator Helpers */
+  /** Get items grouped by groupId using Map.groupBy (ES2026) — direct Map, no Object.entries conversion */
   getGroupedItems(): ReadonlyMap<GroupId, readonly CommandItem[]> {
     const items = this.getItems();
-    const grouped = Object.groupBy(items, (item) => item.groupId ?? ('__ungrouped' as GroupId));
+    // Map.groupBy (ES2026) — returns Map<GroupId, CommandItem[]> directly
+    const grouped = Map.groupBy(items, (item) => item.groupId ?? ('__ungrouped' as GroupId));
+
+    // Build result in group priority order, then append ungrouped
     const result = new Map<GroupId, readonly CommandItem[]>();
 
-    // Populate groups using Iterator Helpers pipeline
-    this.getGroups()
-      .values()
-      .filter((group) => (grouped as Record<string, CommandItem[]>)[group.id as string] != null)
-      .forEach((group) => {
-        result.set(group.id, (grouped as Record<string, CommandItem[]>)[group.id as string]!);
-      });
+    for (const group of this.getGroups()) {
+      const groupItems = grouped.get(group.id);
+      if (groupItems != null) {
+        result.set(group.id, groupItems);
+      }
+    }
 
     // Add ungrouped items
-    const ungrouped = (grouped as Record<string, CommandItem[]>)['__ungrouped'];
+    const ungrouped = grouped.get('__ungrouped' as GroupId);
     if (ungrouped) {
       result.set('__ungrouped' as GroupId, ungrouped);
     }
@@ -150,6 +152,26 @@ export class CommandRegistry implements Disposable {
   /** Union of registered IDs with another set (ES2026 Set.union) */
   unionWith(otherIds: ReadonlySet<ItemId>): ReadonlySet<ItemId> {
     return this.#itemOrderSet.union(otherIds);
+  }
+
+  /** Check if registered items are a subset of the given set (ES2026 Set.isSubsetOf) */
+  isSubsetOf(otherIds: ReadonlySet<ItemId>): boolean {
+    return this.#itemOrderSet.isSubsetOf(otherIds);
+  }
+
+  /** Check if registered items are a superset of the given set (ES2026 Set.isSupersetOf) */
+  isSupersetOf(otherIds: ReadonlySet<ItemId>): boolean {
+    return this.#itemOrderSet.isSupersetOf(otherIds);
+  }
+
+  /** Check if registered items share no IDs with the given set (ES2026 Set.isDisjointFrom) */
+  isDisjointFrom(otherIds: ReadonlySet<ItemId>): boolean {
+    return this.#itemOrderSet.isDisjointFrom(otherIds);
+  }
+
+  /** Symmetric difference between registered IDs and another set (ES2026 Set.symmetricDifference) */
+  symmetricDifferenceWith(otherIds: ReadonlySet<ItemId>): ReadonlySet<ItemId> {
+    return this.#itemOrderSet.symmetricDifference(otherIds);
   }
 
   /** Total number of registered items */

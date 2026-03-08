@@ -1,6 +1,7 @@
 // packages/command/src/search/index.ts
 // Search engine factory with pluggable scorer — Iterator Helpers (ES2026) for result pipelines
 // Incremental filtering: query-append optimization using Set.difference for candidate pruning
+// Performance: for...of in hot search paths, WeakRef/FinalizationRegistry for leak detection
 
 import type { CommandItem, ItemId } from '../types.js';
 import { scoreItem } from './default-scorer.js';
@@ -25,6 +26,7 @@ interface SearchEngineOptions {
  * Creates a search engine with pluggable scorer and incremental filtering.
  * When the query extends the previous one, only prior matches are re-scored.
  * Uses Iterator Helpers (ES2026) for result pipelines and Set.difference for pruning.
+ * Hot paths use for...of to avoid closure allocation overhead.
  */
 export function createSearchEngine(options?: SearchEngineOptions): SearchEngine {
   const scorer: ScorerFn = options?.scorer ?? scoreItem;
@@ -40,15 +42,16 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
 
   return {
     index(items: readonly CommandItem[]): void {
-      items.values().forEach((item) => {
+      // for...of — hot registration path, avoid closure overhead
+      for (const item of items) {
         indexedItems.set(item.id, item);
-      });
+      }
     },
 
     search(query: string, items: readonly CommandItem[]): IteratorObject<SearchResult> {
       if (query === '') {
         previousQuery = '';
-        previousResults = new Set(items.map((i) => i.id));
+        previousResults = new Set(items.values().map((i) => i.id));
         // Return all items with score 1, in order — Iterator Helper pipeline
         return items.values().map((item) => ({
           id: item.id,
@@ -63,17 +66,17 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
         ? items.filter((item) => previousResults.has(item.id))
         : items;
 
-      // Score candidates using Iterator Helpers pipeline (ES2026)
-      const results = candidateItems
-        .values()
-        .map((item) => scorer(query, item))
-        .filter((result): result is SearchResult => result != null)
-        .toArray()
-        .sort((a, b) => b.score - a.score);
+      // Score candidates — for...of with manual push for hot path (no closure overhead)
+      const results: SearchResult[] = [];
+      for (const item of candidateItems) {
+        const result = scorer(query, item);
+        if (result != null) results.push(result);
+      }
+      results.sort((a, b) => b.score - a.score);
 
       // Update tracking for incremental filtering
       previousQuery = query;
-      previousResults = new Set(results.map((r) => r.id));
+      previousResults = new Set(results.values().map((r) => r.id));
 
       // Return sorted results as an iterator
       return results.values();

@@ -48,7 +48,8 @@ export function createScheduler(): Scheduler {
       return;
     }
 
-    batch.values().forEach((update) => update());
+    // for...of — hot batch execution path, no closure overhead
+    for (const update of batch) update();
   }
 
   function flush(): Promise<void> {

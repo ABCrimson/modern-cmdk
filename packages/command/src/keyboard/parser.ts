@@ -36,13 +36,17 @@ const MODIFIER_MAP: Readonly<
 /**
  * Parse a shortcut string like "Mod+Shift+K" into a structured ParsedShortcut.
  * Uses RegExp.escape (ES2026) for safe pattern construction from user-provided strings.
+ * Uses String.isWellFormed() (ES2026) to ensure valid Unicode input.
  */
 export function parseShortcut(shortcut: string): ParsedShortcut {
+  // String.isWellFormed() (ES2026) — validate Unicode before processing
+  const safeShortcut = shortcut.isWellFormed() ? shortcut : shortcut.toWellFormed();
+
   // RegExp.escape (ES2026) — safely create a pattern to validate the shortcut string
-  const _safePattern = new RegExp(`^${RegExp.escape(shortcut)}$`);
+  const _safePattern = new RegExp(`^${RegExp.escape(safeShortcut)}$`);
 
   // Split on "+" delimiter — direct split, no need to escape "+" since we're not doing regex matching here
-  const parts = shortcut.split('+').map((p) => p.trim().toLowerCase());
+  const parts = safeShortcut.split('+').map((p) => p.trim().toLowerCase());
 
   let meta = false;
   let ctrl = false;
@@ -86,7 +90,7 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
     ctrl,
     shift,
     alt,
-    raw: shortcut,
+    raw: safeShortcut,
     normalized: modifiers.join('+'),
   };
 }

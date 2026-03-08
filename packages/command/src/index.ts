@@ -6,6 +6,7 @@ export { computeFrecencyBonus, FrecencyEngine } from './frecency/index.js';
 export { MemoryFrecencyStorage } from './frecency/memory-storage.js';
 export { KeyboardShortcutRegistry } from './keyboard/index.js';
 export { detectConflicts, findMatchingShortcut, matchesShortcut } from './keyboard/matcher.js';
+export type { ParsedShortcut } from './keyboard/parser.js';
 export { formatShortcut, parseShortcut } from './keyboard/parser.js';
 export type { CommandMachine } from './machine.js';
 export { createCommandMachine } from './machine.js';
@@ -38,4 +39,5 @@ export {
   itemId,
 } from './types.js';
 export { TypedEmitter } from './utils/event-emitter.js';
+export type { Scheduler } from './utils/scheduler.js';
 export { createScheduler } from './utils/scheduler.js';

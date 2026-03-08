@@ -20,14 +20,14 @@ export type ItemId = string & { readonly __brand: unique symbol };
  */
 export type GroupId = string & { readonly __brand: unique symbol };
 
-/** Create a branded {@link ItemId} from a plain string. */
+/** Create a branded {@link ItemId} from a plain string. Ensures well-formed Unicode (ES2026). */
 export function itemId(id: string): ItemId {
-  return id as ItemId;
+  return (id.isWellFormed() ? id : id.toWellFormed()) as ItemId;
 }
 
-/** Create a branded {@link GroupId} from a plain string. */
+/** Create a branded {@link GroupId} from a plain string. Ensures well-formed Unicode (ES2026). */
 export function groupId(id: string): GroupId {
-  return id as GroupId;
+  return (id.isWellFormed() ? id : id.toWellFormed()) as GroupId;
 }
 
 /**

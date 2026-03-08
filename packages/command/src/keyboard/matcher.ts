@@ -1,5 +1,5 @@
 // packages/command/src/keyboard/matcher.ts
-// KeyboardEvent → Shortcut matcher — Object.groupBy for modifier grouping
+// KeyboardEvent → Shortcut matcher — Map.groupBy (ES2026) for conflict detection
 
 import type { ParsedShortcut } from './parser.js';
 
@@ -29,19 +29,17 @@ export function findMatchingShortcut(
 
 /**
  * Detects conflicting shortcut bindings by grouping on their normalized form
- * via Object.groupBy. Returns only groups with two or more colliding shortcuts.
+ * via Map.groupBy (ES2026). Returns only groups with two or more colliding shortcuts.
+ * Map.groupBy returns a Map directly — no Object.entries conversion needed.
  */
 export function detectConflicts(
   shortcuts: readonly ParsedShortcut[],
 ): ReadonlyMap<string, readonly ParsedShortcut[]> {
-  const grouped = Object.groupBy(shortcuts, (s) => s.normalized);
+  // Map.groupBy (ES2026) — returns Map<string, ParsedShortcut[]> directly
+  const grouped = Map.groupBy(shortcuts, (s) => s.normalized);
 
-  // Iterator Helpers pipeline — filter to only conflicting groups
+  // Iterator Helpers pipeline — filter to only conflicting groups (2+ collisions)
   return new Map(
-    Object.entries(grouped)
-      .values()
-      .filter(
-        (entry): entry is [string, ParsedShortcut[]] => entry[1] != null && entry[1].length > 1,
-      ),
+    grouped.entries().filter((entry): entry is [string, ParsedShortcut[]] => entry[1].length > 1),
   );
 }

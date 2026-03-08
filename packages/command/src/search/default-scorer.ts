@@ -1,5 +1,5 @@
 // packages/command/src/search/default-scorer.ts
-// Uses: Math.sumPrecise (ES2026), Iterator Helpers, toLocaleLowerCase
+// Uses: Math.sumPrecise (ES2026), for...of on hot paths, String.isWellFormed() for input validation
 
 import type { CommandItem } from '../types.js';
 import type { SearchResult } from './types.js';
@@ -8,27 +8,29 @@ import type { SearchResult } from './types.js';
  * Scores a command item against a search query using multi-strategy matching:
  * exact, prefix, substring, word-boundary, and fuzzy. Returns null if no match.
  * Uses Math.sumPrecise (ES2026) for floating-point-safe score aggregation.
+ * Hot paths use for...of to minimize closure allocation overhead.
  */
 export function scoreItem(query: string, item: CommandItem): SearchResult | null {
   if (query === '') {
     return { id: item.id, score: 1, matches: [] };
   }
 
-  const lowerQuery = query.toLocaleLowerCase();
+  // Ensure well-formed Unicode for safe comparison (ES2026)
+  const lowerQuery = (query.isWellFormed() ? query : query.toWellFormed()).toLocaleLowerCase();
   const targets = [item.value, ...(item.keywords ?? [])];
 
-  // Score each target and pick the best match — single-pass reduction avoids
-  // materializing an intermediate array and extra Math.max + find passes
+  // Score each target and pick the best match — for...of (no closure overhead)
+  // Single-pass reduction avoids materializing an intermediate array
   let bestResult: { score: number; matches: Array<readonly [number, number]> } | null = null;
 
-  targets.values().forEach((target) => {
+  for (const target of targets) {
     const result = scoreTarget(lowerQuery, target.toLocaleLowerCase());
     if (result != null && (bestResult == null || result.score > bestResult.score)) {
       bestResult = result;
       // Early termination: perfect score can't be beaten
-      if (result.score >= 1) return;
+      if (result.score >= 1) break;
     }
-  });
+  }
 
   if (!bestResult) return null;
 
@@ -112,11 +114,12 @@ function scoreWordBoundary(
 
   if (queryIdx !== query.length) return null;
 
-  // Score based on how many query chars matched at word boundaries
-  const scores = matches.map(([, end], i) => {
-    const start = matches[i]?.[0] ?? 0;
-    return (end - start) * 2; // Word boundary matches get 2x weight
-  });
+  // Use TypedArray for numeric score data — avoids boxed number allocations
+  const scores = new Float64Array(matches.length);
+  for (let i = 0; i < matches.length; i++) {
+    const [start, end] = matches[i]!;
+    scores[i] = (end - start) * 2; // Word boundary matches get 2x weight
+  }
 
   // Math.sumPrecise (ES2026) — floating-point-safe score aggregation
   const totalScore = Math.sumPrecise(scores);

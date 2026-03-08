@@ -83,18 +83,17 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   if (options.items) {
     registry.registerItems(options.items);
     searchEngine.index(options.items);
-    // Auto-register keyboard shortcuts from items — Iterator Helpers pipeline
-    options.items
-      .values()
-      .filter((item) => item.shortcut != null && item.onSelect != null)
-      .forEach((item) => {
-        keyboardRegistry.register(item.shortcut!, item.id, item.onSelect!);
-      });
+    // Auto-register keyboard shortcuts from items — for...of (no closure overhead on hot path)
+    for (const item of options.items) {
+      if (item.shortcut != null && item.onSelect != null) {
+        keyboardRegistry.register(item.shortcut, item.id, item.onSelect);
+      }
+    }
   }
   if (options.groups) {
-    options.groups.values().forEach((group) => {
+    for (const group of options.groups) {
       registry.registerGroup(group);
-    });
+    }
   }
 
   // Run initial filter
@@ -112,11 +111,11 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     let filteredIds: ItemId[];
 
     if (disableFilter || query === '') {
-      filteredIds = items
-        .values()
-        .filter((i) => !i.disabled)
-        .map((i) => i.id)
-        .toArray();
+      // for...of with push — avoids closure allocation on hot filter path
+      filteredIds = [];
+      for (const i of items) {
+        if (!i.disabled) filteredIds.push(i.id);
+      }
     } else {
       const results: SearchResult[] = searchEngine.search(query, items).toArray();
 
@@ -133,17 +132,11 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       filteredIds = results.map((r) => r.id);
     }
 
-    // Build grouped IDs — Object.groupBy (ES2026) + Iterator Helpers
-    const grouped = Object.groupBy(filteredIds, (id) => {
+    // Build grouped IDs — Map.groupBy (ES2026) for direct Map construction (no Object.entries conversion)
+    const groupedIds = Map.groupBy(filteredIds, (id) => {
       const item = registry.getItem(id);
-      return (item?.groupId ?? '__ungrouped') as string;
+      return (item?.groupId ?? ('__ungrouped' as GroupId)) as GroupId;
     });
-    const groupedIds = new Map<GroupId, ItemId[]>(
-      Object.entries(grouped)
-        .values()
-        .filter(([, ids]) => ids != null)
-        .map(([gid, ids]) => [gid as GroupId, ids!] as const),
-    );
 
     // Select first item if no active or active is no longer visible
     // Use includes() to avoid allocating a Set for a single membership check

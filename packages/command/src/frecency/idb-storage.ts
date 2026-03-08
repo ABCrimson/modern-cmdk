@@ -56,9 +56,10 @@ function deserializeData(serialized: SerializedFrecencyData): FrecencyData {
   };
 }
 
-/** Build the namespaced IDB key */
+/** Build the namespaced IDB key — String.toWellFormed() (ES2026) ensures valid Unicode in key */
 function storageKey(namespace: string): string {
-  return `frecency:${namespace}`;
+  const safeNamespace = namespace.isWellFormed() ? namespace : namespace.toWellFormed();
+  return `frecency:${safeNamespace}`;
 }
 
 /**
