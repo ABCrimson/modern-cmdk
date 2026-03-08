@@ -26,11 +26,18 @@ afterEach(() => {
 
 describe('Virtualization (0.2.2)', () => {
   it('should render all items when count is below threshold', async () => {
-    const items = Array.from({ length: 10 }, (_, i) => (
-      <Command.Item key={i} value={`item-${i}`} forceId={`item-${i}`}>
-        Item {i}
-      </Command.Item>
-    ));
+    // ES2026 Iterator Helpers — generate JSX items via iterator pipeline
+    const items = Iterator.from({
+      [Symbol.iterator]: function* () {
+        for (let i = 0; i < 10; i++) yield i;
+      },
+    })
+      .map((i) => (
+        <Command.Item key={i} value={`item-${i}`} forceId={`item-${i}`}>
+          Item {i}
+        </Command.Item>
+      ))
+      .toArray();
 
     await render(
       <Command>

@@ -3,10 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 describe('memory leak detection', () => {
   it('disposes cleanly without residual listeners after 100 machine lifecycles', () => {
-    const items = Array.from({ length: 1000 }, (_, i) => ({
-      id: itemId(`item-${i}`),
-      value: `Item ${i}`,
-    }));
+    // ES2026 Iterator Helpers — generate items via iterator pipeline
+    const items = Iterator.from({ [Symbol.iterator]: function* () { for (let i = 0; i < 1000; i++) yield i; } })
+      .map((i) => ({
+        id: itemId(`item-${i}`),
+        value: `Item ${i}`,
+      }))
+      .toArray();
 
     for (let i = 0; i < 100; i++) {
       using machine = createCommandMachine({ items });
@@ -20,14 +23,17 @@ describe('memory leak detection', () => {
 
   it('subscription cleanup prevents memory growth', async () => {
     using machine = createCommandMachine();
-    const unsubs: Array<() => void> = [];
+    // ES2026 Iterator Helpers — generate 10K subscriptions via iterator pipeline
+    const unsubs = Iterator.from({
+      [Symbol.iterator]: function* () {
+        for (let i = 0; i < 10_000; i++) yield i;
+      },
+    })
+      .map(() => machine.subscribe(() => {}))
+      .toArray();
 
-    for (let i = 0; i < 10_000; i++) {
-      unsubs.push(machine.subscribe(() => {}));
-    }
-
-    // Unsubscribe all
-    for (const unsub of unsubs) unsub();
+    // Unsubscribe all using forEach
+    unsubs.values().forEach((unsub) => unsub());
 
     // Machine should still be functional
     machine.send({ type: 'SEARCH_CHANGE', query: 'test' });

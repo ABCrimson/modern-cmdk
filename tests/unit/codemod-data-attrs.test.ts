@@ -17,69 +17,35 @@ function run(source: string, parser = 'tsx'): string {
   return transform(fileInfo, createApi(parser));
 }
 
+// ES2026 Object.groupBy — organize test cases by category for data-driven testing
+const attrRenameTests = Object.groupBy(
+  [
+    { attr: 'cmdk-root', expected: 'data-command', category: 'jsx-attr' },
+    { attr: 'cmdk-item', expected: 'data-command-item', category: 'jsx-attr' },
+    { attr: 'cmdk-input', expected: 'data-command-input', category: 'jsx-attr' },
+    { attr: 'cmdk-list', expected: 'data-command-list', category: 'jsx-attr' },
+    { attr: 'cmdk-group', expected: 'data-command-group', category: 'jsx-attr' },
+    { attr: 'cmdk-separator', expected: 'data-command-separator', category: 'jsx-attr' },
+    { attr: 'cmdk-empty', expected: 'data-command-empty', category: 'jsx-attr' },
+    { attr: 'cmdk-loading', expected: 'data-command-loading', category: 'jsx-attr' },
+  ],
+  (t) => t.category,
+);
+
 describe('codemod: data-attrs', () => {
-  it('renames cmdk-root JSX attr to data-command', () => {
-    const input = `const el = <div cmdk-root="" />;`;
-    const output = run(input);
+  // Data-driven JSX attribute renames using Object.groupBy results
+  describe('JSX attribute renames', () => {
+    for (const testCase of attrRenameTests['jsx-attr'] ?? []) {
+      it(`renames ${testCase.attr} to ${testCase.expected}`, () => {
+        const tag = testCase.attr === 'cmdk-input' ? 'input' : 'div';
+        const input = `const el = <${tag} ${testCase.attr}="" />;`;
+        const output = run(input);
 
-    expect(output).toContain('data-command');
-    expect(output).not.toContain('cmdk-root');
-  });
-
-  it('renames cmdk-item JSX attr to data-command-item', () => {
-    const input = `const el = <div cmdk-item="" />;`;
-    const output = run(input);
-
-    expect(output).toContain('data-command-item');
-    expect(output).not.toContain('cmdk-item');
-  });
-
-  it('renames cmdk-input JSX attr to data-command-input', () => {
-    const input = `const el = <input cmdk-input="" />;`;
-    const output = run(input);
-
-    expect(output).toContain('data-command-input');
-    expect(output).not.toContain('cmdk-input');
-  });
-
-  it('renames cmdk-list JSX attr to data-command-list', () => {
-    const input = `const el = <div cmdk-list="" />;`;
-    const output = run(input);
-
-    expect(output).toContain('data-command-list');
-    expect(output).not.toContain('cmdk-list');
-  });
-
-  it('renames cmdk-group JSX attr to data-command-group', () => {
-    const input = `const el = <div cmdk-group="" />;`;
-    const output = run(input);
-
-    expect(output).toContain('data-command-group');
-    expect(output).not.toContain('cmdk-group');
-  });
-
-  it('renames cmdk-separator JSX attr to data-command-separator', () => {
-    const input = `const el = <div cmdk-separator="" />;`;
-    const output = run(input);
-
-    expect(output).toContain('data-command-separator');
-    expect(output).not.toContain('cmdk-separator');
-  });
-
-  it('renames cmdk-empty JSX attr to data-command-empty', () => {
-    const input = `const el = <div cmdk-empty="" />;`;
-    const output = run(input);
-
-    expect(output).toContain('data-command-empty');
-    expect(output).not.toContain('cmdk-empty');
-  });
-
-  it('renames cmdk-loading JSX attr to data-command-loading', () => {
-    const input = `const el = <div cmdk-loading="" />;`;
-    const output = run(input);
-
-    expect(output).toContain('data-command-loading');
-    expect(output).not.toContain('cmdk-loading');
+        // Vitest 4.1 — soft assertions to check both conditions
+        expect.soft(output).toContain(testCase.expected);
+        expect.soft(output).not.toContain(testCase.attr);
+      });
+    }
   });
 
   it('replaces [cmdk-*] in querySelector strings', () => {
@@ -94,10 +60,10 @@ describe('codemod: data-attrs', () => {
     const input = 'const selector = `[cmdk-root] > [cmdk-list]`;';
     const output = run(input);
 
-    expect(output).toContain('[data-command]');
-    expect(output).toContain('[data-command-list]');
-    expect(output).not.toContain('[cmdk-root]');
-    expect(output).not.toContain('[cmdk-list]');
+    expect.soft(output).toContain('[data-command]');
+    expect.soft(output).toContain('[data-command-list]');
+    expect.soft(output).not.toContain('[cmdk-root]');
+    expect.soft(output).not.toContain('[cmdk-list]');
   });
 
   it('replaces --cmdk-list-height CSS variable', () => {
@@ -112,10 +78,10 @@ describe('codemod: data-attrs', () => {
     const input = `const el = <div cmdk-root="" cmdk-item="" />;`;
     const output = run(input);
 
-    expect(output).toContain('data-command');
-    expect(output).toContain('data-command-item');
-    expect(output).not.toContain('cmdk-root');
-    expect(output).not.toContain('cmdk-item');
+    expect.soft(output).toContain('data-command');
+    expect.soft(output).toContain('data-command-item');
+    expect.soft(output).not.toContain('cmdk-root');
+    expect.soft(output).not.toContain('cmdk-item');
   });
 
   it('returns original when no cmdk references exist', () => {

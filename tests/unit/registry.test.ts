@@ -37,7 +37,12 @@ describe('CommandRegistry', () => {
     registry.registerItem(makeItem('b', 'Banana'));
 
     const items = registry.getItems();
-    expect(items.map((i) => i.value)).toEqual(['Cherry', 'Apple', 'Banana']);
+    // ES2026 Iterator Helpers — use .map().toArray() on the items iterator
+    const values = items
+      .values()
+      .map((i) => i.value)
+      .toArray();
+    expect(values).toEqual(['Cherry', 'Apple', 'Banana']);
   });
 
   it('should register items with Disposable pattern', () => {

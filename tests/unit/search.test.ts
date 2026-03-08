@@ -10,8 +10,9 @@ describe('scoreItem', () => {
   it('should return score 1 for empty query', () => {
     const result = scoreItem('', makeItem('Apple'));
     expect(result).not.toBeNull();
-    expect(result?.score).toBe(1);
-    expect(result?.matches).toEqual([]);
+    // Vitest 4.1 — soft assertions for multi-property result checks
+    expect.soft(result?.score).toBe(1);
+    expect.soft(result?.matches).toEqual([]);
   });
 
   it('should return highest score for exact match', () => {
@@ -58,9 +59,10 @@ describe('scoreItem', () => {
   it('should provide match ranges', () => {
     const result = scoreItem('app', makeItem('Apple'));
     expect(result).not.toBeNull();
-    expect(result?.matches.length).toBeGreaterThan(0);
-    expect(result?.matches[0]?.[0]).toBe(0); // Start at 0
-    expect(result?.matches[0]?.[1]).toBe(3); // End at 3
+    // Vitest 4.1 — soft assertions to check all range properties
+    expect.soft(result?.matches.length).toBeGreaterThan(0);
+    expect.soft(result?.matches[0]?.[0]).toBe(0); // Start at 0
+    expect.soft(result?.matches[0]?.[1]).toBe(3); // End at 3
   });
 
   it('should score word boundary matches', () => {

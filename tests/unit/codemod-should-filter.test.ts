@@ -3,6 +3,7 @@ import jscodeshift from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
 import transform from '../../packages/command-codemod/src/transforms/should-filter.js';
 
+// Vitest 4.1 — vi.hoisted() not needed here since helpers are pure functions
 function createApi(parser = 'tsx'): API {
   return {
     jscodeshift: jscodeshift.withParser(parser),
@@ -22,10 +23,11 @@ describe('codemod: should-filter', () => {
     const input = `const el = <Command shouldFilter={true} />;`;
     const output = run(input);
 
-    expect(output).not.toContain('shouldFilter');
+    // Vitest 4.1 — soft assertions to check all conditions
+    expect.soft(output).not.toContain('shouldFilter');
     // The attribute should be removed entirely since true is the default
-    expect(output).not.toContain('filter');
-    expect(output).toContain('<Command');
+    expect.soft(output).not.toContain('filter');
+    expect.soft(output).toContain('<Command');
   });
 
   it('removes bare shouldFilter attribute', () => {
@@ -33,9 +35,9 @@ describe('codemod: should-filter', () => {
     const output = run(input);
 
     // Bare shouldFilter is implicitly true, so it should be removed
-    expect(output).not.toContain('shouldFilter');
-    expect(output).not.toContain('filter');
-    expect(output).toContain('<Command');
+    expect.soft(output).not.toContain('shouldFilter');
+    expect.soft(output).not.toContain('filter');
+    expect.soft(output).toContain('<Command');
   });
 
   it('renames shouldFilter={false} to filter={false}', () => {

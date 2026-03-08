@@ -8,9 +8,10 @@ function uniqueDb(): string {
   return `test-db-${++dbCounter}-${Date.now()}`;
 }
 
+// Vitest 4.1 — test.sequential for IDB tests that rely on global fake-indexeddb state
 describe('IdbFrecencyStorage', () => {
   describe('load', () => {
-    it('should return empty data for a new namespace', async () => {
+    it.sequential('should return empty data for a new namespace', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const data = await storage.load('test-ns');
 
@@ -18,7 +19,7 @@ describe('IdbFrecencyStorage', () => {
       expect(data.records.size).toBe(0);
     });
 
-    it('should return empty data when disposed', async () => {
+    it.sequential('should return empty data when disposed', async () => {
       const storage = new IdbFrecencyStorage(uniqueDb());
       storage[Symbol.dispose]();
 
@@ -28,7 +29,7 @@ describe('IdbFrecencyStorage', () => {
   });
 
   describe('save and load round-trip', () => {
-    it('should persist and reload frecency data', async () => {
+    it.sequential('should persist and reload frecency data', async () => {
       const db = uniqueDb();
       using storage = new IdbFrecencyStorage(db);
       const now = Temporal.Now.instant();
@@ -54,7 +55,7 @@ describe('IdbFrecencyStorage', () => {
       expect(pasteRecord?.frequency).toBe(3);
     });
 
-    it('should handle single-item data', async () => {
+    it.sequential('should handle single-item data', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const instant = Temporal.Instant.fromEpochNanoseconds(1_700_000_000_000_000_000n);
 
@@ -72,7 +73,7 @@ describe('IdbFrecencyStorage', () => {
   });
 
   describe('namespace isolation', () => {
-    it('should isolate data between different namespaces', async () => {
+    it.sequential('should isolate data between different namespaces', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const now = Temporal.Now.instant();
 
@@ -94,18 +95,19 @@ describe('IdbFrecencyStorage', () => {
       const loadedA = await storage.load('app-one');
       const loadedB = await storage.load('app-two');
 
-      expect(loadedA.records.size).toBe(1);
-      expect(loadedA.records.has(itemId('item-a'))).toBe(true);
-      expect(loadedA.records.has(itemId('item-b'))).toBe(false);
+      // Vitest 4.1 — soft assertions to report all isolation failures at once
+      expect.soft(loadedA.records.size).toBe(1);
+      expect.soft(loadedA.records.has(itemId('item-a'))).toBe(true);
+      expect.soft(loadedA.records.has(itemId('item-b'))).toBe(false);
 
-      expect(loadedB.records.size).toBe(1);
-      expect(loadedB.records.has(itemId('item-b'))).toBe(true);
-      expect(loadedB.records.has(itemId('item-a'))).toBe(false);
+      expect.soft(loadedB.records.size).toBe(1);
+      expect.soft(loadedB.records.has(itemId('item-b'))).toBe(true);
+      expect.soft(loadedB.records.has(itemId('item-a'))).toBe(false);
     });
   });
 
   describe('Temporal.Instant serialization', () => {
-    it('should correctly serialize and deserialize via epochNanoseconds', async () => {
+    it.sequential('should correctly serialize and deserialize via epochNanoseconds', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const precise = Temporal.Instant.fromEpochNanoseconds(1_709_251_200_123_456_789n);
 
@@ -123,7 +125,7 @@ describe('IdbFrecencyStorage', () => {
       expect(record?.lastUsed.equals(precise)).toBe(true);
     });
 
-    it('should handle Temporal.Instant at epoch zero', async () => {
+    it.sequential('should handle Temporal.Instant at epoch zero', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const epoch = Temporal.Instant.fromEpochNanoseconds(0n);
 
@@ -150,7 +152,7 @@ describe('IdbFrecencyStorage', () => {
       await storage[Symbol.asyncDispose]();
     });
 
-    it('should work with using declaration', async () => {
+    it.sequential('should work with using declaration', async () => {
       const db = uniqueDb();
       let loadedOutside: FrecencyData | undefined;
 
@@ -168,7 +170,7 @@ describe('IdbFrecencyStorage', () => {
       expect(loadedOutside?.records.size).toBe(1);
     });
 
-    it('should reject operations after dispose', async () => {
+    it.sequential('should reject operations after dispose', async () => {
       const storage = new IdbFrecencyStorage(uniqueDb());
       storage[Symbol.dispose]();
 
@@ -182,7 +184,7 @@ describe('IdbFrecencyStorage', () => {
   });
 
   describe('delete', () => {
-    it('should remove data for a specific namespace', async () => {
+    it.sequential('should remove data for a specific namespace', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const now = Temporal.Now.instant();
 
@@ -201,7 +203,7 @@ describe('IdbFrecencyStorage', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle empty records map', async () => {
+    it.sequential('should handle empty records map', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
 
       await storage.save('empty', { records: new Map() });
@@ -210,7 +212,7 @@ describe('IdbFrecencyStorage', () => {
       expect(loaded.records.size).toBe(0);
     });
 
-    it('should handle overwriting existing data', async () => {
+    it.sequential('should handle overwriting existing data', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const now = Temporal.Now.instant();
 

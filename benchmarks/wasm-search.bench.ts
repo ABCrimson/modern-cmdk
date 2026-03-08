@@ -29,12 +29,19 @@ const words = [
   'watermelon',
 ];
 
+// ES2026 Iterator Helpers — generate benchmark items via iterator pipeline
 function generateItems(count: number): CommandItem[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: itemId(`item-${i}`),
-    value: `${words[i % words.length]} ${Math.floor(i / 100)} action ${words[(i + 7) % words.length]}`,
-    keywords: [`kw-${i % 500}`, `alias-${i % 200}`],
-  }));
+  return Iterator.from({
+    [Symbol.iterator]: function* () {
+      for (let i = 0; i < count; i++) yield i;
+    },
+  })
+    .map((i) => ({
+      id: itemId(`item-${i}`),
+      value: `${words[i % words.length]} ${Math.floor(i / 100)} action ${words[(i + 7) % words.length]}`,
+      keywords: [`kw-${i % 500}`, `alias-${i % 200}`],
+    }))
+    .toArray();
 }
 
 const items100 = generateItems(100);

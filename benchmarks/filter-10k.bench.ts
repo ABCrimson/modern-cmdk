@@ -2,13 +2,21 @@ import type { CommandItem } from '@crimson_dev/command';
 import { createSearchEngine, itemId, scoreItem } from '@crimson_dev/command';
 import { bench, describe } from 'vitest';
 
+const WORDS = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
+
+// ES2026 Iterator Helpers — generate benchmark items via iterator pipeline
 function generateItems(count: number): CommandItem[] {
-  const words = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
-  return Array.from({ length: count }, (_, i) => ({
-    id: itemId(`item-${i}`),
-    value: `${words[i % words.length]} ${i} action`,
-    keywords: [`kw-${i}`],
-  }));
+  return Iterator.from({
+    [Symbol.iterator]: function* () {
+      for (let i = 0; i < count; i++) yield i;
+    },
+  })
+    .map((i) => ({
+      id: itemId(`item-${i}`),
+      value: `${WORDS[i % WORDS.length]} ${i} action`,
+      keywords: [`kw-${i}`],
+    }))
+    .toArray();
 }
 
 const items10K = generateItems(10_000);

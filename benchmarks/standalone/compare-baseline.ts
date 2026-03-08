@@ -77,11 +77,18 @@ async function main(): Promise<void> {
   // 3. Prepare test data
   const words = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
 
-  const items10K = Array.from({ length: 10_000 }, (_, i) => ({
-    id: itemId(`item-${i}`),
-    value: `${words[i % words.length]} ${i} action`,
-    keywords: [`kw-${i}`],
-  }));
+  // ES2026 Iterator Helpers — generate benchmark items via iterator pipeline
+  const items10K = Iterator.from({
+    [Symbol.iterator]: function* () {
+      for (let i = 0; i < 10_000; i++) yield i;
+    },
+  })
+    .map((i: number) => ({
+      id: itemId(`item-${i}`),
+      value: `${words[i % words.length]} ${i} action`,
+      keywords: [`kw-${i}`],
+    }))
+    .toArray();
 
   const items1K = items10K.slice(0, 1_000);
   const items100 = items10K.slice(0, 100);

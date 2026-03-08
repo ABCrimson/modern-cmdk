@@ -19,14 +19,20 @@ function makeRecord(hoursAgo: number, frequency: number): FrecencyRecord {
   return { lastUsed: past, frequency };
 }
 
+// ES2026 Iterator Helpers — generate frecency records via iterator pipeline
 function _generateRecords(count: number): Map<ItemId, FrecencyRecord> {
-  const records = new Map<ItemId, FrecencyRecord>();
-  for (let i = 0; i < count; i++) {
-    const hoursAgo = (i * 7) % 2000;
-    const frequency = (i % 20) + 1;
-    records.set(itemId(`item-${i}`), makeRecord(hoursAgo, frequency));
-  }
-  return records;
+  return new Map(
+    Iterator.from({
+      [Symbol.iterator]: function* () {
+        for (let i = 0; i < count; i++) yield i;
+      },
+    })
+      .map((i): [ItemId, FrecencyRecord] => [
+        itemId(`item-${i}`),
+        makeRecord((i * 7) % 2000, (i % 20) + 1),
+      ])
+      .toArray(),
+  );
 }
 
 // ---------------------------------------------------------------------------

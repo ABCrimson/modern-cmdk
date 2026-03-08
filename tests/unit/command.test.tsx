@@ -98,11 +98,12 @@ describe('Command — React Compound Components', () => {
 
       const input = container.querySelector('input')!;
       expect(input).not.toBeNull();
-      expect(input.getAttribute('role')).toBe('combobox');
-      expect(input.getAttribute('placeholder')).toBe('Type here...');
-      expect(input.getAttribute('data-command-input')).toBe('');
-      expect(input.getAttribute('autocomplete')).toBe('off');
-      expect(input.getAttribute('spellcheck')).toBe('false');
+      // Vitest 4.1 — soft assertions to report all missing ARIA attributes at once
+      expect.soft(input.getAttribute('role')).toBe('combobox');
+      expect.soft(input.getAttribute('placeholder')).toBe('Type here...');
+      expect.soft(input.getAttribute('data-command-input')).toBe('');
+      expect.soft(input.getAttribute('autocomplete')).toBe('off');
+      expect.soft(input.getAttribute('spellcheck')).toBe('false');
     });
 
     it('should render List with listbox role', async () => {
@@ -134,9 +135,10 @@ describe('Command — React Compound Components', () => {
 
       const item = container.querySelector('[data-command-item]');
       expect(item).not.toBeNull();
-      expect(item?.getAttribute('role')).toBe('option');
-      expect(item?.getAttribute('data-value')).toBe('my-item');
-      expect(item?.textContent).toBe('My Item');
+      // Vitest 4.1 — soft assertions for all item attributes
+      expect.soft(item?.getAttribute('role')).toBe('option');
+      expect.soft(item?.getAttribute('data-value')).toBe('my-item');
+      expect.soft(item?.textContent).toBe('My Item');
     });
   });
 
@@ -154,8 +156,9 @@ describe('Command — React Compound Components', () => {
       );
 
       const input = container.querySelector('input')!;
-      expect(input.getAttribute('aria-expanded')).toBe('true');
-      expect(input.getAttribute('aria-autocomplete')).toBe('list');
+      // Vitest 4.1 — soft assertions for ARIA state
+      expect.soft(input.getAttribute('aria-expanded')).toBe('true');
+      expect.soft(input.getAttribute('aria-autocomplete')).toBe('list');
     });
 
     it('should set aria-activedescendant to the active item id', async () => {
@@ -215,10 +218,10 @@ describe('Command — React Compound Components', () => {
       const firstItem = container.querySelector('#first')!;
       const secondItem = container.querySelector('#second')!;
 
-      // First item should be active by default
-      expect(firstItem.hasAttribute('data-active')).toBe(true);
-      expect(firstItem.getAttribute('aria-selected')).toBe('true');
-      expect(secondItem.hasAttribute('data-active')).toBe(false);
+      // Vitest 4.1 — soft assertions for data-active state
+      expect.soft(firstItem.hasAttribute('data-active')).toBe(true);
+      expect.soft(firstItem.getAttribute('aria-selected')).toBe('true');
+      expect.soft(secondItem.hasAttribute('data-active')).toBe(false);
     });
 
     it('should set data-command-state on root', async () => {
@@ -634,10 +637,11 @@ describe('Command — React Compound Components', () => {
 
       const loading = container.querySelector('[data-command-loading]');
       expect(loading).not.toBeNull();
-      expect(loading?.textContent).toBe('Loading items...');
+      // Vitest 4.1 — soft assertions for loading state attributes
+      expect.soft(loading?.textContent).toBe('Loading items...');
       // React renders boolean aria-busy as "true" string
-      expect(loading?.hasAttribute('aria-busy')).toBe(true);
-      expect(loading?.getAttribute('role')).toBe('status');
+      expect.soft(loading?.hasAttribute('aria-busy')).toBe(true);
+      expect.soft(loading?.getAttribute('role')).toBe('status');
     });
 
     it('should hide Loading when loading is false', async () => {

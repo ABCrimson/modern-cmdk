@@ -6,15 +6,39 @@ import {
 } from '@crimson_dev/command';
 import { describe, expect, it } from 'vitest';
 
+// ES2026 Object.groupBy — organize parse test cases by category
+const parseTestCases = Object.groupBy(
+  [
+    {
+      shortcut: 'k',
+      expected: { key: 'k', meta: false, ctrl: false, shift: false, alt: false },
+      category: 'simple',
+    },
+    { shortcut: 'Shift+A', expected: { key: 'a', shift: true }, category: 'modifier' },
+    { shortcut: 'Alt+N', expected: { key: 'n', alt: true }, category: 'modifier' },
+    {
+      shortcut: 'Ctrl+Shift+P',
+      expected: { key: 'p', ctrl: true, shift: true },
+      category: 'multi-modifier',
+    },
+    { shortcut: 'ctrl+k', expected: { key: 'k', ctrl: true }, category: 'case-insensitive' },
+  ],
+  (t) => t.category,
+);
+
 describe('parseShortcut', () => {
-  it('should parse simple key', () => {
-    const result = parseShortcut('k');
-    expect(result.key).toBe('k');
-    expect(result.meta).toBe(false);
-    expect(result.ctrl).toBe(false);
-    expect(result.shift).toBe(false);
-    expect(result.alt).toBe(false);
-  });
+  // Data-driven: simple key parsing
+  for (const testCase of parseTestCases.simple ?? []) {
+    it(`should parse simple key "${testCase.shortcut}"`, () => {
+      const result = parseShortcut(testCase.shortcut);
+      // Vitest 4.1 — soft assertions for multi-property checks
+      expect.soft(result.key).toBe(testCase.expected.key);
+      expect.soft(result.meta).toBe(testCase.expected.meta);
+      expect.soft(result.ctrl).toBe(testCase.expected.ctrl);
+      expect.soft(result.shift).toBe(testCase.expected.shift);
+      expect.soft(result.alt).toBe(testCase.expected.alt);
+    });
+  }
 
   it('should parse Mod+Key', () => {
     const result = parseShortcut('Mod+K');
@@ -23,24 +47,25 @@ describe('parseShortcut', () => {
     expect(result.meta || result.ctrl).toBe(true);
   });
 
-  it('should parse Shift modifier', () => {
-    const result = parseShortcut('Shift+A');
-    expect(result.shift).toBe(true);
-    expect(result.key).toBe('a');
-  });
+  // Data-driven: single modifier tests
+  for (const testCase of parseTestCases.modifier ?? []) {
+    it(`should parse modifier in "${testCase.shortcut}"`, () => {
+      const result = parseShortcut(testCase.shortcut);
+      expect(result.key).toBe(testCase.expected.key);
+      if (testCase.expected.shift) expect(result.shift).toBe(true);
+      if (testCase.expected.alt) expect(result.alt).toBe(true);
+    });
+  }
 
-  it('should parse Alt/Option modifier', () => {
-    const result = parseShortcut('Alt+N');
-    expect(result.alt).toBe(true);
-    expect(result.key).toBe('n');
-  });
-
-  it('should parse multiple modifiers', () => {
-    const result = parseShortcut('Ctrl+Shift+P');
-    expect(result.ctrl).toBe(true);
-    expect(result.shift).toBe(true);
-    expect(result.key).toBe('p');
-  });
+  // Data-driven: multi-modifier tests
+  for (const testCase of parseTestCases['multi-modifier'] ?? []) {
+    it(`should parse multiple modifiers in "${testCase.shortcut}"`, () => {
+      const result = parseShortcut(testCase.shortcut);
+      expect.soft(result.ctrl).toBe(testCase.expected.ctrl);
+      expect.soft(result.shift).toBe(testCase.expected.shift);
+      expect.soft(result.key).toBe(testCase.expected.key);
+    });
+  }
 
   it('should normalize consistently', () => {
     const a = parseShortcut('Ctrl+Shift+K');
@@ -48,11 +73,14 @@ describe('parseShortcut', () => {
     expect(a.normalized).toBe(b.normalized);
   });
 
-  it('should handle case-insensitive modifiers', () => {
-    const result = parseShortcut('ctrl+k');
-    expect(result.ctrl).toBe(true);
-    expect(result.key).toBe('k');
-  });
+  // Data-driven: case-insensitive
+  for (const testCase of parseTestCases['case-insensitive'] ?? []) {
+    it(`should handle case-insensitive modifiers: "${testCase.shortcut}"`, () => {
+      const result = parseShortcut(testCase.shortcut);
+      expect(result.ctrl).toBe(true);
+      expect(result.key).toBe(testCase.expected.key);
+    });
+  }
 });
 
 describe('matchesShortcut', () => {

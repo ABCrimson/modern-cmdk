@@ -1,8 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+// Playwright 1.59 — locator-first assertions throughout
 test.describe('Basic Command Palette', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Playwright 1.59 — wait for hydration using locator-first pattern
+    await expect(page.locator('[data-command-root]')).toBeVisible();
   });
 
   // ---------- Rendering & ARIA attributes ----------

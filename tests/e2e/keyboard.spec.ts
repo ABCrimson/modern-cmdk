@@ -1,8 +1,12 @@
 import { expect, test } from '@playwright/test';
 
+// Playwright 1.59 — locator-first assertions throughout
 test.describe('Keyboard Navigation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Playwright 1.59 — wait for hydration using locator-first pattern
+    await expect(page.locator('[data-command-root]')).toBeVisible();
+    await expect(page.locator('[data-command-item]').first()).toBeVisible();
   });
 
   // ---------- Arrow Key Navigation ----------

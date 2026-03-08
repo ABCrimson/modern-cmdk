@@ -138,9 +138,12 @@ describe('TypedEmitter (0.0.3)', () => {
 
     using _sub = emitter.on('count', handler);
 
-    for (let i = 0; i < 100; i++) {
-      emitter.emit('count', i);
-    }
+    // ES2026 Iterator Helpers — emit using iterator pipeline
+    Iterator.from({
+      [Symbol.iterator]: function* () {
+        for (let i = 0; i < 100; i++) yield i;
+      },
+    }).forEach((i) => emitter.emit('count', i));
 
     expect(handler).toHaveBeenCalledTimes(100);
   });

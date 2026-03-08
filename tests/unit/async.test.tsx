@@ -84,11 +84,18 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 // Test helpers
 // ---------------------------------------------------------------------------
 
+// ES2026 Iterator Helpers — generate async test items via iterator pipeline
 function createTestItems(count: number): readonly CommandItemType[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: itemId(`async-item-${i}`),
-    value: `Async Item ${i}`,
-  }));
+  return Iterator.from({
+    [Symbol.iterator]: function* () {
+      for (let i = 0; i < count; i++) yield i;
+    },
+  })
+    .map((i) => ({
+      id: itemId(`async-item-${i}`),
+      value: `Async Item ${i}`,
+    }))
+    .toArray();
 }
 
 // ---------------------------------------------------------------------------
@@ -119,10 +126,10 @@ describe('Command.AsyncItems — Suspense + use()', () => {
       </Command>,
     );
 
-    // Fallback should be visible while the promise is pending
+    // Vitest 4.1 — soft assertions for multi-check DOM state
     const fallback = container.querySelector('[data-testid="fallback"]');
-    expect(fallback).not.toBeNull();
-    expect(fallback?.textContent).toBe('Loading async items...');
+    expect.soft(fallback).not.toBeNull();
+    expect.soft(fallback?.textContent).toBe('Loading async items...');
 
     // No items should be rendered yet
     expect(container.querySelectorAll('[data-command-item]').length).toBe(0);

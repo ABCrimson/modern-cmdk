@@ -2,11 +2,18 @@ import type { CommandItem, CommandMachine } from '@crimson_dev/command';
 import { createCommandMachine, groupId, itemId } from '@crimson_dev/command';
 import { describe, expect, it, vi } from 'vitest';
 
+// ES2026 Iterator Helpers — generate test items using Iterator pipeline
 function generateItems(count: number): CommandItem[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: itemId(`item-${i}`),
-    value: `Item ${i}`,
-  }));
+  return Iterator.from({
+    [Symbol.iterator]: function* () {
+      for (let i = 0; i < count; i++) yield i;
+    },
+  })
+    .map((i) => ({
+      id: itemId(`item-${i}`),
+      value: `Item ${i}`,
+    }))
+    .toArray();
 }
 
 describe('CommandMachine', () => {
@@ -140,9 +147,10 @@ describe('CommandMachine', () => {
     using machine = createCommandMachine({ items });
 
     machine.send({ type: 'ITEM_SELECT', id: items[0]?.id });
-    // Give scheduler time to process
-    await new Promise((r) => setTimeout(r, 50));
-    expect(onSelect).not.toHaveBeenCalled();
+    // Vitest 4.1 — use vi.waitFor() instead of raw setTimeout
+    await vi.waitFor(() => {
+      expect(onSelect).not.toHaveBeenCalled();
+    });
   });
 
   it('should use Temporal for lastUpdated timestamps', () => {

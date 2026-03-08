@@ -1,4 +1,5 @@
 // Standalone tinybench 6.0.0 script for CI regression tracking
+// ES2026: using/Symbol.dispose, Iterator Helpers
 import './setup.js';
 import { Bench } from 'tinybench';
 
@@ -14,31 +15,41 @@ async function run(): Promise<void> {
   );
 
   const words = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
-  const items10K = Array.from({ length: 10_000 }, (_, i) => ({
-    id: itemId(`item-${i}`),
-    value: `${words[i % words.length]} ${i} action`,
-    keywords: [`kw-${i}`],
-  }));
+
+  // ES2026 Iterator Helpers — generate items via iterator pipeline
+  const items10K = Iterator.from({
+    [Symbol.iterator]: function* () {
+      for (let i = 0; i < 10_000; i++) yield i;
+    },
+  })
+    .map((i: number) => ({
+      id: itemId(`item-${i}`),
+      value: `${words[i % words.length]} ${i} action`,
+      keywords: [`kw-${i}`],
+    }))
+    .toArray();
 
   bench.add('filter 10K items (search engine)', () => {
-    const engine = createSearchEngine();
+    // ES2026 — using declaration for automatic disposal
+    using engine = createSearchEngine();
     engine.index(items10K);
     engine.search('apple', items10K).toArray();
-    engine[Symbol.dispose]();
   });
 
   bench.add('create machine + filter 1K', () => {
     const items1K = items10K.slice(0, 1000);
-    const machine = createCommandMachine({ items: items1K });
+    using machine = createCommandMachine({ items: items1K });
     machine.send({ type: 'SEARCH_CHANGE', query: 'apple' });
-    machine[Symbol.dispose]();
   });
 
   const results = await bench.run();
-  for (const task of results) {
+  // ES2026 Iterator Helpers — use .values().forEach() for result iteration
+  results.values().forEach((task) => {
     if (task.result) {
+      const median = task.result.latency?.p50 ?? task.result.mean ?? 0;
+      console.log(`${task.name}: ${median.toFixed(3)} ms (median)`);
     }
-  }
+  });
 }
 
 run().catch(console.error);

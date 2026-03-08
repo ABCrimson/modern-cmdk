@@ -122,7 +122,14 @@ describe('Incremental Filtering (0.0.6)', () => {
 
   it('should handle single-character incremental filtering', () => {
     using engine = createSearchEngine();
-    const items = Array.from({ length: 100 }, (_, i) => makeItem(`item-${i}`, `Item ${i}`));
+    // ES2026 Iterator Helpers — generate test items via iterator pipeline
+    const items = Iterator.from({
+      [Symbol.iterator]: function* () {
+        for (let i = 0; i < 100; i++) yield i;
+      },
+    })
+      .map((i) => makeItem(`item-${i}`, `Item ${i}`))
+      .toArray();
     engine.index(items);
 
     // Type one character at a time

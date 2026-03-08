@@ -27,9 +27,10 @@ describe('codemod: forward-ref', () => {
     ].join('\n');
     const output = run(input);
 
-    expect(output).not.toContain('forwardRef');
-    expect(output).toContain('ref');
-    expect(output).toContain('className');
+    // Vitest 4.1 — soft assertions: check all output properties
+    expect.soft(output).not.toContain('forwardRef');
+    expect.soft(output).toContain('ref');
+    expect.soft(output).toContain('className');
     // ref should be merged into the destructured props
     expect(output).toMatch(/\{\s*ref\s*,\s*className\s*\}/);
   });
@@ -87,10 +88,10 @@ describe('codemod: forward-ref', () => {
     ].join('\n');
     const output = run(input);
 
-    // forwardRef specifier should be removed but useState should remain
-    expect(output).not.toContain('forwardRef');
-    expect(output).toContain('useState');
-    expect(output).toMatch(/from\s+['"]react['"]/);
+    // Vitest 4.1 — soft assertions for multi-check validation
+    expect.soft(output).not.toContain('forwardRef');
+    expect.soft(output).toContain('useState');
+    expect.soft(output).toMatch(/from\s+['"]react['"]/);
   });
 
   it('skips files without forwardRef', () => {

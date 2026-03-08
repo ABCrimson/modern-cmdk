@@ -1,17 +1,17 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
+// Playwright 1.59 — locator-first assertions, @axe-core/playwright 4.11.2-rc
 test.describe('Accessibility — WCAG 2.1 AA', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Playwright 1.59 — wait for hydration using locator-first pattern
+    await expect(page.getByRole('combobox')).toBeVisible();
   });
 
   // ---------- axe-core Audit ----------
 
   test('should pass axe accessibility audit (WCAG 2.1 AA)', async ({ page }) => {
-    // Wait for the palette to be fully rendered
-    await expect(page.getByRole('combobox')).toBeVisible();
-
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
       .analyze();

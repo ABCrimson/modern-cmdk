@@ -119,17 +119,18 @@ describe('Type Foundation (0.0.2)', () => {
   describe('Default values with satisfies', () => {
     it('DEFAULT_FRECENCY_DECAY should satisfy Required<FrecencyDecayConfig>', () => {
       expectTypeOf(DEFAULT_FRECENCY_DECAY).toMatchTypeOf<Required<FrecencyDecayConfig>>();
-      expect(DEFAULT_FRECENCY_DECAY.hourWeight).toBe(4.0);
-      expect(DEFAULT_FRECENCY_DECAY.dayWeight).toBe(2.0);
-      expect(DEFAULT_FRECENCY_DECAY.weekWeight).toBe(1.5);
-      expect(DEFAULT_FRECENCY_DECAY.monthWeight).toBe(1.0);
-      expect(DEFAULT_FRECENCY_DECAY.olderWeight).toBe(0.5);
+      // Vitest 4.1 — soft assertions to report all mismatched defaults at once
+      expect.soft(DEFAULT_FRECENCY_DECAY.hourWeight).toBe(4.0);
+      expect.soft(DEFAULT_FRECENCY_DECAY.dayWeight).toBe(2.0);
+      expect.soft(DEFAULT_FRECENCY_DECAY.weekWeight).toBe(1.5);
+      expect.soft(DEFAULT_FRECENCY_DECAY.monthWeight).toBe(1.0);
+      expect.soft(DEFAULT_FRECENCY_DECAY.olderWeight).toBe(0.5);
     });
 
     it('DEFAULT_MACHINE_OPTIONS should satisfy Partial<CommandMachineOptions>', () => {
       expectTypeOf(DEFAULT_MACHINE_OPTIONS).toMatchTypeOf<Partial<CommandMachineOptions>>();
-      expect(DEFAULT_MACHINE_OPTIONS.loop).toBe(true);
-      expect(DEFAULT_MACHINE_OPTIONS.virtualizeThreshold).toBe(100);
+      expect.soft(DEFAULT_MACHINE_OPTIONS.loop).toBe(true);
+      expect.soft(DEFAULT_MACHINE_OPTIONS.virtualizeThreshold).toBe(100);
     });
   });
 

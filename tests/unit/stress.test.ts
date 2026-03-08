@@ -34,12 +34,19 @@ const WORDS = [
   'watermelon',
 ];
 
+// ES2026 Iterator Helpers — generate items using Iterator.from().map().toArray()
 function generateItems(count: number): CommandItem[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: itemId(`stress-${i}`),
-    value: `${WORDS[i % WORDS.length]} ${Math.floor(i / 100)} action ${WORDS[(i + 7) % WORDS.length]}`,
-    keywords: [`kw-${i % 500}`, `alias-${i % 200}`],
-  }));
+  return Iterator.from({
+    [Symbol.iterator]: function* () {
+      for (let i = 0; i < count; i++) yield i;
+    },
+  })
+    .map((i) => ({
+      id: itemId(`stress-${i}`),
+      value: `${WORDS[i % WORDS.length]} ${Math.floor(i / 100)} action ${WORDS[(i + 7) % WORDS.length]}`,
+      keywords: [`kw-${i % 500}`, `alias-${i % 200}`],
+    }))
+    .toArray();
 }
 
 // ---------------------------------------------------------------------------
@@ -146,11 +153,14 @@ describe('Stress Tests (0.8.6)', () => {
   });
 
   it('should handle items with very long values', () => {
-    const longItems: CommandItem[] = Array.from({ length: 1_000 }, (_, i) => ({
-      id: itemId(`long-${i}`),
-      value: `${'a'.repeat(500)} item-${i} ${'z'.repeat(500)}`,
-      keywords: [`keyword-${'x'.repeat(100)}`],
-    }));
+    // ES2026 Iterator Helpers — generate long items via iterator pipeline
+    const longItems: CommandItem[] = Iterator.from({ [Symbol.iterator]: function* () { for (let i = 0; i < 1_000; i++) yield i; } })
+      .map((i) => ({
+        id: itemId(`long-${i}`),
+        value: `${'a'.repeat(500)} item-${i} ${'z'.repeat(500)}`,
+        keywords: [`keyword-${'x'.repeat(100)}`],
+      }))
+      .toArray();
 
     using engine = createSearchEngine();
     engine.index(longItems);

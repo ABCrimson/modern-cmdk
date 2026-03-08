@@ -1,7 +1,7 @@
 import { CommandActivity } from '@crimson_dev/command-react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -28,9 +28,13 @@ describe('CommandActivity (0.2.5)', () => {
       </CommandActivity>,
     );
 
-    const child = container.querySelector('[data-testid="child"]');
-    expect(child).not.toBeNull();
-    expect(child?.textContent).toBe('Hello');
+    // Vitest 4.1 — vi.waitFor() for async DOM assertions
+    await vi.waitFor(() => {
+      const child = container.querySelector('[data-testid="child"]');
+      // Vitest 4.1 — soft assertions for multi-property checks
+      expect.soft(child).not.toBeNull();
+      expect.soft(child?.textContent).toBe('Hello');
+    });
   });
 
   it('should hide children when mode is hidden', async () => {
@@ -40,15 +44,17 @@ describe('CommandActivity (0.2.5)', () => {
       </CommandActivity>,
     );
 
-    const child = container.querySelector('[data-testid="child"]');
-    // Activity API is available in React 19.3.0-canary — hidden children
-    // remain in DOM with display:none for state preservation
-    if (child) {
-      expect(getComputedStyle(child).display).toBe('none');
-    } else {
-      // Fallback: if Activity API unavailable, children are unmounted
-      expect(child).toBeNull();
-    }
+    await vi.waitFor(() => {
+      const child = container.querySelector('[data-testid="child"]');
+      // Activity API is available in React 19.3.0-canary — hidden children
+      // remain in DOM with display:none for state preservation
+      if (child) {
+        expect(getComputedStyle(child).display).toBe('none');
+      } else {
+        // Fallback: if Activity API unavailable, children are unmounted
+        expect(child).toBeNull();
+      }
+    });
   });
 
   it('should accept ReactNode children', async () => {
@@ -59,7 +65,9 @@ describe('CommandActivity (0.2.5)', () => {
       </CommandActivity>,
     );
 
-    const spans = container.querySelectorAll('span');
-    expect(spans.length).toBe(2);
+    await vi.waitFor(() => {
+      const spans = container.querySelectorAll('span');
+      expect(spans.length).toBe(2);
+    });
   });
 });

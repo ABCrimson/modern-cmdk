@@ -196,8 +196,10 @@ describe('Machine Integration (0.0.9)', () => {
     });
 
     machine.send({ type: 'ITEM_SELECT', id: itemId('disabled') });
-    await new Promise((r) => setTimeout(r, 50));
-    expect(onSelect).not.toHaveBeenCalled();
+    // Vitest 4.1 — use vi.waitFor() instead of raw setTimeout for async assertions
+    await vi.waitFor(() => {
+      expect(onSelect).not.toHaveBeenCalled();
+    });
   });
 
   it('should handle ITEMS_LOADED for async sources', async () => {
@@ -266,7 +268,10 @@ describe('Machine Integration (0.0.9)', () => {
 
   it('should handle rapid events without data loss', async () => {
     using machine = createCommandMachine({
-      items: Array.from({ length: 100 }, (_, i) => makeItem(`item-${i}`, `Item ${i}`)),
+      // ES2026 Iterator Helpers — generate items via iterator pipeline
+      items: Iterator.from({ [Symbol.iterator]: function* () { for (let i = 0; i < 100; i++) yield i; } })
+        .map((i) => makeItem(`item-${i}`, `Item ${i}`))
+        .toArray(),
     });
 
     // Send 20 rapid events

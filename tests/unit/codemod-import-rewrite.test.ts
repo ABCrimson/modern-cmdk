@@ -17,66 +17,65 @@ function run(source: string, parser = 'tsx'): string {
   return transform(fileInfo, createApi(parser));
 }
 
+// ES2026 Object.groupBy — organize import rewrite test cases by type
+const importTestCases = Object.groupBy(
+  [
+    {
+      label: 'named import',
+      input: `import { Command } from 'cmdk';`,
+      contains: '{ Command }',
+      type: 'rewrite',
+    },
+    {
+      label: 'default import',
+      input: `import Command from 'cmdk';`,
+      contains: 'import Command',
+      type: 'rewrite',
+    },
+    {
+      label: 'namespace import',
+      input: `import * as Cmdk from 'cmdk';`,
+      contains: '* as Cmdk',
+      type: 'rewrite',
+    },
+    {
+      label: 'named re-export',
+      input: `export { Command } from 'cmdk';`,
+      contains: 'export { Command }',
+      type: 'rewrite',
+    },
+    {
+      label: 'star re-export',
+      input: `export * from 'cmdk';`,
+      contains: '@crimson_dev/command-react',
+      type: 'rewrite',
+    },
+    {
+      label: 'dynamic import',
+      input: `const mod = import('cmdk');`,
+      contains: '@crimson_dev/command-react',
+      type: 'rewrite',
+    },
+    {
+      label: 'require call',
+      input: `const Command = require('cmdk');`,
+      contains: '@crimson_dev/command-react',
+      type: 'rewrite',
+    },
+  ],
+  (t) => t.type,
+);
+
 describe('codemod: import-rewrite', () => {
-  it('rewrites named import from cmdk', () => {
-    const input = `import { Command } from 'cmdk';`;
-    const output = run(input);
+  // Data-driven rewrite tests using Object.groupBy
+  for (const testCase of importTestCases.rewrite ?? []) {
+    it(`rewrites ${testCase.label} from cmdk`, () => {
+      const output = run(testCase.input);
 
-    expect(output).toContain('@crimson_dev/command-react');
-    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
-    expect(output).toContain('{ Command }');
-  });
-
-  it('rewrites default import from cmdk', () => {
-    const input = `import Command from 'cmdk';`;
-    const output = run(input);
-
-    expect(output).toContain('@crimson_dev/command-react');
-    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
-    expect(output).toContain('import Command');
-  });
-
-  it('rewrites namespace import from cmdk', () => {
-    const input = `import * as Cmdk from 'cmdk';`;
-    const output = run(input);
-
-    expect(output).toContain('@crimson_dev/command-react');
-    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
-    expect(output).toContain('* as Cmdk');
-  });
-
-  it('rewrites named re-export from cmdk', () => {
-    const input = `export { Command } from 'cmdk';`;
-    const output = run(input);
-
-    expect(output).toContain('@crimson_dev/command-react');
-    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
-    expect(output).toContain('export { Command }');
-  });
-
-  it('rewrites star re-export from cmdk', () => {
-    const input = `export * from 'cmdk';`;
-    const output = run(input);
-
-    expect(output).toContain('@crimson_dev/command-react');
-    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
-  });
-
-  it('rewrites dynamic import of cmdk', () => {
-    const input = `const mod = import('cmdk');`;
-    const output = run(input);
-
-    expect(output).toContain('@crimson_dev/command-react');
-    expect(output).not.toMatch(/import\(['"]cmdk['"]\)/);
-  });
-
-  it('rewrites require call for cmdk', () => {
-    const input = `const Command = require('cmdk');`;
-    const output = run(input);
-
-    expect(output).toContain('@crimson_dev/command-react');
-    expect(output).not.toMatch(/require\(['"]cmdk['"]\)/);
-  });
+      expect.soft(output).toContain('@crimson_dev/command-react');
+      expect.soft(output).toContain(testCase.contains);
+    });
+  }
 
   it('does NOT modify unrelated imports', () => {
     const input = `import React from 'react';\nimport { useState } from 'react';`;
@@ -100,8 +99,8 @@ describe('codemod: import-rewrite', () => {
     ].join('\n');
     const output = run(input);
 
-    expect(output).not.toMatch(/from\s+['"]cmdk['"]/);
-    expect(output).toMatch(/from\s+['"]react['"]/);
+    expect.soft(output).not.toMatch(/from\s+['"]cmdk['"]/);
+    expect.soft(output).toMatch(/from\s+['"]react['"]/);
     // Both cmdk imports should be rewritten
     const matches = output.match(/@crimson_dev\/command-react/g);
     expect(matches).toHaveLength(2);

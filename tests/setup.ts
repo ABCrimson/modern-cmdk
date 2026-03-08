@@ -1,5 +1,5 @@
 // tests/setup.ts
-// Vitest global setup — polyfills ES2026 APIs not yet in the test runtime
+// Vitest 4.1 global setup — polyfills ES2026 APIs not yet in the test runtime
 
 import 'fake-indexeddb/auto';
 import { Temporal as TemporalPolyfill } from '@js-temporal/polyfill';
@@ -24,5 +24,13 @@ if (typeof Math.sumPrecise !== 'function') {
       sum = t;
     }
     return sum;
+  };
+}
+
+// Polyfill RegExp.escape if not natively available (ES2026)
+if (typeof RegExp.escape !== 'function') {
+  // @ts-expect-error — polyfill assignment
+  RegExp.escape = function regExpEscape(str: string): string {
+    return str.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
   };
 }
