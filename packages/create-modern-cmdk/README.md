@@ -1,12 +1,16 @@
-<h1 align="center">create-command</h1>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/main/apps/docs/public/og-image.svg" alt="modern-cmdk" width="480" />
+</p>
+
+<h1 align="center">create-modern-cmdk</h1>
 
 <p align="center">
-  <strong>Scaffold a new <code>@crimson_dev/command</code> project in seconds</strong>
+  <strong>Scaffold a new <a href="https://www.npmjs.com/package/modern-cmdk">modern-cmdk</a> project in seconds.</strong>
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@crimson_dev/create-command"><img src="https://img.shields.io/npm/v/@crimson_dev/create-command?style=flat-square&color=crimson" alt="npm" /></a>
-  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@crimson_dev/create-command?style=flat-square" alt="license" /></a>
+  <a href="https://www.npmjs.com/package/create-modern-cmdk"><img src="https://img.shields.io/npm/v/create-modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27" alt="npm" /></a>
+  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/create-modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27" alt="license" /></a>
 </p>
 
 ---
@@ -14,13 +18,14 @@
 ## Usage
 
 ```bash
-pnpm create @crimson_dev/command my-command-palette
+npm create modern-cmdk my-command-palette
 ```
 
-Or with npx:
+Or with pnpm / npx:
 
 ```bash
-npx @crimson_dev/create-command my-command-palette
+pnpm create modern-cmdk my-command-palette
+npx create-modern-cmdk my-command-palette
 ```
 
 ## Templates
@@ -34,7 +39,7 @@ npx @crimson_dev/create-command my-command-palette
 Specify a template:
 
 ```bash
-pnpm create @crimson_dev/command my-app --template react-dialog
+npm create modern-cmdk my-app -- --template react-dialog
 ```
 
 ## What you get
@@ -52,20 +57,21 @@ my-command-palette/
 
 All dependencies are pinned to compatible versions:
 
-- `@crimson_dev/command` + `@crimson_dev/command-react`
+- [`modern-cmdk`](https://www.npmjs.com/package/modern-cmdk) -- core engine + React 19 adapter
 - React 19, TypeScript 6, Vite 8
-- Ready to `pnpm install && pnpm dev`
+- Ready to `npm install && npm run dev`
 
 ## Requirements
 
 - Node.js >= 25.8.0
-- pnpm, npm, or yarn
+- npm, pnpm, or yarn
 
 ## Links
 
-- [Documentation](https://github.com/ABCrimson/modern-cmdk)
-- [React Adapter](https://www.npmjs.com/package/@crimson_dev/command-react)
+- [Documentation](https://command.crimson.dev)
+- [modern-cmdk on npm](https://www.npmjs.com/package/modern-cmdk)
+- [GitHub](https://github.com/ABCrimson/modern-cmdk)
 
 ## License
 
-MIT
+[MIT](https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE) -- Copyright (c) 2026 Crimson Dev
