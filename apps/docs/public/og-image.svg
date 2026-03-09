@@ -67,7 +67,7 @@
   </g>
 
   <!-- Title -->
-  <text x="600" y="290" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="52" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="-1">@crimson_dev/command</text>
+  <text x="600" y="290" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="52" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="-1">modern-cmdk</text>
 
   <!-- Tagline -->
   <text x="600" y="340" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" font-weight="400" fill="#a0a0c0" text-anchor="middle">The definitive command palette engine</text>

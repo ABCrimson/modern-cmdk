@@ -1,9 +1,9 @@
-/* @crimson_dev/command — Playground Styles */
+/* modern-cmdk — Playground Styles */
 /* @layer architecture, OKLCH color tokens, GPU-composited animations */
 /* CSS nesting, container queries, @starting-style entry animations */
 /* forced-colors + prefers-reduced-motion + prefers-contrast support */
 
-@import "@crimson_dev/command-react/src/styles.css";
+@import "modern-cmdk/styles.css";
 
 /* ─── Layer Order ─── */
 
