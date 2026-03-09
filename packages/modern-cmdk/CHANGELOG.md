@@ -1,5 +1,11 @@
 # modern-cmdk
 
+## 1.0.1
+
+### Patch Changes
+
+- [`f6a9294`](https://github.com/ABCrimson/modern-cmdk/commit/f6a9294d0f868b4848cfad40770f455f3745d56e) Thanks [@ABCrimson](https://github.com/ABCrimson)! - Fix lint issues, O(1) navigate lookup, error-resilient fuzzy scorer, and modernize branding
+
 ## 1.0.0
 
 ### Major Changes

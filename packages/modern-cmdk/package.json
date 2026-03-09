@@ -1,6 +1,6 @@
 {
   "name": "modern-cmdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "The definitive command palette engine for the modern web",
   "license": "MIT",
