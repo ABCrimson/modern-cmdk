@@ -5,6 +5,9 @@
   "description": "Snippets and IntelliSense for @crimson_dev/command-react",
   "publisher": "crimson-dev",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "vscode": "^1.96.0"
   },

@@ -4,6 +4,9 @@
   "type": "module",
   "description": "Framework-agnostic headless command palette engine",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

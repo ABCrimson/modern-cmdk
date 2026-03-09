@@ -4,6 +4,9 @@
   "type": "module",
   "description": "Scaffold a new @crimson_dev/command project",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "create-command": "./dist/index.mjs"
   },

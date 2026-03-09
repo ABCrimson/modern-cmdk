@@ -4,6 +4,9 @@
   "type": "module",
   "description": "React 19 adapter for @crimson_dev/command",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

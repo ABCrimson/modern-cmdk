@@ -4,6 +4,9 @@
   "type": "module",
   "description": "Codemods for migrating from cmdk to @crimson_dev/command-react",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "command-codemod": "./dist/cli.mjs"
   },
