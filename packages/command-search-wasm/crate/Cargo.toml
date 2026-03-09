@@ -3,7 +3,7 @@ name = "command-search-wasm"
 version = "0.9.0"
 edition = "2024"
 authors = ["Crimson Dev"]
-description = "WASM-accelerated fuzzy search engine for @crimson_dev/command"
+description = "WASM-accelerated fuzzy search engine for modern-cmdk"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

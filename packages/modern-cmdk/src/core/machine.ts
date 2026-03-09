@@ -55,6 +55,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
   // O(1) membership check — kept in sync with filteredIds
   let filteredIdSet = new Set<ItemId>();
+  // O(1) index lookup — kept in sync with filteredIds for navigate()
+  let filteredIdIndex = new Map<ItemId, number>();
 
   const registry = new CommandRegistry();
   // Pluggable search engine: use options.search if provided, otherwise create default.
@@ -134,8 +136,9 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       filteredIds = results.map((r) => r.id);
     }
 
-    // Update the O(1) membership set
+    // Update the O(1) membership set and index map
     filteredIdSet = new Set(filteredIds);
+    filteredIdIndex = new Map(filteredIds.map((id, i) => [id, i]));
 
     // Build grouped IDs — Map.groupBy (ES2026)
     const groupedIds = Map.groupBy(filteredIds, (id) => {
@@ -183,7 +186,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     }
 
     const loop = options.loop ?? true;
-    const currentIdx = activeId ? filteredIds.indexOf(activeId) : -1;
+    // O(1) index lookup via Map instead of O(n) indexOf
+    const currentIdx = activeId ? (filteredIdIndex.get(activeId) ?? -1) : -1;
     let newIdx: number;
 
     if (direction === 'next') {

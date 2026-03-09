@@ -69,6 +69,7 @@ function CommandRoot({
   // Attach keyboard navigation to the root element — avoids hook-before-context issue
   const handleKeyDown = useCallback(
     createKeydownHandler(machine, () => machine.getState()),
+    // eslint-disable-next-line -- machine is stable ref, called inline not as closure dep
     [],
   );
 

@@ -81,10 +81,10 @@ export class IdbFrecencyStorage implements FrecencyStorage, AsyncDisposable {
   /**
    * Create an IDB-backed frecency storage.
    *
-   * @param dbName — IndexedDB database name (default: 'crimson-command')
+   * @param dbName — IndexedDB database name (default: 'modern-cmdk')
    * @param storeName — IndexedDB object store name (default: 'frecency')
    */
-  constructor(dbName: string = 'crimson-command', storeName: string = 'frecency') {
+  constructor(dbName: string = 'modern-cmdk', storeName: string = 'frecency') {
     this.#store = createStore(dbName, storeName);
   }
 

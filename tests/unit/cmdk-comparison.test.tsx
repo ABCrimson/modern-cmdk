@@ -390,7 +390,7 @@ describe('2. Data Attributes (renamed from [cmdk-*])', () => {
 // ============================================================================
 // 3. CSS CUSTOM PROPERTIES
 // ============================================================================
-// cmdk: --cmdk-list-height → @crimson_dev: --command-list-height
+// cmdk: --cmdk-list-height → modern-cmdk: --command-list-height
 // ============================================================================
 
 describe('3. CSS Custom Properties', () => {
@@ -416,8 +416,8 @@ describe('3. CSS Custom Properties', () => {
 // ============================================================================
 // 4. ARIA / ACCESSIBILITY
 // ============================================================================
-// Both cmdk and @crimson_dev follow the combobox + listbox ARIA pattern.
-// @crimson_dev adds: aria-label on root, role="status" on empty/loading,
+// Both cmdk and modern-cmdk follow the combobox + listbox ARIA pattern.
+// modern-cmdk adds: aria-label on root, role="status" on empty/loading,
 //   aria-labelledby on groups, aria-busy on loading.
 // ============================================================================
 
@@ -577,7 +577,7 @@ describe('4. ARIA / Accessibility', () => {
 // 5. FILTERING & SORTING
 // ============================================================================
 // cmdk: built-in fuzzy filter scoring, shouldFilter={false} to disable
-// @crimson_dev: pluggable search engine, filter={false} to disable
+// modern-cmdk: pluggable search engine, filter={false} to disable
 // ============================================================================
 
 describe('5. Filtering & Sorting', () => {
@@ -663,7 +663,7 @@ describe('5. Filtering & Sorting', () => {
 // 6. KEYBOARD NAVIGATION
 // ============================================================================
 // cmdk: ArrowDown/ArrowUp to navigate, Enter to select, Home/End
-// @crimson_dev: identical, plus configurable vim bindings
+// modern-cmdk: identical, plus configurable vim bindings
 // ============================================================================
 
 describe('6. Keyboard Navigation', () => {
@@ -749,7 +749,7 @@ describe('6. Keyboard Navigation', () => {
 // 7. CONTROLLED STATE
 // ============================================================================
 // cmdk: value/onValueChange for active item, search in input
-// @crimson_dev: equivalent via machine options + callbacks
+// modern-cmdk: equivalent via machine options + callbacks
 // ============================================================================
 
 describe('7. Controlled State', () => {
@@ -793,7 +793,7 @@ describe('7. Controlled State', () => {
 // 8. DIALOG VARIANT
 // ============================================================================
 // cmdk: Command.Dialog with open/onOpenChange props, renders overlay
-// @crimson_dev: identical API, uses Radix Dialog internally
+// modern-cmdk: identical API, uses Radix Dialog internally
 // ============================================================================
 
 describe('8. Dialog Variant', () => {
@@ -898,7 +898,7 @@ describe('8. Dialog Variant', () => {
 // 9. useCommandState HOOK
 // ============================================================================
 // cmdk: useCommandState((state) => state.search) — selector-based
-// @crimson_dev: identical signature, richer state object
+// modern-cmdk: identical signature, richer state object
 // ============================================================================
 
 describe('9. useCommandState Hook', () => {
@@ -937,7 +937,7 @@ describe('9. useCommandState Hook', () => {
 // 10. DISABLED ITEMS
 // ============================================================================
 // cmdk: <Command.Item disabled> — skipped during navigation
-// @crimson_dev: identical prop, items filtered out
+// modern-cmdk: identical prop, items filtered out
 // ============================================================================
 
 describe('10. Disabled Items', () => {
@@ -1139,7 +1139,7 @@ describe('12. Groups & Separators', () => {
 // 13. KEYWORDS FILTERING
 // ============================================================================
 // cmdk: <Command.Item keywords={['fruit']}>Apple</Command.Item>
-// @crimson_dev: identical prop
+// modern-cmdk: identical prop
 // ============================================================================
 
 describe('13. Keywords Filtering', () => {
@@ -1194,7 +1194,7 @@ describe('13. Keywords Filtering', () => {
 // 14. CUSTOM FILTER FUNCTION
 // ============================================================================
 // cmdk: filter={(value, search, keywords) => number}
-// @crimson_dev: filter={false} to disable (same as cmdk shouldFilter={false})
+// modern-cmdk: filter={false} to disable (same as cmdk shouldFilter={false})
 // ============================================================================
 
 describe('14. Custom Filter / Disable Filtering', () => {
@@ -1224,7 +1224,7 @@ describe('14. Custom Filter / Disable Filtering', () => {
 // 15. LOOP NAVIGATION
 // ============================================================================
 // cmdk: <Command loop> — wraps around at boundaries
-// @crimson_dev: identical, enabled by default
+// modern-cmdk: identical, enabled by default
 // ============================================================================
 
 describe('15. Loop Navigation', () => {
@@ -1283,7 +1283,7 @@ describe('15. Loop Navigation', () => {
 // 16. onSelect CALLBACK
 // ============================================================================
 // cmdk: <Command.Item onSelect={(value) => ...}>
-// @crimson_dev: identical callback signature
+// modern-cmdk: identical callback signature
 // ============================================================================
 
 describe('16. onSelect Callback', () => {

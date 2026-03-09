@@ -72,6 +72,7 @@ export function CommandDialog({
   // Keyboard navigation via document listener
   const handleKeyDown = useCallback(
     createKeydownHandler(machine, () => machine.getState()),
+    // eslint-disable-next-line -- machine is stable ref, called inline not as closure dep
     [],
   );
 

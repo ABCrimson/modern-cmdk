@@ -25,7 +25,7 @@ async function* scoreItemsGenerator(
   items: readonly CommandItem[],
 ): AsyncGenerator<SearchResult | null> {
   for (const item of items) {
-    yield Promise.try(() => scoreItem(query, item));
+    yield Promise.try(() => scoreItem(query, item)).catch(() => null);
   }
 }
 

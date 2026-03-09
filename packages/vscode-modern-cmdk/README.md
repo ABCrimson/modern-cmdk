@@ -1,18 +1,18 @@
-<h1 align="center">Crimson Command Palette</h1>
+<h1 align="center">Modern CMDK</h1>
 
 <p align="center">
-  <strong>VS Code snippets for <code>@crimson_dev/command-react</code></strong>
+  <strong>VS Code snippets for <code>modern-cmdk/react</code></strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@crimson_dev/vscode-command?style=flat-square" alt="license" /></a>
+  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27" alt="license" /></a>
 </p>
 
 ---
 
 ## What is this?
 
-A VS Code extension that provides snippets for building command palettes with `@crimson_dev/command-react`. Works in `.tsx` and `.jsx` files.
+A VS Code extension that provides snippets for building command palettes with `modern-cmdk/react`. Works in `.tsx` and `.jsx` files.
 
 ## Snippets
 
@@ -38,18 +38,18 @@ A VS Code extension that provides snippets for building command palettes with `@
 
 ### From VS Code Marketplace
 
-Search for **Crimson Command Palette** in the Extensions panel, or:
+Search for **Modern CMDK** in the Extensions panel, or:
 
 ```
-ext install crimson-dev.vscode-command
+ext install crimson-dev.vscode-modern-cmdk
 ```
 
 ### From source
 
 ```bash
-cd packages/vscode-command
+cd packages/vscode-modern-cmdk
 npx vsce package
-code --install-extension crimson-command-palette-0.9.0.vsix
+code --install-extension vscode-modern-cmdk-1.0.0.vsix
 ```
 
 ## Usage
@@ -59,7 +59,7 @@ Type any prefix (e.g., `cmd-dialog`) in a `.tsx` or `.jsx` file and press Tab to
 ### Example: `cmd-dialog`
 
 ```tsx
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 function CommandDialog() {
   return (
@@ -76,9 +76,10 @@ function CommandDialog() {
 
 ## Links
 
-- [React Adapter](https://www.npmjs.com/package/@crimson_dev/command-react)
-- [Documentation](https://github.com/ABCrimson/modern-cmdk)
+- [modern-cmdk on npm](https://www.npmjs.com/package/modern-cmdk)
+- [Documentation](https://command.crimson.dev)
+- [GitHub](https://github.com/ABCrimson/modern-cmdk)
 
 ## License
 
-MIT
+[MIT](https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE)
