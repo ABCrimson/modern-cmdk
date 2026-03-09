@@ -53,7 +53,18 @@ function CommandRoot({
   }
   const machine = machineRef.current;
 
-  const { state, isPending, updateSearch, setOptimisticActiveId, id } = useCommand(machine);
+  const { state, isPending, updateSearch, setOptimisticActiveId, filteredIdSet, id } =
+    useCommand(machine);
+
+  // Dispose machine on unmount — prevents resource leaks (scheduler, emitter, search engine)
+  // Nulls the ref so Strict Mode remount creates a fresh machine
+  useEffect(() => {
+    return (): void => {
+      machineRef.current?.[Symbol.dispose]();
+      machineRef.current = null;
+    };
+    // eslint-disable-next-line -- machine is stable ref, dispose runs on unmount only
+  }, []);
 
   // Attach keyboard navigation to the root element — avoids hook-before-context issue
   const handleKeyDown = useCallback(
@@ -62,10 +73,6 @@ function CommandRoot({
   );
 
   useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-
-    // Also listen on document for global keyboard capture
     document.addEventListener('keydown', handleKeyDown);
     return (): void => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -80,12 +87,24 @@ function CommandRoot({
         isPending,
         updateSearch,
         setOptimisticActiveId,
+        filteredIdSet,
         rootId: id,
         listId,
         inputId,
         label,
       }) satisfies CommandContextValue,
-    [machine, state, isPending, updateSearch, setOptimisticActiveId, id, listId, inputId, label],
+    [
+      machine,
+      state,
+      isPending,
+      updateSearch,
+      setOptimisticActiveId,
+      filteredIdSet,
+      id,
+      listId,
+      inputId,
+      label,
+    ],
   );
 
   return (
@@ -95,9 +114,8 @@ function CommandRoot({
         data-command-root=""
         data-command-state={state.open ? 'open' : 'closed'}
         className={className}
-        role="application"
+        role="search"
         aria-label={label}
-        aria-roledescription="command palette"
       >
         {children}
       </div>

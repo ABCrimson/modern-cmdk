@@ -14,6 +14,11 @@ export class CommandRegistry implements Disposable {
   #groups = new Map<GroupId, CommandGroup>();
   #itemOrder: ItemId[] = [];
   #itemOrderSet = new Set<ItemId>(); // O(1) duplicate check during registration
+  #cachedItems: readonly CommandItem[] | null = null; // Invalidated on mutation
+
+  #invalidateCache(): void {
+    this.#cachedItems = null;
+  }
 
   /** Register an item — returns Disposable for `using` auto-deregister */
   registerItem(item: CommandItem): Disposable {
@@ -22,6 +27,7 @@ export class CommandRegistry implements Disposable {
       this.#itemOrder.push(item.id);
       this.#itemOrderSet.add(item.id);
     }
+    this.#invalidateCache();
 
     return {
       [Symbol.dispose]: (): void => {
@@ -39,6 +45,7 @@ export class CommandRegistry implements Disposable {
         this.#itemOrderSet.add(item.id);
       }
     }
+    this.#invalidateCache();
 
     const ids = new Set(items.values().map((i) => i.id));
     return {
@@ -53,8 +60,8 @@ export class CommandRegistry implements Disposable {
     if (!this.#items.has(id)) return;
     this.#items.delete(id);
     this.#itemOrderSet.delete(id);
-    // Rebuild order array without the removed ID
     this.#itemOrder = this.#itemOrder.filter((orderId) => orderId !== id);
+    this.#invalidateCache();
   }
 
   /** Bulk unregister using Set.difference (ES2026) — for...of for hot path */
@@ -62,9 +69,9 @@ export class CommandRegistry implements Disposable {
     for (const id of ids) {
       this.#items.delete(id);
     }
-    // Rebuild order using Set.difference for remaining IDs
     this.#itemOrderSet = this.#itemOrderSet.difference(ids);
     this.#itemOrder = this.#itemOrder.filter((id) => !ids.has(id));
+    this.#invalidateCache();
   }
 
   /** Register a group */
@@ -92,13 +99,15 @@ export class CommandRegistry implements Disposable {
     return this.#groups.get(id);
   }
 
-  /** Get all registered items in insertion order */
+  /** Get all registered items in insertion order — cached between mutations */
   getItems(): readonly CommandItem[] {
-    return this.#itemOrder
+    if (this.#cachedItems !== null) return this.#cachedItems;
+    this.#cachedItems = this.#itemOrder
       .values()
       .map((id) => this.#items.get(id))
       .filter((item): item is CommandItem => item != null)
       .toArray();
+    return this.#cachedItems;
   }
 
   /** Get all registered groups sorted by priority */
@@ -134,9 +143,9 @@ export class CommandRegistry implements Disposable {
     return result;
   }
 
-  /** Get item IDs as a Set — useful for Set operations */
+  /** Get item IDs as a Set — returns internal set (O(1), no allocation) */
   getItemIds(): ReadonlySet<ItemId> {
-    return new Set(this.#items.keys());
+    return this.#itemOrderSet;
   }
 
   /** Find intersection of registered items with a candidate set (ES2026 Set.intersection) */
@@ -190,6 +199,7 @@ export class CommandRegistry implements Disposable {
     this.#groups.clear();
     this.#itemOrder = [];
     this.#itemOrderSet.clear();
+    this.#invalidateCache();
   }
 
   [Symbol.dispose](): void {

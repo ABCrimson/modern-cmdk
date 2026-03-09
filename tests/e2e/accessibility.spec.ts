@@ -282,7 +282,7 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
       if (hasHeading) {
         const headingId = await heading.getAttribute('id');
         expect(headingId).toBeTruthy();
-        await expect(group).toHaveAttribute('aria-labelledby', headingId!);
+        await expect(group).toHaveAttribute('aria-labelledby', headingId as string);
 
         // Heading should be aria-hidden (since it's referenced by aria-labelledby)
         await expect(heading).toHaveAttribute('aria-hidden', /(true|)/);

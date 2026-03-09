@@ -4,12 +4,12 @@
 // Performance: pre-cached lowercase at index time, charCode comparison, zero redundant allocation
 
 import type { CommandItem, ItemId } from '../types.js';
-import { scoreItem, scoreItemPreLowered } from './default-scorer.js';
+import { scoreItemPreLowered } from './default-scorer.js';
 import type { ScorerFn, SearchEngine, SearchResult } from './types.js';
 
 // Dev-only leak detection via FinalizationRegistry — warns if a search engine
 // instance is garbage collected without being explicitly disposed
-const __DEV__ = (globalThis as Record<string, unknown>).process
+const __DEV__: boolean = (globalThis as Record<string, unknown>).process
   ? ((globalThis as Record<string, unknown>).process as { env: Record<string, string | undefined> })
       .env.NODE_ENV !== 'production'
   : false;
@@ -40,7 +40,7 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
   const useDefaultScorer = customScorer === undefined;
 
   // Pre-cached lowercase index — avoids toLowerCase() on every search
-  let indexedEntries = new Map<ItemId, IndexedEntry>();
+  const indexedEntries = new Map<ItemId, IndexedEntry>();
   let previousQuery = '';
   let previousResults = new Set<ItemId>();
 
@@ -92,7 +92,12 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
           const entry = indexedEntries.get(item.id);
           const result = entry
             ? scoreItemPreLowered(lowerQuery, item.id, entry.lowerValue, entry.lowerKeywords)
-            : scoreItemPreLowered(lowerQuery, item.id, item.value.toLowerCase(), item.keywords?.map((k) => k.toLowerCase()));
+            : scoreItemPreLowered(
+                lowerQuery,
+                item.id,
+                item.value.toLowerCase(),
+                item.keywords?.map((k) => k.toLowerCase()),
+              );
           if (result !== null) results.push(result);
         }
       } else {
@@ -114,17 +119,11 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
     },
 
     remove(ids: ReadonlySet<ItemId>): void {
-      // Use Set.difference (ES2026) for efficient bulk removal + Iterator Helpers
-      const currentIds = new Set(indexedEntries.keys());
-      const remaining = currentIds.difference(ids);
-      indexedEntries = new Map(
-        remaining
-          .values()
-          .map((id) => [id, indexedEntries.get(id)] as const)
-          .filter((entry): entry is readonly [ItemId, IndexedEntry] => entry[1] != null),
-      );
-
-      // Also prune incremental cache
+      // O(k) deletes instead of O(n) Map rebuild
+      for (const id of ids) {
+        indexedEntries.delete(id);
+      }
+      // Prune incremental cache
       previousResults = previousResults.difference(ids);
     },
 

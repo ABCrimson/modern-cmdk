@@ -98,7 +98,7 @@ describe('Type Foundation (0.0.2)', () => {
   describe('CommandMachineOptions', () => {
     it('should use NoInfer on callback params', () => {
       const opts: CommandMachineOptions = {
-        onSelect: (id) => {
+        onSelect: (id: ItemId) => {
           expectTypeOf(id).toMatchTypeOf<ItemId>();
         },
       };

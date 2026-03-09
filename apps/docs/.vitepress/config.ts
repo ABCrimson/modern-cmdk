@@ -1,4 +1,5 @@
-import { transformerTwoslash } from '@shikijs/twoslash';
+// import { transformerTwoslash } from '@shikijs/twoslash';
+// Disabled: twoslash/@typescript/vfs not yet compatible with TypeScript 6
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
@@ -31,19 +32,12 @@ export default defineConfig({
     ['meta', { name: 'twitter:image', content: 'https://command.crimson.dev/og-image.png' }],
   ],
 
-  markdown: {
-    codeTransformers: [
-      transformerTwoslash({
-        twoslashOptions: {
-          compilerOptions: {
-            target: 99, // ESNext
-            module: 199, // ES2025
-            lib: ['ES2026', 'DOM'],
-          },
-        },
-      }),
-    ],
-  },
+  // Twoslash disabled until @typescript/vfs supports TypeScript 6
+  // markdown: {
+  //   codeTransformers: [
+  //     transformerTwoslash({ ... }),
+  //   ],
+  // },
 
   // View Transitions API for page navigation — VitePress 2.0 feature
   // appearance: {

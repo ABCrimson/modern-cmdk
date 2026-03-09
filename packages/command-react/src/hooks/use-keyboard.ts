@@ -8,14 +8,12 @@
 import type { CommandMachine, CommandState } from '@crimson_dev/command';
 
 /** Navigation key to machine direction mapping */
-const NAVIGATION_KEYS = {
+const NAVIGATION_KEYS: Readonly<Record<string, string>> = {
   ArrowDown: 'next',
   ArrowUp: 'prev',
   Home: 'first',
   End: 'last',
-} as const satisfies Record<string, string>;
-
-type NavigationKey = keyof typeof NAVIGATION_KEYS;
+};
 
 /** Create a keydown handler for command palette keyboard navigation */
 export function createKeydownHandler(
@@ -29,7 +27,7 @@ export function createKeydownHandler(
     // Navigation keys — ArrowDown/Up/Home/End
     if (key in NAVIGATION_KEYS) {
       event.preventDefault();
-      machine.send({ type: 'NAVIGATE', direction: NAVIGATION_KEYS[key as NavigationKey] });
+      machine.send({ type: 'NAVIGATE', direction: NAVIGATION_KEYS[key] as string });
       return;
     }
 

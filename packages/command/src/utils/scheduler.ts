@@ -1,6 +1,6 @@
 // packages/command/src/utils/scheduler.ts
-// Uses Promise.withResolvers (ES2024) + requestAnimationFrame batching
-// Falls back to queueMicrotask in non-browser environments (Node.js, tests)
+// Batched update scheduler — rAF in browsers, queueMicrotask in Node.js/tests
+// Uses scheduler.yield() when available for input-responsive large batches
 
 /**
  * Batched update scheduler that coalesces state updates into a single tick.
@@ -8,21 +8,20 @@
  */
 export interface Scheduler extends Disposable {
   schedule(update: () => void): void;
-  flush(): Promise<void>;
+  flush(): void;
   [Symbol.dispose](): void;
 }
 
 /** Whether we're in a browser environment with rAF available */
-const hasRAF = typeof requestAnimationFrame === 'function';
+const hasRAF: boolean = typeof requestAnimationFrame === 'function';
 
 /** Feature detection for cutting-edge scheduling APIs */
-const canYield = typeof globalThis.scheduler?.yield === 'function';
-const hasInputPending = typeof navigator?.scheduling?.isInputPending === 'function';
+const canYield: boolean = typeof globalThis.scheduler?.yield === 'function';
+const hasInputPending: boolean = typeof navigator?.scheduling?.isInputPending === 'function';
 
 /**
  * Creates a batched update scheduler. Coalesces rapid state updates into a single
  * execution pass using rAF (browser) or queueMicrotask (Node.js).
- * Uses Promise.withResolvers (ES2024) for flush coordination.
  */
 export function createScheduler(): Scheduler {
   let pending: Array<() => void> = [];
@@ -30,6 +29,8 @@ export function createScheduler(): Scheduler {
   let microtaskScheduled = false;
 
   function executeBatch(): void {
+    // Snapshot and clear BEFORE execution — new updates during execution
+    // go into a fresh array, preventing the race condition
     const batch = pending;
     pending = [];
     rafId = null;
@@ -39,7 +40,7 @@ export function createScheduler(): Scheduler {
     // and yield to the main thread to keep the UI responsive
     if (batch.length > 10 && hasInputPending && navigator.scheduling?.isInputPending?.()) {
       // Re-queue unprocessed updates so user input is handled first
-      pending = batch;
+      pending = [...batch, ...pending];
       if (canYield) {
         void globalThis.scheduler?.yield?.().then(() => void executeBatch());
       } else {
@@ -48,15 +49,23 @@ export function createScheduler(): Scheduler {
       return;
     }
 
-    // for...of — hot batch execution path, no closure overhead
-    for (const update of batch) update();
+    // Execute each update with error isolation — one failing update
+    // must not kill the rest of the batch
+    for (const update of batch) {
+      try {
+        update();
+      } catch (error: unknown) {
+        // Report without breaking the batch — use queueMicrotask to throw
+        // asynchronously so the error is surfaced but doesn't halt processing
+        queueMicrotask(() => {
+          throw error;
+        });
+      }
+    }
   }
 
-  function flush(): Promise<void> {
-    const { promise, resolve } = Promise.withResolvers<void>();
+  function flush(): void {
     executeBatch();
-    resolve();
-    return promise;
   }
 
   return {

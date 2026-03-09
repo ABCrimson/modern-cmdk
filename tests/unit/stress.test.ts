@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const WORDS = [
+const WORDS: string[] = [
   'apple',
   'banana',
   'cherry',
@@ -37,7 +37,7 @@ const WORDS = [
 // ES2026 Iterator Helpers — generate items using Iterator.from().map().toArray()
 function generateItems(count: number): CommandItem[] {
   return Iterator.from({
-    [Symbol.iterator]: function* () {
+    [Symbol.iterator]: function* (): Generator<number> {
       for (let i = 0; i < count; i++) yield i;
     },
   })
@@ -84,7 +84,7 @@ describe('Stress Tests (0.8.6)', () => {
     for (let cycle = 0; cycle < 20; cycle++) {
       engine.clear();
       engine.index(items);
-      const results = engine.search(WORDS[cycle % WORDS.length]!, items).toArray();
+      const results = engine.search(WORDS[cycle % WORDS.length] as string, items).toArray();
       expect(results.length).toBeGreaterThan(0);
     }
   });
@@ -114,7 +114,7 @@ describe('Stress Tests (0.8.6)', () => {
 
     // Simulate user flow: search, select, search again
     for (let i = 0; i < 50; i++) {
-      const query = WORDS[i % WORDS.length]!;
+      const query = WORDS[i % WORDS.length] as string;
       const results = searchEngine.search(query, items).toArray();
 
       if (results.length > 0) {
@@ -154,7 +154,11 @@ describe('Stress Tests (0.8.6)', () => {
 
   it('should handle items with very long values', () => {
     // ES2026 Iterator Helpers — generate long items via iterator pipeline
-    const longItems: CommandItem[] = Iterator.from({ [Symbol.iterator]: function* () { for (let i = 0; i < 1_000; i++) yield i; } })
+    const longItems: CommandItem[] = Iterator.from({
+      [Symbol.iterator]: function* (): Generator<number> {
+        for (let i = 0; i < 1_000; i++) yield i;
+      },
+    })
       .map((i) => ({
         id: itemId(`long-${i}`),
         value: `${'a'.repeat(500)} item-${i} ${'z'.repeat(500)}`,

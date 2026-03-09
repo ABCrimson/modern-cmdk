@@ -38,7 +38,7 @@ type DevtoolsRegistry = Map<string, DevtoolsState>;
  * }
  * ```
  */
-export function useCommandDevtools(label = 'default'): void {
+export function useCommandDevtools(label: string = 'default'): void {
   if (!__DEV__) return;
 
   // eslint-disable-next-line react-hooks/rules-of-hooks -- __DEV__ is compile-time constant
@@ -66,10 +66,10 @@ export function useCommandDevtools(label = 'default'): void {
 
       // Use Map.groupBy-style registry via global singleton
       const globals = globalThis as Record<string, unknown>;
-      const instances: DevtoolsRegistry = (globals[DEVTOOLS_KEY] ??= new Map<
-        string,
-        DevtoolsState
-      >()) as DevtoolsRegistry;
+      if (!globals[DEVTOOLS_KEY]) {
+        globals[DEVTOOLS_KEY] = new Map<string, DevtoolsState>();
+      }
+      const instances: DevtoolsRegistry = globals[DEVTOOLS_KEY] as DevtoolsRegistry;
       instances.set(label, devState);
 
       globalThis.dispatchEvent?.(

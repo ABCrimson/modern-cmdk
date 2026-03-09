@@ -9,8 +9,15 @@ import type { SearchResult } from './types.js';
 // ── Word boundary detection via charCode — no regex, no split, no allocation ──
 function isWordSeparator(code: number): boolean {
   // space(32) tab(9) hyphen(45) underscore(95) period(46) slash(47) backslash(92)
-  return code === 32 || code === 9 || code === 45 || code === 95 ||
-    code === 46 || code === 47 || code === 92;
+  return (
+    code === 32 ||
+    code === 9 ||
+    code === 45 ||
+    code === 95 ||
+    code === 46 ||
+    code === 47 ||
+    code === 92
+  );
 }
 
 /**
@@ -41,7 +48,7 @@ export function scoreItem(query: string, item: CommandItem): SearchResult | null
   const kw = item.keywords;
   if (kw !== undefined) {
     for (let i = 0; i < kw.length; i++) {
-      const result = scoreTarget(lowerQuery, kw[i]!.toLowerCase());
+      const result = scoreTarget(lowerQuery, (kw[i] as string).toLowerCase());
       if (result !== null && result.score > bestScore) {
         bestScore = result.score;
         bestMatches = result.matches;
@@ -75,7 +82,7 @@ export function scoreItemPreLowered(
 
   if (lowerKeywords !== undefined) {
     for (let i = 0; i < lowerKeywords.length; i++) {
-      const result = scoreTarget(lowerQuery, lowerKeywords[i]!);
+      const result = scoreTarget(lowerQuery, lowerKeywords[i] as string);
       if (result !== null && result.score > bestScore) {
         bestScore = result.score;
         bestMatches = result.matches;

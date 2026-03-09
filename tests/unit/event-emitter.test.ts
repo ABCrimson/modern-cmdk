@@ -140,10 +140,12 @@ describe('TypedEmitter (0.0.3)', () => {
 
     // ES2026 Iterator Helpers — emit using iterator pipeline
     Iterator.from({
-      [Symbol.iterator]: function* () {
+      [Symbol.iterator]: function* (): Generator<number> {
         for (let i = 0; i < 100; i++) yield i;
       },
-    }).forEach((i) => emitter.emit('count', i));
+    }).forEach((i) => {
+      emitter.emit('count', i);
+    });
 
     expect(handler).toHaveBeenCalledTimes(100);
   });

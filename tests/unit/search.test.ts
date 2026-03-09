@@ -1,4 +1,4 @@
-import type { CommandItem } from '@crimson_dev/command';
+import type { CommandItem, SearchResult } from '@crimson_dev/command';
 import { createSearchEngine, itemId, scoreItem } from '@crimson_dev/command';
 import { describe, expect, it } from 'vitest';
 
@@ -146,12 +146,12 @@ describe('createSearchEngine', () => {
     engine.index(items);
 
     engine.remove(new Set([items[0]?.id]));
-    const results = engine.search('a', [items[1]!]).toArray();
+    const results = engine.search('a', [items[1] as CommandItem]).toArray();
     expect(results.every((r) => r.id !== items[0]?.id)).toBe(true);
   });
 
   it('should support custom scorer', () => {
-    const customScorer = (query: string, item: CommandItem) => {
+    const customScorer = (query: string, item: CommandItem): SearchResult | null => {
       if (item.value.includes(query)) {
         return { id: item.id, score: 42, matches: [] as const };
       }

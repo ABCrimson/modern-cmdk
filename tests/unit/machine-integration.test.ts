@@ -1,4 +1,4 @@
-import type { CommandItem } from '@crimson_dev/command';
+import type { CommandItem, ItemId } from '@crimson_dev/command';
 import { createCommandMachine, groupId, itemId } from '@crimson_dev/command';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -36,7 +36,7 @@ describe('Machine Integration (0.0.9)', () => {
     });
 
     // Select
-    const activeId = machine.getState().activeId!;
+    const activeId = machine.getState().activeId as ItemId;
     machine.send({ type: 'ITEM_SELECT', id: activeId });
     await vi.waitFor(() => {
       expect(onSelect).toHaveBeenCalled();
@@ -161,7 +161,7 @@ describe('Machine Integration (0.0.9)', () => {
   it('should support custom filter function', async () => {
     using machine = createCommandMachine({
       items: [makeItem('a', 'Apple'), makeItem('b', 'Banana'), makeItem('c', 'Cherry')],
-      filter: (item, query) => {
+      filter: (item: CommandItem, query: string) => {
         // Only match exact start
         if (item.value.toLowerCase().startsWith(query.toLowerCase())) {
           return 1;
@@ -269,7 +269,11 @@ describe('Machine Integration (0.0.9)', () => {
   it('should handle rapid events without data loss', async () => {
     using machine = createCommandMachine({
       // ES2026 Iterator Helpers — generate items via iterator pipeline
-      items: Iterator.from({ [Symbol.iterator]: function* () { for (let i = 0; i < 100; i++) yield i; } })
+      items: Iterator.from({
+        [Symbol.iterator]: function* (): Generator<number> {
+          for (let i = 0; i < 100; i++) yield i;
+        },
+      })
         .map((i) => makeItem(`item-${i}`, `Item ${i}`))
         .toArray(),
     });

@@ -15,7 +15,11 @@ export interface ParsedShortcut {
   readonly normalized: string;
 }
 
-const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+// Prefer navigator.userAgentData (modern) over deprecated navigator.userAgent
+const isMac: boolean =
+  typeof navigator !== 'undefined' &&
+  ((navigator as { userAgentData?: { platform?: string } }).userAgentData?.platform === 'macOS' ||
+    /Mac|iPod|iPhone|iPad/.test(navigator.platform));
 
 /** Modifier aliases — cross-platform Mod resolution */
 const MODIFIER_MAP: Readonly<
@@ -42,10 +46,6 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
   // String.isWellFormed() (ES2026) — validate Unicode before processing
   const safeShortcut = shortcut.isWellFormed() ? shortcut : shortcut.toWellFormed();
 
-  // RegExp.escape (ES2026) — safely create a pattern to validate the shortcut string
-  const _safePattern = new RegExp(`^${RegExp.escape(safeShortcut)}$`);
-
-  // Split on "+" delimiter — direct split, no need to escape "+" since we're not doing regex matching here
   const parts = safeShortcut.split('+').map((p) => p.trim().toLowerCase());
 
   let meta = false;

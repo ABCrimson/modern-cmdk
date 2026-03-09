@@ -3,22 +3,24 @@ import jscodeshift from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
 import transform from '../../packages/command-codemod/src/transforms/data-attrs.js';
 
-function createApi(parser = 'tsx'): API {
+function createApi(parser: string = 'tsx'): API {
   return {
     jscodeshift: jscodeshift.withParser(parser),
     j: jscodeshift.withParser(parser),
-    stats: () => {},
-    report: () => {},
+    stats: (): void => {},
+    report: (): void => {},
   };
 }
 
-function run(source: string, parser = 'tsx'): string {
+function run(source: string, parser: string = 'tsx'): string {
   const fileInfo: FileInfo = { path: 'test.tsx', source };
   return transform(fileInfo, createApi(parser));
 }
 
 // ES2026 Object.groupBy — organize test cases by category for data-driven testing
-const attrRenameTests = Object.groupBy(
+const attrRenameTests: Partial<
+  Record<string, { attr: string; expected: string; category: string }[]>
+> = Object.groupBy(
   [
     { attr: 'cmdk-root', expected: 'data-command', category: 'jsx-attr' },
     { attr: 'cmdk-item', expected: 'data-command-item', category: 'jsx-attr' },

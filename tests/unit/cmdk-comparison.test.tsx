@@ -32,21 +32,18 @@
 // ============================================================================
 
 import {
+  type CommandItem as CoreCommandItem,
   computeFrecencyBonus,
   createCommandMachine,
   createSearchEngine,
   detectConflicts,
+  type FrecencyRecord,
   formatShortcut,
   groupId,
   itemId,
   matchesShortcut,
   parseShortcut,
   scoreItem,
-  type CommandItem as CoreCommandItem,
-  type CommandMachine,
-  type CommandState,
-  type FrecencyRecord,
-  type SearchResult,
 } from '@crimson_dev/command';
 import {
   Command,
@@ -331,7 +328,7 @@ describe('2. Data Attributes (renamed from [cmdk-*])', () => {
     );
 
     // Type something that won't match to trigger empty
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'zzzzzzzz');
 
     await vi.waitFor(() => {
@@ -359,13 +356,17 @@ describe('2. Data Attributes (renamed from [cmdk-*])', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="first" forceId="first">First</Command.Item>
-          <Command.Item value="second" forceId="second">Second</Command.Item>
+          <Command.Item value="first" forceId="first">
+            First
+          </Command.Item>
+          <Command.Item value="second" forceId="second">
+            Second
+          </Command.Item>
         </Command.List>
       </Command>,
     );
 
-    const first = container.querySelector('#first')!;
+    const first = container.querySelector('#first') as Element;
     // NEW: presence-based [data-active] instead of cmdk's [data-selected="true"]
     expect(first.hasAttribute('data-active')).toBe(true);
     expect(first.hasAttribute('data-selected')).toBe(false);
@@ -381,7 +382,7 @@ describe('2. Data Attributes (renamed from [cmdk-*])', () => {
       </Command>,
     );
 
-    const item = container.querySelector('[data-command-item]')!;
+    const item = container.querySelector('[data-command-item]') as Element;
     expect(item.getAttribute('data-value')).toBe('my-value');
   });
 });
@@ -431,7 +432,7 @@ describe('4. ARIA / Accessibility', () => {
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     expect.soft(input.getAttribute('role')).toBe('combobox');
     expect.soft(input.getAttribute('aria-expanded')).toBe('true');
     expect.soft(input.getAttribute('aria-autocomplete')).toBe('list');
@@ -449,7 +450,7 @@ describe('4. ARIA / Accessibility', () => {
       </Command>,
     );
 
-    const list = container.querySelector('[data-command-list]')!;
+    const list = container.querySelector('[data-command-list]') as Element;
     expect(list.getAttribute('role')).toBe('listbox');
   });
 
@@ -463,7 +464,7 @@ describe('4. ARIA / Accessibility', () => {
       </Command>,
     );
 
-    const item = container.querySelector('[data-command-item]')!;
+    const item = container.querySelector('[data-command-item]') as Element;
     expect(item.getAttribute('role')).toBe('option');
   });
 
@@ -472,13 +473,17 @@ describe('4. ARIA / Accessibility', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="alpha" forceId="alpha">Alpha</Command.Item>
-          <Command.Item value="beta" forceId="beta">Beta</Command.Item>
+          <Command.Item value="alpha" forceId="alpha">
+            Alpha
+          </Command.Item>
+          <Command.Item value="beta" forceId="beta">
+            Beta
+          </Command.Item>
         </Command.List>
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     // First item auto-selected
     expect(input.getAttribute('aria-activedescendant')).toBe('alpha');
   });
@@ -488,14 +493,18 @@ describe('4. ARIA / Accessibility', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="alpha" forceId="alpha">Alpha</Command.Item>
-          <Command.Item value="beta" forceId="beta">Beta</Command.Item>
+          <Command.Item value="alpha" forceId="alpha">
+            Alpha
+          </Command.Item>
+          <Command.Item value="beta" forceId="beta">
+            Beta
+          </Command.Item>
         </Command.List>
       </Command>,
     );
 
-    const alpha = container.querySelector('#alpha')!;
-    const beta = container.querySelector('#beta')!;
+    const alpha = container.querySelector('#alpha') as Element;
+    const beta = container.querySelector('#beta') as Element;
     expect(alpha.getAttribute('aria-selected')).toBe('true');
     expect(beta.getAttribute('aria-selected')).toBe('false');
   });
@@ -510,8 +519,8 @@ describe('4. ARIA / Accessibility', () => {
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
-    const list = container.querySelector('[data-command-list]')!;
+    const input = container.querySelector('input') as HTMLInputElement;
+    const list = container.querySelector('[data-command-list]') as Element;
     expect(input.getAttribute('aria-controls')).toBe(list.id);
   });
 
@@ -525,7 +534,7 @@ describe('4. ARIA / Accessibility', () => {
       </Command>,
     );
 
-    const rootEl = container.querySelector('[data-command-root]')!;
+    const rootEl = container.querySelector('[data-command-root]') as Element;
     expect(rootEl.getAttribute('aria-label')).toBe('My Palette');
   });
 
@@ -539,11 +548,11 @@ describe('4. ARIA / Accessibility', () => {
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'zzzzzz');
 
     await vi.waitFor(() => {
-      const empty = container.querySelector('[data-command-empty]')!;
+      const empty = container.querySelector('[data-command-empty]') as Element;
       expect(empty.getAttribute('role')).toBe('status');
     });
   });
@@ -558,7 +567,7 @@ describe('4. ARIA / Accessibility', () => {
       </Command>,
     );
 
-    const loading = container.querySelector('[data-command-loading]')!;
+    const loading = container.querySelector('[data-command-loading]') as Element;
     expect.soft(loading.getAttribute('role')).toBe('status');
     expect.soft(loading.hasAttribute('aria-busy')).toBe(true);
   });
@@ -586,7 +595,7 @@ describe('5. Filtering & Sorting', () => {
 
     expect(getItems().length).toBe(3);
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'ban');
 
     await vi.waitFor(() => {
@@ -607,7 +616,7 @@ describe('5. Filtering & Sorting', () => {
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'app');
 
     await vi.waitFor(() => {
@@ -626,14 +635,20 @@ describe('5. Filtering & Sorting', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="apple" forceId="apple">Apple</Command.Item>
-          <Command.Item value="banana" forceId="banana">Banana</Command.Item>
-          <Command.Item value="cherry" forceId="cherry">Cherry</Command.Item>
+          <Command.Item value="apple" forceId="apple">
+            Apple
+          </Command.Item>
+          <Command.Item value="banana" forceId="banana">
+            Banana
+          </Command.Item>
+          <Command.Item value="cherry" forceId="cherry">
+            Cherry
+          </Command.Item>
         </Command.List>
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'ban');
 
     await vi.waitFor(() => {
@@ -657,9 +672,15 @@ describe('6. Keyboard Navigation', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="one" forceId="one">One</Command.Item>
-          <Command.Item value="two" forceId="two">Two</Command.Item>
-          <Command.Item value="three" forceId="three">Three</Command.Item>
+          <Command.Item value="one" forceId="one">
+            One
+          </Command.Item>
+          <Command.Item value="two" forceId="two">
+            Two
+          </Command.Item>
+          <Command.Item value="three" forceId="three">
+            Three
+          </Command.Item>
         </Command.List>
       </Command>,
     );
@@ -681,8 +702,12 @@ describe('6. Keyboard Navigation', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="one" forceId="one">One</Command.Item>
-          <Command.Item value="two" forceId="two">Two</Command.Item>
+          <Command.Item value="one" forceId="one">
+            One
+          </Command.Item>
+          <Command.Item value="two" forceId="two">
+            Two
+          </Command.Item>
         </Command.List>
       </Command>,
     );
@@ -740,7 +765,7 @@ describe('7. Controlled State', () => {
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'hello');
 
     expect(onValueChange).toHaveBeenCalledWith('hello');
@@ -756,7 +781,7 @@ describe('7. Controlled State', () => {
       </Command>,
     );
 
-    const input = container.querySelector('input')! as HTMLInputElement;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'test query');
 
     // The input value should reflect what was typed
@@ -836,7 +861,7 @@ describe('8. Dialog Variant', () => {
       expect(container.querySelector('[data-command-overlay]')).not.toBeNull();
     });
 
-    const overlay = container.querySelector('[data-command-overlay]')!;
+    const overlay = container.querySelector('[data-command-overlay]') as Element;
     await act(async () => {
       overlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
     });
@@ -898,7 +923,7 @@ describe('9. useCommandState Hook', () => {
     // With items, empty should not show
     expect(container.querySelector('[data-command-empty]')).toBeNull();
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'zzz');
 
     // With no matches, empty should show
@@ -939,9 +964,15 @@ describe('10. Disabled Items', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="one" forceId="one">One</Command.Item>
-          <Command.Item value="two" forceId="two" disabled>Two (disabled)</Command.Item>
-          <Command.Item value="three" forceId="three">Three</Command.Item>
+          <Command.Item value="one" forceId="one">
+            One
+          </Command.Item>
+          <Command.Item value="two" forceId="two" disabled>
+            Two (disabled)
+          </Command.Item>
+          <Command.Item value="three" forceId="three">
+            Three
+          </Command.Item>
         </Command.List>
       </Command>,
     );
@@ -977,7 +1008,7 @@ describe('11. Loading / Empty States', () => {
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'zzzzz');
 
     await vi.waitFor(() => {
@@ -1080,9 +1111,9 @@ describe('12. Groups & Separators', () => {
     );
 
     await vi.waitFor(() => {
-      const group = container.querySelector('[data-command-group]')!;
+      const group = container.querySelector('[data-command-group]') as Element;
       expect(group.getAttribute('role')).toBe('group');
-      const heading = group.querySelector('[data-command-group-heading]')!;
+      const heading = group.querySelector('[data-command-group-heading]') as Element;
       expect(group.getAttribute('aria-labelledby')).toBe(heading.id);
     });
   });
@@ -1099,7 +1130,7 @@ describe('12. Groups & Separators', () => {
       </Command>,
     );
 
-    const sep = container.querySelector('[data-command-separator]')!;
+    const sep = container.querySelector('[data-command-separator]') as Element;
     expect(sep.getAttribute('role')).toBe('separator');
   });
 });
@@ -1125,7 +1156,7 @@ describe('13. Keywords Filtering', () => {
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'pref');
 
     await vi.waitFor(() => {
@@ -1148,7 +1179,7 @@ describe('13. Keywords Filtering', () => {
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'settings');
 
     await vi.waitFor(() => {
@@ -1179,7 +1210,7 @@ describe('14. Custom Filter / Disable Filtering', () => {
       </Command>,
     );
 
-    const input = container.querySelector('input')!;
+    const input = container.querySelector('input') as HTMLInputElement;
     await typeInInput(input, 'xyz');
 
     // With filter disabled, all items remain visible regardless of search
@@ -1202,8 +1233,12 @@ describe('15. Loop Navigation', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="one" forceId="one">One</Command.Item>
-          <Command.Item value="two" forceId="two">Two</Command.Item>
+          <Command.Item value="one" forceId="one">
+            One
+          </Command.Item>
+          <Command.Item value="two" forceId="two">
+            Two
+          </Command.Item>
         </Command.List>
       </Command>,
     );
@@ -1226,8 +1261,12 @@ describe('15. Loop Navigation', () => {
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="one" forceId="one">One</Command.Item>
-          <Command.Item value="two" forceId="two">Two</Command.Item>
+          <Command.Item value="one" forceId="one">
+            One
+          </Command.Item>
+          <Command.Item value="two" forceId="two">
+            Two
+          </Command.Item>
         </Command.List>
       </Command>,
     );
@@ -1262,7 +1301,7 @@ describe('16. onSelect Callback', () => {
       </Command>,
     );
 
-    const item = container.querySelector('#clickable')!;
+    const item = container.querySelector('#clickable') as Element;
     await act(async () => {
       item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -1729,7 +1768,13 @@ describe('18. API Surface Comparison Summary', () => {
   });
 
   it('should have 5 additional hooks not in cmdk', () => {
-    const newHooks = [useCommand, useRegisterItem, useRegisterGroup, useVirtualizer, useCommandDevtools];
+    const newHooks = [
+      useCommand,
+      useRegisterItem,
+      useRegisterGroup,
+      useVirtualizer,
+      useCommandDevtools,
+    ];
 
     for (const hook of newHooks) {
       expect(hook).toBeDefined();

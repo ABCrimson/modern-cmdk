@@ -16,6 +16,8 @@ export interface CommandContextValue {
   readonly isPending: boolean;
   readonly updateSearch: (query: string) => void;
   readonly setOptimisticActiveId: (id: ItemId | null) => void;
+  /** O(1) membership check for filtered items — avoids O(n) Array.includes per item */
+  readonly filteredIdSet: ReadonlySet<ItemId>;
   readonly rootId: CommandRootId;
   readonly listId: string;
   readonly inputId: string;

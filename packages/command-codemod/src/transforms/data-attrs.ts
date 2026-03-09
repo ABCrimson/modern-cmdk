@@ -6,7 +6,7 @@
 import type { API, FileInfo } from 'jscodeshift';
 
 /** Mapping from old bare attribute names to new data-attribute names */
-const ATTR_MAP = new Map<string, string>([
+const ATTR_MAP: Map<string, string> = new Map<string, string>([
   ['cmdk-root', 'data-command'],
   ['cmdk-input', 'data-command-input'],
   ['cmdk-list', 'data-command-list'],
@@ -18,7 +18,9 @@ const ATTR_MAP = new Map<string, string>([
 ]);
 
 /** CSS custom property renames */
-const CSS_VAR_MAP = new Map<string, string>([['--cmdk-list-height', '--command-list-height']]);
+const CSS_VAR_MAP: Map<string, string> = new Map<string, string>([
+  ['--cmdk-list-height', '--command-list-height'],
+]);
 
 /**
  * Replace all cmdk attribute selectors (bracketed) and CSS vars in a string.

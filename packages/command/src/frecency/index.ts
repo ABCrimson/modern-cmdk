@@ -12,12 +12,12 @@ import type {
 import { DEFAULT_FRECENCY_DECAY } from '../types.js';
 import { MemoryFrecencyStorage } from './memory-storage.js';
 
-/** Human-readable duration boundaries using Temporal.Duration */
-const DURATION_BUCKETS = {
-  hour: Temporal.Duration.from({ hours: 1 }),
-  day: Temporal.Duration.from({ hours: 24 }),
-  week: Temporal.Duration.from({ days: 7 }),
-  month: Temporal.Duration.from({ days: 30 }),
+/** Pre-computed bucket boundaries in hours — avoids Duration.total() per call */
+const BUCKET_HOURS = {
+  hour: 1,
+  day: 24,
+  week: 7 * 24,
+  month: 30 * 24,
 } as const;
 
 /**
@@ -33,11 +33,6 @@ export function computeFrecencyBonus(
   const elapsed = now.since(history.lastUsed);
   const hours = elapsed.total('hours');
 
-  const hourBound = DURATION_BUCKETS.hour.total('hours');
-  const dayBound = DURATION_BUCKETS.day.total('hours');
-  const weekBound = DURATION_BUCKETS.week.total('hours');
-  const monthBound = DURATION_BUCKETS.month.total('hours');
-
   const {
     hourWeight = 4.0,
     dayWeight = 2.0,
@@ -46,15 +41,15 @@ export function computeFrecencyBonus(
     olderWeight = 0.5,
   } = config;
 
-  // Exponential decay with Temporal.Duration-based bucket boundaries
+  // Exponential decay with pre-computed bucket boundaries
   const recencyWeight =
-    hours < hourBound
+    hours < BUCKET_HOURS.hour
       ? hourWeight
-      : hours < dayBound
+      : hours < BUCKET_HOURS.day
         ? dayWeight
-        : hours < weekBound
+        : hours < BUCKET_HOURS.week
           ? weekWeight
-          : hours < monthBound
+          : hours < BUCKET_HOURS.month
             ? monthWeight
             : olderWeight;
 

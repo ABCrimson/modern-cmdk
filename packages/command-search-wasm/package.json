@@ -2,7 +2,8 @@
   "name": "@crimson_dev/command-search-wasm",
   "version": "0.9.0",
   "type": "module",
-  "description": "Optional WASM-accelerated fuzzy search for @crimson_dev/command",
+  "description": "Optional WASM-accelerated fuzzy search for @crimson_dev/command (not yet published — requires wasm-pack)",
+  "private": true,
   "license": "MIT",
   "exports": {
     ".": {
@@ -23,7 +24,7 @@
   },
   "sideEffects": false,
   "peerDependencies": {
-    "@crimson_dev/command": "workspace:*"
+    "@crimson_dev/command": "workspace:>=0.9.0"
   },
   "keywords": [
     "wasm",

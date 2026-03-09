@@ -13,8 +13,11 @@ pre-commit:
         - rebase
 
 pre-push:
+  parallel: true
   commands:
     test:
       run: vitest run --reporter=dot
     size:
-      run: pnpm build && size-limit
+      # Only check size if packages changed — skip full rebuild on docs-only pushes
+      glob: "packages/*/src/**/*.{ts,tsx}"
+      run: pnpm --filter './packages/*' run build && size-limit

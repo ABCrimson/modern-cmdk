@@ -12,13 +12,15 @@
  * // id has type ItemId, not string — catches type errors at compile time
  * ```
  */
-export type ItemId = string & { readonly __brand: unique symbol };
+declare const __itemIdBrand: unique symbol;
+export type ItemId = string & { readonly [__itemIdBrand]: never };
 
 /**
  * Branded type for group IDs.
  * Prevents accidental mixing with plain strings or ItemId at the type level.
  */
-export type GroupId = string & { readonly __brand: unique symbol };
+declare const __groupIdBrand: unique symbol;
+export type GroupId = string & { readonly [__groupIdBrand]: never };
 
 /** Create a branded {@link ItemId} from a plain string. Ensures well-formed Unicode (ES2026). */
 export function itemId(id: string): ItemId {

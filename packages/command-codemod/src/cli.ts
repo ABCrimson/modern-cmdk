@@ -12,7 +12,7 @@ import jscodeshift from 'jscodeshift';
 
 // --- Transform registry ---------------------------------------------------
 
-const AVAILABLE_TRANSFORMS = new Map<string, string>([
+const AVAILABLE_TRANSFORMS: Map<string, string> = new Map<string, string>([
   ['import-rewrite', 'Rewrites cmdk imports to @crimson_dev/command-react'],
   ['data-attrs', 'Converts [cmdk-*] selectors to [data-command-*]'],
   ['forward-ref', 'Removes React.forwardRef wrappers (React 19)'],
@@ -58,13 +58,15 @@ function parseArgs(argv: string[]): CliArgs | null {
     return null;
   }
 
-  const transformName = positional[0]!;
-  const fileGlob = positional[1]!;
+  const transformName = positional[0] as string;
+  const fileGlob = positional[1] as string;
   const dryRun = flags.some((f) => f === '--dry-run');
 
   // Parse --concurrency=N flag using Iterator Helpers
   const concurrencyFlag = flags.values().find((f) => f.startsWith('--concurrency='));
-  const concurrency = concurrencyFlag ? Number.parseInt(concurrencyFlag.split('=')[1]!, 10) : 8;
+  const concurrency = concurrencyFlag
+    ? Number.parseInt(concurrencyFlag.split('=')[1] as string, 10)
+    : 8;
 
   return { transformName, fileGlob, dryRun, concurrency };
 }
@@ -138,8 +140,8 @@ async function main(): Promise<void> {
   const apiForParser = (parser: string): API => ({
     jscodeshift: jscodeshift.withParser(parser),
     j: jscodeshift.withParser(parser),
-    stats: () => {},
-    report: () => {},
+    stats: (): void => {},
+    report: (): void => {},
   });
 
   // Process files in concurrent batches using Promise.withResolvers for tracking

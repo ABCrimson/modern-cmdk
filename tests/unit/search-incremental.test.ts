@@ -124,7 +124,7 @@ describe('Incremental Filtering (0.0.6)', () => {
     using engine = createSearchEngine();
     // ES2026 Iterator Helpers — generate test items via iterator pipeline
     const items = Iterator.from({
-      [Symbol.iterator]: function* () {
+      [Symbol.iterator]: function* (): Generator<number> {
         for (let i = 0; i < 100; i++) yield i;
       },
     })

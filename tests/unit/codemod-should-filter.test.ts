@@ -4,16 +4,16 @@ import { describe, expect, it } from 'vitest';
 import transform from '../../packages/command-codemod/src/transforms/should-filter.js';
 
 // Vitest 4.1 — vi.hoisted() not needed here since helpers are pure functions
-function createApi(parser = 'tsx'): API {
+function createApi(parser: string = 'tsx'): API {
   return {
     jscodeshift: jscodeshift.withParser(parser),
     j: jscodeshift.withParser(parser),
-    stats: () => {},
-    report: () => {},
+    stats: (): void => {},
+    report: (): void => {},
   };
 }
 
-function run(source: string, parser = 'tsx'): string {
+function run(source: string, parser: string = 'tsx'): string {
   const fileInfo: FileInfo = { path: 'test.tsx', source };
   return transform(fileInfo, createApi(parser));
 }

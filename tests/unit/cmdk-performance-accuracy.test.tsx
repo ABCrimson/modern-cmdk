@@ -2,37 +2,70 @@
 // Head-to-head: @crimson_dev/command vs cmdk — Performance & Search Accuracy
 // Vitest 4.1 — ES2026 — React 19
 
+// ── Our library ──
+import type { CommandItem, SearchResult } from '@crimson_dev/command';
+import { createCommandMachine, createSearchEngine, itemId, scoreItem } from '@crimson_dev/command';
+import { Command } from '@crimson_dev/command-react';
+// ── cmdk (the original) ──
+import { Command as CmdkCommand, defaultFilter as cmdkDefaultFilter } from 'cmdk';
 import type { ReactNode } from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-// ── Our library ──
-import type { CommandItem } from '@crimson_dev/command';
-import { createCommandMachine, createSearchEngine, itemId, scoreItem } from '@crimson_dev/command';
-import { Command } from '@crimson_dev/command-react';
-
-// ── cmdk (the original) ──
-import { Command as CmdkCommand, defaultFilter as cmdkDefaultFilter } from 'cmdk';
-
 // ─────────────────────────────────────────────────────────────
 // Shared test data generators
 // ─────────────────────────────────────────────────────────────
 
-const WORDS = [
-  'apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew',
-  'kiwi', 'lemon', 'mango', 'nectarine', 'orange', 'papaya', 'quince', 'raspberry',
-  'strawberry', 'tangerine', 'watermelon', 'blueberry', 'peach', 'plum', 'apricot', 'coconut',
+const WORDS: string[] = [
+  'apple',
+  'banana',
+  'cherry',
+  'date',
+  'elderberry',
+  'fig',
+  'grape',
+  'honeydew',
+  'kiwi',
+  'lemon',
+  'mango',
+  'nectarine',
+  'orange',
+  'papaya',
+  'quince',
+  'raspberry',
+  'strawberry',
+  'tangerine',
+  'watermelon',
+  'blueberry',
+  'peach',
+  'plum',
+  'apricot',
+  'coconut',
 ];
 
-const ACTIONS = [
-  'Open', 'Close', 'Delete', 'Create', 'Edit', 'Copy', 'Paste', 'Search',
-  'Settings', 'Profile', 'Dashboard', 'Analytics', 'Export', 'Import', 'Share', 'Download',
+const ACTIONS: string[] = [
+  'Open',
+  'Close',
+  'Delete',
+  'Create',
+  'Edit',
+  'Copy',
+  'Paste',
+  'Search',
+  'Settings',
+  'Profile',
+  'Dashboard',
+  'Analytics',
+  'Export',
+  'Import',
+  'Share',
+  'Download',
 ];
 
 function generatePlainItems(count: number): string[] {
   return Iterator.from({
-    [Symbol.iterator]: function* () {
+    [Symbol.iterator]: function* (): Generator<number> {
       for (let i = 0; i < count; i++) yield i;
     },
   })
@@ -42,7 +75,7 @@ function generatePlainItems(count: number): string[] {
 
 function generateCommandItems(count: number): CommandItem[] {
   return Iterator.from({
-    [Symbol.iterator]: function* () {
+    [Symbol.iterator]: function* (): Generator<number> {
       for (let i = 0; i < count; i++) yield i;
     },
   })
@@ -101,8 +134,8 @@ describe('1. Raw Filter Throughput (scoreItem vs defaultFilter)', () => {
           // Log results for visibility
           console.log(
             `  [${size.toLocaleString()} items] "${query}": ` +
-            `cmdk=${cmdkTime.toFixed(3)}ms, ours=${ourTime.toFixed(3)}ms → ` +
-            `${winner} ${speedup.toFixed(1)}x faster`
+              `cmdk=${cmdkTime.toFixed(3)}ms, ours=${ourTime.toFixed(3)}ms → ` +
+              `${winner} ${speedup.toFixed(1)}x faster`,
           );
 
           // Both should complete — just verify no crashes
@@ -149,8 +182,8 @@ describe('2. Search Engine Pipeline Throughput', () => {
 
       console.log(
         `  [${size.toLocaleString()} items] Full pipeline: ` +
-        `cmdk=${cmdkTime.toFixed(3)}ms, ours=${ourTime.toFixed(3)}ms → ` +
-        `${winner} ${speedup.toFixed(1)}x faster`
+          `cmdk=${cmdkTime.toFixed(3)}ms, ours=${ourTime.toFixed(3)}ms → ` +
+          `${winner} ${speedup.toFixed(1)}x faster`,
       );
 
       expect(cmdkTime).toBeGreaterThan(0);
@@ -194,8 +227,8 @@ describe('3. Incremental Search (simulated typing)', () => {
 
     console.log(
       `  [10K items] Typing "apple" (5 keystrokes): ` +
-      `cmdk=${cmdkTime.toFixed(3)}ms, ours=${ourTime.toFixed(3)}ms → ` +
-      `${winner} ${speedup.toFixed(1)}x faster`
+        `cmdk=${cmdkTime.toFixed(3)}ms, ours=${ourTime.toFixed(3)}ms → ` +
+        `${winner} ${speedup.toFixed(1)}x faster`,
     );
 
     expect(cmdkTime).toBeGreaterThan(0);
@@ -219,9 +252,7 @@ describe('4. State Machine Creation + Search Dispatch', () => {
         machine.send({ type: 'SEARCH_CHANGE', query: 'apple' });
       }, 5);
 
-      console.log(
-        `  [${size.toLocaleString()} items] Machine create+search: ${time.toFixed(3)}ms`
-      );
+      console.log(`  [${size.toLocaleString()} items] Machine create+search: ${time.toFixed(3)}ms`);
 
       expect(time).toBeGreaterThan(0);
     });
@@ -278,7 +309,7 @@ describe('5. React Render Performance', () => {
               </CmdkCommand.Item>
             ))}
           </CmdkCommand.List>
-        </CmdkCommand>
+        </CmdkCommand>,
       );
 
       // Unmount and remount for fair comparison
@@ -299,7 +330,7 @@ describe('5. React Render Performance', () => {
               </Command.Item>
             ))}
           </Command.List>
-        </Command>
+        </Command>,
       );
 
       const ratio = cmdkRender / ourRender;
@@ -308,8 +339,8 @@ describe('5. React Render Performance', () => {
 
       console.log(
         `  [${count} items] Initial render: ` +
-        `cmdk=${cmdkRender.toFixed(2)}ms, ours=${ourRender.toFixed(2)}ms → ` +
-        `${winner} ${speedup.toFixed(1)}x faster`
+          `cmdk=${cmdkRender.toFixed(2)}ms, ours=${ourRender.toFixed(2)}ms → ` +
+          `${winner} ${speedup.toFixed(1)}x faster`,
       );
 
       expect(cmdkRender).toBeGreaterThan(0);
@@ -439,14 +470,17 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
         for (const expected of tc.expectedMatches) {
           if (resultValues.includes(expected)) foundCount++;
         }
-        const precision = tc.expectedMatches.length > 0
-          ? foundCount / tc.expectedMatches.length
-          : (resultValues.length === 0 ? 1 : 0);
+        const precision =
+          tc.expectedMatches.length > 0
+            ? foundCount / tc.expectedMatches.length
+            : resultValues.length === 0
+              ? 1
+              : 0;
 
         console.log(
           `  cmdk "${tc.query}": ${foundCount}/${tc.expectedMatches.length} expected found, ` +
-          `${results.length} total results, precision=${(precision * 100).toFixed(0)}%` +
-          (results[0] ? `, top="${results[0].value}" (${results[0].score.toFixed(4)})` : '')
+            `${results.length} total results, precision=${(precision * 100).toFixed(0)}%` +
+            (results[0] ? `, top="${results[0].value}" (${results[0].score.toFixed(4)})` : ''),
         );
 
         // Just record — don't assert (cmdk is the baseline)
@@ -467,14 +501,17 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
         for (const expected of tc.expectedMatches) {
           if (resultValues.includes(expected)) foundCount++;
         }
-        const precision = tc.expectedMatches.length > 0
-          ? foundCount / tc.expectedMatches.length
-          : (resultValues.length === 0 ? 1 : 0);
+        const precision =
+          tc.expectedMatches.length > 0
+            ? foundCount / tc.expectedMatches.length
+            : resultValues.length === 0
+              ? 1
+              : 0;
 
         console.log(
           `  ours "${tc.query}": ${foundCount}/${tc.expectedMatches.length} expected found, ` +
-          `${results.length} total results, precision=${(precision * 100).toFixed(0)}%` +
-          (results[0] ? `, top="${resultValues[0]}" (${results[0].score.toFixed(4)})` : '')
+            `${results.length} total results, precision=${(precision * 100).toFixed(0)}%` +
+            (results[0] ? `, top="${resultValues[0]}" (${results[0].score.toFixed(4)})` : ''),
         );
 
         expect(precision).toBeGreaterThanOrEqual(0);
@@ -495,7 +532,7 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
 
           console.log(
             `  cmdk "${tc.query}" specificity: ${correctlyExcluded}/${tc.expectedNonMatches.length} ` +
-            `correctly excluded (${(specificity * 100).toFixed(0)}%)`
+              `correctly excluded (${(specificity * 100).toFixed(0)}%)`,
           );
 
           expect(specificity).toBeGreaterThanOrEqual(0);
@@ -516,7 +553,7 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
 
           console.log(
             `  ours "${tc.query}" specificity: ${correctlyExcluded}/${tc.expectedNonMatches.length} ` +
-            `correctly excluded (${(specificity * 100).toFixed(0)}%)`
+              `correctly excluded (${(specificity * 100).toFixed(0)}%)`,
           );
 
           expect(specificity).toBeGreaterThanOrEqual(0);
@@ -533,7 +570,7 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
           const topCorrect = results[0]?.value === tc.expectedTopResult;
           console.log(
             `  cmdk "${tc.query}" top result: "${results[0]?.value}" ` +
-            `(expected "${tc.expectedTopResult}") → ${topCorrect ? 'CORRECT' : 'WRONG'}`
+              `(expected "${tc.expectedTopResult}") → ${topCorrect ? 'CORRECT' : 'WRONG'}`,
           );
 
           expect(typeof topCorrect).toBe('boolean');
@@ -548,7 +585,7 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
           const topCorrect = topItem?.value === tc.expectedTopResult;
           console.log(
             `  ours "${tc.query}" top result: "${topItem?.value}" ` +
-            `(expected "${tc.expectedTopResult}") → ${topCorrect ? 'CORRECT' : 'WRONG'}`
+              `(expected "${tc.expectedTopResult}") → ${topCorrect ? 'CORRECT' : 'WRONG'}`,
           );
 
           expect(typeof topCorrect).toBe('boolean');
@@ -570,29 +607,31 @@ describe('7. Match Highlighting (ours only — cmdk has no equivalent)', () => {
   ];
 
   it('should return match ranges for highlighting', () => {
-    const result = scoreItem('open', items[0]!);
+    const result = scoreItem('open', items[0] as CommandItem);
     expect(result).not.toBeNull();
-    expect(result!.matches.length).toBeGreaterThan(0);
+    const safeResult = result as SearchResult;
+    expect(safeResult.matches.length).toBeGreaterThan(0);
 
     // Verify the match range actually corresponds to "open" in "Open Settings"
-    const [start, end] = result!.matches[0]!;
+    const [start, end] = safeResult.matches[0] as readonly [number, number];
     const matched = 'Open Settings'.slice(start, end).toLowerCase();
     expect(matched).toBe('open');
 
     console.log(
-      `  "open" in "Open Settings": matches=${JSON.stringify(result!.matches)}, ` +
-      `highlighted="${'Open Settings'.slice(start, end)}"`
+      `  "open" in "Open Settings": matches=${JSON.stringify(safeResult.matches)}, ` +
+        `highlighted="${'Open Settings'.slice(start, end)}"`,
     );
   });
 
   it('should return match ranges for fuzzy matches', () => {
-    const result = scoreItem('gtdf', items[2]!);
+    const result = scoreItem('gtdf', items[2] as CommandItem);
     expect(result).not.toBeNull();
-    expect(result!.matches.length).toBeGreaterThan(0);
+    const safeResult = result as SearchResult;
+    expect(safeResult.matches.length).toBeGreaterThan(0);
 
     console.log(
-      `  "gtdf" in "Go to Definition": matches=${JSON.stringify(result!.matches)}, ` +
-      `score=${result!.score.toFixed(4)}`
+      `  "gtdf" in "Go to Definition": matches=${JSON.stringify(safeResult.matches)}, ` +
+        `score=${safeResult.score.toFixed(4)}`,
     );
   });
 
@@ -603,7 +642,7 @@ describe('7. Match Highlighting (ours only — cmdk has no equivalent)', () => {
     // It only returns a relevance score
 
     console.log(
-      `  cmdk "open" in "Open Settings": score=${score.toFixed(4)} (no match positions available)`
+      `  cmdk "open" in "Open Settings": score=${score.toFixed(4)} (no match positions available)`,
     );
   });
 });
@@ -652,13 +691,15 @@ describe('8. Edge Cases & Behavior Differences', () => {
     const ourResults = engine.search('a', commandItems).toArray();
 
     console.log(
-      `  "a" — cmdk: [${cmdkResults.map((r) => `${r.value}(${r.score.toFixed(3)})`).join(', ')}]`
+      `  "a" — cmdk: [${cmdkResults.map((r) => `${r.value}(${r.score.toFixed(3)})`).join(', ')}]`,
     );
     console.log(
-      `  "a" — ours: [${ourResults.map((r) => {
-        const item = commandItems.find((i) => i.id === r.id);
-        return `${item?.value}(${r.score.toFixed(3)})`;
-      }).join(', ')}]`
+      `  "a" — ours: [${ourResults
+        .map((r) => {
+          const item = commandItems.find((i) => i.id === r.id);
+          return `${item?.value}(${r.score.toFixed(3)})`;
+        })
+        .join(', ')}]`,
     );
 
     // Both should find items starting with 'a'
@@ -676,8 +717,12 @@ describe('8. Edge Cases & Behavior Differences', () => {
     const ourUpper = scoreItem('OPEN SETTINGS', item)?.score ?? 0;
     const ourMixed = scoreItem('OpEn SeTtInGs', item)?.score ?? 0;
 
-    console.log(`  Case test — cmdk: lower=${cmdkLower.toFixed(4)}, upper=${cmdkUpper.toFixed(4)}, mixed=${cmdkMixed.toFixed(4)}`);
-    console.log(`  Case test — ours: lower=${ourLower.toFixed(4)}, upper=${ourUpper.toFixed(4)}, mixed=${ourMixed.toFixed(4)}`);
+    console.log(
+      `  Case test — cmdk: lower=${cmdkLower.toFixed(4)}, upper=${cmdkUpper.toFixed(4)}, mixed=${cmdkMixed.toFixed(4)}`,
+    );
+    console.log(
+      `  Case test — ours: lower=${ourLower.toFixed(4)}, upper=${ourUpper.toFixed(4)}, mixed=${ourMixed.toFixed(4)}`,
+    );
 
     // Both should treat all cases equally (or very close — cmdk has minor floating-point variance)
     expect(cmdkLower).toBeCloseTo(cmdkUpper, 2);
@@ -686,7 +731,10 @@ describe('8. Edge Cases & Behavior Differences', () => {
   });
 
   it('keywords boost — both support keywords for matching', () => {
-    const cmdkWithKeywords = cmdkDefaultFilter('Open Settings', 'preferences', ['preferences', 'config']);
+    const cmdkWithKeywords = cmdkDefaultFilter('Open Settings', 'preferences', [
+      'preferences',
+      'config',
+    ]);
     const cmdkWithoutKeywords = cmdkDefaultFilter('Open Settings', 'preferences');
 
     const itemWithKw: CommandItem = {
@@ -703,8 +751,12 @@ describe('8. Edge Cases & Behavior Differences', () => {
     const ourWithKw = scoreItem('preferences', itemWithKw)?.score ?? 0;
     const ourWithoutKw = scoreItem('preferences', itemWithoutKw)?.score ?? 0;
 
-    console.log(`  Keywords "preferences" — cmdk: with=${cmdkWithKeywords.toFixed(4)}, without=${cmdkWithoutKeywords.toFixed(4)}`);
-    console.log(`  Keywords "preferences" — ours: with=${ourWithKw.toFixed(4)}, without=${ourWithoutKw.toFixed(4)}`);
+    console.log(
+      `  Keywords "preferences" — cmdk: with=${cmdkWithKeywords.toFixed(4)}, without=${cmdkWithoutKeywords.toFixed(4)}`,
+    );
+    console.log(
+      `  Keywords "preferences" — ours: with=${ourWithKw.toFixed(4)}, without=${ourWithoutKw.toFixed(4)}`,
+    );
 
     // With keywords should score higher (or at least find it)
     expect(cmdkWithKeywords).toBeGreaterThan(cmdkWithoutKeywords);
@@ -718,7 +770,9 @@ describe('8. Edge Cases & Behavior Differences', () => {
     const cmdkScore = cmdkDefaultFilter(item, 'c++');
     const ourScore = scoreItem('c++', commandItem)?.score ?? 0;
 
-    console.log(`  "c++" in "C++ Compiler" — cmdk: ${cmdkScore.toFixed(4)}, ours: ${ourScore.toFixed(4)}`);
+    console.log(
+      `  "c++" in "C++ Compiler" — cmdk: ${cmdkScore.toFixed(4)}, ours: ${ourScore.toFixed(4)}`,
+    );
 
     // Both should handle special chars gracefully
     expect(typeof cmdkScore).toBe('number');
@@ -734,7 +788,7 @@ describe('8. Edge Cases & Behavior Differences', () => {
     const ourResult = scoreItem(longQuery, commandItem);
 
     console.log(
-      `  Long non-matching query — cmdk: ${cmdkScore.toFixed(4)}, ours: ${ourResult?.score ?? 'null (no match)'}`
+      `  Long non-matching query — cmdk: ${cmdkScore.toFixed(4)}, ours: ${ourResult?.score ?? 'null (no match)'}`,
     );
 
     expect(cmdkScore).toBe(0);
@@ -749,27 +803,27 @@ describe('8. Edge Cases & Behavior Differences', () => {
 describe('9. Feature Comparison Summary', () => {
   it('should summarize capabilities', () => {
     const comparison = {
-      'Match highlighting (ranges)':      { ours: true, cmdk: false },
-      'Framework-agnostic core':          { ours: true, cmdk: false },
-      'Pluggable search engine':          { ours: true, cmdk: false },
-      'Incremental search optimization':  { ours: true, cmdk: false },
-      'Keyboard shortcut registry':       { ours: true, cmdk: false },
-      'Frecency ranking':                 { ours: true, cmdk: false },
-      'Branded type safety':              { ours: true, cmdk: false },
-      'Disposable pattern (using)':       { ours: true, cmdk: false },
-      'ES2026 Iterator pipeline':         { ours: true, cmdk: false },
-      'Page navigation':                  { ours: true, cmdk: false },
-      'Error boundary':                   { ours: true, cmdk: false },
-      'Case-insensitive search':          { ours: true, cmdk: true },
-      'Keyword-based matching':           { ours: true, cmdk: true },
-      'Fuzzy matching':                   { ours: true, cmdk: true },
-      'Custom filter function':           { ours: true, cmdk: true },
-      'Disable filtering':                { ours: true, cmdk: true },
-      'ARIA accessibility':               { ours: true, cmdk: true },
-      'Dialog variant':                   { ours: true, cmdk: true },
-      'Loop navigation':                  { ours: true, cmdk: true },
-      'Groups & separators':              { ours: true, cmdk: true },
-      'Loading & empty states':           { ours: true, cmdk: true },
+      'Match highlighting (ranges)': { ours: true, cmdk: false },
+      'Framework-agnostic core': { ours: true, cmdk: false },
+      'Pluggable search engine': { ours: true, cmdk: false },
+      'Incremental search optimization': { ours: true, cmdk: false },
+      'Keyboard shortcut registry': { ours: true, cmdk: false },
+      'Frecency ranking': { ours: true, cmdk: false },
+      'Branded type safety': { ours: true, cmdk: false },
+      'Disposable pattern (using)': { ours: true, cmdk: false },
+      'ES2026 Iterator pipeline': { ours: true, cmdk: false },
+      'Page navigation': { ours: true, cmdk: false },
+      'Error boundary': { ours: true, cmdk: false },
+      'Case-insensitive search': { ours: true, cmdk: true },
+      'Keyword-based matching': { ours: true, cmdk: true },
+      'Fuzzy matching': { ours: true, cmdk: true },
+      'Custom filter function': { ours: true, cmdk: true },
+      'Disable filtering': { ours: true, cmdk: true },
+      'ARIA accessibility': { ours: true, cmdk: true },
+      'Dialog variant': { ours: true, cmdk: true },
+      'Loop navigation': { ours: true, cmdk: true },
+      'Groups & separators': { ours: true, cmdk: true },
+      'Loading & empty states': { ours: true, cmdk: true },
     };
 
     const oursOnly = Object.entries(comparison).filter(([, v]) => v.ours && !v.cmdk);
@@ -779,9 +833,15 @@ describe('9. Feature Comparison Summary', () => {
     console.log('\n  ╔══════════════════════════════════════════════╗');
     console.log('  ║     FEATURE COMPARISON: OURS vs CMDK        ║');
     console.log('  ╠══════════════════════════════════════════════╣');
-    console.log(`  ║  Shared features:           ${String(shared.length).padStart(2)}              ║`);
-    console.log(`  ║  Ours-only features:        ${String(oursOnly.length).padStart(2)}              ║`);
-    console.log(`  ║  Cmdk-only features:        ${String(cmdkOnly.length).padStart(2)}              ║`);
+    console.log(
+      `  ║  Shared features:           ${String(shared.length).padStart(2)}              ║`,
+    );
+    console.log(
+      `  ║  Ours-only features:        ${String(oursOnly.length).padStart(2)}              ║`,
+    );
+    console.log(
+      `  ║  Cmdk-only features:        ${String(cmdkOnly.length).padStart(2)}              ║`,
+    );
     console.log('  ╠══════════════════════════════════════════════╣');
     for (const [name] of oursOnly) {
       console.log(`  ║  + ${name.padEnd(40)} ║`);

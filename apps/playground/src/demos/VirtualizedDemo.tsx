@@ -38,9 +38,9 @@ export function VirtualizedDemo(): React.ReactNode {
   const items = useMemo(
     () =>
       Array.from({ length: 10_000 }, (_, i) => {
-        const word = WORDS[i % WORDS.length]!;
-        const category = CATEGORIES[i % CATEGORIES.length]!;
-        const icon = ICONS[i % ICONS.length]!;
+        const word = WORDS[i % WORDS.length] as string;
+        const category = CATEGORIES[i % CATEGORIES.length] as string;
+        const icon = ICONS[i % ICONS.length] as string;
         return {
           id: `virt-item-${i}`,
           value: `Item ${i} ${word} ${category}`,

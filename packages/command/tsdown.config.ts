@@ -11,7 +11,7 @@ export default defineConfig({
   outDir: 'dist',
   target: 'es2026',
   treeshake: true,
-  minify: false,
+  minify: true,
   platform: 'browser',
   define: {
     __DEV__: 'process.env.NODE_ENV !== "production"',

@@ -5,7 +5,7 @@
   "description": "Codemods for migrating from cmdk to @crimson_dev/command-react",
   "license": "MIT",
   "bin": {
-    "command-codemod": "./dist/cli.js"
+    "command-codemod": "./dist/cli.mjs"
   },
   "exports": {
     "./transforms/*": "./dist/transforms/*.js"

@@ -87,7 +87,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 // ES2026 Iterator Helpers — generate async test items via iterator pipeline
 function createTestItems(count: number): readonly CommandItemType[] {
   return Iterator.from({
-    [Symbol.iterator]: function* () {
+    [Symbol.iterator]: function* (): Generator<number> {
       for (let i = 0; i < count; i++) yield i;
     },
   })
@@ -114,7 +114,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
             items={promise}
             fallback={<div data-testid="fallback">Loading async items...</div>}
           >
-            {(items) =>
+            {(items: readonly CommandItemType[]): ReactNode[] =>
               items.map((item) => (
                 <Command.Item key={item.id} value={item.value} forceId={item.id}>
                   {item.value}
@@ -147,7 +147,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
             items={promise}
             fallback={<div data-testid="fallback">Loading...</div>}
           >
-            {(items) =>
+            {(items: readonly CommandItemType[]): ReactNode[] =>
               items.map((item) => (
                 <Command.Item key={item.id} value={item.value} forceId={item.id}>
                   {item.value}
@@ -187,7 +187,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
         <Command.Input />
         <Command.List>
           <Command.AsyncItems items={promise} fallback={<div>Loading...</div>}>
-            {(items) =>
+            {(items: readonly CommandItemType[]): ReactNode[] =>
               items.map((item) => (
                 <Command.Item key={item.id} value={item.value} forceId={item.id}>
                   {item.value}
@@ -226,7 +226,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
               items={promise}
               fallback={<div data-testid="fallback">Loading...</div>}
             >
-              {(items) =>
+              {(items: readonly CommandItemType[]): ReactNode[] =>
                 items.map((item) => (
                   <Command.Item key={item.id} value={item.value} forceId={item.id}>
                     {item.value}
@@ -267,7 +267,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
             items={resolvedPromise}
             fallback={<div data-testid="fallback">Loading...</div>}
           >
-            {(items) =>
+            {(items: readonly CommandItemType[]): ReactNode[] =>
               items.map((item) => (
                 <Command.Item key={item.id} value={item.value} forceId={item.id}>
                   {item.value}
@@ -312,7 +312,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
               items={itemsPromise}
               fallback={<div data-testid="fallback">Loading...</div>}
             >
-              {(items) =>
+              {(items: readonly CommandItemType[]): ReactNode[] =>
                 items.map((item) => (
                   <Command.Item key={item.id} value={item.value} forceId={item.id}>
                     {item.value}
@@ -364,7 +364,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
             items={resolved}
             fallback={<Command.Loading loading>Fetching...</Command.Loading>}
           >
-            {(items) =>
+            {(items: readonly CommandItemType[]): ReactNode[] =>
               items.map((item) => (
                 <Command.Item key={item.id} value={item.value} forceId={item.id}>
                   {item.value}
@@ -411,7 +411,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
               </div>
             }
           >
-            {(items) =>
+            {(items: readonly CommandItemType[]): ReactNode[] =>
               items.map((item) => (
                 <Command.Item key={item.id} value={item.value} forceId={item.id}>
                   {item.value}
@@ -444,7 +444,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
             items={promise}
             fallback={<div data-testid="loading-indicator">Please wait...</div>}
           >
-            {(items) =>
+            {(items: readonly CommandItemType[]): ReactNode[] =>
               items.map((item) => (
                 <Command.Item key={item.id} value={item.value} forceId={item.id}>
                   {item.value}

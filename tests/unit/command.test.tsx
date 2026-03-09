@@ -82,7 +82,7 @@ describe('Command — React Compound Components', () => {
 
       const rootEl = container.querySelector('[data-command-root]');
       expect(rootEl).not.toBeNull();
-      expect(rootEl?.getAttribute('role')).toBe('application');
+      expect(rootEl?.getAttribute('role')).toBe('search');
       expect(rootEl?.getAttribute('aria-label')).toBe('Test palette');
     });
 
@@ -96,7 +96,7 @@ describe('Command — React Compound Components', () => {
         </Command>,
       );
 
-      const input = container.querySelector('input')!;
+      const input = container.querySelector('input') as HTMLInputElement;
       expect(input).not.toBeNull();
       // Vitest 4.1 — soft assertions to report all missing ARIA attributes at once
       expect.soft(input.getAttribute('role')).toBe('combobox');
@@ -155,7 +155,7 @@ describe('Command — React Compound Components', () => {
         </Command>,
       );
 
-      const input = container.querySelector('input')!;
+      const input = container.querySelector('input') as HTMLInputElement;
       // Vitest 4.1 — soft assertions for ARIA state
       expect.soft(input.getAttribute('aria-expanded')).toBe('true');
       expect.soft(input.getAttribute('aria-autocomplete')).toBe('list');
@@ -176,7 +176,7 @@ describe('Command — React Compound Components', () => {
         </Command>,
       );
 
-      const input = container.querySelector('input')!;
+      const input = container.querySelector('input') as HTMLInputElement;
       // First item should be auto-activated
       expect(input.getAttribute('aria-activedescendant')).toBe('alpha-id');
     });
@@ -191,8 +191,8 @@ describe('Command — React Compound Components', () => {
         </Command>,
       );
 
-      const input = container.querySelector('input')!;
-      const list = container.querySelector('[data-command-list]')!;
+      const input = container.querySelector('input') as HTMLInputElement;
+      const list = container.querySelector('[data-command-list]') as Element;
       expect(input.getAttribute('aria-controls')).toBe(list.id);
     });
   });
@@ -215,8 +215,8 @@ describe('Command — React Compound Components', () => {
         </Command>,
       );
 
-      const firstItem = container.querySelector('#first')!;
-      const secondItem = container.querySelector('#second')!;
+      const firstItem = container.querySelector('#first') as Element;
+      const secondItem = container.querySelector('#second') as Element;
 
       // Vitest 4.1 — soft assertions for data-active state
       expect.soft(firstItem.hasAttribute('data-active')).toBe(true);
@@ -234,7 +234,7 @@ describe('Command — React Compound Components', () => {
         </Command>,
       );
 
-      const rootEl = container.querySelector('[data-command-root]')!;
+      const rootEl = container.querySelector('[data-command-root]') as Element;
       // Default open is false
       expect(rootEl.getAttribute('data-command-state')).toBe('closed');
     });
@@ -264,7 +264,7 @@ describe('Command — React Compound Components', () => {
       // All three items should be visible initially
       expect(container.querySelectorAll('[data-command-item]').length).toBe(3);
 
-      const input = container.querySelector('input')!;
+      const input = container.querySelector('input') as HTMLInputElement;
       await typeInInput(input, 'app');
 
       // Wait for filter to complete
@@ -290,7 +290,7 @@ describe('Command — React Compound Components', () => {
         </Command>,
       );
 
-      const input = container.querySelector('input')!;
+      const input = container.querySelector('input') as HTMLInputElement;
       await typeInInput(input, 'app');
 
       await vi.waitFor(() => {
@@ -414,7 +414,7 @@ describe('Command — React Compound Components', () => {
         </Command>,
       );
 
-      const item = container.querySelector('#clickable')!;
+      const item = container.querySelector('#clickable') as Element;
       await act(async () => {
         item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -610,7 +610,7 @@ describe('Command — React Compound Components', () => {
       // Initially there's a result, so Empty should not be visible
       expect(container.querySelector('[data-command-empty]')).toBeNull();
 
-      const input = container.querySelector('input')!;
+      const input = container.querySelector('input') as HTMLInputElement;
       await typeInInput(input, 'zzzzz');
 
       await vi.waitFor(() => {
@@ -769,7 +769,7 @@ describe('Command — React Compound Components', () => {
     it('should format shortcut string when shortcut prop is provided', async () => {
       await render(<Command.Shortcut shortcut="Shift+K" />);
 
-      const kbd = container.querySelector('kbd')!;
+      const kbd = container.querySelector('kbd') as Element;
       expect(kbd).not.toBeNull();
       // formatShortcut produces platform-specific text; just check it rendered something
       expect(kbd.textContent?.length).toBeGreaterThan(0);
@@ -883,7 +883,7 @@ describe('Command — React Compound Components', () => {
       });
 
       // Radix Dialog dismisses on pointer-down + pointer-up outside content (not click)
-      const overlay = container.querySelector('[data-command-overlay]')!;
+      const overlay = container.querySelector('[data-command-overlay]') as Element;
       await act(async () => {
         overlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
       });
@@ -917,7 +917,7 @@ describe('Command — React Compound Components', () => {
         </Command>,
       );
 
-      const input = container.querySelector('input')!;
+      const input = container.querySelector('input') as HTMLInputElement;
       await typeInInput(input, 'test');
 
       expect(onValueChange).toHaveBeenCalledWith('test');

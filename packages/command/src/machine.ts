@@ -52,15 +52,18 @@ export interface CommandMachine extends Disposable {
  */
 export function createCommandMachine(options: CommandMachineOptions = {}): CommandMachine {
   let state: CommandState = createInitialState(options);
+
+  // O(1) membership check — kept in sync with filteredIds
+  let filteredIdSet = new Set<ItemId>();
+
   const registry = new CommandRegistry();
   // Pluggable search engine: use options.search if provided, otherwise create default.
-  // Automatic fallback: if a custom engine is provided but throws, the machine still functions.
   const searchEngine: SearchEngine =
     options.search ??
     createSearchEngine(
       typeof options.filter === 'function'
         ? {
-            scorer: (query, item) => {
+            scorer: (query: string, item: CommandItem) => {
               const score = (
                 options.filter as (item: CommandItem, query: string) => number | false
               )(item, query);
@@ -83,7 +86,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   if (options.items) {
     registry.registerItems(options.items);
     searchEngine.index(options.items);
-    // Auto-register keyboard shortcuts from items — for...of (no closure overhead on hot path)
+    // Auto-register keyboard shortcuts from items
     for (const item of options.items) {
       if (item.shortcut != null && item.onSelect != null) {
         keyboardRegistry.register(item.shortcut, item.id, item.onSelect);
@@ -111,7 +114,6 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     let filteredIds: ItemId[];
 
     if (disableFilter || query === '') {
-      // for...of with push — avoids closure allocation on hot filter path
       filteredIds = [];
       for (const i of items) {
         if (!i.disabled) filteredIds.push(i.id);
@@ -132,16 +134,18 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       filteredIds = results.map((r) => r.id);
     }
 
-    // Build grouped IDs — Map.groupBy (ES2026) for direct Map construction (no Object.entries conversion)
+    // Update the O(1) membership set
+    filteredIdSet = new Set(filteredIds);
+
+    // Build grouped IDs — Map.groupBy (ES2026)
     const groupedIds = Map.groupBy(filteredIds, (id) => {
       const item = registry.getItem(id);
       return (item?.groupId ?? ('__ungrouped' as GroupId)) as GroupId;
     });
 
     // Select first item if no active or active is no longer visible
-    // Use includes() to avoid allocating a Set for a single membership check
     const activeId =
-      state.activeId && filteredIds.includes(state.activeId)
+      state.activeId && filteredIdSet.has(state.activeId)
         ? state.activeId
         : (filteredIds[0] ?? null);
 
@@ -189,7 +193,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
         newIdx = currentIdx + 1;
       }
     } else {
-      // direction === 'prev' (first/last handled above via early return)
+      // direction === 'prev'
       if (currentIdx <= 0) {
         newIdx = loop ? filteredIds.length - 1 : 0;
       } else {
@@ -227,7 +231,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       }
 
       case 'ITEM_ACTIVATE':
-        if (state.filteredIds.includes(event.id)) {
+        // O(1) Set.has instead of O(n) Array.includes
+        if (filteredIdSet.has(event.id)) {
           setState({
             ...state,
             activeId: event.id,
@@ -286,7 +291,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       case 'ITEMS_LOADED':
         registry.registerItems(event.items);
         searchEngine.index(event.items);
-        setState({ ...state, loading: false, lastUpdated: Temporal.Now.instant() });
+        // Single refilter handles both loading:false and filter — no double setState
+        state = { ...state, loading: false };
         refilter(state.search);
         break;
 

@@ -58,7 +58,17 @@ export function CommandDialog({
   }
   const machine = machineRef.current;
 
-  const { state, isPending, updateSearch, setOptimisticActiveId, id } = useCommand(machine);
+  const { state, isPending, updateSearch, setOptimisticActiveId, filteredIdSet, id } =
+    useCommand(machine);
+
+  // Dispose machine on unmount — nulls ref so Strict Mode remount creates fresh machine
+  useEffect(() => {
+    return (): void => {
+      machineRef.current?.[Symbol.dispose]();
+      machineRef.current = null;
+    };
+    // eslint-disable-next-line -- machine is stable ref, dispose runs on unmount only
+  }, []);
 
   // Keyboard navigation via document listener
   const handleKeyDown = useCallback(
@@ -74,16 +84,15 @@ export function CommandDialog({
     };
   }, [handleKeyDown, state.open]);
 
-  // Sync controlled open prop with machine state
+  // Sync controlled open prop — only send if machine state doesn't match
+  // Uses ref to avoid state.open in deps (prevents render loops)
+  const prevControlledOpen = useRef(controlledOpen);
   useEffect(() => {
-    if (controlledOpen !== undefined) {
-      if (controlledOpen && !state.open) {
-        machine.send({ type: 'OPEN' });
-      } else if (!controlledOpen && state.open) {
-        machine.send({ type: 'CLOSE' });
-      }
+    if (controlledOpen !== undefined && controlledOpen !== prevControlledOpen.current) {
+      prevControlledOpen.current = controlledOpen;
+      machine.send({ type: controlledOpen ? 'OPEN' : 'CLOSE' });
     }
-  }, [controlledOpen, state.open, machine]);
+  }, [controlledOpen, machine]);
 
   // Radix onOpenChange callback — syncs dialog state back to machine
   const handleRadixOpenChange = useCallback(
@@ -101,12 +110,24 @@ export function CommandDialog({
         isPending,
         updateSearch,
         setOptimisticActiveId,
+        filteredIdSet,
         rootId: id,
         listId,
         inputId,
         label,
       }) satisfies CommandContextValue,
-    [machine, state, isPending, updateSearch, setOptimisticActiveId, id, listId, inputId, label],
+    [
+      machine,
+      state,
+      isPending,
+      updateSearch,
+      setOptimisticActiveId,
+      filteredIdSet,
+      id,
+      listId,
+      inputId,
+      label,
+    ],
   );
 
   return (
@@ -125,15 +146,18 @@ export function CommandDialog({
           className={className}
           aria-label={label}
           onOpenAutoFocus={(e: Event): void => {
-            // Prevent Radix default focus — we manage focus on the input
+            // Prevent Radix default focus — we auto-focus the input below
             e.preventDefault();
+            // Auto-focus the input when dialog opens
+            const input = document.getElementById(inputId);
+            input?.focus();
           }}
         >
           <Dialog.Title className="sr-only">{label}</Dialog.Title>
           <Dialog.Description className="sr-only">Type a command or search...</Dialog.Description>
           <CommandContext value={contextValue}>
             <div data-command-dialog-content="" className={contentClassName}>
-              <div data-command-root="" role="application" aria-label={label}>
+              <div data-command-root="" role="search" aria-label={label}>
                 {children}
               </div>
             </div>

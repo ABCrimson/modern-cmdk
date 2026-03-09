@@ -67,8 +67,9 @@ export default function transform(fileInfo: FileInfo, api: API): string {
       const params = renderFn.params;
       if (params.length < 2) return;
 
-      const propsParam = params[0]!;
-      const refParam = params[1]!;
+      const propsParam = params[0];
+      const refParam = params[1];
+      if (!propsParam || !refParam) return;
 
       // Determine ref parameter name
       const refName = refParam.type === 'Identifier' ? refParam.name : 'ref';
@@ -89,14 +90,14 @@ export default function transform(fileInfo: FileInfo, api: API): string {
 
         // Preserve type annotation if present
         if ('typeAnnotation' in propsParam && propsParam.typeAnnotation) {
-          (newParam as any).typeAnnotation = propsParam.typeAnnotation;
+          (newParam as Record<string, unknown>).typeAnnotation = propsParam.typeAnnotation;
         }
 
         renderFn.params[0] = newParam;
       }
 
       // Remove the ref parameter — now merged into props
-      renderFn.params = [renderFn.params[0]!];
+      renderFn.params = [renderFn.params[0] as (typeof renderFn.params)[0]];
 
       // Replace the forwardRef(...) call with the unwrapped render function
       j(path).replaceWith(renderFn);

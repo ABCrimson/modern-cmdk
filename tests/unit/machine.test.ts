@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 // ES2026 Iterator Helpers — generate test items using Iterator pipeline
 function generateItems(count: number): CommandItem[] {
   return Iterator.from({
-    [Symbol.iterator]: function* () {
+    [Symbol.iterator]: function* (): Generator<number> {
       for (let i = 0; i < count; i++) yield i;
     },
   })

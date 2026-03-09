@@ -1,4 +1,5 @@
 import { Command } from '@crimson_dev/command-react';
+import type { ReactNode } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -27,8 +28,8 @@ afterEach(() => {
 describe('Virtualization (0.2.2)', () => {
   it('should render all items when count is below threshold', async () => {
     // ES2026 Iterator Helpers — generate JSX items via iterator pipeline
-    const items = Iterator.from({
-      [Symbol.iterator]: function* () {
+    const items: ReactNode[] = Iterator.from({
+      [Symbol.iterator]: function* (): Generator<number> {
         for (let i = 0; i < 10; i++) yield i;
       },
     })

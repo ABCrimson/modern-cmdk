@@ -37,7 +37,7 @@ test.describe('Basic Command Palette', () => {
     const input = page.getByRole('combobox');
     const controlsId = await input.getAttribute('aria-controls');
     expect(controlsId).toBeTruthy();
-    await expect(listbox).toHaveAttribute('id', controlsId!);
+    await expect(listbox).toHaveAttribute('id', controlsId as string);
   });
 
   test('should render items as role="option" with data attributes', async ({ page }) => {
@@ -175,7 +175,7 @@ test.describe('Basic Command Palette', () => {
       if (hasHeading) {
         const headingId = await heading.getAttribute('id');
         expect(headingId).toBeTruthy();
-        await expect(firstGroup).toHaveAttribute('aria-labelledby', headingId!);
+        await expect(firstGroup).toHaveAttribute('aria-labelledby', headingId as string);
       }
     }
   });

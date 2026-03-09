@@ -3,6 +3,8 @@
 // Zero overhead when not configured — all hooks are optional
 // ES2026: Temporal.Now.instant() for all time measurements
 
+import type { ItemId } from './types.js';
+
 export interface CommandTelemetryHooks {
   /** Called when the command palette opens */
   readonly onPaletteOpen?: () => void;
@@ -11,14 +13,14 @@ export interface CommandTelemetryHooks {
   /** Called after each search completes, with query, result count, and latency */
   readonly onSearchComplete?: (query: string, resultCount: number, durationMs: number) => void;
   /** Called when an item is selected, with item ID, active query, and position in list */
-  readonly onItemSelected?: (itemId: string, searchQuery: string, position: number) => void;
+  readonly onItemSelected?: (itemId: ItemId, searchQuery: string, position: number) => void;
 }
 
 export interface TelemetryMiddleware {
   readonly onOpen: () => void;
   readonly onClose: () => void;
   readonly onSearch: (query: string, resultCount: number, startTime: Temporal.Instant) => void;
-  readonly onSelect: (itemId: string, query: string, position: number) => void;
+  readonly onSelect: (itemId: ItemId, query: string, position: number) => void;
 }
 
 /**
@@ -56,7 +58,7 @@ export function createTelemetryMiddleware(hooks: CommandTelemetryHooks): Telemet
       hooks.onSearchComplete?.(query, resultCount, elapsed.total('milliseconds'));
     },
 
-    onSelect(itemId: string, query: string, position: number): void {
+    onSelect(itemId: ItemId, query: string, position: number): void {
       hooks.onItemSelected?.(itemId, query, position);
     },
   };

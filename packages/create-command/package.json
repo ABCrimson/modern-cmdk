@@ -5,7 +5,7 @@
   "description": "Scaffold a new @crimson_dev/command project",
   "license": "MIT",
   "bin": {
-    "create-command": "./dist/index.js"
+    "create-command": "./dist/index.mjs"
   },
   "files": [
     "dist"
@@ -20,5 +20,10 @@
   "devDependencies": {
     "tsdown": "0.21.0",
     "typescript": "6.0.1-rc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ABCrimson/modern-cmdk.git",
+    "directory": "packages/create-command"
   }
 }

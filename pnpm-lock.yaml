@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  react: 19.3.0-canary-46103596-20260305
+  react-dom: 19.3.0-canary-46103596-20260305
+
 importers:
 
   .:
@@ -158,7 +162,7 @@ importers:
   packages/command-react:
     dependencies:
       '@crimson_dev/command':
-        specifier: workspace:*
+        specifier: workspace:>=0.9.0
         version: link:../command
       radix-ui:
         specifier: 1.4.4-rc.1766004502650
@@ -173,7 +177,7 @@ importers:
   packages/command-search-wasm:
     dependencies:
       '@crimson_dev/command':
-        specifier: workspace:*
+        specifier: workspace:>=0.9.0
         version: link:../command
 
   packages/create-command:
@@ -720,8 +724,8 @@ packages:
   '@floating-ui/react-dom@2.1.8':
     resolution: {integrity: sha512-cC52bHwM/n/CxS87FH0yWdngEZrjdtLW/qVruo68qg+prK7ZQ4YGdut2GyDVpoGeAYe/h899rVeOVm6Oi40k2A==}
     peerDependencies:
-      react: '>=16.8.0'
-      react-dom: '>=16.8.0'
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
@@ -808,8 +812,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -821,8 +825,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -834,8 +838,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -847,8 +851,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -860,8 +864,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -873,8 +877,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -886,8 +890,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -899,8 +903,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -912,8 +916,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -925,8 +929,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -937,7 +941,7 @@ packages:
     resolution: {integrity: sha512-z4eqJvfiNnFMHIIvXP3CY57y2WJs5g2v3X0zm9mEJkrkNv4rDxu+sg9Jh8EkXyeqBkB7SOcboo9dMVqhyrACIg==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -947,8 +951,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -959,7 +963,7 @@ packages:
     resolution: {integrity: sha512-jCi/QKUM2r1Ju5a3J64TH2A5SpKAgh0LpknyqdQ4m6DCV0xJ2HG1xARRwNGPQfi1SLdLWZ1OJz6F4OMBBNiGJA==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -968,7 +972,7 @@ packages:
     resolution: {integrity: sha512-ieIFACdMpYfMEjF0rEf5KLvfVyIkOz6PDGyNnP+u+4xQ6jny3VCgA4OgXOwNx2aUkxn8zx9fiVcM8CfFYv9Lxw==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -978,8 +982,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -990,7 +994,7 @@ packages:
     resolution: {integrity: sha512-oz3U1P7nqM9GRfXxQQ8unpaVg1z3pezaFc6Lb4ygFwsSaIpawxWgi1r0zQSAQHryaLTVvAagV/aJU5YFBCk+UQ==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1000,8 +1004,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1013,8 +1017,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1025,7 +1029,7 @@ packages:
     resolution: {integrity: sha512-0rFg/Rj2Q62NCm62jZw0QX7a3sz6QCQU0LpZdNrJX8byRGaGVTqbrW9jAoIAHyMQqsNpeZ81YgSizOt5WXq0Pw==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1035,8 +1039,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1048,8 +1052,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1061,8 +1065,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1074,8 +1078,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1086,7 +1090,7 @@ packages:
     resolution: {integrity: sha512-kGkGegYIdQsOb4XjsfM97rXsiHaBwco+hFI66oO4s9LU+PLAC5oJ7khdOVFxkhsmlbpUqDAvXw11CluXP+jkHg==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1096,8 +1100,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1109,8 +1113,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1122,8 +1126,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1135,8 +1139,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1148,8 +1152,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1161,8 +1165,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1174,8 +1178,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1187,8 +1191,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1200,8 +1204,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1213,8 +1217,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1226,8 +1230,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1239,8 +1243,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1252,8 +1256,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1265,8 +1269,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1278,8 +1282,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1291,8 +1295,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1304,8 +1308,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1317,8 +1321,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1330,8 +1334,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1343,8 +1347,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1356,8 +1360,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1368,7 +1372,7 @@ packages:
     resolution: {integrity: sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1377,7 +1381,7 @@ packages:
     resolution: {integrity: sha512-Jl+bCv8HxKnlTLVrcDE8zTMJ09R9/ukw4qBs/oZClOfoQk/cOTbDn+NceXfV7j09YPVQUryJPHurafcSg6EVKA==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1387,8 +1391,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1400,8 +1404,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1413,8 +1417,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1426,8 +1430,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1439,8 +1443,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1452,8 +1456,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1465,8 +1469,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1477,7 +1481,7 @@ packages:
     resolution: {integrity: sha512-FkBMwD+qbGQeMu1cOHnuGB6x4yzPjho8ap5WtbEJ26umhgqVXbhekKUQO+hZEL1vU92a3wHwdp0HAcqAUF5iDg==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1486,7 +1490,7 @@ packages:
     resolution: {integrity: sha512-BjasUjixPFdS+NKkypcyyN5Pmg83Olst0+c6vGov0diwTEo6mgdqVR6hxcEgFuh4QrAs7Rc+9KuGJ9TVCj0Zzg==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1495,7 +1499,7 @@ packages:
     resolution: {integrity: sha512-Qp8WbZOBe+blgpuUT+lw2xheLP8q0oatc9UpmiemEICxGvFLYmHm9QowVZGHtJlGbS6A6yJ3iViad/2cVjnOiA==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1504,7 +1508,7 @@ packages:
     resolution: {integrity: sha512-Il0+boE7w/XebUHyBjroE+DbByORGR9KKmITzbR7MyQ4akpORYP/ZmbhAr0DG7RmmBqoOnZdy2QlvajJ2QA59g==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1513,7 +1517,7 @@ packages:
     resolution: {integrity: sha512-U+UORVEq+cTnRIaostJv9AGdV3G6Y+zbVd+12e18jQ5A3c0xL03IhnHuiU4UV69wolOQp5GfR58NW/EgdQhwOA==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1522,7 +1526,7 @@ packages:
     resolution: {integrity: sha512-RbJRS4UWQFkzHTTwVymMTUv8EqYhOp8dOOviLj2ugtTiXRaRQS7GLGxZTLL1jWhMeoSCf5zmcZkqTl9IiYfXcQ==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1531,7 +1535,7 @@ packages:
     resolution: {integrity: sha512-2dHfToCj/pzca2Ck724OZ5L0EVrr3eHRNsG/b3xQJLA2hZpVCS99bLAX+hm1IHXDEnzU6by5z/5MIY794/a8NQ==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1540,7 +1544,7 @@ packages:
     resolution: {integrity: sha512-QTYuDesS0VtuHNNvMh+CjlKJ4LJickCMUAqjlE3+j8w+RlRpwyX3apEQKGFzbZGdo7XNG1tXa+bQqIE7HIXT2w==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1549,7 +1553,7 @@ packages:
     resolution: {integrity: sha512-ewrXRDTAqAXlkl6t/fkXWNAhFX9I+CkKlw6zjEwk86RSPKwZr3xpBRso655aqYafwtnbpHLj6toFzmd6xdVptQ==}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1559,8 +1563,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1572,8 +1576,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1999,8 +2003,8 @@ packages:
       '@testing-library/dom': ^10.0.0
       '@types/react': ^18.0.0 || ^19.0.0
       '@types/react-dom': ^18.0.0 || ^19.0.0
-      react: ^18.0.0 || ^19.0.0
-      react-dom: ^18.0.0 || ^19.0.0
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -2347,8 +2351,8 @@ packages:
   cmdk@1.1.1:
     resolution: {integrity: sha512-Vsv7kFaXm+ptHDMZ7izaRsP70GgrW9NBNGswt9OZaVBLlE0SNpDq8eu/VGXyF9r7M0azK3Wy7OlYXsuyYLFzHg==}
     peerDependencies:
-      react: ^18 || ^19 || ^19.0.0-rc
-      react-dom: ^18 || ^19 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
 
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
@@ -3061,8 +3065,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
+      react-dom: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -3082,7 +3086,7 @@ packages:
     engines: {node: '>=10'}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -3092,7 +3096,7 @@ packages:
     engines: {node: '>=10'}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -3102,7 +3106,7 @@ packages:
     engines: {node: '>=10'}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -3424,7 +3428,7 @@ packages:
     engines: {node: '>=10'}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -3434,7 +3438,7 @@ packages:
     engines: {node: '>=10'}
     peerDependencies:
       '@types/react': '*'
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react: 19.3.0-canary-46103596-20260305
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -3442,7 +3446,7 @@ packages:
   use-sync-external-store@1.6.0:
     resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react: 19.3.0-canary-46103596-20260305
 
   vfile-message@4.0.3:
     resolution: {integrity: sha512-QTHzsGd1EhbZs4AsQ20JX1rC3cOlt/IWJruk893DfLRr57lcnOeMaWG4K0JrRta4mIJZKth2Au3mM3u03/JWKw==}

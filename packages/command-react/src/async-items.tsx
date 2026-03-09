@@ -7,7 +7,7 @@
 
 import type { CommandItem } from '@crimson_dev/command';
 import type { ReactNode } from 'react';
-import { Suspense, use, useEffect } from 'react';
+import { Suspense, use, useEffect, useRef } from 'react';
 import { CommandContext } from './context.js';
 
 export interface CommandAsyncItemsProps {
@@ -48,9 +48,16 @@ export function CommandAsyncItems({
   fallback,
   children,
 }: CommandAsyncItemsProps): ReactNode {
+  // Stabilize promise reference — only update when a genuinely new promise is passed
+  // Prevents infinite re-suspension from unstable promise identity
+  const stableRef = useRef(items);
+  if (stableRef.current !== items) {
+    stableRef.current = items;
+  }
+
   return (
     <Suspense fallback={fallback}>
-      <AsyncItemsInner items={items}>{children}</AsyncItemsInner>
+      <AsyncItemsInner items={stableRef.current}>{children}</AsyncItemsInner>
     </Suspense>
   );
 }

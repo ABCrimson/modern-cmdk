@@ -4,7 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 describe('memory leak detection', () => {
   it('disposes cleanly without residual listeners after 100 machine lifecycles', () => {
     // ES2026 Iterator Helpers — generate items via iterator pipeline
-    const items = Iterator.from({ [Symbol.iterator]: function* () { for (let i = 0; i < 1000; i++) yield i; } })
+    const items = Iterator.from({
+      [Symbol.iterator]: function* (): Generator<number> {
+        for (let i = 0; i < 1000; i++) yield i;
+      },
+    })
       .map((i) => ({
         id: itemId(`item-${i}`),
         value: `Item ${i}`,
@@ -25,7 +29,7 @@ describe('memory leak detection', () => {
     using machine = createCommandMachine();
     // ES2026 Iterator Helpers — generate 10K subscriptions via iterator pipeline
     const unsubs = Iterator.from({
-      [Symbol.iterator]: function* () {
+      [Symbol.iterator]: function* (): Generator<number> {
         for (let i = 0; i < 10_000; i++) yield i;
       },
     })
@@ -33,7 +37,9 @@ describe('memory leak detection', () => {
       .toArray();
 
     // Unsubscribe all using forEach
-    unsubs.values().forEach((unsub) => unsub());
+    unsubs.values().forEach((unsub) => {
+      unsub();
+    });
 
     // Machine should still be functional
     machine.send({ type: 'SEARCH_CHANGE', query: 'test' });

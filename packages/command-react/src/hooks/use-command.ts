@@ -6,7 +6,14 @@
 // Branded CommandRootId type for type-safe ID propagation
 
 import type { CommandMachine, CommandState, ItemId } from '@crimson_dev/command';
-import { useCallback, useId, useOptimistic, useSyncExternalStore, useTransition } from 'react';
+import {
+  useCallback,
+  useId,
+  useMemo,
+  useOptimistic,
+  useSyncExternalStore,
+  useTransition,
+} from 'react';
 import type { CommandRootId } from '../context.js';
 
 export interface UseCommandReturn {
@@ -14,6 +21,8 @@ export interface UseCommandReturn {
   readonly isPending: boolean;
   readonly updateSearch: (query: string) => void;
   readonly setOptimisticActiveId: (id: ItemId | null) => void;
+  /** O(1) membership set for filtered items — used by Item component */
+  readonly filteredIdSet: ReadonlySet<ItemId>;
   readonly id: CommandRootId;
 }
 
@@ -26,6 +35,12 @@ export function useCommand(machine: CommandMachine): UseCommandReturn {
     machine.subscribe,
     machine.getState,
     machine.getState, // server snapshot (same — SSR safe)
+  );
+
+  // O(1) membership set — rebuilt only when filteredIds changes (referential equality)
+  const filteredIdSet: ReadonlySet<ItemId> = useMemo(
+    () => new Set(state.filteredIds),
+    [state.filteredIds],
   );
 
   // Optimistic active item — instant visual feedback before filter completes
@@ -50,6 +65,7 @@ export function useCommand(machine: CommandMachine): UseCommandReturn {
     isPending,
     updateSearch,
     setOptimisticActiveId,
+    filteredIdSet,
     id,
   } satisfies UseCommandReturn;
 }

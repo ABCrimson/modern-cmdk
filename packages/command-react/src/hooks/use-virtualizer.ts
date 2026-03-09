@@ -35,6 +35,7 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
   const [scrollOffset, setScrollOffset] = useState<number>(0);
   const [containerHeight, setContainerHeight] = useState<number>(0);
   const measuredSizes = useRef<Map<number, number>>(new Map<number, number>());
+  const [measureVersion, setMeasureVersion] = useState<number>(0);
 
   // ResizeObserver for container measurement
   useEffect(() => {
@@ -73,16 +74,17 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
   );
 
   // Memoize totalSize — Iterator Helpers + Math.sumPrecise (ES2026)
+  // measureVersion triggers recalc when elements are measured
   const totalSize: number = useMemo((): number => {
+    void measureVersion; // dependency trigger
     if (!enabled) return 0;
-    // ES2026 Iterator Helpers: use .map on the iterator from keys range
     const sizes = Iterator.from({
-      [Symbol.iterator]: function* () {
+      [Symbol.iterator]: function* (): Generator<number> {
         for (let i = 0; i < count; i++) yield getItemSize(i);
       },
     }).toArray();
     return Math.sumPrecise(sizes);
-  }, [enabled, count, getItemSize]);
+  }, [enabled, count, getItemSize, measureVersion]);
 
   // Memoize virtual items computation
   const virtualItems: readonly VirtualItem[] = useMemo((): readonly VirtualItem[] => {
@@ -99,7 +101,7 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     // Apply overscan — recalculate offset with Iterator Helpers + Math.sumPrecise
     startIdx = Math.max(0, startIdx - overscan);
     const offsetSizes = Iterator.from({
-      [Symbol.iterator]: function* () {
+      [Symbol.iterator]: function* (): Generator<number> {
         for (let i = 0; i < startIdx; i++) yield getItemSize(i);
       },
     }).toArray();
@@ -134,7 +136,7 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
 
       const clampedIndex = Math.min(index, count);
       const sizes = Iterator.from({
-        [Symbol.iterator]: function* () {
+        [Symbol.iterator]: function* (): Generator<number> {
           for (let i = 0; i < clampedIndex; i++) yield getItemSize(i);
         },
       }).toArray();
@@ -145,7 +147,7 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     [scrollElement, enabled, count, getItemSize],
   );
 
-  // Measure an element — deferred via requestIdleCallback for zero layout thrash
+  // Measure an element — deferred via requestIdleCallback, triggers re-render on size change
   const measureElement = useCallback(
     (element: HTMLElement | null): void => {
       if (!element || !enabled) return;
@@ -157,6 +159,8 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
         const height = element.getBoundingClientRect().height;
         if (height > 0 && measuredSizes.current.get(index) !== height) {
           measuredSizes.current.set(index, height);
+          // Trigger re-render so virtualItems and totalSize recompute with actual sizes
+          setMeasureVersion((v) => v + 1);
         }
       };
 

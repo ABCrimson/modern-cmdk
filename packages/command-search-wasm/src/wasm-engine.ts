@@ -4,7 +4,7 @@
 
 import type { ItemId, SearchEngine, SearchResult } from '@crimson_dev/command';
 
-const __DEV__ = process.env.NODE_ENV !== 'production';
+const __DEV__: boolean = process.env.NODE_ENV !== 'production';
 
 /** Extended search engine backed by a WASM trigram index */
 interface WasmSearchEngine extends SearchEngine, AsyncDisposable {
@@ -31,7 +31,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
     const engine: WasmSearchEngine = {
       isWasm: true,
 
-      index(items): void {
+      index(items: readonly { id: ItemId; value: string }[]): void {
         const serialized = JSON.stringify(
           items
             .values()
@@ -41,7 +41,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
         instance.index_items(serialized);
       },
 
-      *search(query, items): IteratorObject<SearchResult> {
+      *search(query: string, items: readonly { id: ItemId }[]): IteratorObject<SearchResult> {
         const results = instance.search(query, items.length) as Array<{
           id: string;
           score: number;
@@ -57,7 +57,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
         );
       },
 
-      remove(_ids): void {
+      remove(_ids: ReadonlySet<ItemId>): void {
         // Rebuild index without removed items — WASM index is immutable
         instance.clear();
       },

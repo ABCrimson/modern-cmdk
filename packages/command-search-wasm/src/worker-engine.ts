@@ -164,7 +164,7 @@ export async function createWorkerSearchEngine(
     isWorker: true,
     useSharedMemory: sharedMemoryAvailable,
 
-    index(items): void {
+    index(items: readonly { id: ItemId; value: string }[]): void {
       lastIndexedItems = items;
       const serialized = JSON.stringify(
         items
@@ -176,14 +176,14 @@ export async function createWorkerSearchEngine(
       void postAndWait({ type: 'index', items: serialized });
     },
 
-    *search(_query, _items): IteratorObject<SearchResult> {
+    *search(_query: string, _items: readonly { id: ItemId }[]): IteratorObject<SearchResult> {
       // Yields from the cache populated by the most recent searchAsync() call.
       // Callers should use searchAsync() and then iterate, or the state machine's
       // async adapter will call searchAsync() before reading from this iterator.
       yield* cachedResults;
     },
 
-    async searchAsync(query, maxResults): Promise<readonly SearchResult[]> {
+    async searchAsync(query: string, maxResults?: number): Promise<readonly SearchResult[]> {
       const limit = maxResults ?? maxResultsLimit;
 
       if (scoresBuffer) {
@@ -202,8 +202,8 @@ export async function createWorkerSearchEngine(
             .map(
               (id, index): SearchResult => ({
                 id: id as ItemId,
-                score: scoresView[index]!,
-                matches: response.matches[index]!,
+                score: scoresView[index] as number,
+                matches: response.matches[index] as Array<[number, number]>,
               }),
             )
             .toArray();
@@ -244,7 +244,7 @@ export async function createWorkerSearchEngine(
       return cachedResults;
     },
 
-    remove(ids): void {
+    remove(ids: ReadonlySet<ItemId>): void {
       // WASM index is immutable — clear and re-index without removed items
       const remaining = lastIndexedItems
         .values()

@@ -7,7 +7,12 @@ import {
 import { describe, expect, it } from 'vitest';
 
 // ES2026 Object.groupBy — organize parse test cases by category
-const parseTestCases = Object.groupBy(
+const parseTestCases: Partial<
+  Record<
+    string,
+    { shortcut: string; expected: Record<string, string | boolean>; category: string }[]
+  >
+> = Object.groupBy(
   [
     {
       shortcut: 'k',

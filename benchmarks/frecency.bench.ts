@@ -85,12 +85,12 @@ describe('FrecencyEngine.getBonus — 10K Records', () => {
   }
 
   bench('single getBonus lookup', () => {
-    engine.getBonus(ids[5000]!);
+    engine.getBonus(ids[5000] as ItemId);
   });
 
   bench('100 sequential getBonus lookups', () => {
     for (let i = 0; i < 100; i++) {
-      engine.getBonus(ids[i * 100]!);
+      engine.getBonus(ids[i * 100] as ItemId);
     }
   });
 

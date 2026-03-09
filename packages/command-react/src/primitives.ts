@@ -1,7 +1,8 @@
 'use client';
 
 // packages/command-react/src/primitives.ts
-// Minimal Primitive/Slot — 12 lines, replaces @radix-ui/react-primitive
+// Minimal Primitive/Slot — replaces @radix-ui/react-primitive
+// Proper ref merging for Slot pattern
 
 import {
   type ComponentPropsWithRef,
@@ -9,16 +10,39 @@ import {
   type ElementType,
   isValidElement,
   type ReactNode,
+  type Ref,
 } from 'react';
 
 export interface SlotProps {
   readonly children?: ReactNode;
+  readonly ref?: Ref<unknown>;
+}
+
+/** Merge two refs into a single callback ref */
+function mergeRefs<T>(...refs: Array<Ref<T> | undefined>): Ref<T> | undefined {
+  const filtered = refs.filter(Boolean) as Ref<T>[];
+  if (filtered.length === 0) return undefined;
+  if (filtered.length === 1) return filtered[0];
+  return (instance: T | null): void => {
+    for (const ref of filtered) {
+      if (typeof ref === 'function') {
+        ref(instance);
+      } else if (ref && typeof ref === 'object') {
+        (ref as { current: T | null }).current = instance;
+      }
+    }
+  };
 }
 
 /** Slot component for asChild pattern — merges refs, props, and event handlers */
-export function Slot({ children, ...props }: SlotProps & Record<string, unknown>): ReactNode {
-  if (isValidElement(children)) {
-    return cloneElement(children, { ...props, ...children.props });
+export function Slot({ children, ref, ...props }: SlotProps & Record<string, unknown>): ReactNode {
+  if (isValidElement<Record<string, unknown>>(children)) {
+    const childRef = (children as { ref?: Ref<unknown> }).ref;
+    return cloneElement(children, {
+      ...props,
+      ...children.props,
+      ref: mergeRefs(ref, childRef),
+    });
   }
   return children ?? null;
 }

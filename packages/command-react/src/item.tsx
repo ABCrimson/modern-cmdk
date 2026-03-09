@@ -6,7 +6,7 @@
 // Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
-import { use, useCallback } from 'react';
+import { use, useCallback, useRef } from 'react';
 import { CommandContext } from './context.js';
 import { useRegisterItem } from './hooks/use-register.js';
 
@@ -44,7 +44,8 @@ export function CommandItem({
   });
 
   const isActive: boolean = ctx.state.activeId === id;
-  const isFiltered: boolean = ctx.state.filteredIds.includes(id);
+  // O(1) Set.has instead of O(n) Array.includes — critical for large lists
+  const isFiltered: boolean = ctx.filteredIdSet.has(id);
 
   const handleSelect = useCallback((): void => {
     if (!disabled) {
@@ -52,12 +53,16 @@ export function CommandItem({
     }
   }, [ctx.machine, id, disabled]);
 
+  // Use ref for activeId to avoid re-creating callback on every active change
+  const activeIdRef = useRef(ctx.state.activeId);
+  activeIdRef.current = ctx.state.activeId;
+
   const handlePointerMove = useCallback((): void => {
-    if (!disabled && ctx.state.activeId !== id) {
+    if (!disabled && activeIdRef.current !== id) {
       ctx.setOptimisticActiveId(id);
       ctx.machine.send({ type: 'ITEM_ACTIVATE', id });
     }
-  }, [ctx.machine, ctx.setOptimisticActiveId, ctx.state.activeId, id, disabled]);
+  }, [ctx.machine, ctx.setOptimisticActiveId, id, disabled]);
 
   if (!isFiltered) return null;
 

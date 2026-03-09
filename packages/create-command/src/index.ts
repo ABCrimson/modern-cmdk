@@ -6,7 +6,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
-const TEMPLATES = new Map([
+const TEMPLATES: Map<string, string> = new Map([
   ['react-basic', 'Basic inline command palette (React)'],
   ['react-dialog', 'Dialog command palette with Ctrl+K (React)'],
   ['react-full', 'Full-featured: dialog + frecency + WASM search (React)'],
@@ -38,7 +38,7 @@ function parseArgs(argv: string[]): { projectName: string; template: string } | 
 
   // Parse --template=<name> using Iterator Helpers
   const templateFlag = flags.values().find((f) => f.startsWith('--template='));
-  const template = templateFlag ? templateFlag.split('=')[1]! : 'react-basic';
+  const template = templateFlag ? (templateFlag.split('=')[1] as string) : 'react-basic';
 
   return { projectName, template };
 }
