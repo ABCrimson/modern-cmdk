@@ -1,6 +1,6 @@
 {
   "name": "@crimson_dev/command",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "type": "module",
   "description": "Framework-agnostic headless command palette engine",
   "license": "MIT",
