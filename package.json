@@ -51,7 +51,7 @@
     "react-dom": "19.3.0-canary-46103596-20260305",
     "size-limit": "12.0.1",
     "tinybench": "6.0.0",
-    "tsdown": "0.21.0",
+    "tsdown": "0.21.1",
     "tsx": "^4.21.0",
     "typescript": "6.0.1-rc",
     "vitest": "4.1.0-beta.6"
