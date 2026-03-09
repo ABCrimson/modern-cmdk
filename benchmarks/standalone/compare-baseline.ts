@@ -73,7 +73,7 @@ async function main(): Promise<void> {
 
   // 2. Import built core package
   const { createSearchEngine, createCommandMachine, itemId } = await import(
-    '../../packages/modern-cmdk/dist/core/index.js'
+    '../../packages/modern-cmdk/dist/core/index.mjs'
   );
 
   // 3. Prepare test data
