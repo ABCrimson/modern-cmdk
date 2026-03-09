@@ -1,7 +1,6 @@
 ---
 "@crimson_dev/command": minor
 "@crimson_dev/command-react": minor
-"@crimson_dev/command-search-wasm": minor
 "@crimson_dev/command-codemod": minor
 ---
 
