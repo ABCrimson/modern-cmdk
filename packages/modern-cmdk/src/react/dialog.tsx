@@ -49,9 +49,8 @@ export function CommandDialog({
   if (machineRef.current === null) {
     machineRef.current = createCommandMachine({
       ...machineOptions,
-      open: controlledOpen ?? machineOptions.open ?? false,
+      open: controlledOpen ?? false,
       onOpenChange: (open: boolean): void => {
-        machineOptions.onOpenChange?.(open);
         onOpenChange?.(open);
       },
     });

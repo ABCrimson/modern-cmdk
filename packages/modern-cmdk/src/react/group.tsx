@@ -34,7 +34,10 @@ export function CommandGroup({
   }
 
   const headingId: string = useId();
-  const groupId = useRegisterGroup(heading, { priority, forceId });
+  const groupId = useRegisterGroup(heading, {
+    ...(priority !== undefined && { priority }),
+    ...(forceId !== undefined && { forceId }),
+  });
 
   // Check if any items in this group are visible
   const groupItems = ctx.state.groupedIds.get(groupId);

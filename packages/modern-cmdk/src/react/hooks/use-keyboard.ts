@@ -7,8 +7,11 @@
 
 import type { CommandMachine, CommandState } from '../../core/index.js';
 
+/** Valid navigation directions */
+type NavigationDirection = 'next' | 'prev' | 'first' | 'last';
+
 /** Navigation key to machine direction mapping */
-const NAVIGATION_KEYS: Readonly<Record<string, string>> = {
+const NAVIGATION_KEYS: Readonly<Record<string, NavigationDirection>> = {
   ArrowDown: 'next',
   ArrowUp: 'prev',
   Home: 'first',
@@ -25,9 +28,10 @@ export function createKeydownHandler(
     const state = getState();
 
     // Navigation keys — ArrowDown/Up/Home/End
-    if (key in NAVIGATION_KEYS) {
+    const direction = NAVIGATION_KEYS[key];
+    if (direction) {
       event.preventDefault();
-      machine.send({ type: 'NAVIGATE', direction: NAVIGATION_KEYS[key] as string });
+      machine.send({ type: 'NAVIGATE', direction });
       return;
     }
 

@@ -86,10 +86,10 @@ export function CommandList({
     }
   }, [ctx.state.activeId, ctx.state.filteredIds, shouldVirtualize, virtualizer]);
 
-  const mergedStyle = {
+  const mergedStyle: CSSProperties & Record<`--${string}`, string> = {
     ...style,
     '--command-list-height': `${height.toFixed(1)}px`,
-  } satisfies CSSProperties as CSSProperties;
+  };
 
   // Ref merge callback — combines internal scrollRef with external ref prop
   const setScrollRef = useCallback(

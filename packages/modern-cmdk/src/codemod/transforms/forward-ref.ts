@@ -90,7 +90,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
 
         // Preserve type annotation if present
         if ('typeAnnotation' in propsParam && propsParam.typeAnnotation) {
-          (newParam as Record<string, unknown>).typeAnnotation = propsParam.typeAnnotation;
+          (newParam as unknown as Record<string, unknown>).typeAnnotation = propsParam.typeAnnotation;
         }
 
         renderFn.params[0] = newParam;

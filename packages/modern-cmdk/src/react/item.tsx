@@ -36,11 +36,11 @@ export function CommandItem({
   }
 
   const id = useRegisterItem(value, {
-    keywords,
-    shortcut,
+    ...(keywords !== undefined && { keywords }),
+    ...(shortcut !== undefined && { shortcut }),
     disabled,
-    onSelect,
-    forceId,
+    ...(onSelect !== undefined && { onSelect }),
+    ...(forceId !== undefined && { forceId }),
   });
 
   const isActive: boolean = ctx.state.activeId === id;
