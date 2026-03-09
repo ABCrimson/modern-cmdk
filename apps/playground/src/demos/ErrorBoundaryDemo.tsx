@@ -4,7 +4,7 @@
 // Demonstrates CommandErrorBoundary with fallback UI
 // React 19: useId
 
-import { Command, CommandErrorBoundary } from '@crimson_dev/command-react';
+import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
 import { useId, useState } from 'react';
 
 function BrokenItem(): React.ReactNode {

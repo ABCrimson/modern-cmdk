@@ -2,7 +2,7 @@
 // Uses: Promise.withResolvers(), await using / AsyncDisposable, Iterator Helpers, branded ItemId
 // Falls back to main-thread WASM when SharedArrayBuffer is unavailable (no COOP/COEP)
 
-import type { CommandItem, ItemId, SearchEngine, SearchResult } from '@crimson_dev/command';
+import type { CommandItem, ItemId, SearchEngine, SearchResult } from 'modern-cmdk';
 import type { WorkerMessage, WorkerResponse } from './worker.js';
 
 // ─── Configuration ───────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@
 // React 19: useId, useCallback, ref as prop
 // ES2026: Iterator Helpers (.map on Set)
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useCallback, useId } from 'react';
 
 export function BasicDemo(): React.ReactNode {

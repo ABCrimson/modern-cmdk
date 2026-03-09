@@ -1,5 +1,5 @@
 {
-  "name": "@crimson_dev/command-monorepo",
+  "name": "modern-cmdk-monorepo",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.0.0-alpha.13",
@@ -19,7 +19,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "format": "biome format . --write",
-    "typecheck": "pnpm --filter '@crimson_dev/command' exec tsc --noEmit",
+    "typecheck": "pnpm --filter 'modern-cmdk' exec tsc --noEmit",
     "size": "pnpm build && size-limit",
     "docs:dev": "pnpm --filter docs run dev",
     "docs:build": "pnpm --filter docs run build",
@@ -64,14 +64,14 @@
   },
   "size-limit": [
     {
-      "name": "@crimson_dev/command (core)",
-      "path": "packages/command/dist/index.js",
+      "name": "modern-cmdk (core)",
+      "path": "packages/modern-cmdk/dist/core/index.mjs",
       "limit": "6 kB",
       "gzip": true
     },
     {
-      "name": "@crimson_dev/command-react",
-      "path": "packages/command-react/dist/index.js",
+      "name": "modern-cmdk/react",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
       "limit": "25 kB",
       "gzip": true
     }

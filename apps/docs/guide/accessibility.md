@@ -1,6 +1,6 @@
 # Accessibility
 
-`@crimson_dev/command` implements the full [WAI-ARIA combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with live regions, forced-colors support, and motion preferences. The goal is a Lighthouse accessibility score of 100.
+`modern-cmdk` implements the full [WAI-ARIA combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with live regions, forced-colors support, and motion preferences. The goal is a Lighthouse accessibility score of 100.
 
 ## WAI-ARIA Combobox Pattern
 

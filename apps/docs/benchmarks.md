@@ -1,6 +1,6 @@
 # Performance
 
-@crimson_dev/command is engineered for speed at every layer.
+modern-cmdk is engineered for speed at every layer.
 
 ## Benchmark Results
 
@@ -8,7 +8,7 @@ All benchmarks run on Node 25.8.0, Ubuntu 24.04, averaged over 3 runs.
 
 ### Search Performance
 
-| Benchmark | @crimson_dev/command (TS) | @crimson_dev/command (WASM) | cmdk |
+| Benchmark | modern-cmdk (TS) | modern-cmdk (WASM) | cmdk |
 |-----------|--------------------------|----------------------------|------|
 | 10K items | 8.2ms | N/A (overkill) | ~25ms |
 | 100K items | 85ms | **0.8ms** | N/A (too slow) |
@@ -24,9 +24,9 @@ All benchmarks run on Node 25.8.0, Ubuntu 24.04, averaged over 3 runs.
 
 | Package | Size | Limit |
 |---------|------|-------|
-| @crimson_dev/command (core) | 2.8 KB | 3.5 KB |
-| @crimson_dev/command-react | 4.2 KB | 5.0 KB |
-| @crimson_dev/command-search-wasm (JS) | 1.5 KB | 2.0 KB |
+| modern-cmdk (core) | 2.8 KB | 3.5 KB |
+| modern-cmdk/react | 4.2 KB | 5.0 KB |
+| modern-cmdk-search-wasm (JS) | 1.5 KB | 2.0 KB |
 
 ### Filter Performance
 

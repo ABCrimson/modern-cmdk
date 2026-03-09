@@ -4,7 +4,7 @@
 // Tests forced-colors and prefers-contrast CSS support
 // React 19: useId
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useId } from 'react';
 
 export function HighContrastDemo(): React.ReactNode {

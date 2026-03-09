@@ -1,0 +1,260 @@
+{
+  "Command Palette (Basic)": {
+    "prefix": "cmd-basic",
+    "body": [
+      "import { Command } from 'modern-cmdk/react';",
+      "",
+      "function ${1:CommandPalette}() {",
+      "  return (",
+      "    <Command label=\"${2:Command menu}\">",
+      "      <Command.Input placeholder=\"${3:Search...}\" />",
+      "      <Command.List>",
+      "        <Command.Empty>No results found.</Command.Empty>",
+      "        <Command.Item value=\"${4:action}\" onSelect={() => ${5:console.log('selected')}}>",
+      "          ${6:Action}",
+      "        </Command.Item>",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Basic inline command palette"
+  },
+  "Command Dialog": {
+    "prefix": "cmd-dialog",
+    "body": [
+      "import { Command } from 'modern-cmdk/react';",
+      "",
+      "function ${1:CommandDialog}() {",
+      "  return (",
+      "    <Command.Dialog>",
+      "      <Command.Input placeholder=\"${2:Search commands...}\" />",
+      "      <Command.List>",
+      "        <Command.Empty>No results found.</Command.Empty>",
+      "        $0",
+      "      </Command.List>",
+      "    </Command.Dialog>",
+      "  );",
+      "}"
+    ],
+    "description": "Command palette in a dialog overlay"
+  },
+  "Command Item": {
+    "prefix": "cmd-item",
+    "body": [
+      "<Command.Item value=\"${1:value}\" onSelect={() => ${2:console.log('selected')}}>",
+      "  ${3:Label}",
+      "</Command.Item>"
+    ],
+    "description": "Command palette item"
+  },
+  "Command Group": {
+    "prefix": "cmd-group",
+    "body": ["<Command.Group heading=\"${1:Group}\">", "  $0", "</Command.Group>"],
+    "description": "Command palette group"
+  },
+  "Command with Frecency": {
+    "prefix": "cmd-frecency",
+    "body": [
+      "<Command frecency={{ enabled: true, storage: '${1|indexeddb,memory|}' }}>",
+      "  <Command.Input placeholder=\"${2:Search...}\" />",
+      "  <Command.List>",
+      "    $0",
+      "  </Command.List>",
+      "</Command>"
+    ],
+    "description": "Command palette with frecency ranking"
+  },
+  "Command AsyncItems": {
+    "prefix": "cmd-async",
+    "body": [
+      "import { Suspense } from 'react';",
+      "",
+      "<Suspense fallback={<Command.Loading>${1:Loading...}</Command.Loading>}>",
+      "  <Command.AsyncItems load={${2:fetchItems}} />",
+      "</Suspense>"
+    ],
+    "description": "Async items with Suspense"
+  },
+  "useCommand Hook": {
+    "prefix": "cmd-hook",
+    "body": [
+      "import { useCommand } from 'modern-cmdk/react';",
+      "",
+      "const { state, send } = useCommand({",
+      "  items: [$0],",
+      "});"
+    ],
+    "description": "useCommand hook for headless usage"
+  },
+  "Command Machine (Core)": {
+    "prefix": "cmd-machine",
+    "body": [
+      "import { createCommandMachine, itemId } from 'modern-cmdk';",
+      "",
+      "using machine = createCommandMachine({",
+      "  items: [",
+      "    { id: itemId('${1:action}'), value: '${2:Action}', onSelect: () => ${3:{}} },",
+      "  ],",
+      "});",
+      "",
+      "machine.subscribe(() => {",
+      "  const state = machine.getState();",
+      "  $0",
+      "});"
+    ],
+    "description": "Core state machine (framework-agnostic, uses Explicit Resource Management)"
+  },
+  "Command Shortcut": {
+    "prefix": "cmd-shortcut",
+    "body": [
+      "<Command.Item",
+      "  value=\"${1:action}\"",
+      "  shortcut=\"${2:Ctrl+Shift+P}\"",
+      "  onSelect={() => ${3:console.log('selected')}}",
+      ">",
+      "  ${4:Action}",
+      "  <Command.Shortcut>${2:Ctrl+Shift+P}</Command.Shortcut>",
+      "</Command.Item>"
+    ],
+    "description": "Command item with keyboard shortcut"
+  },
+  "Command Page": {
+    "prefix": "cmd-page",
+    "body": [
+      "<Command.Page id=\"${1:page-id}\">",
+      "  <Command.Item value=\"${2:back}\" onSelect={() => ${3:goBack()}}>",
+      "    Back",
+      "  </Command.Item>",
+      "  $0",
+      "</Command.Page>"
+    ],
+    "description": "Command palette page (nested navigation)"
+  },
+  "Command Component with ref (React 19)": {
+    "prefix": "cmd-component-ref",
+    "body": [
+      "import { Command } from 'modern-cmdk/react';",
+      "import type { Ref } from 'react';",
+      "",
+      "// React 19: ref is a regular prop — no forwardRef needed",
+      "function ${1:CommandWrapper}({ ref, ...props }: { ref?: Ref<HTMLDivElement> } & ${2:Props}) {",
+      "  return (",
+      "    <Command ref={ref} {...props}>",
+      "      <Command.Input placeholder=\"${3:Search...}\" />",
+      "      <Command.List>",
+      "        $0",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Command wrapper component with ref as prop (React 19 pattern, no forwardRef)"
+  },
+  "Command with use() (React 19)": {
+    "prefix": "cmd-use",
+    "body": [
+      "import { use } from 'react';",
+      "import { Command } from 'modern-cmdk/react';",
+      "",
+      "function ${1:AsyncCommand}({ itemsPromise }: { itemsPromise: Promise<${2:Item}[]> }) {",
+      "  // React 19: use() unwraps promises during render",
+      "  const items = use(itemsPromise);",
+      "",
+      "  return (",
+      "    <Command label=\"${3:Command menu}\">",
+      "      <Command.Input placeholder=\"${4:Search...}\" />",
+      "      <Command.List>",
+      "        <Command.Empty>No results found.</Command.Empty>",
+      "        {items.map((item) => (",
+      "          <Command.Item key={item.${5:id}} value={item.${6:value}} onSelect={item.${7:onSelect}}>",
+      "            {item.${8:label}}",
+      "          </Command.Item>",
+      "        ))}",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Command palette using React 19 use() to read promises"
+  },
+  "Command with useOptimistic (React 19)": {
+    "prefix": "cmd-optimistic",
+    "body": [
+      "import { useOptimistic } from 'react';",
+      "import { Command } from 'modern-cmdk/react';",
+      "",
+      "function ${1:OptimisticCommand}({ items }: { items: ${2:Item}[] }) {",
+      "  const [optimisticItems, addOptimistic] = useOptimistic(",
+      "    items,",
+      "    (state, newItem: ${2:Item}) => [...state, newItem],",
+      "  );",
+      "",
+      "  return (",
+      "    <Command label=\"${3:Command menu}\">",
+      "      <Command.Input placeholder=\"${4:Search...}\" />",
+      "      <Command.List>",
+      "        {optimisticItems.map((item) => (",
+      "          <Command.Item key={item.${5:id}} value={item.${6:value}}>",
+      "            {item.${7:label}}",
+      "          </Command.Item>",
+      "        ))}",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Command palette with React 19 useOptimistic for instant UI updates"
+  },
+  "Command with useActionState (React 19)": {
+    "prefix": "cmd-action",
+    "body": [
+      "import { useActionState } from 'react';",
+      "import { Command } from 'modern-cmdk/react';",
+      "",
+      "function ${1:ActionCommand}() {",
+      "  const [state, dispatch, isPending] = useActionState(",
+      "    async (_prev: ${2:State}, formData: FormData) => {",
+      "      const query = formData.get('query') as string;",
+      "      return await ${3:searchItems}(query);",
+      "    },",
+      "    ${4:initialState},",
+      "  );",
+      "",
+      "  return (",
+      "    <Command label=\"${5:Command menu}\">",
+      "      <Command.Input placeholder=\"${6:Search...}\" />",
+      "      <Command.List>",
+      "        {isPending && <Command.Loading>Searching...</Command.Loading>}",
+      "        $0",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Command palette with React 19 useActionState"
+  },
+  "Command WASM Search": {
+    "prefix": "cmd-wasm",
+    "body": [
+      "import { Command } from 'modern-cmdk/react';",
+      "import { createWasmScorer } from 'modern-cmdk/wasm';",
+      "",
+      "// Initialize WASM scorer (loads .wasm binary once)",
+      "const scorer = await createWasmScorer();",
+      "",
+      "function ${1:WasmCommand}() {",
+      "  return (",
+      "    <Command scorer={scorer} label=\"${2:Command menu}\">",
+      "      <Command.Input placeholder=\"${3:Search...}\" />",
+      "      <Command.List>",
+      "        <Command.Empty>No results found.</Command.Empty>",
+      "        $0",
+      "      </Command.List>",
+      "    </Command>",
+      "  );",
+      "}"
+    ],
+    "description": "Command palette with WASM-powered fuzzy search"
+  }
+}

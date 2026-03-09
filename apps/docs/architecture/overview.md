@@ -1,23 +1,23 @@
 ---
 title: Architecture Overview
-description: Three-layer architecture, state machine design, data flow, and plugin system for @crimson_dev/command.
+description: Three-layer architecture, state machine design, data flow, and plugin system for modern-cmdk.
 ---
 
 # Architecture Overview
 
-`@crimson_dev/command` is built as a three-layer architecture: a framework-agnostic core engine, a React 19 adapter, and optional performance plugins. Each layer has a single responsibility and communicates through well-defined interfaces.
+`modern-cmdk` is built as a three-layer architecture: a framework-agnostic core engine, a React 19 adapter, and optional performance plugins. Each layer has a single responsibility and communicates through well-defined interfaces.
 
 ## Three-Layer Architecture
 
 ```mermaid
 graph TB
     subgraph "Layer 3: Optional Plugins"
-        WASM["@crimson_dev/command-search-wasm\nRust/WASM trigram index"]
+        WASM["modern-cmdk-search-wasm\nRust/WASM trigram index"]
         WORKER["Web Worker Engine\nOff-main-thread search"]
     end
 
     subgraph "Layer 2: React 19 Adapter"
-        REACT["@crimson_dev/command-react\nCompound components"]
+        REACT["modern-cmdk/react\nCompound components"]
         HOOKS["useSyncExternalStore\nuseTransition\nuseOptimistic"]
     end
 
@@ -37,7 +37,7 @@ graph TB
     MACHINE --> KEYBOARD
 ```
 
-### Layer 1: Core Engine (`@crimson_dev/command`)
+### Layer 1: Core Engine (`modern-cmdk`)
 
 Pure TypeScript state machine with zero DOM dependencies. Manages:
 
@@ -50,7 +50,7 @@ Pure TypeScript state machine with zero DOM dependencies. Manages:
 
 The core has no side effects beyond subscriber notification. It can be used with any UI framework or no framework at all.
 
-### Layer 2: React Adapter (`@crimson_dev/command-react`)
+### Layer 2: React Adapter (`modern-cmdk/react`)
 
 Compound component API that bridges the core state machine to React 19:
 
@@ -222,7 +222,7 @@ Built-in implementations:
 To add a custom search engine:
 
 ```typescript
-import { createCommandMachine, type SearchEngine } from '@crimson_dev/command';
+import { createCommandMachine, type SearchEngine } from 'modern-cmdk';
 
 const myEngine: SearchEngine = {
   index(items) { /* build your index */ },
@@ -237,7 +237,7 @@ using machine = createCommandMachine({ search: myEngine });
 To add a custom frecency storage:
 
 ```typescript
-import { type FrecencyStorage } from '@crimson_dev/command';
+import { type FrecencyStorage } from 'modern-cmdk';
 
 class RedisFrecencyStorage implements FrecencyStorage {
   async load(namespace: string) { /* fetch from Redis */ }

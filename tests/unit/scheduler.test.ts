@@ -1,4 +1,4 @@
-import { createScheduler } from '@crimson_dev/command';
+import { createScheduler } from 'modern-cmdk';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('Scheduler (0.0.3)', () => {

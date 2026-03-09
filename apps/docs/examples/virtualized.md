@@ -12,7 +12,7 @@ Demonstrates smooth 60fps scrolling with 10,000 items using the built-in virtual
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 // Generate 10,000 items using Iterator Helpers (ES2026)
 const items = Iterator.range(0, 10_000)
@@ -103,8 +103,8 @@ For the best experience with 10K+ items, pair virtualization with the WASM searc
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
-import { createWasmSearchEngine } from '@crimson_dev/command-search-wasm';
+import { Command } from 'modern-cmdk/react';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 import { useEffect, useState } from 'react';
 
 export function WasmVirtualizedExample() {

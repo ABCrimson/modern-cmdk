@@ -1,4 +1,4 @@
-import { CommandActivity } from '@crimson_dev/command-react';
+import { CommandActivity } from 'modern-cmdk/react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';

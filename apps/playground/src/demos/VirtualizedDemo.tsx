@@ -5,7 +5,7 @@
 // React 19: useId, useCallback, useMemo
 // ES2026: Iterator Helpers for item rendering
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useCallback, useId, useMemo } from 'react';
 
 /** Word pool for generating varied item values */

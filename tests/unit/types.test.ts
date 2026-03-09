@@ -9,14 +9,14 @@ import type {
   GroupId,
   ItemId,
   SearchEngine,
-} from '@crimson_dev/command';
+} from 'modern-cmdk';
 import {
   createInitialState,
   DEFAULT_FRECENCY_DECAY,
   DEFAULT_MACHINE_OPTIONS,
   groupId,
   itemId,
-} from '@crimson_dev/command';
+} from 'modern-cmdk';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 describe('Type Foundation (0.0.2)', () => {

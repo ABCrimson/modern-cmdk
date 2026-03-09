@@ -1,10 +1,5 @@
-import type { FrecencyRecord } from '@crimson_dev/command';
-import {
-  computeFrecencyBonus,
-  FrecencyEngine,
-  itemId,
-  MemoryFrecencyStorage,
-} from '@crimson_dev/command';
+import type { FrecencyRecord } from 'modern-cmdk';
+import { computeFrecencyBonus, FrecencyEngine, itemId, MemoryFrecencyStorage } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
 describe('computeFrecencyBonus', () => {

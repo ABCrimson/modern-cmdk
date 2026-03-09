@@ -86,7 +86,7 @@
       }
     },
     {
-      "includes": ["packages/command-codemod/**"],
+      "includes": ["packages/modern-cmdk/src/codemod/**"],
       "linter": {
         "rules": {
           "suspicious": {
@@ -135,7 +135,7 @@
       "!coverage/",
       "!.changeset/",
       "!node_modules/",
-      "!packages/command-react/src/primitives.ts"
+      "!packages/modern-cmdk/src/react/primitives.ts"
     ]
   }
 }

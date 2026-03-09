@@ -5,7 +5,7 @@
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 function CommandPalette() {
   return (
@@ -34,7 +34,7 @@ Wrap in `Command.Dialog` for a modal command palette:
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useState } from 'react';
 
 function App() {

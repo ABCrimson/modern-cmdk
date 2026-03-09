@@ -1,9 +1,4 @@
-import {
-  detectConflicts,
-  formatShortcut,
-  matchesShortcut,
-  parseShortcut,
-} from '@crimson_dev/command';
+import { detectConflicts, formatShortcut, matchesShortcut, parseShortcut } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
 // ES2026 Object.groupBy — organize parse test cases by category

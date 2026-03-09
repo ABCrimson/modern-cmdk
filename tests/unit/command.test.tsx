@@ -2,8 +2,8 @@
 // React adapter compound component tests — Vitest + happy-dom
 // React 19.3.0-canary, TypeScript 6.0.1-rc, ES2026
 
-import { groupId, itemId } from '@crimson_dev/command';
-import { Command } from '@crimson_dev/command-react';
+import { groupId, itemId } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

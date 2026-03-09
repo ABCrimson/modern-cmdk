@@ -12,7 +12,7 @@ Demonstrates keyboard shortcut registration on items, platform-aware display via
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 export function ShortcutsExample() {
   return (
@@ -73,7 +73,7 @@ The `shortcut` prop on `<Command.Item>` registers the shortcut globally. Pressin
 Detect conflicting shortcuts at runtime using `detectConflicts`:
 
 ```typescript
-import { parseShortcut, detectConflicts } from '@crimson_dev/command';
+import { parseShortcut, detectConflicts } from 'modern-cmdk';
 
 const shortcuts = [
   parseShortcut('Mod+S'),

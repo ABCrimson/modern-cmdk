@@ -1,13 +1,13 @@
 # TypeScript Integration
 
-@crimson_dev/command is built with TypeScript 6.0.1 and provides first-class type safety.
+modern-cmdk is built with TypeScript 6.0.1 and provides first-class type safety.
 
 ## Branded IDs
 
 Item and group identifiers use branded types to prevent accidental mixing:
 
 ```ts
-import { itemId, groupId } from '@crimson_dev/command';
+import { itemId, groupId } from 'modern-cmdk';
 
 const myItem = itemId('copy');   // type: ItemId (branded string)
 const myGroup = groupId('edit'); // type: GroupId (branded string)

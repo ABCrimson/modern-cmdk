@@ -15,6 +15,6 @@ export default defineConfig({
   define: {
     __DEV__: 'process.env.NODE_ENV !== "production"',
   },
-  external: ['@crimson_dev/command'],
+  external: ['modern-cmdk'],
   platform: 'browser',
 });

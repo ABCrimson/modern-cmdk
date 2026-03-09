@@ -1,13 +1,13 @@
 // tests/unit/cmdk-performance-accuracy.test.tsx
-// Head-to-head: @crimson_dev/command vs cmdk — Performance & Search Accuracy
+// Head-to-head: modern-cmdk vs cmdk — Performance & Search Accuracy
 // Vitest 4.1 — ES2026 — React 19
 
-// ── Our library ──
-import type { CommandItem, SearchResult } from '@crimson_dev/command';
-import { createCommandMachine, createSearchEngine, itemId, scoreItem } from '@crimson_dev/command';
-import { Command } from '@crimson_dev/command-react';
 // ── cmdk (the original) ──
 import { Command as CmdkCommand, defaultFilter as cmdkDefaultFilter } from 'cmdk';
+// ── Our library ──
+import type { CommandItem, SearchResult } from 'modern-cmdk';
+import { createCommandMachine, createSearchEngine, itemId, scoreItem } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';

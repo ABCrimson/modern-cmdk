@@ -23,10 +23,10 @@ We follow [coordinated disclosure](https://en.wikipedia.org/wiki/Coordinated_vul
 
 This policy covers:
 
-- `@crimson_dev/command` (core engine)
-- `@crimson_dev/command-react` (React adapter)
-- `@crimson_dev/command-search-wasm` (WASM search)
-- `@crimson_dev/command-codemod` (migration codemods)
+- `modern-cmdk` (core engine)
+- `modern-cmdk/react` (React adapter)
+- `modern-cmdk-search-wasm` (WASM search)
+- `modern-cmdk (codemods)` (migration codemods)
 - Documentation site (command.crimson.dev)
 - Interactive playground
 
@@ -38,7 +38,7 @@ This policy covers:
 
 ## Dependencies
 
-- The core package (`@crimson_dev/command`) has **zero runtime dependencies**.
+- The core package (`modern-cmdk`) has **zero runtime dependencies**.
 - The React adapter depends on `react`, `react-dom`, and `radix-ui` as peer dependencies.
 - We use Dependabot for automated dependency updates and monitor advisories via GitHub's security alerts.
 

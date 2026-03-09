@@ -5,7 +5,7 @@
 // React 19: useId
 // All styles use CSS logical properties (inline/block)
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useId } from 'react';
 
 export function RTLDemo(): React.ReactNode {

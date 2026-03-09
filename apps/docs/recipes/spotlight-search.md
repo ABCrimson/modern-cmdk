@@ -3,7 +3,7 @@
 Build a macOS Spotlight-style global search across your entire app.
 
 ```tsx
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { Suspense } from 'react';
 
 function SpotlightSearch() {
@@ -52,7 +52,7 @@ Register `Ctrl+K` or `Cmd+K` to open from anywhere:
 For the ultimate search experience — items you use frequently appear first, and WASM provides sub-millisecond search:
 
 ```tsx
-import { createWasmSearchEngine } from '@crimson_dev/command-search-wasm';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 
 const engine = await createWasmSearchEngine({ mode: 'worker' });
 

@@ -1,21 +1,21 @@
 ---
-title: "@crimson_dev/command-react API"
+title: "modern-cmdk/react API"
 description: Complete API reference for the React 19 adapter, including all compound components, props, hooks, and data attributes.
 ---
 
-# @crimson_dev/command-react
+# modern-cmdk/react
 
-React 19 compound component adapter for `@crimson_dev/command`. All components use the `"use client"` directive and accept `ref` as a prop (no `forwardRef`).
+React 19 compound component adapter for `modern-cmdk`. All components use the `"use client"` directive and accept `ref` as a prop (no `forwardRef`).
 
 ## Installation
 
 ::: code-group
 ```bash [pnpm]
-pnpm add @crimson_dev/command-react
+pnpm add modern-cmdk/react
 ```
 
 ```bash [npm]
-npm install @crimson_dev/command-react
+npm install modern-cmdk/react
 ```
 :::
 
@@ -24,7 +24,7 @@ npm install @crimson_dev/command-react
 Root component that creates a command palette state machine and provides context to all child components.
 
 ```tsx
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 <Command
   label="Command Menu"
@@ -296,7 +296,7 @@ Full dialog implementation using Radix Dialog with focus trap, overlay, `@starti
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useState, useEffect } from 'react';
 
 function CommandPalette() {
@@ -452,7 +452,7 @@ Wraps content in React 19.3.0-canary Activity API for state preservation. When `
 Subscribe to a slice of command state via `useSyncExternalStore`:
 
 ```tsx
-import { useCommandState } from '@crimson_dev/command-react';
+import { useCommandState } from 'modern-cmdk/react';
 
 function ResultCount() {
   const count = useCommandState((state) => state.filteredCount);

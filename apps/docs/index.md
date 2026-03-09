@@ -1,7 +1,7 @@
 ---
 layout: home
 hero:
-  name: "@crimson_dev/command"
+  name: "modern-cmdk"
   text: Headless Command Palette Engine
   tagline: Framework-agnostic core with React 19 adapter. ES2026. GPU-composited. Accessible.
   actions:

@@ -1,5 +1,5 @@
-import type { CommandItem, SearchResult } from '@crimson_dev/command';
-import { createSearchEngine, itemId, scoreItem } from '@crimson_dev/command';
+import type { CommandItem, SearchResult } from 'modern-cmdk';
+import { createSearchEngine, itemId, scoreItem } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
 function makeItem(value: string, keywords?: string[]): CommandItem {

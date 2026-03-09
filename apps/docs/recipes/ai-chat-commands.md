@@ -3,7 +3,7 @@
 Build slash commands for an AI chat interface (like ChatGPT or Claude).
 
 ```tsx
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 const COMMANDS = [
   { id: 'summarize', label: '/summarize', description: 'Summarize the conversation' },

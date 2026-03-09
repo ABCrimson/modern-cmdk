@@ -28,7 +28,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - id: lint
         run: pnpm biome check .
-      - run: pnpm --filter '@crimson_dev/command' exec tsc --noEmit
+      - run: pnpm --filter 'modern-cmdk' exec tsc --noEmit
 
   test:
     name: Test (${{ matrix.os }}, shard ${{ matrix.shard }}/4)
@@ -49,7 +49,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!@crimson_dev/command-monorepo' --parallel run build
+      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
       - id: test
         run: pnpm vitest run --coverage --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v7
@@ -73,7 +73,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!@crimson_dev/command-monorepo' --parallel run build
+      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
       - run: pnpm playwright install --with-deps chromium firefox webkit
       - run: pnpm playwright test
       - uses: actions/upload-artifact@v7
@@ -98,7 +98,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!@crimson_dev/command-monorepo' --parallel run build
+      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
       - id: size
         run: |
           pnpm size-limit --json > size-report.json
@@ -139,7 +139,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!@crimson_dev/command-monorepo' --parallel run build
+      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
       - run: pnpm bench:ci
       - run: pnpm bench:compare
       - uses: actions/upload-artifact@v7

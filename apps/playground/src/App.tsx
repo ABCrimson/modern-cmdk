@@ -117,7 +117,7 @@ export function App(): React.ReactNode {
           <div className="playground-logo" aria-hidden="true">
             C
           </div>
-          <h1 className="playground-title">@crimson_dev/command</h1>
+          <h1 className="playground-title">modern-cmdk</h1>
         </div>
         <p className="playground-subtitle">
           The definitive command palette engine for the modern web.
@@ -165,7 +165,7 @@ export function App(): React.ReactNode {
             GitHub
           </a>
           <a
-            href="https://www.npmjs.com/package/@crimson_dev/command"
+            href="https://www.npmjs.com/package/modern-cmdk"
             target="_blank"
             rel="noopener noreferrer"
           >

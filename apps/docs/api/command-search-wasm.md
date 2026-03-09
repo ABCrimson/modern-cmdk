@@ -1,9 +1,9 @@
 ---
-title: "@crimson_dev/command-search-wasm API"
+title: "modern-cmdk-search-wasm API"
 description: API reference for the Rust/WASM fuzzy search engine with Web Worker support and SharedArrayBuffer zero-copy transfer.
 ---
 
-# @crimson_dev/command-search-wasm
+# modern-cmdk-search-wasm
 
 Rust-based trigram fuzzy search engine compiled to WebAssembly. Provides sub-1ms search on 100K items with typo tolerance.
 
@@ -11,11 +11,11 @@ Rust-based trigram fuzzy search engine compiled to WebAssembly. Provides sub-1ms
 
 ::: code-group
 ```bash [pnpm]
-pnpm add @crimson_dev/command-search-wasm
+pnpm add modern-cmdk-search-wasm
 ```
 
 ```bash [npm]
-npm install @crimson_dev/command-search-wasm
+npm install modern-cmdk-search-wasm
 ```
 :::
 
@@ -24,7 +24,7 @@ npm install @crimson_dev/command-search-wasm
 Creates a WASM search engine that runs on the main thread. Suitable for datasets up to ~50K items.
 
 ```typescript
-import { createWasmSearchEngine } from '@crimson_dev/command-search-wasm';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 
 await using engine = await createWasmSearchEngine();
 ```
@@ -81,7 +81,7 @@ async function search() {
 Creates a WASM search engine that runs in a dedicated Web Worker. Keeps the main thread free for UI rendering. Best for datasets over 50K items.
 
 ```typescript
-import { createWorkerSearchEngine } from '@crimson_dev/command-search-wasm';
+import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
 
 await using engine = await createWorkerSearchEngine({
   maxResults: 100,
@@ -191,11 +191,11 @@ export default nextConfig;
 
 ## Plugging into the State Machine
 
-Both engine types implement the `SearchEngine` interface from `@crimson_dev/command`:
+Both engine types implement the `SearchEngine` interface from `modern-cmdk`:
 
 ```typescript
-import { createCommandMachine } from '@crimson_dev/command';
-import { createWasmSearchEngine } from '@crimson_dev/command-search-wasm';
+import { createCommandMachine } from 'modern-cmdk';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 
 await using searchEngine = await createWasmSearchEngine();
 

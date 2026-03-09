@@ -1,11 +1,11 @@
 # Vanilla JavaScript
 
-The core engine (`@crimson_dev/command`) is framework-agnostic. Use it directly with vanilla DOM APIs.
+The core engine (`modern-cmdk`) is framework-agnostic. Use it directly with vanilla DOM APIs.
 
 ## Basic Example
 
 ```ts
-import { createCommandMachine, itemId } from '@crimson_dev/command';
+import { createCommandMachine, itemId } from 'modern-cmdk';
 
 // Create machine with Explicit Resource Management
 using machine = createCommandMachine({
@@ -64,7 +64,7 @@ The core machine's `subscribe`/`getState` pattern maps directly to Svelte 5 rune
 
 ```svelte
 <script>
-  import { createCommandMachine, itemId } from '@crimson_dev/command';
+  import { createCommandMachine, itemId } from 'modern-cmdk';
 
   const machine = createCommandMachine({ items: [...] });
   let state = $state(machine.getState());

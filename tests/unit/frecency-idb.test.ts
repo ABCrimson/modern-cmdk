@@ -1,5 +1,5 @@
-import type { FrecencyData, FrecencyRecord, ItemId } from '@crimson_dev/command';
-import { IdbFrecencyStorage, itemId } from '@crimson_dev/command';
+import type { FrecencyData, FrecencyRecord, ItemId } from 'modern-cmdk';
+import { IdbFrecencyStorage, itemId } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
 // Each test gets a unique DB name to avoid cross-test contamination

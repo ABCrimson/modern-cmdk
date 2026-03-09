@@ -1,5 +1,5 @@
-import type { CommandItem, ItemId } from '@crimson_dev/command';
-import { createCommandMachine, groupId, itemId } from '@crimson_dev/command';
+import type { CommandItem, ItemId } from 'modern-cmdk';
+import { createCommandMachine, groupId, itemId } from 'modern-cmdk';
 import { describe, expect, it, vi } from 'vitest';
 
 function makeItem(id: string, value: string, opts?: Partial<CommandItem>): CommandItem {

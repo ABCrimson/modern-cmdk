@@ -4,7 +4,7 @@
 // Side-by-side dark/light theme preview
 // React 19: useId, useCallback
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useCallback, useId, useState } from 'react';
 
 export function DarkModeDemo(): React.ReactNode {

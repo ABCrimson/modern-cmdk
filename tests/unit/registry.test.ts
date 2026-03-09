@@ -1,5 +1,5 @@
-import type { CommandItem } from '@crimson_dev/command';
-import { CommandRegistry, groupId, itemId } from '@crimson_dev/command';
+import type { CommandItem } from 'modern-cmdk';
+import { CommandRegistry, groupId, itemId } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
 function makeItem(id: string, value?: string, gid?: string): CommandItem {

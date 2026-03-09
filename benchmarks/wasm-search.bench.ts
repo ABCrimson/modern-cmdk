@@ -1,6 +1,6 @@
-import type { CommandItem } from '@crimson_dev/command';
-import { createSearchEngine, itemId } from '@crimson_dev/command';
-import { createWasmSearchEngine } from '@crimson_dev/command-search-wasm';
+import type { CommandItem } from 'modern-cmdk';
+import { createSearchEngine, itemId } from 'modern-cmdk';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 import { bench, describe } from 'vitest';
 
 // ---------------------------------------------------------------------------

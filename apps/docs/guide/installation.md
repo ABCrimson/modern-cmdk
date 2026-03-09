@@ -10,15 +10,15 @@
 
 ::: code-group
 ```bash [pnpm]
-pnpm add @crimson_dev/command @crimson_dev/command-react
+pnpm add modern-cmdk
 ```
 
 ```bash [npm]
-npm install @crimson_dev/command @crimson_dev/command-react
+npm install modern-cmdk
 ```
 
 ```bash [yarn]
-yarn add @crimson_dev/command @crimson_dev/command-react
+yarn add modern-cmdk
 ```
 :::
 
@@ -27,7 +27,7 @@ yarn add @crimson_dev/command @crimson_dev/command-react
 For datasets over 5K items, install the optional WASM-accelerated search:
 
 ```bash
-pnpm add @crimson_dev/command-search-wasm
+pnpm add modern-cmdk-search-wasm
 ```
 
 ## Optional: Frecency Persistence

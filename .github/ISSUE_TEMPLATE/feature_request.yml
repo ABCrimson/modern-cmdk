@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Have an idea for @crimson_dev/command? We'd love to hear it.
+        Have an idea for modern-cmdk? We'd love to hear it.
 
   - type: dropdown
     id: package
@@ -15,10 +15,10 @@ body:
       label: Package
       description: Which package would this affect?
       options:
-        - "@crimson_dev/command (core)"
-        - "@crimson_dev/command-react"
-        - "@crimson_dev/command-search-wasm"
-        - "@crimson_dev/command-codemod"
+        - "modern-cmdk (core)"
+        - "modern-cmdk/react"
+        - "modern-cmdk (WASM search)"
+        - "modern-cmdk (codemods)"
         - "New package"
         - "Documentation"
         - "Playground"

@@ -1,6 +1,6 @@
 # Getting Started
 
-`@crimson_dev/command` is a headless command palette engine with a framework-agnostic core and a React 19 adapter.
+`modern-cmdk` is a headless command palette engine with a framework-agnostic core and a React 19 adapter.
 
 ## What is it?
 
@@ -15,14 +15,14 @@ A ground-up reimagination of `cmdk` (pacocoursey/cmdk) built for 2026:
 ## Architecture
 
 ```
-@crimson_dev/command (core)
+modern-cmdk (core)
 ├── State Machine (pure TS)
 ├── Search Engine (pluggable, WASM optional)
 ├── Frecency Engine (Temporal-based)
 ├── Keyboard Registry
 └── Command Registry
 
-@crimson_dev/command-react (adapter)
+modern-cmdk/react (adapter)
 ├── Compound Components (Command.*)
 ├── Hooks (useCommand, useCommandState)
 ├── Virtualization (automatic)

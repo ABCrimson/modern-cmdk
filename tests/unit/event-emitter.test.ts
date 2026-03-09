@@ -1,4 +1,4 @@
-import { TypedEmitter } from '@crimson_dev/command';
+import { TypedEmitter } from 'modern-cmdk';
 import { describe, expect, it, vi } from 'vitest';
 
 interface TestEvents {

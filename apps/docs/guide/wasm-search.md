@@ -1,20 +1,20 @@
 # WASM Search
 
-For datasets over 5K items, `@crimson_dev/command-search-wasm` provides a Rust-based trigram index compiled to WebAssembly. It delivers sub-1ms fuzzy search on 100K items with typo tolerance.
+For datasets over 5K items, `modern-cmdk-search-wasm` provides a Rust-based trigram index compiled to WebAssembly. It delivers sub-1ms fuzzy search on 100K items with typo tolerance.
 
 ## Installation
 
 ::: code-group
 ```bash [pnpm]
-pnpm add @crimson_dev/command-search-wasm
+pnpm add modern-cmdk-search-wasm
 ```
 
 ```bash [npm]
-npm install @crimson_dev/command-search-wasm
+npm install modern-cmdk-search-wasm
 ```
 
 ```bash [yarn]
-yarn add @crimson_dev/command-search-wasm
+yarn add modern-cmdk-search-wasm
 ```
 :::
 
@@ -25,8 +25,8 @@ The simplest approach runs the WASM module directly on the main thread. Suitable
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
-import { createWasmSearchEngine } from '@crimson_dev/command-search-wasm';
+import { Command } from 'modern-cmdk/react';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 import { useEffect, useState } from 'react';
 
 function WasmSearchPalette() {
@@ -65,7 +65,7 @@ function WasmSearchPalette() {
 Creates a WASM search engine instance on the main thread.
 
 ```typescript
-import { createWasmSearchEngine } from '@crimson_dev/command-search-wasm';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 
 await using engine = await createWasmSearchEngine();
 
@@ -91,8 +91,8 @@ For the best performance with large datasets (50K+ items), run the WASM module i
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
-import { createWorkerSearchEngine } from '@crimson_dev/command-search-wasm';
+import { Command } from 'modern-cmdk/react';
+import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
 import { useEffect, useState } from 'react';
 
 function WorkerSearchPalette() {
@@ -104,7 +104,7 @@ function WorkerSearchPalette() {
     async function init() {
       const workerEngine = await createWorkerSearchEngine({
         wasmUrl: new URL(
-          '@crimson_dev/command-search-wasm/pkg/command_search_wasm_bg.wasm',
+          'modern-cmdk-search-wasm/pkg/command_search_wasm_bg.wasm',
           import.meta.url,
         ),
       });
@@ -134,7 +134,7 @@ function WorkerSearchPalette() {
 Creates a WASM search engine that runs in a Web Worker.
 
 ```typescript
-import { createWorkerSearchEngine } from '@crimson_dev/command-search-wasm';
+import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
 
 const engine = await createWorkerSearchEngine({
   wasmUrl: new URL('./command_search_wasm_bg.wasm', import.meta.url),
@@ -195,11 +195,11 @@ export default nextConfig;
 
 ## Plugging into the State Machine
 
-The WASM search engine implements the `SearchEngine` interface from `@crimson_dev/command`. You can plug it into the core state machine directly:
+The WASM search engine implements the `SearchEngine` interface from `modern-cmdk`. You can plug it into the core state machine directly:
 
 ```typescript
-import { createCommandMachine } from '@crimson_dev/command';
-import { createWasmSearchEngine } from '@crimson_dev/command-search-wasm';
+import { createCommandMachine } from 'modern-cmdk';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 
 await using searchEngine = await createWasmSearchEngine();
 

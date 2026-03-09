@@ -1,6 +1,6 @@
 # Theming
 
-`@crimson_dev/command` uses OKLCH color space, CSS custom properties, and `data-*` attribute selectors for a fully customizable theming system.
+`modern-cmdk` uses OKLCH color space, CSS custom properties, and `data-*` attribute selectors for a fully customizable theming system.
 
 ## OKLCH Design Tokens
 

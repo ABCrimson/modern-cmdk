@@ -1,6 +1,6 @@
 # Migration from cmdk
 
-This guide covers migrating from `cmdk` (pacocoursey/cmdk) to `@crimson_dev/command-react`. For simple cases, it is a package swap. For advanced usage, there are breaking changes to address.
+This guide covers migrating from `cmdk` (pacocoursey/cmdk) to `modern-cmdk/react`. For simple cases, it is a package swap. For advanced usage, there are breaking changes to address.
 
 ## Quick Start: Drop-in Compatibility
 
@@ -8,7 +8,7 @@ For the simplest migration, swap the import:
 
 ```diff
 - import { Command } from 'cmdk';
-+ import { Command } from '@crimson_dev/command-react';
++ import { Command } from 'modern-cmdk/react';
 ```
 
 The compound component API, data attributes, and CSS custom properties all work identically for basic usage.
@@ -19,11 +19,11 @@ The fastest way to migrate is the provided codemod CLI:
 
 ::: code-group
 ```bash [npx]
-npx @crimson_dev/command-codemod migrate ./src
+npx modern-cmdk (codemods) migrate ./src
 ```
 
 ```bash [pnpm]
-pnpm dlx @crimson_dev/command-codemod migrate ./src
+pnpm dlx modern-cmdk (codemods) migrate ./src
 ```
 :::
 
@@ -31,7 +31,7 @@ pnpm dlx @crimson_dev/command-codemod migrate ./src
 
 | Transformation | Example |
 |---|---|
-| Import rewriting | `'cmdk'` to `'@crimson_dev/command-react'` |
+| Import rewriting | `'cmdk'` to `'modern-cmdk/react'` |
 | Data attribute renaming | `[cmdk-root]` to `[data-command-root]` |
 | CSS custom property renaming | `--cmdk-list-height` to `--command-list-height` |
 | `forwardRef` removal | Removes `forwardRef` wrapper, uses `ref` as prop |
@@ -40,7 +40,7 @@ pnpm dlx @crimson_dev/command-codemod migrate ./src
 ### Codemod Options
 
 ```bash
-npx @crimson_dev/command-codemod migrate ./src \
+npx modern-cmdk (codemods) migrate ./src \
   --dry-run          # Preview changes without writing
   --verbose          # Show detailed transformation log
   --extensions ts,tsx # File extensions to process (default: ts,tsx,js,jsx)
@@ -71,7 +71,7 @@ All `[cmdk-*]` data attributes are renamed to `[data-command-*]`. Legacy aliases
 [cmdk-loading] { /* loading state */ }
 ```
 
-```css [After (@crimson_dev/command-react)]
+```css [After (modern-cmdk/react)]
 [data-command-root] { /* root styles */ }
 [data-command-input] { /* input styles */ }
 [data-command-item] { /* item styles */ }
@@ -103,7 +103,7 @@ The `--cmdk-list-height` alias is provided for backward compatibility, but you s
 </Command>
 ```
 
-```tsx [After (@crimson_dev/command-react)]
+```tsx [After (modern-cmdk/react)]
 <Command filter={false}>
   {/* External filtering */}
 </Command>
@@ -132,7 +132,7 @@ const CustomInput = forwardRef<HTMLInputElement, Props>((props, ref) => (
 ));
 ```
 
-```tsx [After (@crimson_dev/command-react + React 19)]
+```tsx [After (modern-cmdk/react + React 19)]
 function CustomInput({ ref, ...props }: Props & { ref?: React.Ref<HTMLInputElement> }) {
   return <Command.Input ref={ref} {...props} />;
 }
@@ -141,7 +141,7 @@ function CustomInput({ ref, ...props }: Props & { ref?: React.Ref<HTMLInputEleme
 
 ### 5. `"use client"` Directive Required
 
-Every component in `@crimson_dev/command-react` has `"use client"` at the top. If you are importing from a server component, you must use the component from a client component boundary:
+Every component in `modern-cmdk/react` has `"use client"` at the top. If you are importing from a server component, you must use the component from a client component boundary:
 
 ```tsx
 // This file is a Server Component
@@ -181,7 +181,7 @@ You do not need to install Radix separately unless you use it directly.
 }
 ```
 
-```css [After (@crimson_dev/command-react)]
+```css [After (modern-cmdk/react)]
 [data-command-item][data-active] {
   background: var(--color-primary-subtle);
 }
@@ -223,10 +223,10 @@ const CommandPalette = forwardRef<HTMLDivElement>((props, ref) => {
 });
 ```
 
-```tsx [After (@crimson_dev/command-react)]
+```tsx [After (modern-cmdk/react)]
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useState } from 'react';
 
 function CommandPalette({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
@@ -258,9 +258,9 @@ function CommandPalette({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
 
 ## Complete API Differences
 
-| cmdk | @crimson_dev/command-react | Notes |
+| cmdk | modern-cmdk/react | Notes |
 |---|---|---|
-| `import { Command } from 'cmdk'` | `import { Command } from '@crimson_dev/command-react'` | Import path |
+| `import { Command } from 'cmdk'` | `import { Command } from 'modern-cmdk/react'` | Import path |
 | `[cmdk-root]` | `[data-command-root]` | Aliased for compat |
 | `[cmdk-input]` | `[data-command-input]` | Aliased for compat |
 | `[cmdk-item]` | `[data-command-item]` | Aliased for compat |

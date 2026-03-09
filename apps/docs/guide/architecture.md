@@ -1,24 +1,24 @@
 ---
 title: Architecture Overview
-description: Three-layer architecture of the @crimson_dev/command monorepo
+description: Three-layer architecture of the modern-cmdk monorepo
 ---
 
 # Architecture Overview
 
-`@crimson_dev/command` is built as a three-layer architecture: a framework-agnostic **core engine**, a **React adapter**, and an optional **WASM search** acceleration layer.
+`modern-cmdk` is built as a three-layer architecture: a framework-agnostic **core engine**, a **React adapter**, and an optional **WASM search** acceleration layer.
 
 ## Package Dependency Graph
 
 ```mermaid
 graph TD
-    A["@crimson_dev/command<br/>(Core Engine)"] --> B["@crimson_dev/command-react<br/>(React 19 Adapter)"]
-    A --> C["@crimson_dev/command-search-wasm<br/>(WASM Trigram Search)"]
+    A["modern-cmdk<br/>(Core Engine)"] --> B["modern-cmdk/react<br/>(React 19 Adapter)"]
+    A --> C["modern-cmdk-search-wasm<br/>(WASM Trigram Search)"]
     B --> D["apps/docs<br/>(VitePress)"]
     B --> E["apps/playground<br/>(React 19 Demo)"]
     C -.->|optional| B
 ```
 
-## Core Engine (`@crimson_dev/command`)
+## Core Engine (`modern-cmdk`)
 
 The core is a **pure TypeScript state machine** with zero DOM or framework dependencies. It manages search, filtering, keyboard navigation, frecency ranking, and keyboard shortcuts.
 
@@ -64,7 +64,7 @@ flowchart LR
     F --> G[React re-render<br/>via useSyncExternalStore]
 ```
 
-## React Adapter (`@crimson_dev/command-react`)
+## React Adapter (`modern-cmdk/react`)
 
 The React adapter exposes 14 compound components that bind to the core state machine:
 
@@ -99,7 +99,7 @@ The list component auto-virtualizes when filtered items exceed a threshold. The 
 - `translate3d` transforms for GPU-composited positioning
 - `content-visibility: auto` for off-screen rendering skip
 
-## WASM Search (`@crimson_dev/command-search-wasm`)
+## WASM Search (`modern-cmdk-search-wasm`)
 
 Optional Rust-compiled trigram index for large datasets (10K+ items).
 

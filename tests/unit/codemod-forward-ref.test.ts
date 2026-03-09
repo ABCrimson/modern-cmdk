@@ -1,7 +1,7 @@
 import type { API, FileInfo } from 'jscodeshift';
 import jscodeshift from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
-import transform from '../../packages/command-codemod/src/transforms/forward-ref.js';
+import transform from '../../packages/modern-cmdk/src/codemod/transforms/forward-ref.js';
 
 function createApi(parser: string = 'tsx'): API {
   return {

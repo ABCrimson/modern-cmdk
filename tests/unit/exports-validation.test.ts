@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 describe('package exports', () => {
   it('core package exports all public API', async () => {
-    const core = await import('@crimson_dev/command');
+    const core = await import('modern-cmdk');
     // Vitest 4.1 — use expect.soft() for non-fatal assertions so all exports are checked
     expect.soft(core.createCommandMachine).toBeTypeOf('function');
     expect.soft(core.createSearchEngine).toBeTypeOf('function');
@@ -14,7 +14,7 @@ describe('package exports', () => {
   });
 
   it('react package exports all components and hooks', async () => {
-    const react = await import('@crimson_dev/command-react');
+    const react = await import('modern-cmdk/react');
     // Vitest 4.1 — soft assertions to report all missing exports at once
     expect.soft(react.Command).toBeDefined();
     expect.soft(react.useCommand).toBeTypeOf('function');
@@ -27,7 +27,7 @@ describe('package exports', () => {
   });
 
   it('core exports type-safe ID constructors', async () => {
-    const { itemId, groupId } = await import('@crimson_dev/command');
+    const { itemId, groupId } = await import('modern-cmdk');
     const id = itemId('test');
     const gid = groupId('group');
     expect(typeof id).toBe('string');

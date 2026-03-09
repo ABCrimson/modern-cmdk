@@ -1,13 +1,13 @@
 # API Reference
 
-## Core Package (`@crimson_dev/command`)
+## Core Package (`modern-cmdk`)
 
 ### `createCommandMachine(options?)`
 
 Creates a new command palette state machine.
 
 ```typescript
-import { createCommandMachine } from '@crimson_dev/command';
+import { createCommandMachine } from 'modern-cmdk';
 
 using machine = createCommandMachine({
   items: [...],
@@ -61,6 +61,6 @@ using machine = createCommandMachine({
 | `REGISTER_ITEM` | `{ item: CommandItem }` | Register a new item |
 | `UNREGISTER_ITEM` | `{ id: ItemId }` | Remove an item |
 
-## React Package (`@crimson_dev/command-react`)
+## React Package (`modern-cmdk/react`)
 
 See [Basic Usage](/guide/basic-usage) for component documentation.

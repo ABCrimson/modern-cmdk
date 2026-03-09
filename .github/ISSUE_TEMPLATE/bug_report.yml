@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in @crimson_dev/command
+description: Report a bug in modern-cmdk
 title: "[Bug]: "
 labels: ["bug", "triage"]
 assignees: []
@@ -15,10 +15,10 @@ body:
       label: Package
       description: Which package is affected?
       options:
-        - "@crimson_dev/command (core)"
-        - "@crimson_dev/command-react"
-        - "@crimson_dev/command-search-wasm"
-        - "@crimson_dev/command-codemod"
+        - "modern-cmdk (core)"
+        - "modern-cmdk/react"
+        - "modern-cmdk (WASM search)"
+        - "modern-cmdk (codemods)"
         - "Documentation"
         - "Playground"
       default: 0
@@ -40,7 +40,7 @@ body:
       label: Reproduction
       description: Steps to reproduce, or a link to a minimal reproduction (StackBlitz, CodeSandbox, or GitHub repo).
       placeholder: |
-        1. Install @crimson_dev/command-react
+        1. Install modern-cmdk/react
         2. Create a Command with ...
         3. Type "..." in the input
         4. See error
@@ -65,8 +65,8 @@ body:
         Node: v25.8.0
         Browser: Chrome 130
         OS: macOS 15.2
-        @crimson_dev/command: 0.9.0
-        @crimson_dev/command-react: 0.9.0
+        modern-cmdk: 0.9.0
+        modern-cmdk/react: 0.9.0
         React: 19.3.0-canary
         TypeScript: 6.0.1-rc
         Vite: 8.0.0-beta.16

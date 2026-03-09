@@ -12,7 +12,7 @@ Demonstrates theming by overriding OKLCH CSS custom properties. Change a single 
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 export function ThemedExample() {
   return (
@@ -173,7 +173,7 @@ OKLCH enables dark mode by flipping lightness values. The same hue and chroma pr
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useState } from 'react';
 
 const themes = [

@@ -20,10 +20,10 @@
 
 ## Packages Affected
 
-- [ ] `@crimson_dev/command` (core)
-- [ ] `@crimson_dev/command-react`
-- [ ] `@crimson_dev/command-search-wasm`
-- [ ] `@crimson_dev/command-codemod`
+- [ ] `modern-cmdk` (core)
+- [ ] `modern-cmdk/react`
+- [ ] WASM search (internal)
+- [ ] Codemods
 - [ ] Documentation (apps/docs)
 - [ ] Playground (apps/playground)
 

@@ -1,7 +1,7 @@
 import type { API, FileInfo } from 'jscodeshift';
 import jscodeshift from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
-import transform from '../../packages/command-codemod/src/transforms/import-rewrite.js';
+import transform from '../../packages/modern-cmdk/src/codemod/transforms/import-rewrite.js';
 
 function createApi(parser: string = 'tsx'): API {
   return {
@@ -49,19 +49,19 @@ const importTestCases: Partial<
     {
       label: 'star re-export',
       input: `export * from 'cmdk';`,
-      contains: '@crimson_dev/command-react',
+      contains: 'modern-cmdk/react',
       type: 'rewrite',
     },
     {
       label: 'dynamic import',
       input: `const mod = import('cmdk');`,
-      contains: '@crimson_dev/command-react',
+      contains: 'modern-cmdk/react',
       type: 'rewrite',
     },
     {
       label: 'require call',
       input: `const Command = require('cmdk');`,
-      contains: '@crimson_dev/command-react',
+      contains: 'modern-cmdk/react',
       type: 'rewrite',
     },
   ],
@@ -74,7 +74,7 @@ describe('codemod: import-rewrite', () => {
     it(`rewrites ${testCase.label} from cmdk`, () => {
       const output = run(testCase.input);
 
-      expect.soft(output).toContain('@crimson_dev/command-react');
+      expect.soft(output).toContain('modern-cmdk/react');
       expect.soft(output).toContain(testCase.contains);
     });
   }
@@ -104,7 +104,7 @@ describe('codemod: import-rewrite', () => {
     expect.soft(output).not.toMatch(/from\s+['"]cmdk['"]/);
     expect.soft(output).toMatch(/from\s+['"]react['"]/);
     // Both cmdk imports should be rewritten
-    const matches = output.match(/@crimson_dev\/command-react/g);
+    const matches = output.match(/modern-cmdk\/react/g);
     expect(matches).toHaveLength(2);
   });
 });

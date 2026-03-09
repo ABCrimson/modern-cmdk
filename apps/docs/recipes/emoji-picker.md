@@ -3,7 +3,7 @@
 Build a high-performance emoji picker with 5000+ items using virtualization.
 
 ```tsx
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 const EMOJIS = loadEmojis(); // Array of { emoji, name, keywords }
 
@@ -37,7 +37,7 @@ Virtualization activates automatically when the item count exceeds the threshold
 For instant search across thousands of emojis:
 
 ```tsx
-import { createWasmSearchEngine } from '@crimson_dev/command-search-wasm';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 
 const wasmEngine = await createWasmSearchEngine();
 

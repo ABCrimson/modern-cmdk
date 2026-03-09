@@ -1,5 +1,5 @@
-import type { CommandItem, CommandMachine } from '@crimson_dev/command';
-import { createCommandMachine, groupId, itemId } from '@crimson_dev/command';
+import type { CommandItem, CommandMachine } from 'modern-cmdk';
+import { createCommandMachine, groupId, itemId } from 'modern-cmdk';
 import { describe, expect, it, vi } from 'vitest';
 
 // ES2026 Iterator Helpers — generate test items using Iterator pipeline

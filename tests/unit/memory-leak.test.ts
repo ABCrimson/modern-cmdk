@@ -1,4 +1,4 @@
-import { createCommandMachine, itemId } from '@crimson_dev/command';
+import { createCommandMachine, itemId } from 'modern-cmdk';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('memory leak detection', () => {

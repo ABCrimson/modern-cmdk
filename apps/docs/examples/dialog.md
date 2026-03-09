@@ -10,7 +10,7 @@ A complete command palette dialog triggered by `Cmd+K` (Mac) / `Ctrl+K` (Windows
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useEffect, useState } from 'react';
 
 export function DialogExample() {

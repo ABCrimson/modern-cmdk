@@ -1,6 +1,6 @@
 # Keyboard Shortcuts
 
-`@crimson_dev/command` includes a built-in keyboard shortcut registry. Shortcuts are registered alongside items, displayed via `<Command.Shortcut>`, and active even when the command palette is closed.
+`modern-cmdk` includes a built-in keyboard shortcut registry. Shortcuts are registered alongside items, displayed via `<Command.Shortcut>`, and active even when the command palette is closed.
 
 ## Registering Shortcuts
 
@@ -9,7 +9,7 @@ Add the `shortcut` prop to any `<Command.Item>`:
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 function ShortcutPalette() {
   return (
@@ -122,7 +122,7 @@ Modifier+Modifier+Key
 Parses a shortcut string into a structured `ParsedShortcut` object. Uses `RegExp.escape` (ES2026) internally for safe pattern construction:
 
 ```typescript
-import { parseShortcut } from '@crimson_dev/command';
+import { parseShortcut } from 'modern-cmdk';
 
 const parsed = parseShortcut('Mod+Shift+K');
 // {
@@ -138,7 +138,7 @@ const parsed = parseShortcut('Mod+Shift+K');
 Formats a shortcut string into a human-readable, platform-specific display string:
 
 ```typescript
-import { formatShortcut } from '@crimson_dev/command';
+import { formatShortcut } from 'modern-cmdk';
 
 formatShortcut('Mod+Shift+K');
 // macOS: '⌘⇧K'
@@ -156,7 +156,7 @@ formatShortcut('Mod+Shift+K', 'windows');
 Detects conflicting keyboard shortcuts using `Object.groupBy` (ES2024):
 
 ```typescript
-import { detectConflicts } from '@crimson_dev/command';
+import { detectConflicts } from 'modern-cmdk';
 
 const shortcuts = [
   { id: 'copy', shortcut: 'Mod+C' },

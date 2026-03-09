@@ -11,7 +11,7 @@ const bench = new Bench({
 // Note: These benchmarks import from built dist — run after `pnpm build`
 async function run(): Promise<void> {
   const { createSearchEngine, createCommandMachine, itemId } = await import(
-    '../../packages/command/dist/index.js'
+    '../../packages/modern-cmdk/dist/core/index.js'
   );
 
   const words = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];

@@ -5,7 +5,7 @@ A minimal command palette with search, groups, and keyboard navigation.
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 export function BasicExample() {
   return (

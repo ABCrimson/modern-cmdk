@@ -8,8 +8,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@crimson_dev/command': resolve(__dirname, 'packages/command/src/index.ts'),
-      '@crimson_dev/command-react': resolve(__dirname, 'packages/command-react/src/index.ts'),
+      'modern-cmdk/react': resolve(__dirname, 'packages/modern-cmdk/src/react/index.ts'),
+      'modern-cmdk': resolve(__dirname, 'packages/modern-cmdk/src/core/index.ts'),
     },
   },
   test: {
@@ -26,8 +26,8 @@ export default defineConfig({
         '**/index.ts',
         '**/primitives.ts',
         '**/command-search-wasm/**',
-        '**/command-codemod/**',
-        '**/create-command/**',
+        '**/codemod/**',
+        '**/create-modern-cmdk/**',
       ],
       // Thresholds disabled: sharded CI runs produce partial coverage per shard.
       // Check merged coverage report for overall thresholds.

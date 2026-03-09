@@ -9,7 +9,7 @@ Pass the `frecency` option to `<Command>` to enable frecency ranking:
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 function FrecencyPalette() {
   return (
@@ -45,8 +45,8 @@ By default, frecency data is stored in memory and resets on page reload. For per
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
-import { IdbFrecencyStorage } from '@crimson_dev/command/frecency';
+import { Command } from 'modern-cmdk/react';
+import { IdbFrecencyStorage } from 'modern-cmdk/frecency';
 
 const storage = new IdbFrecencyStorage();
 
@@ -87,7 +87,7 @@ pnpm add idb-keyval@6.2.2
 The `IdbFrecencyStorage` class implements `AsyncDisposable`, so you can use the `await using` pattern (ES2026 Explicit Resource Management) for automatic cleanup:
 
 ```typescript
-import { IdbFrecencyStorage } from '@crimson_dev/command/frecency';
+import { IdbFrecencyStorage } from 'modern-cmdk/frecency';
 
 async function withFrecencyStorage() {
   await using storage = new IdbFrecencyStorage();
@@ -104,8 +104,8 @@ async function withFrecencyStorage() {
 When used with the core state machine directly:
 
 ```typescript
-import { createCommandMachine } from '@crimson_dev/command';
-import { IdbFrecencyStorage } from '@crimson_dev/command/frecency';
+import { createCommandMachine } from 'modern-cmdk';
+import { IdbFrecencyStorage } from 'modern-cmdk/frecency';
 
 async function createMachineWithFrecency() {
   await using storage = new IdbFrecencyStorage();
@@ -205,7 +205,7 @@ export function computeFrecencyBonus(
 Frecency works at the core engine level, independent of React:
 
 ```typescript
-import { createCommandMachine } from '@crimson_dev/command';
+import { createCommandMachine } from 'modern-cmdk';
 
 using machine = createCommandMachine({
   items: [

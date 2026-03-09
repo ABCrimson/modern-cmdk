@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the technical architecture of `@crimson_dev/command` -- a ground-up rewrite of `cmdk` as a framework-agnostic, headless command palette engine.
+This document describes the technical architecture of `modern-cmdk` -- a ground-up rewrite of `cmdk` as a framework-agnostic, headless command palette engine.
 
 ---
 
@@ -55,7 +55,7 @@ This document describes the technical architecture of `@crimson_dev/command` -- 
           | useTransition / useOptimistic
           |
 +---------v-----------------------------------------------------+
-|                    @crimson_dev/command                        |
+|                    modern-cmdk                        |
 |                    Framework-Agnostic Core                     |
 |                                                               |
 |  +-------------+  +---------------+  +---------------------+  |
@@ -86,7 +86,7 @@ This document describes the technical architecture of `@crimson_dev/command` -- 
           |
           | Optional drop-in replacement
 +---------v-----------------------+
-| @crimson_dev/command-search-wasm|
+| modern-cmdk-search-wasm|
 | Rust / wasm-pack                |
 | Trigram index + scorer          |
 | Sub-1ms on 100K items           |
@@ -99,11 +99,11 @@ This document describes the technical architecture of `@crimson_dev/command` -- 
 
 The architecture follows strict layering rules:
 
-1. **Core layer** (`@crimson_dev/command`) -- Pure TypeScript. No DOM APIs. No framework imports. No side effects beyond subscriber notification. Runs in Node.js, Deno, Bun, or any browser.
+1. **Core layer** (`modern-cmdk`) -- Pure TypeScript. No DOM APIs. No framework imports. No side effects beyond subscriber notification. Runs in Node.js, Deno, Bun, or any browser.
 
-2. **Adapter layer** (`@crimson_dev/command-react`) -- Thin React 19 wrapper. Consumes the core via `useSyncExternalStore`. Renders JSX. Handles DOM events. Has `"use client"` directives.
+2. **Adapter layer** (`modern-cmdk/react`) -- Thin React 19 wrapper. Consumes the core via `useSyncExternalStore`. Renders JSX. Handles DOM events. Has `"use client"` directives.
 
-3. **Extension layer** (`@crimson_dev/command-search-wasm`) -- Optional WASM search engine. Drop-in replacement for the default TypeScript scorer. Ships a Rust crate compiled with `wasm-pack`.
+3. **Extension layer** (`modern-cmdk-search-wasm`) -- Optional WASM search engine. Drop-in replacement for the default TypeScript scorer. Ships a Rust crate compiled with `wasm-pack`.
 
 Dependencies flow strictly downward. The core never imports from adapters or extensions.
 

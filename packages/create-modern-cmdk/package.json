@@ -1,0 +1,32 @@
+{
+  "name": "create-modern-cmdk",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Scaffold a new modern-cmdk project",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "create-modern-cmdk": "./dist/index.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=25.8.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsdown": "0.21.0",
+    "typescript": "6.0.1-rc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ABCrimson/modern-cmdk.git",
+    "directory": "packages/create-modern-cmdk"
+  }
+}

@@ -9,7 +9,7 @@ Wrap your async data source in `<Command.AsyncItems>`. The component suspends wh
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 async function fetchCommands(query: string): Promise<CommandItem[]> {
   const res = await fetch(`/api/commands?q=${encodeURIComponent(query)}`);
@@ -49,7 +49,7 @@ For real-world usage, you typically want to debounce the search input before mak
 ```tsx
 'use client';
 
-import { Command, useCommandState } from '@crimson_dev/command-react';
+import { Command, useCommandState } from 'modern-cmdk/react';
 import { Suspense, use, useTransition } from 'react';
 
 interface SearchResult {
@@ -154,7 +154,7 @@ Wrap `<Command.AsyncItems>` in an error boundary for graceful error handling. Re
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {

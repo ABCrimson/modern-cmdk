@@ -1,7 +1,7 @@
 import type { API, FileInfo } from 'jscodeshift';
 import jscodeshift from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
-import transform from '../../packages/command-codemod/src/transforms/should-filter.js';
+import transform from '../../packages/modern-cmdk/src/codemod/transforms/should-filter.js';
 
 // Vitest 4.1 — vi.hoisted() not needed here since helpers are pure functions
 function createApi(parser: string = 'tsx'): API {

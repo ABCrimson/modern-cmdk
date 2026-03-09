@@ -1,4 +1,4 @@
-# Contributing to @crimson_dev/command
+# Contributing to modern-cmdk
 
 Thank you for your interest in contributing. This guide covers everything you need to get started.
 
@@ -84,7 +84,7 @@ modern-cmdk/
   playwright.config.ts            E2E test config (4 browsers)
   |
   packages/
-    command/                      @crimson_dev/command (core)
+    command/                      modern-cmdk (core)
       package.json                Zero dependencies, sideEffects: false
       tsconfig.json               Extends tsconfig.base.json
       tsdown.config.ts            Build config
@@ -110,8 +110,8 @@ modern-cmdk/
           event-emitter.ts        TypedEmitter (WeakRef, Iterator Helpers)
           scheduler.ts            rAF/microtask batching
     |
-    command-react/                @crimson_dev/command-react (React adapter)
-      package.json                Peer deps: react 19, @crimson_dev/command
+    command-react/                modern-cmdk/react (React adapter)
+      package.json                Peer deps: react 19, modern-cmdk
       tsconfig.json
       tsdown.config.ts
       src/
@@ -139,8 +139,8 @@ modern-cmdk/
           use-register.ts
           use-virtualizer.ts
     |
-    command-search-wasm/          @crimson_dev/command-search-wasm (WASM)
-      package.json                Peer dep: @crimson_dev/command
+    command-search-wasm/          modern-cmdk-search-wasm (WASM)
+      package.json                Peer dep: modern-cmdk
       tsconfig.json
       tsdown.config.ts
       src/
@@ -235,15 +235,15 @@ modern-cmdk/
 
 ```bash
 # Watch mode for a specific package
-pnpm --filter @crimson_dev/command run dev
-pnpm --filter @crimson_dev/command-react run dev
+pnpm --filter modern-cmdk run dev
+pnpm --filter modern-cmdk/react run dev
 
 # Run the playground (Vite 8.0.0-beta.16)
 pnpm --filter playground run dev
 # Opens at http://localhost:5173
 
 # Build WASM (requires Rust + wasm-pack)
-pnpm --filter @crimson_dev/command-search-wasm run build:wasm
+pnpm --filter modern-cmdk-search-wasm run build:wasm
 ```
 
 ---
@@ -284,7 +284,7 @@ This project uses **Biome 2.4.6** for both linting and formatting. There is no E
 Biome automatically organizes imports via `assist.actions.source.organizeImports`. Import order:
 
 1. External packages (`react`, `radix-ui`)
-2. Internal packages (`@crimson_dev/command`)
+2. Internal packages (`modern-cmdk`)
 3. Relative imports (`./types.js`)
 4. Type imports last (`import type { ... }`)
 
@@ -390,7 +390,7 @@ Coverage is collected with V8 provider. Excluded from coverage: test files, benc
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { createCommandMachine, itemId } from '@crimson_dev/command';
+import { createCommandMachine, itemId } from 'modern-cmdk';
 
 describe('CommandMachine', () => {
   it('should filter items by search query', () => {
@@ -483,8 +483,8 @@ Benchmark targets:
 
 | Package | Size Limit |
 |---|---|
-| `@crimson_dev/command` | 3 KB (minified + gzipped) |
-| `@crimson_dev/command-react` | 5 KB (minified + gzipped) |
+| `modern-cmdk` | 3 KB (minified + gzipped) |
+| `modern-cmdk/react` | 5 KB (minified + gzipped) |
 
 These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job.
 
@@ -757,7 +757,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 cargo install wasm-pack
 
 # Build WASM
-pnpm --filter @crimson_dev/command-search-wasm run build:wasm
+pnpm --filter modern-cmdk-search-wasm run build:wasm
 ```
 
 The WASM build is not required for developing the core or React packages.

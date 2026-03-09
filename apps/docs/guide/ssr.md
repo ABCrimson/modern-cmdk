@@ -1,6 +1,6 @@
 # Server-Side Rendering
 
-@crimson_dev/command-react is fully SSR-compatible with Next.js App Router, Remix, and any React 19 streaming framework.
+modern-cmdk/react is fully SSR-compatible with Next.js App Router, Remix, and any React 19 streaming framework.
 
 ## How It Works
 
@@ -36,7 +36,7 @@ export default function Page() {
 // app/command-palette.tsx (Client Component)
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 export function CommandPalette() {
   return (
@@ -54,7 +54,7 @@ export function CommandPalette() {
 
 ## Tree-Shaking
 
-Only the components you import are included in the client bundle. The core engine (`@crimson_dev/command`) has zero DOM dependencies and can run in any JavaScript environment.
+Only the components you import are included in the client bundle. The core engine (`modern-cmdk`) has zero DOM dependencies and can run in any JavaScript environment.
 
 ## Streaming SSR
 

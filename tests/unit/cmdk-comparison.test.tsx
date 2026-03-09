@@ -1,14 +1,14 @@
 // tests/unit/cmdk-comparison.test.tsx
 // ============================================================================
-// EXTENSIVE COMPARISON TEST: @crimson_dev/command vs cmdk (pacocoursey/cmdk)
+// EXTENSIVE COMPARISON TEST: modern-cmdk vs cmdk (pacocoursey/cmdk)
 // ============================================================================
 //
-// This test suite methodically compares every aspect of @crimson_dev/command-react
+// This test suite methodically compares every aspect of modern-cmdk/react
 // against the original cmdk library, verifying feature parity AND documenting
 // the improvements. Each section maps 1:1 to an original cmdk feature.
 //
 // cmdk API reference:     https://github.com/pacocoursey/cmdk
-// @crimson_dev/command:   packages/command + packages/command-react
+// modern-cmdk:   packages/command + packages/command-react
 //
 // Test categories:
 //   1. Compound component API parity
@@ -44,7 +44,7 @@ import {
   matchesShortcut,
   parseShortcut,
   scoreItem,
-} from '@crimson_dev/command';
+} from 'modern-cmdk';
 import {
   Command,
   CommandActivity,
@@ -68,7 +68,7 @@ import {
   useRegisterGroup,
   useRegisterItem,
   useVirtualizer,
-} from '@crimson_dev/command-react';
+} from 'modern-cmdk/react';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -136,7 +136,7 @@ function getActiveItem(): Element | null {
 // cmdk exports: Command, Command.Input, Command.List, Command.Item,
 //   Command.Group, Command.Separator, Command.Empty, Command.Loading,
 //   Command.Dialog
-// @crimson_dev/command-react exports ALL of the above PLUS:
+// modern-cmdk/react exports ALL of the above PLUS:
 //   Command.Page, Command.Badge, Command.Shortcut, Command.Highlight,
 //   Command.Activity, Command.AsyncItems, Command.ErrorBoundary
 // ============================================================================
@@ -242,7 +242,7 @@ describe('1. Compound Component API Parity', () => {
 // cmdk uses: [cmdk-root], [cmdk-input], [cmdk-item], [cmdk-list],
 //   [cmdk-group], [cmdk-group-heading], [cmdk-separator], [cmdk-empty],
 //   [cmdk-loading], [cmdk-overlay], [cmdk-dialog]
-// @crimson_dev/command uses: [data-command-*] equivalents
+// modern-cmdk uses: [data-command-*] equivalents
 // ============================================================================
 
 describe('2. Data Attributes (renamed from [cmdk-*])', () => {
@@ -1360,7 +1360,7 @@ describe('16. onSelect Callback', () => {
 // ============================================================================
 // 17. UNIQUE FEATURES NOT IN cmdk (SUPERSET)
 // ============================================================================
-// Features that @crimson_dev/command has but cmdk does NOT:
+// Features that modern-cmdk has but cmdk does NOT:
 //   - Framework-agnostic core engine (pure TS)
 //   - Keyboard shortcut registry
 //   - Frecency engine
@@ -1785,7 +1785,7 @@ describe('18. API Surface Comparison Summary', () => {
   });
 
   it('should have a complete framework-agnostic core not in cmdk', () => {
-    // cmdk is React-only. @crimson_dev/command provides a standalone core.
+    // cmdk is React-only. modern-cmdk provides a standalone core.
     const coreFunctions = [
       createCommandMachine,
       createSearchEngine,

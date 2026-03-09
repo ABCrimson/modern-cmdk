@@ -1,11 +1,11 @@
-import type { CommandItem } from '@crimson_dev/command';
+import type { CommandItem } from 'modern-cmdk';
 import {
   createCommandMachine,
   createSearchEngine,
   FrecencyEngine,
   itemId,
   MemoryFrecencyStorage,
-} from '@crimson_dev/command';
+} from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
 // ---------------------------------------------------------------------------

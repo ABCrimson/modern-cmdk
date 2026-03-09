@@ -3,7 +3,7 @@
 Build multi-level command palettes with page navigation.
 
 ```tsx
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 function NestedPalette() {
   return (

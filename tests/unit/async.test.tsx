@@ -2,9 +2,9 @@
 // Command.AsyncItems tests — React 19 use() + Suspense with happy-dom
 // Vitest 4.1.0-beta.6, React 19.3.0-canary, TypeScript 6.0.1-rc, ES2026
 
-import type { CommandItem as CommandItemType } from '@crimson_dev/command';
-import { itemId } from '@crimson_dev/command';
-import { Command } from '@crimson_dev/command-react';
+import type { CommandItem as CommandItemType } from 'modern-cmdk';
+import { itemId } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
 import { act, Component, type ErrorInfo, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

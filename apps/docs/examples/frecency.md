@@ -12,7 +12,7 @@ Demonstrates frecency-boosted search ranking. Items you use frequently and recen
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 export function FrecencyExample() {
   return (
@@ -67,8 +67,8 @@ Persist frecency data across browser sessions with `IdbFrecencyStorage`:
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
-import { IdbFrecencyStorage } from '@crimson_dev/command/frecency';
+import { Command } from 'modern-cmdk/react';
+import { IdbFrecencyStorage } from 'modern-cmdk/frecency';
 
 // Create storage once (singleton)
 const storage = new IdbFrecencyStorage('my-app-db', 'frecency');
@@ -137,8 +137,8 @@ Tune the decay weights to match your usage patterns:
 Frecency works at the core state machine level, independent of React:
 
 ```typescript
-import { createCommandMachine } from '@crimson_dev/command';
-import { IdbFrecencyStorage } from '@crimson_dev/command/frecency';
+import { createCommandMachine } from 'modern-cmdk';
+import { IdbFrecencyStorage } from 'modern-cmdk/frecency';
 
 async function demo() {
   await using storage = new IdbFrecencyStorage();

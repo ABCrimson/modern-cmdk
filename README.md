@@ -1,20 +1,20 @@
 <p align="center">
-  <img src="apps/docs/public/og-image.svg" alt="@crimson_dev/command" width="640" />
+  <img src="apps/docs/public/og-image.svg" alt="modern-cmdk" width="640" />
 </p>
 
 <p align="center">
-  <strong>@crimson_dev/command</strong><br/>
+  <strong>modern-cmdk</strong><br/>
   The definitive command palette engine for the modern web.
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@crimson_dev/command"><img alt="npm version" src="https://img.shields.io/npm/v/@crimson_dev/command?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
-  <a href="https://bundlephobia.com/package/@crimson_dev/command"><img alt="core size" src="https://img.shields.io/bundlephobia/minzip/@crimson_dev/command?style=flat-square&color=dc2626&labelColor=0a0e27&label=core"/></a>
-  <a href="https://bundlephobia.com/package/@crimson_dev/command-react"><img alt="react size" src="https://img.shields.io/bundlephobia/minzip/@crimson_dev/command-react?style=flat-square&color=dc2626&labelColor=0a0e27&label=react"/></a>
+  <a href="https://www.npmjs.com/package/modern-cmdk"><img alt="npm version" src="https://img.shields.io/npm/v/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
+  <a href="https://bundlephobia.com/package/modern-cmdk"><img alt="core size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27&label=core"/></a>
+  <a href="https://bundlephobia.com/package/modern-cmdk/react"><img alt="react size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk/react?style=flat-square&color=dc2626&labelColor=0a0e27&label=react"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
   <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6.0.1--rc-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-19.3.0--canary-dc2626?style=flat-square&labelColor=0a0e27"/></a>
-  <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/@crimson_dev/command?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
+  <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
 </p>
 
 <p align="center">
@@ -27,11 +27,11 @@
 
 ---
 
-## Why @crimson_dev/command?
+## Why modern-cmdk?
 
 A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**. Framework-agnostic core. Zero compromise on performance, accessibility, or developer experience.
 
-| | cmdk | @crimson_dev/command |
+| | cmdk | modern-cmdk |
 |---|---|---|
 | **Architecture** | React-only, tightly coupled | Framework-agnostic core + thin adapters |
 | **React** | 18 | 19 (`use()`, `useOptimistic`, `useId`, `ref` as prop) |
@@ -47,7 +47,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 | **Telemetry** | None | Pluggable telemetry middleware |
 | **DevTools** | None | Built-in devtools hook for browser inspection |
 | **Error handling** | None | `CommandErrorBoundary` with fallback UI |
-| **Scaffolding** | None | `npm create @crimson_dev/command` CLI |
+| **Scaffolding** | None | `npm create modern-cmdk` CLI |
 | **Editor** | None | VS Code snippets extension |
 
 ---
@@ -73,19 +73,19 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 ## Quick Start
 
 ```bash
-pnpm add @crimson_dev/command @crimson_dev/command-react
+pnpm add modern-cmdk
 ```
 
 Or scaffold a new project:
 
 ```bash
-npm create @crimson_dev/command
+npm create modern-cmdk
 ```
 
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 
 function CommandPalette() {
   return (
@@ -124,11 +124,11 @@ function CommandPalette() {
 
 | Package | Description | Size |
 |---|---|---|
-| [`@crimson_dev/command`](./packages/command) | Framework-agnostic core -- state machine, search, frecency, keyboard | <= 6 KB |
-| [`@crimson_dev/command-react`](./packages/command-react) | React 19 compound components -- Dialog, List, Item, Group, Input | <= 25 KB |
-| [`@crimson_dev/command-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items | <= 50 KB |
-| [`@crimson_dev/command-codemod`](./packages/command-codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
-| [`create-@crimson_dev/command`](./packages/create-command) | Project scaffolding -- 3 templates (basic, dialog, full) | CLI |
+| [`modern-cmdk`](./packages/modern-cmdk) | Framework-agnostic core -- state machine, search, frecency, keyboard | <= 6 KB |
+| [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | <= 25 KB |
+| [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items | <= 50 KB |
+| [`modern-cmdk (codemods)`](./packages/modern-cmdk/src/codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
+| [`create-modern-cmdk`](./packages/create-command) | Project scaffolding -- 3 templates (basic, dialog, full) | CLI |
 | [`vscode-command`](./packages/vscode-command) | VS Code snippets -- 10 snippets for fast development | Extension |
 
 ---
@@ -141,7 +141,7 @@ function CommandPalette() {
 +---------------+---------------------------+-------------------+
                 |                           |
 +---------------v--------------+  +---------v---------+
-|  @crimson_dev/command-react  |  |  Future: Svelte   |
+|  modern-cmdk/react  |  |  Future: Svelte   |
 |                              |  |  / Vue / Solid    |
 |  Command.Dialog              |  |  / Vanilla        |
 |  Command.Input               |  +-------------------+
@@ -153,7 +153,7 @@ function CommandPalette() {
                 | useSyncExternalStore
                 | useTransition
 +---------------v----------------------------------------------+
-|              @crimson_dev/command (core)                      |
+|              modern-cmdk (core)                      |
 |                                                              |
 |  +-------------+ +-------------+ +------------------+        |
 |  | State       | | Search      | | Frecency         |        |
@@ -169,7 +169,7 @@ function CommandPalette() {
 +-------------------+------------------------------------------+
                     | Optional
 +-------------------v-------------------+
-|  @crimson_dev/command-search-wasm     |
+|  modern-cmdk-search-wasm     |
 |  Rust trigram index + scorer          |
 |  Graceful TS fallback on failure      |
 +---------------------------------------+
@@ -180,7 +180,7 @@ function CommandPalette() {
 ## Core API
 
 ```ts
-import { createCommandMachine, itemId } from '@crimson_dev/command';
+import { createCommandMachine, itemId } from 'modern-cmdk';
 
 using machine = createCommandMachine({
   items: [
@@ -266,10 +266,10 @@ All library styles use `@layer command` and CSS logical properties for full RTL 
 ## Migration from cmdk
 
 ```bash
-npx @crimson_dev/command-codemod --transform import-rewrite ./src
-npx @crimson_dev/command-codemod --transform data-attrs ./src
-npx @crimson_dev/command-codemod --transform forward-ref ./src
-npx @crimson_dev/command-codemod --transform should-filter ./src
+npx modern-cmdk (codemods) --transform import-rewrite ./src
+npx modern-cmdk (codemods) --transform data-attrs ./src
+npx modern-cmdk (codemods) --transform forward-ref ./src
+npx modern-cmdk (codemods) --transform should-filter ./src
 ```
 
 See the [migration guide](https://command.crimson.dev/guide/migration-from-cmdk).

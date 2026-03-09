@@ -4,7 +4,7 @@
 // Demonstrates all command palette states in a grid
 // React 19: useId
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useId } from 'react';
 
 export function AllStatesDemo(): React.ReactNode {

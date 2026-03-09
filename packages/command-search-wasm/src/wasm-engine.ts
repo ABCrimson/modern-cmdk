@@ -1,8 +1,8 @@
 // WASM-accelerated fuzzy search engine
 // Uses: await using for WASM module lifecycle, Iterator Helpers (ES2026)
-// Falls back to TypeScript scorer from @crimson_dev/command if WASM fails to load
+// Falls back to TypeScript scorer from modern-cmdk if WASM fails to load
 
-import type { ItemId, SearchEngine, SearchResult } from '@crimson_dev/command';
+import type { ItemId, SearchEngine, SearchResult } from 'modern-cmdk';
 
 const __DEV__: boolean = process.env.NODE_ENV !== 'production';
 
@@ -21,7 +21,7 @@ interface FallbackSearchEngine extends SearchEngine, AsyncDisposable {
  * Use `await using engine = await createWasmSearchEngine()` for automatic cleanup.
  *
  * If WASM fails to load (CSP restrictions, unsupported browser, network error, etc.),
- * automatically falls back to the TypeScript search engine from `@crimson_dev/command`.
+ * automatically falls back to the TypeScript search engine from `modern-cmdk`.
  */
 export async function createWasmSearchEngine(): Promise<WasmSearchEngine | FallbackSearchEngine> {
   try {
@@ -81,7 +81,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
       const _message = error instanceof Error ? error.message : String(error);
     }
 
-    const { createSearchEngine } = await import('@crimson_dev/command');
+    const { createSearchEngine } = await import('modern-cmdk');
     const tsEngine = createSearchEngine();
 
     const fallback: FallbackSearchEngine = {

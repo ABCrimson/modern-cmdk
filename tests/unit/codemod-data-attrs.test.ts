@@ -1,7 +1,7 @@
 import type { API, FileInfo } from 'jscodeshift';
 import jscodeshift from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
-import transform from '../../packages/command-codemod/src/transforms/data-attrs.js';
+import transform from '../../packages/modern-cmdk/src/codemod/transforms/data-attrs.js';
 
 function createApi(parser: string = 'tsx'): API {
   return {

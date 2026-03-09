@@ -12,7 +12,7 @@ Demonstrates async data loading from an API, debounced input, loading states, an
 ```tsx
 'use client';
 
-import { Command, useCommandState } from '@crimson_dev/command-react';
+import { Command, useCommandState } from 'modern-cmdk/react';
 import { Suspense } from 'react';
 
 interface SearchResult {
@@ -95,7 +95,7 @@ Wrap async items in an error boundary for graceful error handling:
 ```tsx
 'use client';
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 function ErrorFallback({

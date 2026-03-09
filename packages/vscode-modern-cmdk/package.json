@@ -1,0 +1,26 @@
+{
+  "name": "vscode-modern-cmdk",
+  "displayName": "Modern CMDK",
+  "version": "1.0.0",
+  "description": "Snippets and IntelliSense for modern-cmdk",
+  "publisher": "crimson-dev",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Snippets"
+  ],
+  "contributes": {
+    "snippets": [
+      {
+        "language": "typescriptreact",
+        "path": "./src/snippets.json"
+      },
+      {
+        "language": "javascriptreact",
+        "path": "./src/snippets.json"
+      }
+    ]
+  }
+}

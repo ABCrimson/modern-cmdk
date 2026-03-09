@@ -1,4 +1,4 @@
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';

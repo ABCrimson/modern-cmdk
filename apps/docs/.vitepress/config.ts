@@ -3,11 +3,11 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-  title: '@crimson_dev/command',
+  title: 'modern-cmdk',
   description: 'Headless command palette engine for React 19',
 
   head: [
-    ['meta', { property: 'og:title', content: '@crimson_dev/command' }],
+    ['meta', { property: 'og:title', content: 'modern-cmdk' }],
     [
       'meta',
       {
@@ -20,7 +20,7 @@ export default defineConfig({
     ['meta', { property: 'og:url', content: 'https://command.crimson.dev' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:title', content: '@crimson_dev/command' }],
+    ['meta', { name: 'twitter:title', content: 'modern-cmdk' }],
     [
       'meta',
       {

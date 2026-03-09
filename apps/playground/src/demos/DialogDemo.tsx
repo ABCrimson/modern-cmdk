@@ -4,7 +4,7 @@
 // Dialog mode with Ctrl+K trigger, overlay animation
 // React 19: useId, useCallback, useTransition
 
-import { Command } from '@crimson_dev/command-react';
+import { Command } from 'modern-cmdk/react';
 import { useCallback, useEffect, useId, useState, useTransition } from 'react';
 
 export function DialogDemo(): React.ReactNode {

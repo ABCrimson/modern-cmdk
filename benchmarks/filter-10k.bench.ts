@@ -1,5 +1,5 @@
-import type { CommandItem } from '@crimson_dev/command';
-import { createSearchEngine, itemId, scoreItem } from '@crimson_dev/command';
+import type { CommandItem } from 'modern-cmdk';
+import { createSearchEngine, itemId, scoreItem } from 'modern-cmdk';
 import { bench, describe } from 'vitest';
 
 const WORDS = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
