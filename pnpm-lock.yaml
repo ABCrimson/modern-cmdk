@@ -162,7 +162,7 @@ importers:
   packages/command-react:
     dependencies:
       '@crimson_dev/command':
-        specifier: workspace:>=0.9.0
+        specifier: workspace:>=0.10.0
         version: link:../command
       radix-ui:
         specifier: 1.4.4-rc.1766004502650
@@ -177,7 +177,7 @@ importers:
   packages/command-search-wasm:
     dependencies:
       '@crimson_dev/command':
-        specifier: workspace:>=0.9.0
+        specifier: workspace:>=0.10.0
         version: link:../command
 
   packages/create-command:
