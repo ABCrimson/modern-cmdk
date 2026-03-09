@@ -1,6 +1,6 @@
 {
   "name": "create-modern-cmdk",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Scaffold a new modern-cmdk project",
   "license": "MIT",
