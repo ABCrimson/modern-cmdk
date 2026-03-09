@@ -2,6 +2,27 @@
 
 All notable changes to `@crimson_dev/command` packages are documented here.
 
+## [0.10.0] - 2026-03-09
+
+### Changed
+- `@crimson_dev/command` — 0.9.0 → 0.10.0 (minor)
+- `@crimson_dev/command-react` — 0.9.0 → 1.0.0 (major)
+- `@crimson_dev/command-codemod` — 0.9.0 → 0.10.0 (minor)
+
+### Fixed
+- Resolved dual React instance issue (pnpm overrides for single canary version)
+- Fixed all Biome lint violations across the entire codebase (~60 errors)
+- Fixed CI bundle size job (heredoc for multi-line JSON in GITHUB_OUTPUT)
+- Fixed changeset release for private WASM package
+- Updated lockfile for release version bump
+
+### Improved
+- All `!` non-null assertions replaced with safe `as Type` casts
+- Explicit return/parameter types on all exports (isolatedDeclarations compliance)
+- Optimized search scorer to outperform cmdk on all benchmarks
+
+---
+
 ## [0.9.0] - 2026-03-07
 
 ### Added — Core Engine (`@crimson_dev/command`)
