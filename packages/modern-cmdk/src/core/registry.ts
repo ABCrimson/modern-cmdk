@@ -60,12 +60,15 @@ export class CommandRegistry implements Disposable {
     };
   }
 
-  /** Unregister a single item — O(1) Map delete + Set delete, O(n) order rebuild */
+  /** Unregister a single item — O(1) Map/Set delete, indexOf+toSpliced for order */
   unregisterItem(id: ItemId): void {
     if (!this.#items.has(id)) return;
     this.#items.delete(id);
     this.#itemOrderSet.delete(id);
-    this.#itemOrder = this.#itemOrder.filter((orderId) => orderId !== id);
+    const idx = this.#itemOrder.indexOf(id);
+    if (idx !== -1) {
+      this.#itemOrder = this.#itemOrder.toSpliced(idx, 1);
+    }
     this.#invalidateCache();
   }
 
@@ -124,7 +127,7 @@ export class CommandRegistry implements Disposable {
     this.#cachedGroups = this.#groups
       .values()
       .toArray()
-      .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+      .toSorted((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
     return this.#cachedGroups;
   }
 

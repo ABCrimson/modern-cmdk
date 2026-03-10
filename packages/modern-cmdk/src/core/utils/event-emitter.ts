@@ -13,10 +13,13 @@ export class TypedEmitter<T extends EventMap> implements Disposable {
 
   /** Subscribe to an event. Returns a Disposable that removes the listener when disposed. */
   on<K extends keyof T>(event: K, listener: (data: T[K]) => void): Disposable {
-    const set = this.#listeners.get(event) ?? new Set();
+    let set = this.#listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this.#listeners.set(event, set);
+    }
     const fn = listener as (data: never) => void;
     set.add(fn);
-    this.#listeners.set(event, set);
 
     return {
       [Symbol.dispose]: (): void => {

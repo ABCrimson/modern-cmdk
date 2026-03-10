@@ -26,16 +26,14 @@ export function CommandHighlight({
   const parts: ReactNode = useMemo(() => {
     if (ranges.length === 0) return text;
 
-    // Sort ranges by start position using Iterator Helpers
-    const sorted = Iterator.from(ranges)
-      .toArray()
-      .sort((a, b) => a[0] - b[0]);
+    // Sort ranges by start position — toSorted (ES2023+) avoids mutating the readonly input
+    const sorted = ranges.toSorted((a, b) => a[0] - b[0]);
 
     const segments: ReactNode[] = [];
     let lastEnd = 0;
 
-    // Build segments from sorted ranges using Iterator Helpers
-    Iterator.from(sorted).forEach(([start, end], i) => {
+    // Build segments from sorted ranges — native Array.forEach provides (value, index)
+    sorted.forEach(([start, end], i) => {
       // Text before the match
       if (start > lastEnd) {
         segments.push(text.slice(lastEnd, start));

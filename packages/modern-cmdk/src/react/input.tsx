@@ -44,7 +44,7 @@ export function CommandInput({
       data-command-input=""
       type="text"
       role="combobox"
-      aria-expanded={stateCtx.state.filteredCount > 0}
+      aria-expanded={stateCtx.state.filteredCount > 0 || stateCtx.state.loading}
       aria-controls={stable.listId}
       aria-activedescendant={stateCtx.state.activeId ?? undefined}
       aria-autocomplete="list"

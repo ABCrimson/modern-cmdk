@@ -20,15 +20,15 @@ export function CommandShortcut({
   children,
   ...props
 }: CommandShortcutProps): ReactNode {
-  // Memoize the parsed + formatted shortcut to avoid re-parsing on every render
-  const displayText: ReactNode = useMemo(
-    () => (shortcut ? formatShortcut(parseShortcut(shortcut)) : children),
-    [shortcut, children],
+  // Memoize the parsed + formatted shortcut — only depends on shortcut string, not children
+  const formattedShortcut: string | null = useMemo(
+    () => (shortcut ? formatShortcut(parseShortcut(shortcut)) : null),
+    [shortcut],
   );
 
   return (
     <kbd ref={ref} data-command-shortcut="" {...props}>
-      {displayText}
+      {formattedShortcut ?? children}
     </kbd>
   );
 }

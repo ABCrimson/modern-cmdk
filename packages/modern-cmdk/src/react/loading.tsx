@@ -25,7 +25,7 @@ export function CommandLoading({
     throw new Error('Command.Loading must be used within a <Command> component');
   }
 
-  const isLoading: boolean = loadingOverride ?? stateCtx.state.loading ?? stateCtx.isPending;
+  const isLoading: boolean = loadingOverride ?? (stateCtx.state.loading || stateCtx.isPending);
 
   if (!isLoading) return null;
 

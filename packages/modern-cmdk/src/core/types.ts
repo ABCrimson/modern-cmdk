@@ -128,7 +128,6 @@ export interface FrecencyData {
 export interface FrecencyStorage extends Disposable {
   load(namespace: string): FrecencyData | Promise<FrecencyData>;
   save(namespace: string, data: FrecencyData): void | Promise<void>;
-  [Symbol.dispose](): void;
 }
 
 /** Frecency exponential decay bucket configuration */
@@ -148,8 +147,8 @@ export interface FrecencyOptions {
   readonly decayConfig?: FrecencyDecayConfig | undefined;
 }
 
-/** Default frecency decay configuration — satisfies on value, not interface */
-export const DEFAULT_FRECENCY_DECAY: Required<FrecencyDecayConfig> = {
+/** Default frecency decay configuration */
+export const DEFAULT_FRECENCY_DECAY = {
   hourWeight: 4.0,
   dayWeight: 2.0,
   weekWeight: 1.5,
@@ -165,7 +164,7 @@ export interface CommandMachineOptions {
   readonly groups?: readonly CommandGroup[] | undefined;
   /** Custom filter function, or `false` to disable filtering entirely */
   readonly filter?:
-    | ((item: CommandItem, query: NoInfer<string>) => number | false)
+    | ((item: CommandItem, query: string) => number | false)
     | false
     | undefined;
   /** Accessible label for the command palette */
@@ -177,9 +176,9 @@ export interface CommandMachineOptions {
   /** Pluggable search engine — drop-in replacement for the default scorer (e.g., WASM engine) */
   readonly search?: import('./search/types.js').SearchEngine | undefined;
   /** Callback fired when an item is selected */
-  readonly onSelect?: ((id: NoInfer<ItemId>) => void) | undefined;
+  readonly onSelect?: ((id: ItemId) => void) | undefined;
   /** Callback fired when the active (highlighted) item changes */
-  readonly onActiveChange?: ((id: NoInfer<ItemId | null>) => void) | undefined;
+  readonly onActiveChange?: ((id: ItemId | null) => void) | undefined;
   /** Callback fired when the dialog open state changes */
   readonly onOpenChange?: ((open: boolean) => void) | undefined;
   /** Callback fired when the search query changes */
@@ -190,8 +189,8 @@ export interface CommandMachineOptions {
   readonly virtualizeThreshold?: number | undefined;
 }
 
-/** Default machine options — satisfies on value */
-export const DEFAULT_MACHINE_OPTIONS: Partial<CommandMachineOptions> = {
+/** Default machine options */
+export const DEFAULT_MACHINE_OPTIONS = {
   loop: true,
   virtualizeThreshold: 100,
   open: false,

@@ -78,10 +78,9 @@ export function CommandDialog({
   }, []);
 
   // Keyboard navigation via document listener
-  const handleKeyDown = useCallback(
-    createKeydownHandler(machine, () => machine.getState()),
-    // eslint-disable-next-line -- machine is stable ref, called inline not as closure dep
-    [],
+  const handleKeyDown = useMemo(
+    () => createKeydownHandler(machine, () => machine.getState()),
+    [machine],
   );
 
   useEffect(() => {
@@ -92,12 +91,9 @@ export function CommandDialog({
     };
   }, [handleKeyDown, state.open]);
 
-  // Sync controlled open prop — only send if machine state doesn't match
-  // Uses ref to avoid state.open in deps (prevents render loops)
-  const prevControlledOpen = useRef(controlledOpen);
+  // Sync controlled open prop — useEffect already diffs deps, no ref needed
   useEffect(() => {
-    if (controlledOpen !== undefined && controlledOpen !== prevControlledOpen.current) {
-      prevControlledOpen.current = controlledOpen;
+    if (controlledOpen !== undefined) {
       machine.send({ type: controlledOpen ? 'OPEN' : 'CLOSE' });
     }
   }, [controlledOpen, machine]);

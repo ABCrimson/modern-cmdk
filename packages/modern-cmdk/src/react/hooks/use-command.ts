@@ -37,10 +37,10 @@ export function useCommand(machine: CommandMachine): UseCommandReturn {
     machine.getState, // server snapshot (same — SSR safe)
   );
 
-  // O(1) membership set — rebuilt only when filteredIds changes (referential equality)
+  // O(1) membership set — read directly from machine (already maintained in sync)
   const filteredIdSet: ReadonlySet<ItemId> = useMemo(
-    () => new Set(state.filteredIds),
-    [state.filteredIds],
+    () => machine.getFilteredIdSet(),
+    [state.filteredIds, machine],
   );
 
   // Optimistic active item — instant visual feedback before filter completes

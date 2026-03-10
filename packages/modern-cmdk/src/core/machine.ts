@@ -90,17 +90,14 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   if (options.items) {
     registry.registerItems(options.items);
     searchEngine.index(options.items);
-    // Auto-register keyboard shortcuts from items
-    for (const item of options.items) {
-      if (item.shortcut != null && item.onSelect != null) {
-        keyboardRegistry.register(item.shortcut, item.id, item.onSelect);
-      }
-    }
+    // Auto-register keyboard shortcuts from items — Iterator Helper pipeline
+    options.items
+      .values()
+      .filter((item) => item.shortcut != null && item.onSelect != null)
+      .forEach((item) => keyboardRegistry.register(item.shortcut!, item.id, item.onSelect!));
   }
   if (options.groups) {
-    for (const group of options.groups) {
-      registry.registerGroup(group);
-    }
+    options.groups.values().forEach((group) => registry.registerGroup(group));
   }
 
   // Run initial filter
@@ -118,10 +115,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     let filteredIds: ItemId[];
 
     if (disableFilter || query === '') {
-      filteredIds = [];
-      for (const i of items) {
-        if (!i.disabled) filteredIds.push(i.id);
-      }
+      // Iterator Helper pipeline — no manual for...push
+      filteredIds = items.values().filter((i) => !i.disabled).map((i) => i.id).toArray();
     } else {
       const results: SearchResult[] = searchEngine.search(query, items).toArray();
 
@@ -138,14 +133,9 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       filteredIds = results.map((r) => r.id);
     }
 
-    // Update the O(1) membership set and index map — single pass instead of two separate constructions
-    filteredIdSet = new Set<ItemId>();
-    filteredIdIndex = new Map<ItemId, number>();
-    for (let i = 0; i < filteredIds.length; i++) {
-      const id = filteredIds[i]!;
-      filteredIdSet.add(id);
-      filteredIdIndex.set(id, i);
-    }
+    // Update the O(1) membership set and index map
+    filteredIdSet = new Set(filteredIds);
+    filteredIdIndex = new Map(filteredIds.entries().map(([i, id]) => [id, i] as const));
 
     // Build grouped IDs — Map.groupBy (ES2026)
     const groupedIds = Map.groupBy(filteredIds, (id) => {
@@ -272,7 +262,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
           setState({
             ...state,
             page: prevPage,
-            pageStack: state.pageStack.slice(0, -1),
+            pageStack: state.pageStack.toSpliced(-1, 1),
             lastUpdated: Temporal.Now.instant(),
           });
         }

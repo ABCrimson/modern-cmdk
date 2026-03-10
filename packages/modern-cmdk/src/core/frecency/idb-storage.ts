@@ -44,15 +44,14 @@ function serializeData(data: FrecencyData): SerializedFrecencyData {
   };
 }
 
-/** Deserialize FrecencyData from IndexedDB storage — uses Iterator Helpers */
+/** Deserialize FrecencyData from IndexedDB storage — Iterator passed directly to Map (no .toArray()) */
 function deserializeData(serialized: SerializedFrecencyData): FrecencyData {
-  const entries = serialized.records
-    .values()
-    .map(([id, record]) => [id as ItemId, deserializeRecord(record)] as const)
-    .toArray();
-
   return {
-    records: new Map<ItemId, FrecencyRecord>(entries),
+    records: new Map(
+      serialized.records
+        .values()
+        .map(([id, record]) => [id as ItemId, deserializeRecord(record)] as const),
+    ),
   };
 }
 
