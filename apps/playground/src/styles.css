@@ -24,7 +24,7 @@
     /* Text palette */
     --text-primary: oklch(0.95 0.008 260);
     --text-secondary: oklch(0.72 0.018 260);
-    --text-muted: oklch(0.52 0.012 260);
+    --text-muted: oklch(0.62 0.012 260);
     --text-inverse: oklch(0.13 0.012 260);
 
     /* Border palette */

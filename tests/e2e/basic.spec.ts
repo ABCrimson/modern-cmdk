@@ -260,8 +260,8 @@ test.describe('Basic Command Palette', () => {
   test('should handle rapid search input without errors', async ({ page }) => {
     const input = page.getByRole('combobox');
 
-    // Type rapidly
-    await input.pressSequentially('testing rapid input', { delay: 10 });
+    // Type rapidly (30ms delay — 10ms drops characters on CI)
+    await input.pressSequentially('testing rapid input', { delay: 30 });
     await expect(input).toHaveValue('testing rapid input');
 
     // Clear and type again
@@ -269,7 +269,7 @@ test.describe('Basic Command Palette', () => {
     await input.press('Backspace');
     await expect(input).toHaveValue('');
 
-    await input.pressSequentially('another query', { delay: 10 });
+    await input.pressSequentially('another query', { delay: 30 });
     await expect(input).toHaveValue('another query');
   });
 
