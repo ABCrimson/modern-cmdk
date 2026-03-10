@@ -64,7 +64,7 @@ export function computeFrecencyBonus(
  * ranking boosts for search results. Supports pluggable storage backends
  * and automatic flush on dispose. Uses Temporal.Now.instant() for timestamps.
  */
-export class FrecencyEngine implements Disposable {
+export class FrecencyEngine implements Disposable, AsyncDisposable {
   #storage: FrecencyStorage;
   #namespace: string;
   #data: FrecencyData;
@@ -136,6 +136,15 @@ export class FrecencyEngine implements Disposable {
   /** Get the raw frecency data */
   getData(): FrecencyData {
     return this.#data;
+  }
+
+  /** Async dispose — flushes dirty data before cleanup. Use with `await using`. */
+  async [Symbol.asyncDispose](): Promise<void> {
+    if (this.#dirty) {
+      await this.#storage.save(this.#namespace, this.#data);
+      this.#dirty = false;
+    }
+    this.#storage[Symbol.dispose]();
   }
 
   [Symbol.dispose](): void {

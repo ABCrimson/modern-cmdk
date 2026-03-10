@@ -40,6 +40,6 @@ export function detectConflicts(
 
   // Iterator Helpers pipeline — filter to only conflicting groups (2+ collisions)
   return new Map(
-    grouped.entries().filter((entry): entry is [string, ParsedShortcut[]] => entry[1].length > 1),
+    grouped.entries().filter(([, group]) => group.length > 1),
   );
 }
