@@ -128,7 +128,6 @@ Every component renders with a `data-command-*` attribute for styling. No class 
 | `[data-command-item]` | `Command.Item` | Individual item |
 | `[data-command-item][data-active]` | `Command.Item` | Currently active (highlighted) item |
 | `[data-command-item][data-disabled]` | `Command.Item` | Disabled item |
-| `[data-command-item][data-selected]` | `Command.Item` | Selected item |
 | `[data-command-group]` | `Command.Group` | Item group container |
 | `[data-command-group-heading]` | `Command.Group` | Group heading |
 | `[data-command-empty]` | `Command.Empty` | Empty state |

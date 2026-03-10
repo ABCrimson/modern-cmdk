@@ -78,8 +78,8 @@ Control how many items are rendered outside the visible viewport. Higher values 
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `virtualize` | `boolean` | `true` (auto) | Enable/disable virtualization. When `true`, activates automatically at 100+ filtered items. |
-| `estimateSize` | `number` | `36` | Estimated item height in pixels for initial layout |
-| `overscan` | `number` | `5` | Number of items to render beyond the visible viewport (each direction) |
+| `estimateSize` | `number` | `44` | Estimated item height in pixels for initial layout |
+| `overscan` | `number` | `8` | Number of items to render beyond the visible viewport (each direction) |
 
 ## CSS Optimization
 

@@ -68,7 +68,7 @@ Persist frecency data across browser sessions with `IdbFrecencyStorage`:
 'use client';
 
 import { Command } from 'modern-cmdk/react';
-import { IdbFrecencyStorage } from 'modern-cmdk/frecency';
+import { IdbFrecencyStorage } from 'modern-cmdk';
 
 // Create storage once (singleton)
 const storage = new IdbFrecencyStorage('my-app-db', 'frecency');
@@ -105,10 +105,7 @@ export function PersistentFrecencyExample() {
 ```
 
 ::: tip
-`IdbFrecencyStorage` uses `idb-keyval@6.2.2` under the hood. Install it as a peer dependency:
-```bash
-pnpm add idb-keyval@6.2.2
-```
+`IdbFrecencyStorage` uses `idb-keyval@6.2.2` under the hood. It is included as a direct dependency of `modern-cmdk`, so no separate install is needed.
 :::
 
 ## Custom Decay Curve
@@ -138,7 +135,7 @@ Frecency works at the core state machine level, independent of React:
 
 ```typescript
 import { createCommandMachine } from 'modern-cmdk';
-import { IdbFrecencyStorage } from 'modern-cmdk/frecency';
+import { IdbFrecencyStorage } from 'modern-cmdk';
 
 async function demo() {
   await using storage = new IdbFrecencyStorage();

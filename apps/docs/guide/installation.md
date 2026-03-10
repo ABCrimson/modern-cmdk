@@ -32,11 +32,7 @@ pnpm add modern-cmdk-search-wasm
 
 ## Optional: Frecency Persistence
 
-For frecency data that persists across sessions:
-
-```bash
-pnpm add idb-keyval@6.2.2
-```
+`idb-keyval` is included as a direct dependency of `modern-cmdk`, so no separate install is needed. Frecency persistence via `IdbFrecencyStorage` works out of the box.
 
 ## TypeScript Configuration
 

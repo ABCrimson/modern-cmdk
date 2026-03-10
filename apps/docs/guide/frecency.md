@@ -46,7 +46,7 @@ By default, frecency data is stored in memory and resets on page reload. For per
 'use client';
 
 import { Command } from 'modern-cmdk/react';
-import { IdbFrecencyStorage } from 'modern-cmdk/frecency';
+import { IdbFrecencyStorage } from 'modern-cmdk';
 
 const storage = new IdbFrecencyStorage();
 
@@ -74,12 +74,8 @@ function PersistentFrecencyPalette() {
 }
 ```
 
-::: warning
-IndexedDB persistence requires `idb-keyval@6.2.2` as a peer dependency:
-
-```bash
-pnpm add idb-keyval@6.2.2
-```
+::: tip
+`idb-keyval` is included as a direct dependency of `modern-cmdk`, so no separate install is needed.
 :::
 
 ## `await using` Pattern for Storage Cleanup
@@ -87,7 +83,7 @@ pnpm add idb-keyval@6.2.2
 The `IdbFrecencyStorage` class implements `AsyncDisposable`, so you can use the `await using` pattern (ES2026 Explicit Resource Management) for automatic cleanup:
 
 ```typescript
-import { IdbFrecencyStorage } from 'modern-cmdk/frecency';
+import { IdbFrecencyStorage } from 'modern-cmdk';
 
 async function withFrecencyStorage() {
   await using storage = new IdbFrecencyStorage();
@@ -105,7 +101,7 @@ When used with the core state machine directly:
 
 ```typescript
 import { createCommandMachine } from 'modern-cmdk';
-import { IdbFrecencyStorage } from 'modern-cmdk/frecency';
+import { IdbFrecencyStorage } from 'modern-cmdk';
 
 async function createMachineWithFrecency() {
   await using storage = new IdbFrecencyStorage();

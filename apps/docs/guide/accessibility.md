@@ -99,7 +99,7 @@ When the search query changes and results are filtered, a live region announces 
 </div>
 ```
 
-The announcement is debounced by 300ms to avoid overwhelming screen readers during rapid typing.
+The announcement updates on every filter change so screen readers always reflect the current result count.
 
 ::: tip
 The live region uses `aria-live="polite"` so announcements wait until the user pauses. This prevents interrupting screen reader output during active typing.

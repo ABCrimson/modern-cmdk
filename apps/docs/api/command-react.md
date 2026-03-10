@@ -11,11 +11,11 @@ React 19 compound component adapter for `modern-cmdk`. All components use the `"
 
 ::: code-group
 ```bash [pnpm]
-pnpm add modern-cmdk/react
+pnpm add modern-cmdk
 ```
 
 ```bash [npm]
-npm install modern-cmdk/react
+npm install modern-cmdk
 ```
 :::
 
@@ -67,7 +67,7 @@ import { Command } from 'modern-cmdk/react';
 
 | Attribute | Value |
 |---|---|
-| `role` | `"application"` |
+| `role` | `"search"` |
 | `aria-label` | Value of `label` prop |
 
 ---
@@ -285,7 +285,7 @@ Visual separator between groups or items.
 <Command.Separator />
 ```
 
-Extends `ComponentPropsWithRef<'div'>`. Data attribute: `data-command-separator`. ARIA: `role="separator"`.
+Extends `ComponentPropsWithRef<'div'>`. Data attribute: `data-command-separator`. ARIA: `role="none"`.
 
 ---
 

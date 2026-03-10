@@ -13,7 +13,7 @@ The dialog manages its own open/close state internally:
 </Command.Dialog>
 ```
 
-Open it with the keyboard shortcut `Ctrl+K` (built-in).
+To open it with `Ctrl+K`, add a manual `useEffect` listener that toggles the dialog state (see the Controlled Mode example below).
 
 ## Controlled Mode
 
