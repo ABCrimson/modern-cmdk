@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
     "modern-cmdk": "workspace:*",
     "react": "19.3.0-canary-46103596-20260305",
     "react-dom": "19.3.0-canary-46103596-20260305"
