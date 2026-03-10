@@ -136,9 +136,8 @@ export function App(): React.ReactNode {
       <main
         className="playground-main"
         id="demo-panel"
-        role="tabpanel"
-        aria-labelledby={navId}
         aria-busy={isPending}
+        data-pending={isPending || undefined}
         style={{ opacity: isPending ? 0.7 : 1, transition: 'opacity 150ms ease' }}
       >
         {route === '/' && <BasicDemo />}

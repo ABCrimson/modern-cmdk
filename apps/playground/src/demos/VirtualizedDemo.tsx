@@ -55,25 +55,29 @@ export function VirtualizedDemo(): React.ReactNode {
     // Selection handler
   }, []);
 
-  // ES2026: Iterator Helpers — .map().toArray() on array iterator
-  const renderedItems = items
-    .values()
-    .map((item) => (
-      <Command.Item
-        key={item.id}
-        value={item.value}
-        forceId={item.id}
-        onSelect={() => handleSelect(item.value)}
-      >
-        <span className="item-content">
-          <span className="item-icon" aria-hidden="true">
-            {item.icon}
-          </span>
-          <span className="item-label">{item.label}</span>
-        </span>
-      </Command.Item>
-    ))
-    .toArray();
+  // Memoize 10K rendered items — avoids 10K JSX allocations on every render
+  const renderedItems = useMemo(
+    () =>
+      items
+        .values()
+        .map((item) => (
+          <Command.Item
+            key={item.id}
+            value={item.value}
+            forceId={item.id}
+            onSelect={() => handleSelect(item.value)}
+          >
+            <span className="item-content">
+              <span className="item-icon" aria-hidden="true">
+                {item.icon}
+              </span>
+              <span className="item-label">{item.label}</span>
+            </span>
+          </Command.Item>
+        ))
+        .toArray(),
+    [items, handleSelect],
+  );
 
   return (
     <div className="demo-container" role="region" aria-labelledby={headingId}>
