@@ -37,32 +37,23 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
   const measuredSizes = useRef<Map<number, number>>(new Map<number, number>());
   const [measureVersion, setMeasureVersion] = useState<number>(0);
 
-  // ResizeObserver for container measurement
+  // ResizeObserver + scroll listener — single effect for same element and guards
   useEffect(() => {
     if (!scrollElement || !enabled) return;
 
     const observer = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
-      // Single observed element — take the last entry's height
       const lastEntry = entries.at(-1);
       if (lastEntry) setContainerHeight(lastEntry.contentRect.height);
     });
-
     observer.observe(scrollElement);
-    return (): void => {
-      observer.disconnect();
-    };
-  }, [scrollElement, enabled]);
-
-  // Scroll event listener — passive for GPU-composited scrolling
-  useEffect(() => {
-    if (!scrollElement || !enabled) return;
 
     const handleScroll = (): void => {
       setScrollOffset(scrollElement.scrollTop);
     };
-
     scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+
     return (): void => {
+      observer.disconnect();
       scrollElement.removeEventListener('scroll', handleScroll);
     };
   }, [scrollElement, enabled]);
