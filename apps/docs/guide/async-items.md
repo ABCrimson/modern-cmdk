@@ -11,8 +11,8 @@ Wrap your async data source in `<Command.AsyncItems>`. The component suspends wh
 
 import { Command } from 'modern-cmdk/react';
 
-async function fetchCommands(query: string): Promise<CommandItem[]> {
-  const res = await fetch(`/api/commands?q=${encodeURIComponent(query)}`);
+async function fetchCommands(): Promise<CommandItem[]> {
+  const res = await fetch('/api/commands');
   return res.json();
 }
 
@@ -25,7 +25,7 @@ function AsyncCommandPalette() {
         <Command.Empty>No results found.</Command.Empty>
 
         <Command.AsyncItems
-          items={fetchCommands(query)}
+          items={fetchCommands()}
           fallback={<div>Loading results...</div>}
         >
           {(items) =>
@@ -154,6 +154,7 @@ Wrap `<Command.AsyncItems>` in an error boundary for graceful error handling. Re
 'use client';
 
 import { Command } from 'modern-cmdk/react';
+import { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
@@ -172,16 +173,9 @@ export function ResilientSearch() {
       <Command.List>
         <Command.Empty>No results.</Command.Empty>
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <Command.AsyncItems
-            items={searchAPI(query)}
-            fallback={<Command.Loading>Searching...</Command.Loading>}
-          >
-            {(items) => items.map((item) => (
-              <Command.Item key={item.id} value={item.value} onSelect={item.onSelect}>
-                {item.label}
-              </Command.Item>
-            ))}
-          </Command.AsyncItems>
+          <Suspense fallback={<Command.Loading>Searching...</Command.Loading>}>
+            <SearchResults />
+          </Suspense>
         </ErrorBoundary>
       </Command.List>
     </Command>

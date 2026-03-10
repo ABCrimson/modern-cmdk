@@ -90,7 +90,7 @@ Use `Command.Highlight` to show where the search query matched:
 
 | Component | Purpose |
 |---|---|
-| `Command` / `Command.Root` | Root container and state machine provider |
+| `Command` | Root container and state machine provider |
 | `Command.Input` | Search input with ARIA combobox role |
 | `Command.List` | Scrollable results list with automatic virtualization |
 | `Command.Item` | Individual command item |

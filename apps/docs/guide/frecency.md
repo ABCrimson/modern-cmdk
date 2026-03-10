@@ -214,5 +214,5 @@ machine.send({ type: 'ITEM_SELECT', id: 'settings' });
 // Future searches rank "Settings" higher due to frecency bonus
 machine.send({ type: 'SEARCH_CHANGE', query: '' });
 const state = machine.getState();
-// state.filtered[0].id === 'settings' (boosted by frecency)
+// state.filteredIds[0] === 'settings' (boosted by frecency)
 ```

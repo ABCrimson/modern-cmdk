@@ -23,8 +23,8 @@ function EmojiPicker({ onSelect }: { onSelect: (emoji: string) => void }) {
             <span>{name}</span>
           </Command.Item>
         ))}
+        <Command.Empty>No emoji found.</Command.Empty>
       </Command.List>
-      <Command.Empty>No emoji found.</Command.Empty>
     </Command>
   );
 }

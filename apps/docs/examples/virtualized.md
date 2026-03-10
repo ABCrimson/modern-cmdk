@@ -111,13 +111,13 @@ export function WasmVirtualizedExample() {
   const [engine, setEngine] = useState(null);
 
   useEffect(() => {
-    let disposed = false;
+    let wasmEngine: Awaited<ReturnType<typeof createWasmSearchEngine>> | null = null;
     async function init() {
-      await using wasmEngine = await createWasmSearchEngine();
-      if (!disposed) setEngine(wasmEngine);
+      wasmEngine = await createWasmSearchEngine();
+      setEngine(wasmEngine);
     }
     Promise.try(() => init());
-    return () => { disposed = true; };
+    return () => { wasmEngine?.[Symbol.asyncDispose](); };
   }, []);
 
   if (!engine) return <div>Loading search engine...</div>;

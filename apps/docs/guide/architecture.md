@@ -48,7 +48,7 @@ stateDiagram-v2
 | `frecency/index.ts` | Temporal.Duration-based decay buckets |
 | `frecency/idb-storage.ts` | IndexedDB persistence via idb-keyval |
 | `keyboard/parser.ts` | Shortcut string parsing with RegExp.escape |
-| `keyboard/matcher.ts` | Conflict detection via Object.groupBy |
+| `keyboard/matcher.ts` | Conflict detection via Map.groupBy |
 | `utils/scheduler.ts` | Microtask batching for state updates |
 | `utils/event-emitter.ts` | Type-safe pub/sub with Disposable cleanup |
 
@@ -125,7 +125,7 @@ sequenceDiagram
 | Mode | Function | Thread | Use Case |
 |------|----------|--------|----------|
 | Main thread | `createWasmSearchEngine()` | Main | Simple setup, < 5K items |
-| Worker thread | `createWorkerWasmSearchEngine()` | Web Worker | Large datasets, non-blocking UI |
+| Worker thread | `createWorkerSearchEngine()` | Web Worker | Large datasets, non-blocking UI |
 
 Both implement the `SearchEngine` interface from the core package and support `AsyncDisposable` for `await using` cleanup.
 
@@ -162,4 +162,4 @@ All engines implement `Disposable` or `AsyncDisposable` for automatic cleanup:
 | Temporal.Now.instant() | Frecency timestamps |
 | Temporal.Duration | Decay bucket boundaries |
 | RegExp.escape | Keyboard shortcut parser |
-| Object.groupBy | Shortcut conflict detection |
+| Map.groupBy | Shortcut conflict detection |

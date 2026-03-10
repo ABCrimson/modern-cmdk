@@ -44,7 +44,7 @@ Pure TypeScript state machine with zero DOM dependencies. Manages:
 - **Item registry** -- Registration, deregistration, grouping
 - **Search and filtering** -- Pluggable `SearchEngine` interface
 - **Frecency ranking** -- `Temporal.Duration` decay buckets with configurable weights
-- **Keyboard shortcuts** -- `RegExp.escape`-based parser, `Object.groupBy` conflict detection
+- **Keyboard shortcuts** -- `RegExp.escape`-based parser, `Map.groupBy` conflict detection
 - **Navigation** -- Active item tracking, page stack, loop/no-loop
 - **State snapshots** -- Immutable `CommandState` objects for efficient change detection
 
@@ -251,7 +251,7 @@ class RedisFrecencyStorage implements FrecencyStorage {
 | Feature | Where Used |
 |---|---|
 | Iterator Helpers (`.map`, `.filter`, `.toArray`) | Search pipelines, registry operations |
-| `Object.groupBy` | Shortcut conflict detection |
+| `Map.groupBy` | Shortcut conflict detection |
 | `Temporal.Now.instant()` | Frecency timestamps, state `lastUpdated` |
 | `Temporal.Duration` | Frecency decay bucket boundaries |
 | `using` / `await using` | Machine, engine, and storage lifecycle |

@@ -95,6 +95,7 @@ Wrap async items in an error boundary for graceful error handling:
 'use client';
 
 import { Command } from 'modern-cmdk/react';
+import { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 function ErrorFallback({
@@ -119,18 +120,9 @@ export function ResilientSearchExample() {
       <Command.List>
         <Command.Empty>No results.</Command.Empty>
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <Command.AsyncItems
-            items={searchAPI(query)}
-            fallback={<Command.Loading>Searching...</Command.Loading>}
-          >
-            {(items) =>
-              items.map((item) => (
-                <Command.Item key={item.id} value={item.title} onSelect={() => {}}>
-                  {item.title}
-                </Command.Item>
-              ))
-            }
-          </Command.AsyncItems>
+          <Suspense fallback={<Command.Loading>Searching...</Command.Loading>}>
+            <SearchResults />
+          </Suspense>
         </ErrorBoundary>
       </Command.List>
     </Command>

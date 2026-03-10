@@ -22,7 +22,13 @@ function SpotlightSearch() {
 
         <Command.Group heading="Recent">
           <Suspense fallback={<Command.Loading>Loading recents...</Command.Loading>}>
-            <Command.AsyncItems items={fetchRecentItems} />
+            <Command.AsyncItems items={fetchRecentItems()}>
+              {(items) => items.map((item) => (
+                <Command.Item key={item.id} value={item.name} onSelect={() => console.log(item)}>
+                  {item.name}
+                </Command.Item>
+              ))}
+            </Command.AsyncItems>
           </Suspense>
         </Command.Group>
 
@@ -31,8 +37,8 @@ function SpotlightSearch() {
           <Command.Item value="settings" onSelect={() => navigate('/settings')}>Settings</Command.Item>
           <Command.Item value="profile" onSelect={() => navigate('/profile')}>Profile</Command.Item>
         </Command.Group>
+        <Command.Empty>No results found.</Command.Empty>
       </Command.List>
-      <Command.Empty>No results found.</Command.Empty>
     </Command.Dialog>
   );
 }

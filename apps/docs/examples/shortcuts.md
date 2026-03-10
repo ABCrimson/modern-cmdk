@@ -5,7 +5,7 @@ description: Keyboard shortcut registration, platform-aware display, and conflic
 
 # Keyboard Shortcuts
 
-Demonstrates keyboard shortcut registration on items, platform-aware display via `<Command.Shortcut>`, and conflict detection using `Object.groupBy`.
+Demonstrates keyboard shortcut registration on items, platform-aware display via `<Command.Shortcut>`, and conflict detection using `Map.groupBy`.
 
 ## Shortcut Registration
 
@@ -89,7 +89,7 @@ for (const [normalized, group] of conflicts) {
 }
 ```
 
-`detectConflicts` uses `Object.groupBy` internally to group shortcuts by their normalized form, then filters groups with more than one entry. This runs in O(n) time.
+`detectConflicts` uses `Map.groupBy` internally to group shortcuts by their normalized form, then filters groups with more than one entry. This runs in O(n) time.
 
 ## Platform-Aware Display
 

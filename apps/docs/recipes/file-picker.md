@@ -38,8 +38,8 @@ function FilePicker({ files, onSelect }: { files: FileEntry[]; onSelect: (file: 
             </Command.Item>
           ))}
         </Command.Group>
+        <Command.Empty>No files found.</Command.Empty>
       </Command.List>
-      <Command.Empty>No files found.</Command.Empty>
     </Command>
   );
 }
