@@ -661,7 +661,7 @@ describe('Command — React Compound Components', () => {
   // ---- 11. Separator ----
 
   describe('separator', () => {
-    it('should render separator with role=separator', async () => {
+    it('should render separator with role=none', async () => {
       await render(
         <Command>
           <Command.Input />
@@ -679,7 +679,7 @@ describe('Command — React Compound Components', () => {
 
       const separator = container.querySelector('[data-command-separator]');
       expect(separator).not.toBeNull();
-      expect(separator?.getAttribute('role')).toBe('separator');
+      expect(separator?.getAttribute('role')).toBe('none');
     });
   });
 

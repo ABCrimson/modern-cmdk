@@ -22,7 +22,7 @@ function SpotlightSearch() {
 
         <Command.Group heading="Recent">
           <Suspense fallback={<Command.Loading>Loading recents...</Command.Loading>}>
-            <Command.AsyncItems source={fetchRecentItems} />
+            <Command.AsyncItems items={fetchRecentItems} />
           </Suspense>
         </Command.Group>
 

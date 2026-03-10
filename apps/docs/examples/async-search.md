@@ -38,8 +38,7 @@ function SearchResults() {
 
   return (
     <Command.AsyncItems
-      source={() => searchAPI(query)}
-      debounce={300}
+      items={searchAPI(query)}
       fallback={<Command.Loading>Searching...</Command.Loading>}
     >
       {(results) => (
@@ -85,7 +84,7 @@ export function AsyncSearchExample() {
 ```
 
 ::: tip
-Setting `filter={false}` on `<Command>` disables client-side filtering. All filtering is delegated to your API, and the `source` function receives the raw search query.
+Setting `filter={false}` on `<Command>` disables client-side filtering. All filtering is delegated to your API.
 :::
 
 ## With Error Boundary
@@ -121,7 +120,7 @@ export function ResilientSearchExample() {
         <Command.Empty>No results.</Command.Empty>
         <ErrorBoundary FallbackComponent={ErrorFallback}>
           <Command.AsyncItems
-            source={(query) => searchAPI(query)}
+            items={searchAPI(query)}
             fallback={<Command.Loading>Searching...</Command.Loading>}
           >
             {(items) =>
@@ -147,7 +146,7 @@ Load items from multiple sources with independent Suspense boundaries:
 <Command.List>
   <Command.Group heading="Recent">
     <Suspense fallback={<Command.Loading>Loading recent...</Command.Loading>}>
-      <Command.AsyncItems source={() => fetchRecent()}>
+      <Command.AsyncItems items={fetchRecent()}>
         {(items) => items.map((item) => (
           <Command.Item key={item.id} value={item.value}>{item.label}</Command.Item>
         ))}
@@ -157,7 +156,7 @@ Load items from multiple sources with independent Suspense boundaries:
 
   <Command.Group heading="All Commands">
     <Suspense fallback={<Command.Loading>Loading commands...</Command.Loading>}>
-      <Command.AsyncItems source={() => fetchAllCommands()}>
+      <Command.AsyncItems items={fetchAllCommands()}>
         {(items) => items.map((item) => (
           <Command.Item key={item.id} value={item.value}>{item.label}</Command.Item>
         ))}

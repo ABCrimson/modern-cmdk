@@ -152,14 +152,11 @@ Override the default decay configuration with `decayConfig`:
   frecency={{
     enabled: true,
     decayConfig: {
-      buckets: [
-        { maxAge: Temporal.Duration.from({ minutes: 30 }), weight: 5.0 },
-        { maxAge: Temporal.Duration.from({ hours: 4 }), weight: 3.0 },
-        { maxAge: Temporal.Duration.from({ hours: 12 }), weight: 2.0 },
-        { maxAge: Temporal.Duration.from({ days: 3 }), weight: 1.5 },
-        { maxAge: Temporal.Duration.from({ weeks: 2 }), weight: 1.0 },
-      ],
-      defaultWeight: 0.3, // Anything older than 2 weeks
+      hourWeight: 5.0,   // Used within the last hour
+      dayWeight: 3.0,    // Used within the last day
+      weekWeight: 2.0,   // Used within the last week
+      monthWeight: 1.5,  // Used within the last month
+      olderWeight: 0.3,  // Anything older than a month
     },
   }}
 >
@@ -167,8 +164,8 @@ Override the default decay configuration with `decayConfig`:
 </Command>
 ```
 
-::: details How Decay Buckets Are Evaluated
-Buckets are evaluated in order. The first bucket whose `maxAge` is greater than the elapsed duration is used. If no bucket matches, `defaultWeight` is applied.
+::: details How Decay Weights Are Evaluated
+The elapsed time since an item was last used is computed in hours using `Temporal.Instant`. The weight corresponding to the matching time bucket is applied. If the item is older than a month, `olderWeight` is used.
 
 ```typescript
 // Internal implementation using Temporal

@@ -297,7 +297,7 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
     // Verify the ARIA tree structure using Playwright 1.59 ARIA snapshots
     await expect(root).toMatchAriaSnapshot(`
-      - application:
+      - search:
         - combobox
         - listbox:
           - option
@@ -315,7 +315,7 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     if (count === 1) {
       const root = page.locator('[data-command-root]');
       await expect(root).toMatchAriaSnapshot(`
-        - application:
+        - search:
           - combobox
           - listbox:
             - option
@@ -331,7 +331,7 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
     const root = page.locator('[data-command-root]');
     await expect(root).toMatchAriaSnapshot(`
-      - application:
+      - search:
         - combobox
         - listbox
         - status

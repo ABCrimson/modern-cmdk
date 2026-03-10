@@ -62,7 +62,7 @@ The `<Command.Dialog>` component works with React Suspense boundaries. Async ite
 
 ```tsx
 <Suspense fallback={<Command.Loading>Searching...</Command.Loading>}>
-  <Command.AsyncItems load={fetchResults} />
+  <Command.AsyncItems items={fetchResults} />
 </Suspense>
 ```
 

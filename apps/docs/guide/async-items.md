@@ -25,7 +25,7 @@ function AsyncCommandPalette() {
         <Command.Empty>No results found.</Command.Empty>
 
         <Command.AsyncItems
-          source={(query) => fetchCommands(query)}
+          items={fetchCommands(query)}
           fallback={<div>Loading results...</div>}
         >
           {(items) =>
@@ -75,8 +75,7 @@ function SearchResults() {
 
   return (
     <Command.AsyncItems
-      source={() => searchAPI(query)}
-      debounce={300}
+      items={searchAPI(query)}
       fallback={<Command.Loading>Searching...</Command.Loading>}
     >
       {(results) => (
@@ -127,7 +126,7 @@ export function DebouncedSearchPalette() {
 <Command.List>
   <Command.Group heading="Recent">
     <Suspense fallback={<Command.Loading>Loading recent...</Command.Loading>}>
-      <Command.AsyncItems source={() => fetchRecent()}>
+      <Command.AsyncItems items={fetchRecent()}>
         {(items) => items.map((item) => (
           <Command.Item key={item.id} value={item.value}>{item.label}</Command.Item>
         ))}
@@ -137,7 +136,7 @@ export function DebouncedSearchPalette() {
 
   <Command.Group heading="All Commands">
     <Suspense fallback={<Command.Loading>Loading commands...</Command.Loading>}>
-      <Command.AsyncItems source={() => fetchAllCommands()}>
+      <Command.AsyncItems items={fetchAllCommands()}>
         {(items) => items.map((item) => (
           <Command.Item key={item.id} value={item.value}>{item.label}</Command.Item>
         ))}
@@ -174,7 +173,7 @@ export function ResilientSearch() {
         <Command.Empty>No results.</Command.Empty>
         <ErrorBoundary FallbackComponent={ErrorFallback}>
           <Command.AsyncItems
-            source={(query) => searchAPI(query)}
+            items={searchAPI(query)}
             fallback={<Command.Loading>Searching...</Command.Loading>}
           >
             {(items) => items.map((item) => (
@@ -194,15 +193,14 @@ export function ResilientSearch() {
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `source` | `(query: string) => Promise<T[]>` | Required | Async function returning items |
+| `items` | `Promise<T[]>` | Required | Promise resolving to items |
 | `fallback` | `ReactNode` | `undefined` | Fallback UI during loading (also works via `<Suspense>`) |
-| `debounce` | `number` | `0` | Debounce delay in ms before calling `source` |
 | `children` | `(items: T[]) => ReactNode` | Required | Render function receiving resolved items |
 
 ::: tip
-`<Command.AsyncItems>` uses React 19's `use()` hook internally. The promise returned by `source` is consumed directly by `use()`, triggering Suspense while pending. No additional state management is needed.
+`<Command.AsyncItems>` uses React 19's `use()` hook internally. The promise passed to `items` is consumed directly by `use()`, triggering Suspense while pending. No additional state management is needed.
 :::
 
 ::: warning
-When using `filter={false}` on `<Command>`, all filtering is delegated to your API. The built-in search engine is bypassed entirely, and the `source` function receives the raw search query.
+When using `filter={false}` on `<Command>`, all filtering is delegated to your API. The built-in search engine is bypassed entirely.
 :::

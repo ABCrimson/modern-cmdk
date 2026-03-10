@@ -55,6 +55,7 @@ async function main(): Promise<void> {
   if (!parsed) {
     printUsage();
     process.exit(0);
+    return; // unreachable, but tells TS that parsed is non-null below
   }
 
   const { projectName, template } = parsed;

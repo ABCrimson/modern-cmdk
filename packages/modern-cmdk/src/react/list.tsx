@@ -9,7 +9,7 @@
 
 import type { ComponentPropsWithRef, CSSProperties, ReactNode, RefObject } from 'react';
 import { use, useCallback, useEffect, useRef, useState } from 'react';
-import { CommandStableContext, CommandStateContext } from './context.js';
+import { CommandListStatusContext, CommandStableContext, CommandStateContext } from './context.js';
 import { useVirtualizer } from './hooks/use-virtualizer.js';
 
 export interface CommandListProps extends ComponentPropsWithRef<'div'> {
@@ -107,47 +107,53 @@ export function CommandList({
     [ref],
   );
 
+  const statusContainerRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div
-      ref={setScrollRef}
-      data-command-list=""
-      role="listbox"
-      aria-label={stable.label}
-      aria-busy={stateCtx.state.loading}
-      id={stable.listId}
-      style={mergedStyle}
-      {...props}
-    >
-      {shouldVirtualize ? (
-        // Virtualized rendering — GPU-composited translateY positioning
-        <div
-          data-command-list-virtual=""
-          style={{ height: `${virtualizer.totalSize}px`, position: 'relative' }}
-        >
-          {virtualizer.virtualItems.map((vItem) => (
-            <div
-              key={vItem.key}
-              data-command-virtual-item=""
-              data-index={vItem.index}
-              ref={virtualizer.measureElement}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                translate: `0 ${vItem.start}px`,
-              }}
-            />
-          ))}
-          {/* Children still render for React reconciliation */}
-          {children}
-        </div>
-      ) : (
-        <div ref={innerRef} data-command-list-inner="">
-          {children}
-        </div>
-      )}
-      {/* aria-live region for screen reader announcements */}
+    <CommandListStatusContext value={statusContainerRef}>
+      <div
+        ref={setScrollRef}
+        data-command-list=""
+        role="listbox"
+        aria-label={stable.label}
+        aria-busy={stateCtx.state.loading}
+        id={stable.listId}
+        style={mergedStyle}
+        {...props}
+      >
+        {shouldVirtualize ? (
+          // Virtualized rendering — GPU-composited translateY positioning
+          <div
+            data-command-list-virtual=""
+            style={{ height: `${virtualizer.totalSize}px`, position: 'relative' }}
+          >
+            {virtualizer.virtualItems.map((vItem) => (
+              <div
+                key={vItem.key}
+                data-command-virtual-item=""
+                data-index={vItem.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  translate: `0 ${vItem.start}px`,
+                }}
+              />
+            ))}
+            {/* Children still render for React reconciliation */}
+            {children}
+          </div>
+        ) : (
+          <div ref={innerRef} data-command-list-inner="">
+            {children}
+          </div>
+        )}
+      </div>
+      {/* Status container for Command.Empty — rendered outside the listbox for ARIA compliance */}
+      <div ref={statusContainerRef} data-command-list-status="" />
+      {/* aria-live region for screen reader announcements — outside listbox for valid ARIA */}
       <div
         aria-live="polite"
         aria-atomic
@@ -158,6 +164,6 @@ export function CommandList({
         {stateCtx.state.filteredCount} result{stateCtx.state.filteredCount !== 1 ? 's' : ''}{' '}
         available.
       </div>
-    </div>
+    </CommandListStatusContext>
   );
 }

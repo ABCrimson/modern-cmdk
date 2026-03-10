@@ -123,7 +123,7 @@ export function App(): React.ReactNode {
           The definitive command palette engine for the modern web.
         </p>
         <div className="playground-meta">
-          <span className="playground-version">v0.9.0-rc</span>
+          <span className="playground-version">v1.0.2</span>
           <span className="playground-version">React 19</span>
           <span className="playground-version">ES2026</span>
           <ThemeToggle />

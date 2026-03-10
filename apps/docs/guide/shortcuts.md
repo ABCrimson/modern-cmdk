@@ -180,34 +180,6 @@ const conflicts = detectConflicts(shortcuts);
 `detectConflicts` uses `Object.groupBy` internally to group shortcuts by their normalized form, then filters for groups with more than one entry. This is O(n) and runs during registration, not on every keystroke.
 :::
 
-## Shortcut Scope
-
-By default, shortcuts registered on `<Command.Item>` are active globally — they fire even when the command palette is closed. You can control this behavior:
-
-```tsx
-{/* Active only when the palette is open */}
-<Command.Item
-  value="delete"
-  shortcut="Mod+Delete"
-  shortcutScope="open"
-  onSelect={() => handleDelete()}
->
-  Delete
-  <Command.Shortcut shortcut="Mod+Delete" />
-</Command.Item>
-
-{/* Active globally (default) */}
-<Command.Item
-  value="toggle"
-  shortcut="Mod+K"
-  shortcutScope="global"
-  onSelect={() => togglePalette()}
->
-  Toggle Palette
-  <Command.Shortcut shortcut="Mod+K" />
-</Command.Item>
-```
-
 ## ARIA Integration
 
 Items with shortcuts automatically receive `aria-keyshortcuts` for screen reader discoverability:

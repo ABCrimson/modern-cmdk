@@ -1118,7 +1118,7 @@ describe('12. Groups & Separators', () => {
     });
   });
 
-  it('should render separator with role="separator" (same as cmdk)', async () => {
+  it('should render separator with role="none" (presentational inside listbox)', async () => {
     await render(
       <Command>
         <Command.Input />
@@ -1131,7 +1131,7 @@ describe('12. Groups & Separators', () => {
     );
 
     const sep = container.querySelector('[data-command-separator]') as Element;
-    expect(sep.getAttribute('role')).toBe('separator');
+    expect(sep.getAttribute('role')).toBe('none');
   });
 });
 

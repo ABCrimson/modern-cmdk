@@ -13,7 +13,7 @@ test.describe('Basic Command Palette', () => {
   test('should render command root with correct data attribute and role', async ({ page }) => {
     const root = page.locator('[data-command-root]');
     await expect(root).toBeVisible();
-    await expect(root).toHaveAttribute('role', 'application');
+    await expect(root).toHaveAttribute('role', 'search');
     await expect(root).toHaveAttribute('aria-label', /command palette/i);
   });
 
