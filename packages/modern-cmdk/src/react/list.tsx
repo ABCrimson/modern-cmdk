@@ -73,8 +73,8 @@ export function CommandList({
       prevActiveId.current = stateCtx.state.activeId;
 
       if (shouldVirtualize) {
-        // Virtual mode: use virtualizer scrollToIndex
-        const idx = stateCtx.state.filteredIds.indexOf(stateCtx.state.activeId);
+        // Virtual mode: O(1) index lookup via machine's filteredIdIndex Map
+        const idx = stable.machine.getFilteredIdIndex().get(stateCtx.state.activeId) ?? -1;
         if (idx >= 0) virtualizer.scrollToIndex(idx);
       } else {
         // DOM mode: scrollIntoView on the active element

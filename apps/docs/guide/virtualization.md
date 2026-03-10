@@ -130,7 +130,7 @@ For maximum performance, apply CSS containment to items:
 
 5. **Consider `filter={false}` with server-side search.** For very large datasets, delegate filtering to your API and use `<Command.AsyncItems>` instead of client-side filtering. See [Async Items](/guide/async-items).
 
-6. **Set `overscan` appropriately.** The default `5` works well for most cases. For very fast scrolling scenarios, increase to `10-15`. For memory-constrained environments, decrease to `2-3`.
+6. **Set `overscan` appropriately.** The default `8` works well for most cases. For very fast scrolling scenarios, increase to `10-15`. For memory-constrained environments, decrease to `2-3`.
 
 :::
 

@@ -39,6 +39,8 @@ export interface CommandMachine extends Disposable {
   getKeyboardRegistry(): KeyboardShortcutRegistry;
   /** Get the current set of filtered item IDs — O(1) membership checks */
   getFilteredIdSet(): ReadonlySet<ItemId>;
+  /** Get the index map for filtered IDs — O(1) positional lookup */
+  getFilteredIdIndex(): ReadonlyMap<ItemId, number>;
   [Symbol.dispose](): void;
 }
 
@@ -355,6 +357,10 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
     getFilteredIdSet(): ReadonlySet<ItemId> {
       return filteredIdSet;
+    },
+
+    getFilteredIdIndex(): ReadonlyMap<ItemId, number> {
+      return filteredIdIndex;
     },
 
     [Symbol.dispose](): void {
