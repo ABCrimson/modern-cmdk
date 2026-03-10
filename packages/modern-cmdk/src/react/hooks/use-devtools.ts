@@ -39,17 +39,14 @@ type DevtoolsRegistry = Map<string, DevtoolsState>;
  * ```
  */
 export function useCommandDevtools(label: string = 'default'): void {
-  if (!__DEV__) return;
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- __DEV__ is compile-time constant
   const stable = use(CommandStableContext);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const stateCtx = use(CommandStateContext);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const stateRef = useRef<DevtoolsState | null>(null);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
+    // Guard inside effect body — hooks are always called (Rules of Hooks compliant)
+    // __DEV__ is a compile-time constant: bundler DCE removes the entire effect in production
+    if (!__DEV__) return;
     if (!stable || !stateCtx) return;
 
     const update = (): void => {

@@ -55,7 +55,8 @@ export class CommandRegistry implements Disposable {
     const ids = new Set(items.values().map((i) => i.id));
     return {
       [Symbol.dispose]: (): void => {
-        for (const id of ids) this.unregisterItem(id);
+        // Batch unregister — O(n) total via Set.difference instead of O(n*k) per-item
+        this.unregisterItems(ids);
       },
     };
   }

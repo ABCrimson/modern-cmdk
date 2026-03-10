@@ -149,14 +149,11 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
 
   [Symbol.dispose](): void {
     // Attempt to flush synchronously (best effort for memory storage)
+    // Promise.try handles both sync and async returns transparently
     if (this.#dirty) {
-      const result = this.#storage.save(this.#namespace, this.#data);
-      if (result instanceof Promise) {
-        // Can't await in dispose — fire and forget for async storage
-        result.catch(() => {
-          // Silently ignore — data loss is acceptable on dispose
-        });
-      }
+      Promise.try(() => this.#storage.save(this.#namespace, this.#data)).catch(() => {
+        // Silently ignore — data loss is acceptable on dispose
+      });
     }
     this.#storage[Symbol.dispose]();
   }
