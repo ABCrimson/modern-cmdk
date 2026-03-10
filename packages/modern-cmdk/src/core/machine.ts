@@ -118,12 +118,12 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       // Iterator Helper pipeline — no manual for...push
       filteredIds = items.values().filter((i) => !i.disabled).map((i) => i.id).toArray();
     } else {
-      const results: SearchResult[] = searchEngine.search(query, items).toArray();
+      let results: readonly SearchResult[] = searchEngine.search(query, items).toArray();
 
-      // Apply frecency re-ranking if enabled
+      // Apply frecency re-ranking if enabled — toSorted for immutable sort consistency
       if (frecencyEngine) {
         const bonuses = frecencyEngine.getAllBonuses();
-        results.sort((a, b) => {
+        results = results.toSorted((a, b) => {
           const aBonus = bonuses.get(a.id) ?? 0;
           const bBonus = bonuses.get(b.id) ?? 0;
           return b.score + bBonus - (a.score + aBonus);
