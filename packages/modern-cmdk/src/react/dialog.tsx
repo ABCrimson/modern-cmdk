@@ -9,16 +9,11 @@
 
 import { Dialog } from 'radix-ui';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { CommandMachineOptions } from '../core/index.js';
 import { createCommandMachine } from '../core/index.js';
-import type {
-  CommandStableContextValue,
-  CommandStateContextValue,
-} from './context.js';
 import { CommandStableContext, CommandStateContext } from './context.js';
-import { useCommand } from './hooks/use-command.js';
-import { createKeydownHandler } from './hooks/use-keyboard.js';
+import { useCommandSetup } from './hooks/use-command-setup.js';
 
 export interface CommandDialogProps extends CommandMachineOptions {
   readonly children?: ReactNode;
@@ -47,41 +42,20 @@ export function CommandDialog({
   const onOpenChangeRef = useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;
 
-  // CRITICAL: useRef for stable machine reference across renders
-  const machineRef = useRef<ReturnType<typeof createCommandMachine> | null>(null);
-  if (machineRef.current === null) {
-    machineRef.current = createCommandMachine({
-      ...machineOptions,
-      open: controlledOpen ?? false,
-      onOpenChange: (open: boolean): void => {
-        onOpenChangeRef.current?.(open);
-      },
-    });
-  }
-  const machine = machineRef.current;
+  const { machine, state, handleKeyDown, stableContextValue, stateContextValue, inputId } =
+    useCommandSetup(
+      () =>
+        createCommandMachine({
+          ...machineOptions,
+          open: controlledOpen ?? false,
+          onOpenChange: (open: boolean): void => {
+            onOpenChangeRef.current?.(open);
+          },
+        }),
+      label,
+    );
 
-  const { state, isPending, updateSearch, setOptimisticActiveId, filteredIdSet, id } =
-    useCommand(machine);
-
-  // Derive list/input IDs from the single useId() in useCommand — coherent with rootId
-  const listId = `${id}-list`;
-  const inputId = `${id}-input`;
-
-  // Dispose machine on unmount — nulls ref so Strict Mode remount creates fresh machine
-  useEffect(() => {
-    return (): void => {
-      machineRef.current?.[Symbol.dispose]();
-      machineRef.current = null;
-    };
-    // eslint-disable-next-line -- machine is stable ref, dispose runs on unmount only
-  }, []);
-
-  // Keyboard navigation via document listener
-  const handleKeyDown = useMemo(
-    () => createKeydownHandler(machine, () => machine.getState()),
-    [machine],
-  );
-
+  // Keyboard listener — only when dialog is open
   useEffect(() => {
     if (!state.open) return;
     document.addEventListener('keydown', handleKeyDown);
@@ -112,32 +86,6 @@ export function CommandDialog({
       machine.send({ type: open ? 'OPEN' : 'CLOSE' });
     },
     [machine],
-  );
-
-  // Stable context — only depends on values that never change after mount
-  const stableContextValue = useMemo<CommandStableContextValue>(
-    () =>
-      ({
-        machine,
-        rootId: id,
-        listId,
-        inputId,
-        label,
-        updateSearch,
-        setOptimisticActiveId,
-      }) satisfies CommandStableContextValue,
-    [machine, id, listId, inputId, label, updateSearch, setOptimisticActiveId],
-  );
-
-  // State context — changes on every search/navigation
-  const stateContextValue = useMemo<CommandStateContextValue>(
-    () =>
-      ({
-        state,
-        isPending,
-        filteredIdSet,
-      }) satisfies CommandStateContextValue,
-    [state, isPending, filteredIdSet],
   );
 
   return (

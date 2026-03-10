@@ -1,7 +1,7 @@
 [package]
 name = "command-search-wasm"
 version = "0.9.0"
-edition = "2024"
+edition = "2021"
 authors = ["Crimson Dev"]
 description = "WASM-accelerated fuzzy search engine for modern-cmdk"
 

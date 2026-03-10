@@ -1,29 +1,24 @@
 'use client';
 
 // packages/command-react/src/command.tsx
-// <Command.Root> — useTransition for search, React Compiler compatible
-// Keyboard navigation is attached to the root element, not called as a hook before context
+// <Command.Root> — compound component root, delegates setup to useCommandSetup
+// Keyboard navigation is attached to document — always active (not dialog-gated)
 // ES2026: satisfies operator, branded types
 // Isolated declarations: explicit return types on all exports
 
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { CommandMachineOptions } from '../core/index.js';
 import { createCommandMachine } from '../core/index.js';
 import { CommandActivity } from './activity.js';
 import { CommandAsyncItems } from './async-items.js';
 import { CommandBadge } from './badge.js';
-import type {
-  CommandStableContextValue,
-  CommandStateContextValue,
-} from './context.js';
 import { CommandStableContext, CommandStateContext } from './context.js';
 import { CommandDialog } from './dialog.js';
 import { CommandEmpty } from './empty.js';
 import { CommandGroup } from './group.js';
 import { CommandHighlight } from './highlight.js';
-import { useCommand } from './hooks/use-command.js';
-import { createKeydownHandler } from './hooks/use-keyboard.js';
+import { useCommandSetup } from './hooks/use-command-setup.js';
 import { CommandInput } from './input.js';
 import { CommandItem } from './item.js';
 import { CommandList } from './list.js';
@@ -46,69 +41,18 @@ function CommandRoot({
 }: CommandRootProps): ReactNode {
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // Create machine once — stable reference across renders
-  const machineRef = useRef<ReturnType<typeof createCommandMachine> | null>(null);
-  if (machineRef.current === null) {
-    machineRef.current = createCommandMachine(machineOptions);
-  }
-  const machine = machineRef.current;
-
-  const { state, isPending, updateSearch, setOptimisticActiveId, filteredIdSet, id } =
-    useCommand(machine);
-
-  // Derive list/input IDs from the single useId() in useCommand — coherent with rootId
-  const listId = `${id}-list`;
-  const inputId = `${id}-input`;
-
-  // Dispose machine on unmount — prevents resource leaks (scheduler, emitter, search engine)
-  // Nulls the ref so Strict Mode remount creates a fresh machine
-  useEffect(() => {
-    return (): void => {
-      machineRef.current?.[Symbol.dispose]();
-      machineRef.current = null;
-    };
-    // eslint-disable-next-line -- machine is stable ref, dispose runs on unmount only
-  }, []);
-
-  // Attach keyboard navigation to the root element — avoids hook-before-context issue
-  // useMemo (not useCallback) — we memoize the factory result, not a function reference
-  const handleKeyDown = useMemo(
-    () => createKeydownHandler(machine, () => machine.getState()),
-    [machine],
+  const { state, handleKeyDown, stableContextValue, stateContextValue } = useCommandSetup(
+    () => createCommandMachine(machineOptions),
+    label,
   );
 
+  // Always-on keyboard listener — Command root is always active (unlike Dialog)
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return (): void => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
-
-  // Stable context — only depends on values that never change after mount
-  const stableContextValue = useMemo<CommandStableContextValue>(
-    () =>
-      ({
-        machine,
-        rootId: id,
-        listId,
-        inputId,
-        label,
-        updateSearch,
-        setOptimisticActiveId,
-      }) satisfies CommandStableContextValue,
-    [machine, id, listId, inputId, label, updateSearch, setOptimisticActiveId],
-  );
-
-  // State context — changes on every search/navigation
-  const stateContextValue = useMemo<CommandStateContextValue>(
-    () =>
-      ({
-        state,
-        isPending,
-        filteredIdSet,
-      }) satisfies CommandStateContextValue,
-    [state, isPending, filteredIdSet],
-  );
 
   return (
     <CommandStableContext value={stableContextValue}>
