@@ -24,7 +24,7 @@
   },
   "sideEffects": false,
   "peerDependencies": {
-    "modern-cmdk": "workspace:>=1.0.1"
+    "modern-cmdk": "workspace:>=1.0.2"
   },
   "keywords": [
     "wasm",

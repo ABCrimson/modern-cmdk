@@ -1,5 +1,11 @@
 # modern-cmdk
 
+## 1.0.2
+
+### Patch Changes
+
+- [`f5576bb`](https://github.com/ABCrimson/modern-cmdk/commit/f5576bb917e8d254aae20b419ea02dccfbcab7cd) Thanks [@ABCrimson](https://github.com/ABCrimson)! - Performance: split React context to prevent all-item re-renders, O(1) filtered set lookup, single-pass index build, lazy iterators. Fix CSS sideEffects, invalid transform-origin, GPU will-change misuse. Fix broken docs examples and README links.
+
 ## 1.0.1
 
 ### Patch Changes
