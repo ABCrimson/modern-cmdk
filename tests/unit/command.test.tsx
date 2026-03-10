@@ -511,10 +511,9 @@ describe('Command — React Compound Components', () => {
   // These tests verify the component structure and the actual rendering logic.
 
   describe('group rendering', () => {
-    it('should hide group when it has no items in its group bucket', async () => {
-      // <Command.Item> does not auto-read CommandGroupContext, so items
-      // inside a <Command.Group> without explicit groupId land in __ungrouped.
-      // The group checks groupedIds.get(its-id) which is empty → returns null.
+    it('should render group with items when items are inside Command.Group', async () => {
+      // Items auto-read CommandGroupContext to inherit their groupId.
+      // Group always renders children (hidden if no matches) so items can register.
       await render(
         <Command>
           <Command.Input />
@@ -530,12 +529,13 @@ describe('Command — React Compound Components', () => {
 
       // Wait for scheduler to process registrations
       await vi.waitFor(() => {
-        // The group should be hidden since no items have its groupId
+        // The group should be visible with its items
         const group = container.querySelector('[data-command-group]');
-        expect(group).toBeNull();
-        // When the group returns null, its children (including Item) are also unmounted
+        expect(group).not.toBeNull();
+        // Item should be rendered inside the group
         const item = container.querySelector('[data-command-item]');
-        expect(item).toBeNull();
+        expect(item).not.toBeNull();
+        expect(item?.getAttribute('data-value')).toBe('apple');
       });
     });
 

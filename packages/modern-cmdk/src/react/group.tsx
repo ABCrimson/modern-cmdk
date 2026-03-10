@@ -48,7 +48,15 @@ export function CommandGroup({
     [groupId, headingId],
   );
 
-  if (!hasVisibleItems) return null;
+  // Always render children so items can register via useLayoutEffect.
+  // Hide the group visually when no items match — but keep children mounted.
+  if (!hasVisibleItems) {
+    return (
+      <CommandGroupContext value={groupContext}>
+        <div style={{ display: 'none' }}>{children}</div>
+      </CommandGroupContext>
+    );
+  }
 
   return (
     <CommandGroupContext value={groupContext}>

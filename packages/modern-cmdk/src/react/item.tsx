@@ -7,7 +7,7 @@
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use, useCallback, useRef } from 'react';
-import { CommandStableContext, CommandStateContext } from './context.js';
+import { CommandGroupContext, CommandStableContext, CommandStateContext } from './context.js';
 import { useRegisterItem } from './hooks/use-register.js';
 
 export interface CommandItemProps extends Omit<ComponentPropsWithRef<'div'>, 'onSelect' | 'value'> {
@@ -39,12 +39,16 @@ export function CommandItem({
     throw new Error('Command.Item must be used within a <Command> component');
   }
 
+  // Read group context — items inside a <Command.Group> auto-inherit groupId
+  const groupCtx = use(CommandGroupContext);
+
   const id = useRegisterItem(value, {
     ...(keywords !== undefined && { keywords }),
     ...(shortcut !== undefined && { shortcut }),
     disabled,
     ...(onSelect !== undefined && { onSelect }),
     ...(forceId !== undefined && { forceId }),
+    ...(groupCtx !== null && { groupId: groupCtx.groupId }),
   });
 
   const isActive: boolean = stateCtx.state.activeId === id;
