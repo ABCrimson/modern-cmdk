@@ -84,7 +84,7 @@ export function CommandList({
         el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     }
-  }, [stateCtx.state.activeId, stateCtx.state.filteredIds, shouldVirtualize, virtualizer]);
+  }, [stateCtx.state.activeId, shouldVirtualize, virtualizer, stable.machine.getFilteredIdIndex]);
 
   const mergedStyle = useMemo<CSSProperties & Record<`--${string}`, string>>(
     () => ({ ...style, '--command-list-height': `${height.toFixed(1)}px` }),

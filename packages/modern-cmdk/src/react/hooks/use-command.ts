@@ -38,6 +38,7 @@ export function useCommand(machine: CommandMachine): UseCommandReturn {
   );
 
   // O(1) membership set — read directly from machine (already maintained in sync)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: state.filteredIds triggers re-read of machine's internal set
   const filteredIdSet: ReadonlySet<ItemId> = useMemo(
     () => machine.getFilteredIdSet(),
     [state.filteredIds, machine],

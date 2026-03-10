@@ -17,7 +17,9 @@ interface CommandErrorBoundaryState {
 }
 
 /** Initial state — no error captured */
-const INITIAL_STATE = { error: null } as const satisfies CommandErrorBoundaryState;
+const INITIAL_STATE: CommandErrorBoundaryState = {
+  error: null,
+} as const satisfies CommandErrorBoundaryState;
 
 export class CommandErrorBoundary extends Component<
   CommandErrorBoundaryProps,

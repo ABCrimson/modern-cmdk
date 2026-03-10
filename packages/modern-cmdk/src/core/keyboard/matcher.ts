@@ -39,7 +39,5 @@ export function detectConflicts(
   const grouped = Map.groupBy(shortcuts, (s) => s.normalized);
 
   // Iterator Helpers pipeline — filter to only conflicting groups (2+ collisions)
-  return new Map(
-    grouped.entries().filter(([, group]) => group.length > 1),
-  );
+  return new Map(grouped.entries().filter(([, group]) => group.length > 1));
 }

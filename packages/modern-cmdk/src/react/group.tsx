@@ -5,7 +5,7 @@
 // React 19: use() for context, ref as prop
 // Isolated declarations: explicit return types on all exports
 
-import type { CSSProperties, ComponentPropsWithRef, ReactNode } from 'react';
+import type { ComponentPropsWithRef, CSSProperties, ReactNode } from 'react';
 import { useId, useMemo } from 'react';
 import type { CommandGroupContextValue } from './context.js';
 import { CommandGroupContext, useStateContext } from './context.js';

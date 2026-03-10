@@ -92,14 +92,17 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   if (options.items) {
     registry.registerItems(options.items);
     searchEngine.index(options.items);
-    // Auto-register keyboard shortcuts from items — Iterator Helper pipeline
-    options.items
-      .values()
-      .filter((item) => item.shortcut != null && item.onSelect != null)
-      .forEach((item) => keyboardRegistry.register(item.shortcut!, item.id, item.onSelect!));
+    // Auto-register keyboard shortcuts from items — for...of for void callback
+    for (const item of options.items) {
+      if (item.shortcut != null && item.onSelect != null) {
+        keyboardRegistry.register(item.shortcut, item.id, item.onSelect);
+      }
+    }
   }
   if (options.groups) {
-    options.groups.values().forEach((group) => registry.registerGroup(group));
+    for (const group of options.groups) {
+      registry.registerGroup(group);
+    }
   }
 
   // Run initial filter
@@ -118,7 +121,11 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
     if (disableFilter || query === '') {
       // Iterator Helper pipeline — no manual for...push
-      filteredIds = items.values().filter((i) => !i.disabled).map((i) => i.id).toArray();
+      filteredIds = items
+        .values()
+        .filter((i) => !i.disabled)
+        .map((i) => i.id)
+        .toArray();
     } else {
       let results: readonly SearchResult[] = searchEngine.search(query, items).toArray();
 

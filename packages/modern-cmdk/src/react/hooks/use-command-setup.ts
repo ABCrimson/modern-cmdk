@@ -6,11 +6,8 @@
 // Isolated declarations: explicit return types on all exports
 
 import { useEffect, useMemo, useRef } from 'react';
-import type { CommandMachine, CommandState, ItemId } from '../../core/index.js';
-import type {
-  CommandStableContextValue,
-  CommandStateContextValue,
-} from '../context.js';
+import type { CommandMachine, CommandState } from '../../core/index.js';
+import type { CommandStableContextValue, CommandStateContextValue } from '../context.js';
 import { useCommand } from './use-command.js';
 import { createKeydownHandler } from './use-keyboard.js';
 
@@ -59,7 +56,6 @@ export function useCommandSetup(
       machineRef.current?.[Symbol.dispose]();
       machineRef.current = null;
     };
-    // biome-ignore lint/correctness/useExhaustiveDependencies: dispose runs on unmount only
   }, []);
 
   // Keyboard handler — useMemo (not useCallback) to memoize the factory result

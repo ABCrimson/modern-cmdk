@@ -32,7 +32,10 @@ interface ArrayConstructor {
 
 interface PromiseConstructor {
   try<T>(fn: () => T | PromiseLike<T>): Promise<T>;
-  try<T, A extends readonly unknown[]>(fn: (...args: A) => T | PromiseLike<T>, ...args: A): Promise<T>;
+  try<T, A extends readonly unknown[]>(
+    fn: (...args: A) => T | PromiseLike<T>,
+    ...args: A
+  ): Promise<T>;
   withResolvers<T>(): {
     promise: Promise<T>;
     resolve: (value: T | PromiseLike<T>) => void;
@@ -43,7 +46,10 @@ interface PromiseConstructor {
 /** Prioritized Task Scheduling API — globalThis.scheduler */
 interface TaskScheduler {
   yield(): Promise<void>;
-  postTask<T>(callback: () => T | PromiseLike<T>, options?: { priority?: 'user-blocking' | 'user-visible' | 'background'; delay?: number }): Promise<T>;
+  postTask<T>(
+    callback: () => T | PromiseLike<T>,
+    options?: { priority?: 'user-blocking' | 'user-visible' | 'background'; delay?: number },
+  ): Promise<T>;
 }
 
 declare var scheduler: TaskScheduler | undefined;

@@ -40,6 +40,7 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
   const keywordsDep = options?.keywords?.join('\x00');
 
   // useLayoutEffect ensures registration happens before paint
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keywordsDep is a derived string for stable identity; options.keywords is read via ref-like pattern
   useLayoutEffect(() => {
     const item: CommandItem = {
       id,
