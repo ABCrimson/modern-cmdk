@@ -29,9 +29,6 @@ export default defineConfig({
         '**/codemod/**',
         '**/create-modern-cmdk/**',
       ],
-      // Thresholds disabled: sharded CI runs produce partial coverage per shard.
-      // Check merged coverage report for overall thresholds.
-      thresholds: undefined,
     },
     benchmark: {
       include: ['benchmarks/**/*.bench.ts'],

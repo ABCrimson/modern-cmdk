@@ -1,4 +1,4 @@
-# Lefthook 2.1.2 — parallel execution, skip conditions, zero npm deps
+# Lefthook 2.1.3 — parallel execution, skip conditions, zero npm deps
 pre-commit:
   parallel: true
   commands:
@@ -7,7 +7,7 @@ pre-commit:
       run: biome check --staged --no-errors-on-unmatched {staged_files}
     typecheck:
       glob: "*.{ts,tsx}"
-      run: tsc --noEmit
+      run: pnpm --filter 'modern-cmdk' exec tsc --noEmit
       skip:
         - merge
         - rebase

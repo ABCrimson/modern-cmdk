@@ -148,7 +148,7 @@ export interface FrecencyOptions {
 }
 
 /** Default frecency decay configuration */
-export const DEFAULT_FRECENCY_DECAY = {
+export const DEFAULT_FRECENCY_DECAY: Required<FrecencyDecayConfig> = {
   hourWeight: 4.0,
   dayWeight: 2.0,
   weekWeight: 1.5,
@@ -190,7 +190,7 @@ export interface CommandMachineOptions {
 }
 
 /** Default machine options */
-export const DEFAULT_MACHINE_OPTIONS = {
+export const DEFAULT_MACHINE_OPTIONS: Partial<CommandMachineOptions> = {
   loop: true,
   virtualizeThreshold: 100,
   open: false,
