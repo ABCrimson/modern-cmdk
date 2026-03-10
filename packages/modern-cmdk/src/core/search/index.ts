@@ -79,8 +79,8 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
 
       // Incremental filtering: if new query extends previous, only re-score previous matches
       const isIncremental = query.startsWith(previousQuery) && previousQuery.length > 0;
-      const candidateItems = isIncremental
-        ? items.filter((item) => previousResults.has(item.id))
+      const candidateItems: Iterable<CommandItem> = isIncremental
+        ? items.values().filter((item) => previousResults.has(item.id))
         : items;
 
       // Score candidates — hot path with pre-lowered data

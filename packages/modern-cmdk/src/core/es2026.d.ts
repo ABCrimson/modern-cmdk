@@ -24,3 +24,12 @@ interface MapConstructor {
 interface ArrayConstructor {
   fromAsync<T>(asyncIterable: AsyncIterable<T> | Iterable<T | Promise<T>>): Promise<T[]>;
 }
+
+interface PromiseConstructor {
+  try<T>(fn: () => T | PromiseLike<T>): Promise<T>;
+  withResolvers<T>(): {
+    promise: Promise<T>;
+    resolve: (value: T | PromiseLike<T>) => void;
+    reject: (reason?: unknown) => void;
+  };
+}

@@ -7,7 +7,7 @@
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use, useCallback, useRef } from 'react';
-import { CommandContext } from './context.js';
+import { CommandStableContext, CommandStateContext } from './context.js';
 import { useRegisterItem } from './hooks/use-register.js';
 
 export interface CommandItemProps extends Omit<ComponentPropsWithRef<'div'>, 'onSelect' | 'value'> {
@@ -30,8 +30,12 @@ export function CommandItem({
   forceId,
   ...props
 }: CommandItemProps): ReactNode {
-  const ctx = use(CommandContext);
-  if (!ctx) {
+  const stable = use(CommandStableContext);
+  if (!stable) {
+    throw new Error('Command.Item must be used within a <Command> component');
+  }
+  const stateCtx = use(CommandStateContext);
+  if (!stateCtx) {
     throw new Error('Command.Item must be used within a <Command> component');
   }
 
@@ -43,26 +47,26 @@ export function CommandItem({
     ...(forceId !== undefined && { forceId }),
   });
 
-  const isActive: boolean = ctx.state.activeId === id;
+  const isActive: boolean = stateCtx.state.activeId === id;
   // O(1) Set.has instead of O(n) Array.includes — critical for large lists
-  const isFiltered: boolean = ctx.filteredIdSet.has(id);
+  const isFiltered: boolean = stateCtx.filteredIdSet.has(id);
 
   const handleSelect = useCallback((): void => {
     if (!disabled) {
-      ctx.machine.send({ type: 'ITEM_SELECT', id });
+      stable.machine.send({ type: 'ITEM_SELECT', id });
     }
-  }, [ctx.machine, id, disabled]);
+  }, [stable.machine, id, disabled]);
 
   // Use ref for activeId to avoid re-creating callback on every active change
-  const activeIdRef = useRef(ctx.state.activeId);
-  activeIdRef.current = ctx.state.activeId;
+  const activeIdRef = useRef(stateCtx.state.activeId);
+  activeIdRef.current = stateCtx.state.activeId;
 
   const handlePointerMove = useCallback((): void => {
     if (!disabled && activeIdRef.current !== id) {
-      ctx.setOptimisticActiveId(id);
-      ctx.machine.send({ type: 'ITEM_ACTIVATE', id });
+      stable.setOptimisticActiveId(id);
+      stable.machine.send({ type: 'ITEM_ACTIVATE', id });
     }
-  }, [ctx.machine, ctx.setOptimisticActiveId, id, disabled]);
+  }, [stable.machine, stable.setOptimisticActiveId, id, disabled]);
 
   if (!isFiltered) return null;
 

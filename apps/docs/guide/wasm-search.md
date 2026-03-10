@@ -34,16 +34,18 @@ function WasmSearchPalette() {
 
   useEffect(() => {
     let disposed = false;
+    let engine: Awaited<ReturnType<typeof createWasmSearchEngine>> | null = null;
 
     async function init() {
-      await using wasmEngine = await createWasmSearchEngine();
-      if (!disposed) {
-        setEngine(wasmEngine);
-      }
+      engine = await createWasmSearchEngine();
+      if (!disposed) setEngine(engine);
     }
+    init();
 
-    Promise.try(() => init());
-    return () => { disposed = true; };
+    return () => {
+      disposed = true;
+      engine?.[Symbol.dispose]();
+    };
   }, []);
 
   if (!engine) return <div>Loading search engine...</div>;

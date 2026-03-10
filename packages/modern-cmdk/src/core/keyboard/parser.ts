@@ -1,5 +1,5 @@
 // packages/command/src/keyboard/parser.ts
-// Shortcut string parser ("Mod+K") — RegExp.escape (ES2026) for safe pattern construction
+// Shortcut string parser ("Mod+K")
 
 /**
  * Structured representation of a keyboard shortcut after parsing.
@@ -15,11 +15,14 @@ export interface ParsedShortcut {
   readonly normalized: string;
 }
 
-// Prefer navigator.userAgentData (modern) over deprecated navigator.userAgent
+/** Platform detection regex — matches Apple device platform strings */
+const MAC_PLATFORM_RE: RegExp = /Mac|iPod|iPhone|iPad/;
+
+// Prefer navigator.userAgentData (modern) over deprecated navigator.platform
 const isMac: boolean =
   typeof navigator !== 'undefined' &&
   ((navigator as { userAgentData?: { platform?: string } }).userAgentData?.platform === 'macOS' ||
-    /Mac|iPod|iPhone|iPad/.test(navigator.platform));
+    MAC_PLATFORM_RE.test(navigator.platform));
 
 /** Modifier aliases — cross-platform Mod resolution */
 const MODIFIER_MAP: Readonly<
@@ -39,7 +42,6 @@ const MODIFIER_MAP: Readonly<
 
 /**
  * Parse a shortcut string like "Mod+Shift+K" into a structured ParsedShortcut.
- * Uses RegExp.escape (ES2026) for safe pattern construction from user-provided strings.
  * Uses String.isWellFormed() (ES2026) to ensure valid Unicode input.
  */
 export function parseShortcut(shortcut: string): ParsedShortcut {

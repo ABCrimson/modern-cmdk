@@ -15,9 +15,14 @@ export class CommandRegistry implements Disposable {
   #itemOrder: ItemId[] = [];
   #itemOrderSet = new Set<ItemId>(); // O(1) duplicate check during registration
   #cachedItems: readonly CommandItem[] | null = null; // Invalidated on mutation
+  #cachedGroups: readonly CommandGroup[] | null = null; // Invalidated on group mutation
 
   #invalidateCache(): void {
     this.#cachedItems = null;
+  }
+
+  #invalidateGroupCache(): void {
+    this.#cachedGroups = null;
   }
 
   /** Register an item — returns Disposable for `using` auto-deregister */
@@ -77,9 +82,11 @@ export class CommandRegistry implements Disposable {
   /** Register a group */
   registerGroup(group: CommandGroup): Disposable {
     this.#groups.set(group.id, group);
+    this.#invalidateGroupCache();
     return {
       [Symbol.dispose]: (): void => {
         this.#groups.delete(group.id);
+        this.#invalidateGroupCache();
       },
     };
   }
@@ -87,6 +94,7 @@ export class CommandRegistry implements Disposable {
   /** Unregister a group */
   unregisterGroup(id: GroupId): void {
     this.#groups.delete(id);
+    this.#invalidateGroupCache();
   }
 
   /** Get an item by ID — O(1) */
@@ -110,12 +118,14 @@ export class CommandRegistry implements Disposable {
     return this.#cachedItems;
   }
 
-  /** Get all registered groups sorted by priority */
+  /** Get all registered groups sorted by priority — cached between group mutations */
   getGroups(): readonly CommandGroup[] {
-    return this.#groups
+    if (this.#cachedGroups !== null) return this.#cachedGroups;
+    this.#cachedGroups = this.#groups
       .values()
       .toArray()
       .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+    return this.#cachedGroups;
   }
 
   /** Get items grouped by groupId using Map.groupBy (ES2026) — direct Map, no Object.entries conversion */
@@ -200,6 +210,7 @@ export class CommandRegistry implements Disposable {
     this.#itemOrder = [];
     this.#itemOrderSet.clear();
     this.#invalidateCache();
+    this.#invalidateGroupCache();
   }
 
   [Symbol.dispose](): void {

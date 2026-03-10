@@ -12,6 +12,9 @@ import type {
 import { DEFAULT_FRECENCY_DECAY } from '../types.js';
 import { MemoryFrecencyStorage } from './memory-storage.js';
 
+/** Shared empty bonus map — avoids allocation when no frecency records exist */
+const EMPTY_BONUS_MAP: ReadonlyMap<ItemId, number> = new Map();
+
 /** Pre-computed bucket boundaries in hours — avoids Duration.total() per call */
 const BUCKET_HOURS = {
   hour: 1,
@@ -91,10 +94,8 @@ export class FrecencyEngine implements Disposable {
       lastUsed: now,
     };
 
-    // Create new map with updated record (immutable pattern)
-    const newRecords = new Map(this.#data.records);
-    newRecords.set(itemId, updated);
-    this.#data = { records: newRecords };
+    // Mutate internal map directly — ReadonlyMap is a compile-time constraint only
+    (this.#data.records as Map<ItemId, FrecencyRecord>).set(itemId, updated);
     this.#dirty = true;
   }
 
@@ -107,6 +108,7 @@ export class FrecencyEngine implements Disposable {
 
   /** Get all frecency bonuses as a map — for...of for hot ranking path (no closure overhead) */
   getAllBonuses(now: Temporal.Instant = Temporal.Now.instant()): ReadonlyMap<ItemId, number> {
+    if (this.#data.records.size === 0) return EMPTY_BONUS_MAP;
     const bonuses = new Map<ItemId, number>();
     for (const [id, record] of this.#data.records) {
       bonuses.set(id, computeFrecencyBonus(record, now, this.#config));

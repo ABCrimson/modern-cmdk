@@ -7,7 +7,7 @@
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use, useCallback } from 'react';
-import { CommandContext } from './context.js';
+import { CommandStableContext, CommandStateContext } from './context.js';
 
 export interface CommandInputProps
   extends Omit<ComponentPropsWithRef<'input'>, 'value' | 'onChange' | 'type' | 'role'> {
@@ -20,18 +20,22 @@ export function CommandInput({
   onValueChange,
   ...props
 }: CommandInputProps): ReactNode {
-  const ctx = use(CommandContext);
-  if (!ctx) {
+  const stable = use(CommandStableContext);
+  if (!stable) {
+    throw new Error('Command.Input must be used within a <Command> component');
+  }
+  const stateCtx = use(CommandStateContext);
+  if (!stateCtx) {
     throw new Error('Command.Input must be used within a <Command> component');
   }
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>): void => {
       const { value } = event.target;
-      ctx.updateSearch(value);
+      stable.updateSearch(value);
       onValueChange?.(value);
     },
-    [ctx.updateSearch, onValueChange],
+    [stable.updateSearch, onValueChange],
   );
 
   return (
@@ -40,17 +44,17 @@ export function CommandInput({
       data-command-input=""
       type="text"
       role="combobox"
-      aria-expanded={ctx.state.filteredCount > 0}
-      aria-controls={ctx.listId}
-      aria-activedescendant={ctx.state.activeId ?? undefined}
+      aria-expanded={stateCtx.state.filteredCount > 0}
+      aria-controls={stable.listId}
+      aria-activedescendant={stateCtx.state.activeId ?? undefined}
       aria-autocomplete="list"
-      aria-label={ctx.label}
-      id={ctx.inputId}
+      aria-label={stable.label}
+      id={stable.inputId}
       autoComplete="off"
       autoCorrect="off"
       spellCheck={false}
       placeholder={placeholder}
-      value={ctx.state.search}
+      value={stateCtx.state.search}
       onChange={handleChange}
       {...props}
     />

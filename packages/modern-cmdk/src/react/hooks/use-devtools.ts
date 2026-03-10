@@ -5,7 +5,7 @@
 // Isolated declarations: explicit return types on all exports
 
 import { use, useEffect, useRef } from 'react';
-import { CommandContext } from '../context.js';
+import { CommandStableContext, CommandStateContext } from '../context.js';
 
 declare const __DEV__: boolean;
 
@@ -42,18 +42,20 @@ export function useCommandDevtools(label: string = 'default'): void {
   if (!__DEV__) return;
 
   // eslint-disable-next-line react-hooks/rules-of-hooks -- __DEV__ is compile-time constant
-  const ctx = use(CommandContext);
+  const stable = use(CommandStableContext);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const stateCtx = use(CommandStateContext);
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const stateRef = useRef<DevtoolsState | null>(null);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
-    if (!ctx) return;
+    if (!stable || !stateCtx) return;
 
     const update = (): void => {
-      const s = ctx.state;
+      const s = stateCtx.state;
       const devState: DevtoolsState = {
-        registeredItems: s.filteredCount,
+        registeredItems: stable.machine.getRegistry().size,
         filteredItems: s.filteredIds.length,
         searchQuery: s.search,
         activeId: s.activeId,
@@ -77,7 +79,7 @@ export function useCommandDevtools(label: string = 'default'): void {
       );
     };
 
-    const unsub = ctx.machine.subscribe(update);
+    const unsub = stable.machine.subscribe(update);
     update();
 
     return (): void => {
@@ -87,5 +89,5 @@ export function useCommandDevtools(label: string = 'default'): void {
         | undefined;
       instances?.delete(label);
     };
-  }, [ctx, label]);
+  }, [stable, stateCtx, label]);
 }

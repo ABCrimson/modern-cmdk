@@ -8,7 +8,7 @@
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use, useId, useMemo } from 'react';
 import type { CommandGroupContextValue } from './context.js';
-import { CommandContext, CommandGroupContext } from './context.js';
+import { CommandGroupContext, CommandStateContext } from './context.js';
 import { useRegisterGroup } from './hooks/use-register.js';
 
 export interface CommandGroupProps extends ComponentPropsWithRef<'div'> {
@@ -28,8 +28,8 @@ export function CommandGroup({
   forceId,
   ...props
 }: CommandGroupProps): ReactNode {
-  const ctx = use(CommandContext);
-  if (!ctx) {
+  const stateCtx = use(CommandStateContext);
+  if (!stateCtx) {
     throw new Error('Command.Group must be used within a <Command> component');
   }
 
@@ -40,7 +40,7 @@ export function CommandGroup({
   });
 
   // Check if any items in this group are visible
-  const groupItems = ctx.state.groupedIds.get(groupId);
+  const groupItems = stateCtx.state.groupedIds.get(groupId);
   const hasVisibleItems: boolean = groupItems !== undefined && groupItems.length > 0;
 
   const groupContext = useMemo<CommandGroupContextValue>(

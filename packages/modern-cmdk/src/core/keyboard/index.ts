@@ -53,15 +53,11 @@ export class KeyboardShortcutRegistry implements Disposable {
     this.#bindings.delete(shortcut.normalized);
   }
 
-  /** Unregister all shortcuts for a given item — for...of with deferred delete (avoids mutation during iteration) */
+  /** Unregister all shortcuts for a given item — Map spec allows deletion during iteration */
   unregisterByItem(itemId: ItemId): void {
-    // Two-pass: collect keys to delete, then delete (avoids mutation during iteration)
-    const keysToDelete: string[] = [];
     for (const [key, binding] of this.#bindings) {
-      if (binding.itemId === itemId) keysToDelete.push(key);
+      if (binding.itemId === itemId) this.#bindings.delete(key);
     }
-
-    for (const key of keysToDelete) this.#bindings.delete(key);
   }
 
   /** Check for conflicting shortcuts */

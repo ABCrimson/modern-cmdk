@@ -1,14 +1,14 @@
 'use client';
 
 // packages/command-react/src/hooks/use-register.ts
-// Item/group registration — useInsertionEffect for paint-before-commit
+// Item/group registration — useLayoutEffect for registration before paint
 // Isolated declarations: explicit return types on all exports
 // Branded types: ItemId / GroupId from core
 
-import { use, useId, useInsertionEffect } from 'react';
+import { use, useId, useLayoutEffect } from 'react';
 import type { CommandGroup, CommandItem, GroupId, ItemId } from '../../core/index.js';
 import { groupId, itemId } from '../../core/index.js';
-import { CommandContext } from '../context.js';
+import { CommandStableContext } from '../context.js';
 
 /** Options for item registration */
 export interface RegisterItemOptions {
@@ -23,16 +23,16 @@ export interface RegisterItemOptions {
 
 /** Register a command item with the machine — auto-deregisters on unmount */
 export function useRegisterItem(value: string, options?: RegisterItemOptions): ItemId {
-  const ctx = use(CommandContext);
-  if (!ctx) {
+  const stable = use(CommandStableContext);
+  if (!stable) {
     throw new Error('useRegisterItem must be used within a <Command> component');
   }
 
   const generatedId = useId();
   const id: ItemId = itemId(options?.forceId ?? generatedId);
 
-  // useInsertionEffect ensures registration happens before paint
-  useInsertionEffect(() => {
+  // useLayoutEffect ensures registration happens before paint
+  useLayoutEffect(() => {
     const item: CommandItem = {
       id,
       value,
@@ -44,13 +44,13 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
       data: options?.data,
     };
 
-    ctx.machine.send({ type: 'REGISTER_ITEM', item });
+    stable.machine.send({ type: 'REGISTER_ITEM', item });
 
     return (): void => {
-      ctx.machine.send({ type: 'UNREGISTER_ITEM', id });
+      stable.machine.send({ type: 'UNREGISTER_ITEM', id });
     };
   }, [
-    ctx.machine,
+    stable.machine,
     id,
     value,
     options?.groupId,
@@ -72,27 +72,27 @@ export interface RegisterGroupOptions {
 
 /** Register a command group with the machine — auto-deregisters on unmount */
 export function useRegisterGroup(heading?: string, options?: RegisterGroupOptions): GroupId {
-  const ctx = use(CommandContext);
-  if (!ctx) {
+  const stable = use(CommandStableContext);
+  if (!stable) {
     throw new Error('useRegisterGroup must be used within a <Command> component');
   }
 
   const generatedId = useId();
   const id: GroupId = groupId(options?.forceId ?? generatedId);
 
-  useInsertionEffect(() => {
+  useLayoutEffect(() => {
     const group: CommandGroup = {
       id,
       heading,
       priority: options?.priority,
     };
 
-    ctx.machine.send({ type: 'REGISTER_GROUP', group });
+    stable.machine.send({ type: 'REGISTER_GROUP', group });
 
     return (): void => {
-      ctx.machine.send({ type: 'UNREGISTER_GROUP', id });
+      stable.machine.send({ type: 'UNREGISTER_GROUP', id });
     };
-  }, [ctx.machine, id, heading, options?.priority]);
+  }, [stable.machine, id, heading, options?.priority]);
 
   return id;
 }

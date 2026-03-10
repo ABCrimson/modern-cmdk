@@ -50,7 +50,9 @@ function FilePicker({ files, onSelect }: { files: FileEntry[]; onSelect: (file: 
 Add automatic learning — files you open frequently rise to the top:
 
 ```tsx
-<Command frecency={{ enabled: true, storage: 'indexeddb' }}>
+import { IdbFrecencyStorage } from 'modern-cmdk';
+
+<Command frecency={{ enabled: true, storage: new IdbFrecencyStorage() }}>
   ...
 </Command>
 ```

@@ -128,8 +128,8 @@ function CommandPalette() {
 | [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | <= 25 KB |
 | [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items | <= 50 KB |
 | [`modern-cmdk (codemods)`](./packages/modern-cmdk/src/codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
-| [`create-modern-cmdk`](./packages/create-command) | Project scaffolding -- 3 templates (basic, dialog, full) | CLI |
-| [`vscode-command`](./packages/vscode-command) | VS Code snippets -- 10 snippets for fast development | Extension |
+| [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding -- 3 templates (basic, dialog, full) | CLI |
+| [`vscode-command`](./packages/vscode-modern-cmdk) | VS Code snippets -- 10 snippets for fast development | Extension |
 
 ---
 

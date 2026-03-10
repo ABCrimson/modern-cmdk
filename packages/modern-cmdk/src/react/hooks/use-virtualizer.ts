@@ -78,11 +78,8 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
   const totalSize: number = useMemo((): number => {
     void measureVersion; // dependency trigger
     if (!enabled) return 0;
-    const sizes = Iterator.from({
-      [Symbol.iterator]: function* (): Generator<number> {
-        for (let i = 0; i < count; i++) yield getItemSize(i);
-      },
-    }).toArray();
+    const sizes: number[] = [];
+    for (let i = 0; i < count; i++) sizes.push(getItemSize(i));
     return Math.sumPrecise(sizes);
   }, [enabled, count, getItemSize, measureVersion]);
 
@@ -100,11 +97,8 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
 
     // Apply overscan — recalculate offset with Iterator Helpers + Math.sumPrecise
     startIdx = Math.max(0, startIdx - overscan);
-    const offsetSizes = Iterator.from({
-      [Symbol.iterator]: function* (): Generator<number> {
-        for (let i = 0; i < startIdx; i++) yield getItemSize(i);
-      },
-    }).toArray();
+    const offsetSizes: number[] = [];
+    for (let i = 0; i < startIdx; i++) offsetSizes.push(getItemSize(i));
     offset = Math.sumPrecise(offsetSizes);
 
     // Collect visible items + overscan
@@ -134,12 +128,9 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     (index: number): void => {
       if (!scrollElement || !enabled) return;
 
-      const clampedIndex = Math.min(index, count);
-      const sizes = Iterator.from({
-        [Symbol.iterator]: function* (): Generator<number> {
-          for (let i = 0; i < clampedIndex; i++) yield getItemSize(i);
-        },
-      }).toArray();
+      const clampedIndex = Math.min(index, count - 1);
+      const sizes: number[] = [];
+      for (let i = 0; i < clampedIndex; i++) sizes.push(getItemSize(i));
       const targetOffset: number = Math.sumPrecise(sizes);
 
       scrollElement.scrollTo({ top: targetOffset, behavior: 'smooth' });

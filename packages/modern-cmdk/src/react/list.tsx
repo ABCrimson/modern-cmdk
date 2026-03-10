@@ -9,7 +9,7 @@
 
 import type { ComponentPropsWithRef, CSSProperties, ReactNode, RefObject } from 'react';
 import { use, useCallback, useEffect, useRef, useState } from 'react';
-import { CommandContext } from './context.js';
+import { CommandStableContext, CommandStateContext } from './context.js';
 import { useVirtualizer } from './hooks/use-virtualizer.js';
 
 export interface CommandListProps extends ComponentPropsWithRef<'div'> {
@@ -30,8 +30,12 @@ export function CommandList({
   style,
   ...props
 }: CommandListProps): ReactNode {
-  const ctx = use(CommandContext);
-  if (!ctx) {
+  const stable = use(CommandStableContext);
+  if (!stable) {
+    throw new Error('Command.List must be used within a <Command> component');
+  }
+  const stateCtx = use(CommandStateContext);
+  if (!stateCtx) {
     throw new Error('Command.List must be used within a <Command> component');
   }
 
@@ -40,7 +44,7 @@ export function CommandList({
   const [height, setHeight] = useState<number>(0);
 
   // Auto-virtualize when filteredCount > 100 (cmdk threshold)
-  const shouldVirtualize: boolean = virtualize ?? ctx.state.filteredCount > 100;
+  const shouldVirtualize: boolean = virtualize ?? stateCtx.state.filteredCount > 100;
 
   // ResizeObserver for --command-list-height CSS custom property
   useEffect(() => {
@@ -61,7 +65,7 @@ export function CommandList({
 
   // Virtualizer — only active when shouldVirtualize is true
   const virtualizer = useVirtualizer({
-    count: ctx.state.filteredCount,
+    count: stateCtx.state.filteredCount,
     estimateSize,
     overscan,
     scrollElement: shouldVirtualize ? scrollRef.current : null,
@@ -69,22 +73,24 @@ export function CommandList({
   });
 
   // Scroll-to-active on keyboard navigation
-  const prevActiveId = useRef<string | null>(ctx.state.activeId);
+  const prevActiveId = useRef<string | null>(stateCtx.state.activeId);
   useEffect(() => {
-    if (ctx.state.activeId && ctx.state.activeId !== prevActiveId.current) {
-      prevActiveId.current = ctx.state.activeId;
+    if (stateCtx.state.activeId && stateCtx.state.activeId !== prevActiveId.current) {
+      prevActiveId.current = stateCtx.state.activeId;
 
       if (shouldVirtualize) {
         // Virtual mode: use virtualizer scrollToIndex
-        const idx = ctx.state.filteredIds.indexOf(ctx.state.activeId);
+        const idx = stateCtx.state.filteredIds.indexOf(stateCtx.state.activeId);
         if (idx >= 0) virtualizer.scrollToIndex(idx);
       } else {
         // DOM mode: scrollIntoView on the active element
-        const el = scrollRef.current?.querySelector(`[id="${CSS.escape(ctx.state.activeId)}"]`);
+        const el = scrollRef.current?.querySelector(
+          `[id="${CSS.escape(stateCtx.state.activeId)}"]`,
+        );
         el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     }
-  }, [ctx.state.activeId, ctx.state.filteredIds, shouldVirtualize, virtualizer]);
+  }, [stateCtx.state.activeId, stateCtx.state.filteredIds, shouldVirtualize, virtualizer]);
 
   const mergedStyle: CSSProperties & Record<`--${string}`, string> = {
     ...style,
@@ -106,9 +112,9 @@ export function CommandList({
       ref={setScrollRef}
       data-command-list=""
       role="listbox"
-      aria-label={ctx.label}
-      aria-busy={ctx.state.loading}
-      id={ctx.listId}
+      aria-label={stable.label}
+      aria-busy={stateCtx.state.loading}
+      id={stable.listId}
       style={mergedStyle}
       {...props}
     >
@@ -149,7 +155,8 @@ export function CommandList({
         data-command-aria-live=""
         className="sr-only"
       >
-        {ctx.state.filteredCount} result{ctx.state.filteredCount !== 1 ? 's' : ''} available.
+        {stateCtx.state.filteredCount} result{stateCtx.state.filteredCount !== 1 ? 's' : ''}{' '}
+        available.
       </div>
     </div>
   );

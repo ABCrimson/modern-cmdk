@@ -153,7 +153,7 @@ formatShortcut('Mod+Shift+K', 'windows');
 
 ### `detectConflicts(shortcuts)`
 
-Detects conflicting keyboard shortcuts using `Object.groupBy` (ES2024):
+Detects conflicting keyboard shortcuts using `Object.groupBy` (ES2026):
 
 ```typescript
 import { detectConflicts } from 'modern-cmdk';

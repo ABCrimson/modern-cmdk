@@ -6,9 +6,9 @@
 // Isolated declarations: explicit return types on all exports
 
 import type { ReactNode } from 'react';
-import { Suspense, use, useEffect, useRef } from 'react';
+import { Suspense, use, useLayoutEffect, useRef } from 'react';
 import type { CommandItem } from '../core/index.js';
-import { CommandContext } from './context.js';
+import { CommandStableContext } from './context.js';
 
 export interface CommandAsyncItemsProps {
   /** Promise that resolves to items */
@@ -27,18 +27,19 @@ function AsyncItemsInner({
   readonly items: Promise<readonly CommandItem[]>;
   readonly children: (items: readonly CommandItem[]) => ReactNode;
 }): ReactNode {
-  const ctx = use(CommandContext);
-  if (!ctx) {
+  const stable = use(CommandStableContext);
+  if (!stable) {
     throw new Error('Command.AsyncItems must be used within a <Command> component');
   }
 
   // React 19 use() — suspends until items resolve
   const items: readonly CommandItem[] = use(itemsPromise);
 
-  // Register loaded items with the machine
-  useEffect(() => {
-    ctx.machine.send({ type: 'ITEMS_LOADED', items });
-  }, [ctx.machine, items]);
+  // Register loaded items with the machine — useLayoutEffect to update state before paint
+  // (avoids 1-frame flash of empty items)
+  useLayoutEffect(() => {
+    stable.machine.send({ type: 'ITEMS_LOADED', items });
+  }, [stable.machine, items]);
 
   return <>{children(items)}</>;
 }

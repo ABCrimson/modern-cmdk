@@ -10,7 +10,14 @@ export type { CommandBadgeProps } from './badge.js';
 export { CommandBadge } from './badge.js';
 export type { CommandRootProps } from './command.js';
 export { Command } from './command.js';
-export type { CommandContextValue, CommandGroupContextValue, CommandRootId } from './context.js';
+export type {
+  CommandContextValue,
+  CommandGroupContextValue,
+  CommandRootId,
+  CommandStableContextValue,
+  CommandStateContextValue,
+} from './context.js';
+export { CommandStableContext, CommandStateContext } from './context.js';
 export type { CommandDialogProps } from './dialog.js';
 export { CommandDialog } from './dialog.js';
 export type { CommandEmptyProps } from './empty.js';

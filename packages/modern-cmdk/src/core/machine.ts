@@ -37,6 +37,8 @@ export interface CommandMachine extends Disposable {
   subscribeState(listener: (state: CommandState) => void): Disposable;
   getRegistry(): CommandRegistry;
   getKeyboardRegistry(): KeyboardShortcutRegistry;
+  /** Get the current set of filtered item IDs — O(1) membership checks */
+  getFilteredIdSet(): ReadonlySet<ItemId>;
   [Symbol.dispose](): void;
 }
 
@@ -136,9 +138,14 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       filteredIds = results.map((r) => r.id);
     }
 
-    // Update the O(1) membership set and index map
-    filteredIdSet = new Set(filteredIds);
-    filteredIdIndex = new Map(filteredIds.map((id, i) => [id, i]));
+    // Update the O(1) membership set and index map — single pass instead of two separate constructions
+    filteredIdSet = new Set<ItemId>();
+    filteredIdIndex = new Map<ItemId, number>();
+    for (let i = 0; i < filteredIds.length; i++) {
+      const id = filteredIds[i]!;
+      filteredIdSet.add(id);
+      filteredIdIndex.set(id, i);
+    }
 
     // Build grouped IDs — Map.groupBy (ES2026)
     const groupedIds = Map.groupBy(filteredIds, (id) => {
@@ -354,6 +361,10 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
     getKeyboardRegistry(): KeyboardShortcutRegistry {
       return keyboardRegistry;
+    },
+
+    getFilteredIdSet(): ReadonlySet<ItemId> {
+      return filteredIdSet;
     },
 
     [Symbol.dispose](): void {

@@ -7,18 +7,18 @@
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use } from 'react';
-import { CommandContext } from './context.js';
+import { CommandStateContext } from './context.js';
 
 export interface CommandEmptyProps extends ComponentPropsWithRef<'div'> {}
 
 export function CommandEmpty({ ref, children, ...props }: CommandEmptyProps): ReactNode {
-  const ctx = use(CommandContext);
-  if (!ctx) {
+  const stateCtx = use(CommandStateContext);
+  if (!stateCtx) {
     throw new Error('Command.Empty must be used within a <Command> component');
   }
 
   // Only show when there's a search query but no results
-  if (ctx.state.filteredCount > 0 || ctx.state.loading) return null;
+  if (stateCtx.state.filteredCount > 0 || stateCtx.state.loading) return null;
 
   return (
     <div ref={ref} data-command-empty="" role="status" aria-live="polite" {...props}>

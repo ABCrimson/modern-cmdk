@@ -32,7 +32,9 @@
     "dev": "tsdown src/core/index.ts src/react/index.ts --format esm --dts --watch",
     "typecheck": "tsc --noEmit"
   },
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/react/styles.css"
+  ],
   "peerDependencies": {
     "react": ">=19.0.0",
     "react-dom": ">=19.0.0"

@@ -22,7 +22,7 @@ function SpotlightSearch() {
 
         <Command.Group heading="Recent">
           <Suspense fallback={<Command.Loading>Loading recents...</Command.Loading>}>
-            <Command.AsyncItems load={fetchRecentItems} />
+            <Command.AsyncItems source={fetchRecentItems} />
           </Suspense>
         </Command.Group>
 
@@ -52,9 +52,9 @@ Register `Ctrl+K` or `Cmd+K` to open from anywhere:
 For the ultimate search experience — items you use frequently appear first, and WASM provides sub-millisecond search:
 
 ```tsx
-import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
+import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
 
-const engine = await createWasmSearchEngine({ mode: 'worker' });
+const engine = await createWorkerSearchEngine();
 
 <Command.Dialog search={engine} frecency={{ enabled: true }}>
   ...

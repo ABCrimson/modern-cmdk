@@ -7,7 +7,7 @@
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use } from 'react';
-import { CommandContext } from './context.js';
+import { CommandStateContext } from './context.js';
 
 export interface CommandLoadingProps extends ComponentPropsWithRef<'div'> {
   /** Override the loading state detection */
@@ -20,12 +20,12 @@ export function CommandLoading({
   loading: loadingOverride,
   ...props
 }: CommandLoadingProps): ReactNode {
-  const ctx = use(CommandContext);
-  if (!ctx) {
+  const stateCtx = use(CommandStateContext);
+  if (!stateCtx) {
     throw new Error('Command.Loading must be used within a <Command> component');
   }
 
-  const isLoading: boolean = loadingOverride ?? ctx.state.loading ?? ctx.isPending;
+  const isLoading: boolean = loadingOverride ?? stateCtx.state.loading ?? stateCtx.isPending;
 
   if (!isLoading) return null;
 

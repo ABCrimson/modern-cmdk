@@ -13,8 +13,12 @@ import { createCommandMachine } from '../core/index.js';
 import { CommandActivity } from './activity.js';
 import { CommandAsyncItems } from './async-items.js';
 import { CommandBadge } from './badge.js';
-import type { CommandContextValue, CommandRootId } from './context.js';
-import { CommandContext } from './context.js';
+import type {
+  CommandRootId,
+  CommandStableContextValue,
+  CommandStateContextValue,
+} from './context.js';
+import { CommandStableContext, CommandStateContext } from './context.js';
 import { CommandDialog } from './dialog.js';
 import { CommandEmpty } from './empty.js';
 import { CommandGroup } from './group.js';
@@ -80,47 +84,47 @@ function CommandRoot({
     };
   }, [handleKeyDown]);
 
-  const contextValue = useMemo<CommandContextValue>(
+  // Stable context — only depends on values that never change after mount
+  const stableContextValue = useMemo<CommandStableContextValue>(
     () =>
       ({
         machine,
-        state,
-        isPending,
-        updateSearch,
-        setOptimisticActiveId,
-        filteredIdSet,
         rootId: id,
         listId,
         inputId,
         label,
-      }) satisfies CommandContextValue,
-    [
-      machine,
-      state,
-      isPending,
-      updateSearch,
-      setOptimisticActiveId,
-      filteredIdSet,
-      id,
-      listId,
-      inputId,
-      label,
-    ],
+        updateSearch,
+        setOptimisticActiveId,
+      }) satisfies CommandStableContextValue,
+    [machine, id, listId, inputId, label, updateSearch, setOptimisticActiveId],
+  );
+
+  // State context — changes on every search/navigation
+  const stateContextValue = useMemo<CommandStateContextValue>(
+    () =>
+      ({
+        state,
+        isPending,
+        filteredIdSet,
+      }) satisfies CommandStateContextValue,
+    [state, isPending, filteredIdSet],
   );
 
   return (
-    <CommandContext value={contextValue}>
-      <div
-        ref={rootRef}
-        data-command-root=""
-        data-command-state={state.open ? 'open' : 'closed'}
-        className={className}
-        role="search"
-        aria-label={label}
-      >
-        {children}
-      </div>
-    </CommandContext>
+    <CommandStableContext value={stableContextValue}>
+      <CommandStateContext value={stateContextValue}>
+        <div
+          ref={rootRef}
+          data-command-root=""
+          data-command-state={state.open ? 'open' : 'closed'}
+          className={className}
+          role="search"
+          aria-label={label}
+        >
+          {children}
+        </div>
+      </CommandStateContext>
+    </CommandStableContext>
   );
 }
 

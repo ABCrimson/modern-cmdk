@@ -12,8 +12,12 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import type { CommandMachineOptions } from '../core/index.js';
 import { createCommandMachine } from '../core/index.js';
-import type { CommandContextValue, CommandRootId } from './context.js';
-import { CommandContext } from './context.js';
+import type {
+  CommandRootId,
+  CommandStableContextValue,
+  CommandStateContextValue,
+} from './context.js';
+import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommand } from './hooks/use-command.js';
 import { createKeydownHandler } from './hooks/use-keyboard.js';
 
@@ -44,6 +48,10 @@ export function CommandDialog({
   const listId = `${rootId}-list`;
   const inputId = `${rootId}-input`;
 
+  // Ref to avoid stale onOpenChange closure captured at mount time
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+
   // CRITICAL: useRef for stable machine reference across renders
   const machineRef = useRef<ReturnType<typeof createCommandMachine> | null>(null);
   if (machineRef.current === null) {
@@ -51,7 +59,7 @@ export function CommandDialog({
       ...machineOptions,
       open: controlledOpen ?? false,
       onOpenChange: (open: boolean): void => {
-        onOpenChange?.(open);
+        onOpenChangeRef.current?.(open);
       },
     });
   }
@@ -102,32 +110,30 @@ export function CommandDialog({
     [machine],
   );
 
-  const contextValue = useMemo<CommandContextValue>(
+  // Stable context — only depends on values that never change after mount
+  const stableContextValue = useMemo<CommandStableContextValue>(
     () =>
       ({
         machine,
-        state,
-        isPending,
-        updateSearch,
-        setOptimisticActiveId,
-        filteredIdSet,
         rootId: id,
         listId,
         inputId,
         label,
-      }) satisfies CommandContextValue,
-    [
-      machine,
-      state,
-      isPending,
-      updateSearch,
-      setOptimisticActiveId,
-      filteredIdSet,
-      id,
-      listId,
-      inputId,
-      label,
-    ],
+        updateSearch,
+        setOptimisticActiveId,
+      }) satisfies CommandStableContextValue,
+    [machine, id, listId, inputId, label, updateSearch, setOptimisticActiveId],
+  );
+
+  // State context — changes on every search/navigation
+  const stateContextValue = useMemo<CommandStateContextValue>(
+    () =>
+      ({
+        state,
+        isPending,
+        filteredIdSet,
+      }) satisfies CommandStateContextValue,
+    [state, isPending, filteredIdSet],
   );
 
   return (
@@ -155,13 +161,15 @@ export function CommandDialog({
         >
           <Dialog.Title className="sr-only">{label}</Dialog.Title>
           <Dialog.Description className="sr-only">Type a command or search...</Dialog.Description>
-          <CommandContext value={contextValue}>
-            <div data-command-dialog-content="" className={contentClassName}>
-              <div data-command-root="" role="search" aria-label={label}>
-                {children}
+          <CommandStableContext value={stableContextValue}>
+            <CommandStateContext value={stateContextValue}>
+              <div data-command-dialog-content="" className={contentClassName}>
+                <div data-command-root="" role="search" aria-label={label}>
+                  {children}
+                </div>
               </div>
-            </div>
-          </CommandContext>
+            </CommandStateContext>
+          </CommandStableContext>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
