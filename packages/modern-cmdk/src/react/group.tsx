@@ -5,11 +5,14 @@
 // React 19: use() for context, ref as prop
 // Isolated declarations: explicit return types on all exports
 
-import type { ComponentPropsWithRef, ReactNode } from 'react';
-import { use, useId, useMemo } from 'react';
+import type { CSSProperties, ComponentPropsWithRef, ReactNode } from 'react';
+import { useId, useMemo } from 'react';
 import type { CommandGroupContextValue } from './context.js';
-import { CommandGroupContext, CommandStateContext } from './context.js';
+import { CommandGroupContext, useStateContext } from './context.js';
 import { useRegisterGroup } from './hooks/use-register.js';
+
+/** Module-level constant — avoids allocating a new object on every render of hidden groups */
+const HIDDEN_STYLE: CSSProperties = { display: 'none' } as const;
 
 export interface CommandGroupProps extends ComponentPropsWithRef<'div'> {
   /** Heading text displayed above the group */
@@ -28,10 +31,7 @@ export function CommandGroup({
   forceId,
   ...props
 }: CommandGroupProps): ReactNode {
-  const stateCtx = use(CommandStateContext);
-  if (!stateCtx) {
-    throw new Error('Command.Group must be used within a <Command> component');
-  }
+  const stateCtx = useStateContext('Command.Group');
 
   const headingId: string = useId();
   const groupId = useRegisterGroup(heading, {
@@ -53,7 +53,7 @@ export function CommandGroup({
   if (!hasVisibleItems) {
     return (
       <CommandGroupContext value={groupContext}>
-        <div style={{ display: 'none' }}>{children}</div>
+        <div style={HIDDEN_STYLE}>{children}</div>
       </CommandGroupContext>
     );
   }

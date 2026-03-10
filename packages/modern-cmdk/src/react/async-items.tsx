@@ -8,7 +8,7 @@
 import type { ReactNode } from 'react';
 import { Suspense, use, useLayoutEffect, useRef } from 'react';
 import type { CommandItem } from '../core/index.js';
-import { CommandStableContext } from './context.js';
+import { useStableContext } from './context.js';
 
 export interface CommandAsyncItemsProps {
   /** Promise that resolves to items */
@@ -27,10 +27,7 @@ function AsyncItemsInner({
   readonly items: Promise<readonly CommandItem[]>;
   readonly children: (items: readonly CommandItem[]) => ReactNode;
 }): ReactNode {
-  const stable = use(CommandStableContext);
-  if (!stable) {
-    throw new Error('Command.AsyncItems must be used within a <Command> component');
-  }
+  const stable = useStableContext('Command.AsyncItems');
 
   // React 19 use() — suspends until items resolve
   const items: readonly CommandItem[] = use(itemsPromise);

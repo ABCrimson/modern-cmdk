@@ -7,7 +7,7 @@
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use, useCallback, useRef } from 'react';
-import { CommandGroupContext, CommandStableContext, CommandStateContext } from './context.js';
+import { CommandGroupContext, useStableContext, useStateContext } from './context.js';
 import { useRegisterItem } from './hooks/use-register.js';
 
 export interface CommandItemProps extends Omit<ComponentPropsWithRef<'div'>, 'onSelect' | 'value'> {
@@ -30,14 +30,8 @@ export function CommandItem({
   forceId,
   ...props
 }: CommandItemProps): ReactNode {
-  const stable = use(CommandStableContext);
-  if (!stable) {
-    throw new Error('Command.Item must be used within a <Command> component');
-  }
-  const stateCtx = use(CommandStateContext);
-  if (!stateCtx) {
-    throw new Error('Command.Item must be used within a <Command> component');
-  }
+  const stable = useStableContext('Command.Item');
+  const stateCtx = useStateContext('Command.Item');
 
   // Read group context — items inside a <Command.Group> auto-inherit groupId
   const groupCtx = use(CommandGroupContext);

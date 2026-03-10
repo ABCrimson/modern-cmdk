@@ -8,8 +8,8 @@
 // Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, CSSProperties, ReactNode, RefObject } from 'react';
-import { use, useCallback, useEffect, useRef, useState } from 'react';
-import { CommandListStatusContext, CommandStableContext, CommandStateContext } from './context.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CommandListStatusContext, useStableContext, useStateContext } from './context.js';
 import { useVirtualizer } from './hooks/use-virtualizer.js';
 
 export interface CommandListProps extends ComponentPropsWithRef<'div'> {
@@ -30,14 +30,8 @@ export function CommandList({
   style,
   ...props
 }: CommandListProps): ReactNode {
-  const stable = use(CommandStableContext);
-  if (!stable) {
-    throw new Error('Command.List must be used within a <Command> component');
-  }
-  const stateCtx = use(CommandStateContext);
-  if (!stateCtx) {
-    throw new Error('Command.List must be used within a <Command> component');
-  }
+  const stable = useStableContext('Command.List');
+  const stateCtx = useStateContext('Command.List');
 
   const innerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -92,20 +86,22 @@ export function CommandList({
     }
   }, [stateCtx.state.activeId, stateCtx.state.filteredIds, shouldVirtualize, virtualizer]);
 
-  const mergedStyle: CSSProperties & Record<`--${string}`, string> = {
-    ...style,
-    '--command-list-height': `${height.toFixed(1)}px`,
-  };
-
-  // Ref merge callback — combines internal scrollRef with external ref prop
-  const setScrollRef = useCallback(
-    (el: HTMLDivElement | null): void => {
-      (scrollRef as RefObject<HTMLDivElement | null>).current = el;
-      if (typeof ref === 'function') ref(el);
-      else if (ref) (ref as RefObject<HTMLDivElement | null>).current = el;
-    },
-    [ref],
+  const mergedStyle = useMemo<CSSProperties & Record<`--${string}`, string>>(
+    () => ({ ...style, '--command-list-height': `${height.toFixed(1)}px` }),
+    [style, height],
   );
+
+  // Stabilize external ref via useRef — prevents ref callback recreation when caller passes inline ref
+  const externalRefRef = useRef(ref);
+  externalRefRef.current = ref;
+
+  // Ref merge callback — combines internal scrollRef with external ref prop (stable forever)
+  const setScrollRef = useCallback((el: HTMLDivElement | null): void => {
+    (scrollRef as RefObject<HTMLDivElement | null>).current = el;
+    const externalRef = externalRefRef.current;
+    if (typeof externalRef === 'function') externalRef(el);
+    else if (externalRef) (externalRef as RefObject<HTMLDivElement | null>).current = el;
+  }, []);
 
   const statusContainerRef = useRef<HTMLDivElement>(null);
 

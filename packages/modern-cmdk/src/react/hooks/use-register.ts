@@ -5,10 +5,10 @@
 // Isolated declarations: explicit return types on all exports
 // Branded types: ItemId / GroupId from core
 
-import { use, useId, useLayoutEffect } from 'react';
+import { useId, useLayoutEffect, useRef } from 'react';
 import type { CommandGroup, CommandItem, GroupId, ItemId } from '../../core/index.js';
 import { groupId, itemId } from '../../core/index.js';
-import { CommandStableContext } from '../context.js';
+import { useStableContext } from '../context.js';
 
 /** Options for item registration */
 export interface RegisterItemOptions {
@@ -23,13 +23,21 @@ export interface RegisterItemOptions {
 
 /** Register a command item with the machine — auto-deregisters on unmount */
 export function useRegisterItem(value: string, options?: RegisterItemOptions): ItemId {
-  const stable = use(CommandStableContext);
-  if (!stable) {
-    throw new Error('useRegisterItem must be used within a <Command> component');
-  }
+  const stable = useStableContext('useRegisterItem');
 
   const generatedId = useId();
   const id: ItemId = itemId(options?.forceId ?? generatedId);
+
+  // Stabilize onSelect via ref — inline arrow functions won't cause re-registration
+  const onSelectRef = useRef(options?.onSelect);
+  onSelectRef.current = options?.onSelect;
+
+  // Stabilize data via ref — inline objects won't cause re-registration
+  const dataRef = useRef(options?.data);
+  dataRef.current = options?.data;
+
+  // Stable dep for keywords — join to string for identity comparison
+  const keywordsDep = options?.keywords?.join('\x00');
 
   // useLayoutEffect ensures registration happens before paint
   useLayoutEffect(() => {
@@ -40,8 +48,8 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
       groupId: options?.groupId ? groupId(options.groupId) : undefined,
       shortcut: options?.shortcut,
       disabled: options?.disabled,
-      onSelect: options?.onSelect,
-      data: options?.data,
+      onSelect: (): void => onSelectRef.current?.(),
+      data: dataRef.current,
     };
 
     stable.machine.send({ type: 'REGISTER_ITEM', item });
@@ -54,10 +62,8 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
     id,
     value,
     options?.groupId,
-    options?.data,
     options?.disabled,
-    options?.keywords,
-    options?.onSelect,
+    keywordsDep,
     options?.shortcut,
   ]);
 
@@ -72,10 +78,7 @@ export interface RegisterGroupOptions {
 
 /** Register a command group with the machine — auto-deregisters on unmount */
 export function useRegisterGroup(heading?: string, options?: RegisterGroupOptions): GroupId {
-  const stable = use(CommandStableContext);
-  if (!stable) {
-    throw new Error('useRegisterGroup must be used within a <Command> component');
-  }
+  const stable = useStableContext('useRegisterGroup');
 
   const generatedId = useId();
   const id: GroupId = groupId(options?.forceId ?? generatedId);

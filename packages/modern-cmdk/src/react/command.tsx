@@ -7,14 +7,13 @@
 // Isolated declarations: explicit return types on all exports
 
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { CommandMachineOptions } from '../core/index.js';
 import { createCommandMachine } from '../core/index.js';
 import { CommandActivity } from './activity.js';
 import { CommandAsyncItems } from './async-items.js';
 import { CommandBadge } from './badge.js';
 import type {
-  CommandRootId,
   CommandStableContextValue,
   CommandStateContextValue,
 } from './context.js';
@@ -45,9 +44,6 @@ function CommandRoot({
   label = 'Command palette',
   ...machineOptions
 }: CommandRootProps): ReactNode {
-  const rootId = useId() as CommandRootId;
-  const listId = `${rootId}-list`;
-  const inputId = `${rootId}-input`;
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Create machine once — stable reference across renders
@@ -59,6 +55,10 @@ function CommandRoot({
 
   const { state, isPending, updateSearch, setOptimisticActiveId, filteredIdSet, id } =
     useCommand(machine);
+
+  // Derive list/input IDs from the single useId() in useCommand — coherent with rootId
+  const listId = `${id}-list`;
+  const inputId = `${id}-input`;
 
   // Dispose machine on unmount — prevents resource leaks (scheduler, emitter, search engine)
   // Nulls the ref so Strict Mode remount creates a fresh machine

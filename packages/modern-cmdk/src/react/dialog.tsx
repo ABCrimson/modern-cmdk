@@ -9,11 +9,10 @@
 
 import { Dialog } from 'radix-ui';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { CommandMachineOptions } from '../core/index.js';
 import { createCommandMachine } from '../core/index.js';
 import type {
-  CommandRootId,
   CommandStableContextValue,
   CommandStateContextValue,
 } from './context.js';
@@ -44,10 +43,6 @@ export function CommandDialog({
   container,
   ...machineOptions
 }: CommandDialogProps): ReactNode {
-  const rootId = useId() as CommandRootId;
-  const listId = `${rootId}-list`;
-  const inputId = `${rootId}-input`;
-
   // Ref to avoid stale onOpenChange closure captured at mount time
   const onOpenChangeRef = useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;
@@ -67,6 +62,10 @@ export function CommandDialog({
 
   const { state, isPending, updateSearch, setOptimisticActiveId, filteredIdSet, id } =
     useCommand(machine);
+
+  // Derive list/input IDs from the single useId() in useCommand — coherent with rootId
+  const listId = `${id}-list`;
+  const inputId = `${id}-input`;
 
   // Dispose machine on unmount — nulls ref so Strict Mode remount creates fresh machine
   useEffect(() => {
@@ -97,6 +96,15 @@ export function CommandDialog({
       machine.send({ type: controlledOpen ? 'OPEN' : 'CLOSE' });
     }
   }, [controlledOpen, machine]);
+
+  // Prevent Radix default focus — auto-focus the command input instead
+  const handleOpenAutoFocus = useCallback(
+    (e: Event): void => {
+      e.preventDefault();
+      document.getElementById(inputId)?.focus();
+    },
+    [inputId],
+  );
 
   // Radix onOpenChange callback — syncs dialog state back to machine
   const handleRadixOpenChange = useCallback(
@@ -147,13 +155,7 @@ export function CommandDialog({
           data-state={state.open ? 'open' : 'closed'}
           className={className}
           aria-label={label}
-          onOpenAutoFocus={(e: Event): void => {
-            // Prevent Radix default focus — we auto-focus the input below
-            e.preventDefault();
-            // Auto-focus the input when dialog opens
-            const input = document.getElementById(inputId);
-            input?.focus();
-          }}
+          onOpenAutoFocus={handleOpenAutoFocus}
         >
           <Dialog.Title className="sr-only">{label}</Dialog.Title>
           <Dialog.Description className="sr-only">Type a command or search...</Dialog.Description>

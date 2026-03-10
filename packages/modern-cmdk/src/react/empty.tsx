@@ -9,15 +9,12 @@
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use } from 'react';
 import { createPortal } from 'react-dom';
-import { CommandListStatusContext, CommandStateContext } from './context.js';
+import { CommandListStatusContext, useStateContext } from './context.js';
 
 export interface CommandEmptyProps extends ComponentPropsWithRef<'div'> {}
 
 export function CommandEmpty({ ref, children, ...props }: CommandEmptyProps): ReactNode {
-  const stateCtx = use(CommandStateContext);
-  if (!stateCtx) {
-    throw new Error('Command.Empty must be used within a <Command> component');
-  }
+  const stateCtx = useStateContext('Command.Empty');
 
   const statusContainerRef = use(CommandListStatusContext);
 

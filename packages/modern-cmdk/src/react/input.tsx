@@ -6,8 +6,8 @@
 // Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
-import { use, useCallback } from 'react';
-import { CommandStableContext, CommandStateContext } from './context.js';
+import { useCallback } from 'react';
+import { useStableContext, useStateContext } from './context.js';
 
 export interface CommandInputProps
   extends Omit<ComponentPropsWithRef<'input'>, 'value' | 'onChange' | 'type' | 'role'> {
@@ -20,14 +20,8 @@ export function CommandInput({
   onValueChange,
   ...props
 }: CommandInputProps): ReactNode {
-  const stable = use(CommandStableContext);
-  if (!stable) {
-    throw new Error('Command.Input must be used within a <Command> component');
-  }
-  const stateCtx = use(CommandStateContext);
-  if (!stateCtx) {
-    throw new Error('Command.Input must be used within a <Command> component');
-  }
+  const stable = useStableContext('Command.Input');
+  const stateCtx = useStateContext('Command.Input');
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>): void => {

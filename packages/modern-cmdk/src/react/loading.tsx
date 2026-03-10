@@ -6,8 +6,7 @@
 // Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
-import { use } from 'react';
-import { CommandStateContext } from './context.js';
+import { useStateContext } from './context.js';
 
 export interface CommandLoadingProps extends ComponentPropsWithRef<'div'> {
   /** Override the loading state detection */
@@ -20,10 +19,7 @@ export function CommandLoading({
   loading: loadingOverride,
   ...props
 }: CommandLoadingProps): ReactNode {
-  const stateCtx = use(CommandStateContext);
-  if (!stateCtx) {
-    throw new Error('Command.Loading must be used within a <Command> component');
-  }
+  const stateCtx = useStateContext('Command.Loading');
 
   const isLoading: boolean = loadingOverride ?? (stateCtx.state.loading || stateCtx.isPending);
 

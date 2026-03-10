@@ -6,8 +6,7 @@
 // Isolated declarations: explicit return types on all exports
 
 import type { ReactNode } from 'react';
-import { use } from 'react';
-import { CommandStateContext } from './context.js';
+import { useStateContext } from './context.js';
 
 /** Branded page identifier */
 export type CommandPageId = string & { readonly __brand: 'CommandPageId' };
@@ -19,10 +18,7 @@ export interface CommandPageProps {
 }
 
 export function CommandPage({ id, children }: CommandPageProps): ReactNode {
-  const stateCtx = use(CommandStateContext);
-  if (!stateCtx) {
-    throw new Error('Command.Page must be used within a <Command> component');
-  }
+  const stateCtx = useStateContext('Command.Page');
 
   // Only render the active page
   if (stateCtx.state.page !== id) return null;
