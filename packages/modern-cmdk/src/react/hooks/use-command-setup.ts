@@ -59,7 +59,7 @@ export function useCommandSetup(
       machineRef.current?.[Symbol.dispose]();
       machineRef.current = null;
     };
-    // eslint-disable-next-line -- machine is stable ref, dispose runs on unmount only
+    // biome-ignore lint/correctness/useExhaustiveDependencies: dispose runs on unmount only
   }, []);
 
   // Keyboard handler — useMemo (not useCallback) to memoize the factory result
