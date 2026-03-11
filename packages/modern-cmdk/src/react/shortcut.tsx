@@ -14,6 +14,7 @@ export interface CommandShortcutProps extends ComponentPropsWithRef<'kbd'> {
   readonly shortcut?: string;
 }
 
+/** Keyboard shortcut display with platform-aware formatting (e.g., Cmd vs Ctrl). */
 export function CommandShortcut({
   ref,
   shortcut,

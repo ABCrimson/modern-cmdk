@@ -1,5 +1,6 @@
 // Temporal polyfill — WebKit/Safari don't ship Temporal yet (2026-03)
 import { Temporal } from '@js-temporal/polyfill';
+
 if (typeof globalThis.Temporal === 'undefined') {
   (globalThis as Record<string, unknown>).Temporal = Temporal;
 }

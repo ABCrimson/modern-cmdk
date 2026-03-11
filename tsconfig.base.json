@@ -10,12 +10,10 @@
     "noUncheckedIndexedAccess": true,
     "noUncheckedSideEffectImports": true,
     "erasableSyntaxOnly": true,
+    "declaration": true,
     "isolatedDeclarations": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": false,
     "noEmit": true

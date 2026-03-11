@@ -151,8 +151,9 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
     // Attempt to flush synchronously (best effort for memory storage)
     // Promise.try handles both sync and async returns transparently
     if (this.#dirty) {
-      Promise.try(() => this.#storage.save(this.#namespace, this.#data)).catch(() => {
-        // Silently ignore — data loss is acceptable on dispose
+      Promise.try(() => this.#storage.save(this.#namespace, this.#data)).catch((err: unknown) => {
+        // biome-ignore lint/suspicious/noConsole: Dispose-time diagnostic for production debugging
+        console.warn('[modern-cmdk] FrecencyEngine dispose flush failed:', err);
       });
     }
     this.#storage[Symbol.dispose]();

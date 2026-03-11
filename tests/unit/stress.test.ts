@@ -149,7 +149,7 @@ describe('Stress Tests (0.8.6)', () => {
 
     const results = engine.search('', items).toArray();
     // Empty query should return all items or empty depending on implementation
-    expect(results).toBeDefined();
+    expect(results.length).toBe(50_000);
   });
 
   it('should handle items with very long values', () => {
@@ -182,7 +182,7 @@ describe('Stress Tests (0.8.6)', () => {
     for (const query of specialQueries) {
       // Should not throw
       const results = engine.search(query, items).toArray();
-      expect(results).toBeDefined();
+      expect(results).toBeInstanceOf(Array);
     }
   });
 
@@ -198,6 +198,6 @@ describe('Stress Tests (0.8.6)', () => {
 
     const state = machine.getState();
     expect(state).toBeDefined();
-    expect(state.search).toBeDefined();
+    expect(typeof state.search).toBe('string');
   });
 });

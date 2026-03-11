@@ -19,6 +19,7 @@ export interface CommandItemProps extends Omit<ComponentPropsWithRef<'div'>, 'on
   readonly forceId?: string;
 }
 
+/** Individual selectable item in the command list with keyboard and pointer activation. */
 export function CommandItem({
   ref,
   children,

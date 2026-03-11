@@ -41,7 +41,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
         instance.index_items(serialized);
       },
 
-      *search(query: string, items: readonly { id: ItemId }[]): IteratorObject<SearchResult> {
+      *search(query: string, items: readonly { id: ItemId }[]): Generator<SearchResult> {
         const results = instance.search(query, items.length) as Array<{
           id: string;
           score: number;
@@ -78,7 +78,11 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
     return engine;
   } catch (error: unknown) {
     if (__DEV__) {
-      const _message = error instanceof Error ? error.message : String(error);
+      // biome-ignore lint/suspicious/noConsole: dev-only WASM load failure diagnostic
+      console.warn(
+        '[modern-cmdk] WASM search engine failed to load, falling back to TypeScript scorer:',
+        error instanceof Error ? error.message : String(error),
+      );
     }
 
     const { createSearchEngine } = await import('modern-cmdk');

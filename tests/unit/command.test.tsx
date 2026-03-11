@@ -52,10 +52,11 @@ async function typeInInput(input: HTMLInputElement, value: string): Promise<void
   });
 }
 
-/** Dispatch a keyboard event on document */
+/** Dispatch a keyboard event on the command root (or document fallback) */
 async function pressKey(key: string, opts?: KeyboardEventInit): Promise<void> {
   await act(async () => {
-    document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...opts }));
+    const target = document.querySelector('[data-command-root]') ?? document;
+    target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...opts }));
   });
   await act(async () => {
     await new Promise<void>((r) => queueMicrotask(r));

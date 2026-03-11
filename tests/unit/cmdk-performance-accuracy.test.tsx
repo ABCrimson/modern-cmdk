@@ -138,7 +138,7 @@ describe('1. Raw Filter Throughput (scoreItem vs defaultFilter)', () => {
               `${winner} ${speedup.toFixed(1)}x faster`,
           );
 
-          // Both should complete — just verify no crashes
+          // Both should complete with finite timing
           expect(cmdkTime).toBeGreaterThan(0);
           expect(ourTime).toBeGreaterThan(0);
         });
@@ -170,10 +170,11 @@ describe('2. Search Engine Pipeline Throughput', () => {
       }, 5);
 
       // ── ours: create engine, index, search, collect ──
+      let ourResults: SearchResult[] = [];
       const ourTime = measure(() => {
         using engine = createSearchEngine();
         engine.index(commandItems);
-        const _results = engine.search('apple', commandItems).toArray();
+        ourResults = engine.search('apple', commandItems).toArray();
       }, 5);
 
       const ratio = cmdkTime / ourTime;
@@ -188,6 +189,8 @@ describe('2. Search Engine Pipeline Throughput', () => {
 
       expect(cmdkTime).toBeGreaterThan(0);
       expect(ourTime).toBeGreaterThan(0);
+      // Verify search actually produces results for "apple"
+      expect(ourResults.length).toBeGreaterThan(0);
     });
   }
 });
@@ -345,6 +348,8 @@ describe('5. React Render Performance', () => {
 
       expect(cmdkRender).toBeGreaterThan(0);
       expect(ourRender).toBeGreaterThan(0);
+      // Verify the component actually rendered
+      expect(container.children.length).toBeGreaterThan(0);
     });
   }
 });
@@ -514,7 +519,8 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
             (results[0] ? `, top="${resultValues[0]}" (${results[0].score.toFixed(4)})` : ''),
         );
 
-        expect(precision).toBeGreaterThanOrEqual(0);
+        // 80% minimum precision — we should find most expected matches
+        expect(precision).toBeGreaterThanOrEqual(0.8);
       });
 
       if (tc.expectedNonMatches.length > 0) {
@@ -556,7 +562,8 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
               `correctly excluded (${(specificity * 100).toFixed(0)}%)`,
           );
 
-          expect(specificity).toBeGreaterThanOrEqual(0);
+          // 90% minimum specificity
+          expect(specificity).toBeGreaterThanOrEqual(0.9);
         });
       }
 
@@ -588,7 +595,8 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
               `(expected "${tc.expectedTopResult}") → ${topCorrect ? 'CORRECT' : 'WRONG'}`,
           );
 
-          expect(typeof topCorrect).toBe('boolean');
+          // Our top result should match the expected top result
+          expect(topCorrect).toBe(true);
         });
       }
     });

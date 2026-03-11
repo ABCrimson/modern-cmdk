@@ -33,6 +33,7 @@ export interface CommandRootProps extends CommandMachineOptions {
   readonly label?: string;
 }
 
+/** Root compound component that provides the command state machine context to all children. */
 function CommandRoot({
   children,
   className,
@@ -46,11 +47,19 @@ function CommandRoot({
     label,
   );
 
-  // Always-on keyboard listener — Command root is always active (unlike Dialog)
+  // Scoped keyboard listener — only handles events originating within the command root
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
+    const root = rootRef.current;
+    if (!root) return;
+    const scopedHandler = (e: KeyboardEvent): void => {
+      // Only intercept keys when focus is within the command root element
+      if (root.contains(e.target as Node)) {
+        handleKeyDown(e);
+      }
+    };
+    document.addEventListener('keydown', scopedHandler);
     return (): void => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', scopedHandler);
     };
   }, [handleKeyDown]);
 

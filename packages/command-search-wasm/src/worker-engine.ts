@@ -176,7 +176,7 @@ export async function createWorkerSearchEngine(
       void postAndWait({ type: 'index', items: serialized });
     },
 
-    *search(_query: string, _items: readonly { id: ItemId }[]): IteratorObject<SearchResult> {
+    *search(_query: string, _items: readonly { id: ItemId }[]): Generator<SearchResult> {
       // Yields from the cache populated by the most recent searchAsync() call.
       // Callers should use searchAsync() and then iterate, or the state machine's
       // async adapter will call searchAsync() before reading from this iterator.

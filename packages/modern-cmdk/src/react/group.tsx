@@ -23,6 +23,7 @@ export interface CommandGroupProps extends ComponentPropsWithRef<'div'> {
   readonly forceId?: string;
 }
 
+/** Visual grouping container with an optional heading that hides when no items match. */
 export function CommandGroup({
   ref,
   children,

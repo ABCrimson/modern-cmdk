@@ -1,9 +1,9 @@
 // packages/command/src/frecency/idb-storage.ts
-// IndexedDB-backed frecency persistence — idb-keyval 6.2.2
+// IndexedDB-backed frecency persistence — idb-keyval 6.2.2 (lazy-loaded)
 // Implements both Disposable and AsyncDisposable for await using support
 // ES2026: Iterator Helpers, Temporal, using/await using
 
-import { createStore, del, get, set, type UseStore } from 'idb-keyval';
+import type { UseStore } from 'idb-keyval';
 import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';
 
 /** JSON-safe serialized form of a FrecencyRecord */
@@ -61,11 +61,17 @@ function storageKey(namespace: string): string {
   return `frecency:${safeNamespace}`;
 }
 
+// Cached dynamic import — avoids repeated module resolution across instances
+let idbModule: Promise<typeof import('idb-keyval')> | undefined;
+
 /**
  * IndexedDB-backed frecency storage using idb-keyval 6.2.2.
  *
  * Persists frecency data across browser sessions. Implements both
  * `Disposable` and `AsyncDisposable` for use with `using` and `await using`.
+ *
+ * idb-keyval is lazy-loaded on first method call — consumers who import
+ * the core module without using IDB frecency pay zero cost.
  *
  * @example
  * ```ts
@@ -74,7 +80,9 @@ function storageKey(namespace: string): string {
  * ```
  */
 export class IdbFrecencyStorage implements FrecencyStorage, AsyncDisposable {
-  readonly #store: UseStore | undefined;
+  readonly #dbName: string;
+  readonly #storeName: string;
+  #store: UseStore | undefined;
   #disposed = false;
 
   /**
@@ -84,7 +92,23 @@ export class IdbFrecencyStorage implements FrecencyStorage, AsyncDisposable {
    * @param storeName — IndexedDB object store name (default: 'frecency')
    */
   constructor(dbName: string = 'modern-cmdk', storeName: string = 'frecency') {
-    this.#store = createStore(dbName, storeName);
+    this.#dbName = dbName;
+    this.#storeName = storeName;
+  }
+
+  /** Lazy-load idb-keyval module — cached across all instances */
+  async #idb(): Promise<typeof import('idb-keyval')> {
+    idbModule ??= import('idb-keyval');
+    return idbModule;
+  }
+
+  /** Lazy-create the IDB store on first access */
+  async #getStore(): Promise<UseStore> {
+    if (!this.#store) {
+      const { createStore } = await this.#idb();
+      this.#store = createStore(this.#dbName, this.#storeName);
+    }
+    return this.#store;
   }
 
   /** Load frecency data from IndexedDB for the given namespace */
@@ -93,8 +117,9 @@ export class IdbFrecencyStorage implements FrecencyStorage, AsyncDisposable {
       return { records: new Map<ItemId, FrecencyRecord>() };
     }
 
-    const key = storageKey(namespace);
-    const serialized = await get<SerializedFrecencyData>(key, this.#store);
+    const { get } = await this.#idb();
+    const store = await this.#getStore();
+    const serialized = await get<SerializedFrecencyData>(storageKey(namespace), store);
 
     if (!serialized) {
       return { records: new Map<ItemId, FrecencyRecord>() };
@@ -107,17 +132,18 @@ export class IdbFrecencyStorage implements FrecencyStorage, AsyncDisposable {
   async save(namespace: string, data: FrecencyData): Promise<void> {
     if (this.#disposed) return;
 
-    const key = storageKey(namespace);
-    const serialized = serializeData(data);
-    await set(key, serialized, this.#store);
+    const { set } = await this.#idb();
+    const store = await this.#getStore();
+    await set(storageKey(namespace), serializeData(data), store);
   }
 
   /** Delete frecency data for a namespace from IndexedDB */
   async delete(namespace: string): Promise<void> {
     if (this.#disposed) return;
 
-    const key = storageKey(namespace);
-    await del(key, this.#store);
+    const { del } = await this.#idb();
+    const store = await this.#getStore();
+    await del(storageKey(namespace), store);
   }
 
   /** Synchronous dispose — marks as disposed (best-effort cleanup) */

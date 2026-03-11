@@ -23,16 +23,20 @@ export interface CommandDialogProps extends CommandMachineOptions {
   readonly label?: string;
   readonly open?: boolean;
   readonly onOpenChange?: (open: boolean) => void;
+  /** Accessible description for screen readers (default: 'Type a command or search...') */
+  readonly description?: string;
   /** Container element for the portal (default: document.body) */
   readonly container?: HTMLElement | null;
 }
 
+/** Dialog variant that wraps the command palette in a Radix UI Dialog with focus trap and overlay. */
 export function CommandDialog({
   children,
   className,
   overlayClassName,
   contentClassName,
   label = 'Command palette',
+  description = 'Type a command or search...',
   open: controlledOpen,
   onOpenChange,
   container,
@@ -106,7 +110,7 @@ export function CommandDialog({
           onOpenAutoFocus={handleOpenAutoFocus}
         >
           <Dialog.Title className="sr-only">{label}</Dialog.Title>
-          <Dialog.Description className="sr-only">Type a command or search...</Dialog.Description>
+          <Dialog.Description className="sr-only">{description}</Dialog.Description>
           <CommandStableContext value={stableContextValue}>
             <CommandStateContext value={stateContextValue}>
               <div data-command-dialog-content="" className={contentClassName}>

@@ -26,6 +26,7 @@ export interface UseCommandReturn {
   readonly id: CommandRootId;
 }
 
+/** Core hook that binds a CommandMachine to React via useSyncExternalStore, useTransition, and useOptimistic. */
 export function useCommand(machine: CommandMachine): UseCommandReturn {
   const id = useId() as CommandRootId;
   const [isPending, startTransition] = useTransition();
@@ -45,7 +46,20 @@ export function useCommand(machine: CommandMachine): UseCommandReturn {
   );
 
   // Optimistic active item — instant visual feedback before filter completes
-  const [optimisticActiveId, setOptimisticActiveId] = useOptimistic<ItemId | null>(state.activeId);
+  const [optimisticActiveId, rawSetOptimisticActiveId] = useOptimistic<ItemId | null>(
+    state.activeId,
+  );
+
+  // Wrap the optimistic setter in startTransition — React 19 requires useOptimistic
+  // setters to be called inside a transition or action, not in plain event handlers
+  const setOptimisticActiveId = useCallback(
+    (id: ItemId | null): void => {
+      startTransition(() => {
+        rawSetOptimisticActiveId(id);
+      });
+    },
+    [rawSetOptimisticActiveId],
+  );
 
   // Search wrapped in transition — input stays responsive during re-render
   const updateSearch = useCallback(

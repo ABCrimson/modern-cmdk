@@ -54,11 +54,11 @@ function median(sorted: readonly number[]): number {
     : (sorted[mid] as number);
 }
 
-function _padRight(str: string, len: number): string {
+function padRight(str: string, len: number): string {
   return str.length >= len ? str : str + ' '.repeat(len - str.length);
 }
 
-function _padLeft(str: string, len: number): string {
+function padLeft(str: string, len: number): string {
   return str.length >= len ? str : ' '.repeat(len - str.length) + str;
 }
 
@@ -197,17 +197,27 @@ async function main(): Promise<void> {
   const colDelta = 12;
   const colStatus = 8;
 
-  const _separator = '-'.repeat(colName + colBaseline + colCurrent + colDelta + colStatus + 8);
+  const separator = '-'.repeat(colName + colBaseline + colCurrent + colDelta + colStatus + 8);
+
+  console.log(
+    `${padRight('Benchmark', colName)} | ${padLeft('Baseline', colBaseline)} | ${padLeft('Current', colCurrent)} | ${padLeft('Delta', colDelta)} | ${padLeft('Status', colStatus)}`,
+  );
+  console.log(separator);
 
   for (const row of rows) {
-    const _baselineStr = row.baseline_ms > 0 ? `${row.baseline_ms.toFixed(3)} ms` : 'N/A';
-    const _currentStr = `${row.current_ms.toFixed(3)} ms`;
-    const _deltaStr =
+    const baselineStr = row.baseline_ms > 0 ? `${row.baseline_ms.toFixed(3)} ms` : 'N/A';
+    const currentStr = `${row.current_ms.toFixed(3)} ms`;
+    const deltaStr =
       row.baseline_ms > 0
         ? `${row.delta_pct >= 0 ? '+' : ''}${(row.delta_pct * 100).toFixed(1)}%`
         : 'N/A';
-    const _statusStr = STATUS_ICONS[row.status];
+    const statusStr = STATUS_ICONS[row.status];
+    console.log(
+      `${padRight(row.name, colName)} | ${padLeft(baselineStr, colBaseline)} | ${padLeft(currentStr, colCurrent)} | ${padLeft(deltaStr, colDelta)} | ${padLeft(statusStr, colStatus)}`,
+    );
   }
+
+  console.log(separator);
 
   // 8. Determine overall exit code
   const hasFailure = rows.some((r) => r.status === 'fail');

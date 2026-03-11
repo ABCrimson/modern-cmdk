@@ -104,10 +104,8 @@ function scoreTarget(
   const qLen = query.length;
   if (qLen === 0) return { score: 1, matches: [] };
 
-  // Early bailout: query longer than target can never fully match
-  if (qLen > tLen) {
-    return scoreFuzzy(query, qLen, lowerTarget, tLen);
-  }
+  // Early bailout: query longer than target can never fully match (fuzzy included)
+  if (qLen > tLen) return null;
 
   // Exact match — highest score
   if (lowerTarget === query) {

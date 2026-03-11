@@ -13,6 +13,7 @@ import { CommandListStatusContext, useStateContext } from './context.js';
 
 export interface CommandEmptyProps extends ComponentPropsWithRef<'div'> {}
 
+/** Rendered when no items match the current search query. */
 export function CommandEmpty({ ref, children, ...props }: CommandEmptyProps): ReactNode {
   const stateCtx = useStateContext('Command.Empty');
 

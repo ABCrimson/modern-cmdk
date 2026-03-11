@@ -41,6 +41,7 @@ function AsyncItemsInner({
   return <>{children(items)}</>;
 }
 
+/** Suspense-based async item loader that resolves a promise of items using React 19 `use()`. */
 export function CommandAsyncItems({
   items,
   fallback,

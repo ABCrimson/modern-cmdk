@@ -15,7 +15,12 @@ const __DEV__: boolean = (globalThis as Record<string, unknown>).process
   : false;
 let leakRegistry: FinalizationRegistry<string> | undefined;
 if (__DEV__) {
-  leakRegistry = new FinalizationRegistry((_label) => {});
+  leakRegistry = new FinalizationRegistry((label) => {
+    // biome-ignore lint/suspicious/noConsole: Dev-only leak detection diagnostic
+    console.warn(
+      `[modern-cmdk] ${label} was garbage collected without being disposed. Use \`using\` or call [Symbol.dispose]() to prevent leaks.`,
+    );
+  });
 }
 
 interface SearchEngineOptions {
@@ -60,6 +65,11 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
           lowerKeywords: item.keywords?.map((k) => k.toLowerCase()),
         });
       }
+      // Invalidate incremental cache — new items may match the current query
+      // Without this, dynamically registered items are excluded from the
+      // incremental path and remain invisible until the user modifies the query
+      previousQuery = '';
+      previousResults = new Set();
     },
 
     search(query: string, items: readonly CommandItem[]): IteratorObject<SearchResult> {

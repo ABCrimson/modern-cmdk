@@ -65,6 +65,12 @@ export function createScheduler(): Scheduler {
   }
 
   function flush(): void {
+    // Cancel pending rAF to prevent stale callback from executing after flush
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    microtaskScheduled = false;
     executeBatch();
   }
 

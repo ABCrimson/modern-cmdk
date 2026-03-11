@@ -28,13 +28,14 @@ export class TypedEmitter<T extends EventMap> implements Disposable {
     };
   }
 
-  /** Emit an event to all listeners. Hot path — for...of, zero allocation. */
+  /** Emit an event to all listeners. Snapshots the set to prevent live-iteration issues. */
   emit<K extends keyof T>(event: K, data: T[K]): void {
     const set = this.#listeners.get(event);
-    if (!set) return;
+    if (!set || set.size === 0) return;
 
-    // for...of — hot emit path, avoids closure allocation overhead
-    for (const fn of set) {
+    // Snapshot via spread — prevents listeners added/removed during emit from
+    // affecting the current iteration pass (ES Set iterators are live)
+    for (const fn of [...set]) {
       fn(data as never);
     }
   }

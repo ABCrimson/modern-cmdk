@@ -126,8 +126,8 @@ describe('Virtualization (0.2.2)', () => {
 
     const list = container.querySelector('[data-command-list]') as HTMLElement;
     expect(list).not.toBeNull();
-    // The style should contain the custom property
-    expect(list.style.getPropertyValue('--command-list-height')).toBeDefined();
+    // The style should contain the custom property (getPropertyValue returns '' for missing props)
+    expect(list.style.getPropertyValue('--command-list-height')).not.toBe('');
   });
 
   it('should accept estimateSize and overscan props', async () => {

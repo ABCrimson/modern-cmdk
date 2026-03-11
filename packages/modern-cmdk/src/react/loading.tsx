@@ -13,6 +13,7 @@ export interface CommandLoadingProps extends ComponentPropsWithRef<'div'> {
   readonly loading?: boolean;
 }
 
+/** Shown during async operations, with configurable loading state override. */
 export function CommandLoading({
   ref,
   children,

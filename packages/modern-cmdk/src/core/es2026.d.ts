@@ -18,7 +18,7 @@ interface RegExpConstructor {
 }
 
 interface MapConstructor {
-  groupBy<K, T>(items: Iterable<T>, keySelector: (item: T, index: number) => K): Map<K, T[]>;
+  groupBy<K, T>(items: Iterable<T>, keySelector: (item: T) => K): Map<K, T[]>;
 }
 
 interface ArrayConstructor {

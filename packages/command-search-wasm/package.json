@@ -18,7 +18,7 @@
     "pkg"
   ],
   "scripts": {
-    "build": "[ -d pkg ] && tsdown || echo 'Skipping WASM build (run build:wasm first)'",
+    "build": "[ -f pkg/command_search_wasm.js ] && tsdown || echo 'Skipping WASM build (run build:wasm first)'",
     "build:wasm": "wasm-pack build crate --target web --out-dir ../pkg",
     "typecheck": "tsc --noEmit"
   },

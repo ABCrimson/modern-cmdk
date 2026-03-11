@@ -21,8 +21,10 @@ describe('memory leak detection', () => {
       machine.send({ type: 'NAVIGATE', direction: 'next' });
     }
 
-    // If we get here without OOM, disposal is working
-    expect(true).toBe(true);
+    // Verify system still works after 100 create/dispose cycles
+    using finalMachine = createCommandMachine({ items });
+    finalMachine.send({ type: 'SEARCH_CHANGE', query: 'Item 5' });
+    expect(finalMachine.getState().filteredIds.length).toBeGreaterThan(0);
   });
 
   it('subscription cleanup prevents memory growth', async () => {

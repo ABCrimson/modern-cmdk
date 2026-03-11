@@ -12,6 +12,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CommandListStatusContext, useStableContext, useStateContext } from './context.js';
 import { useVirtualizer } from './hooks/use-virtualizer.js';
 
+/** Base style for virtual items — hoisted to avoid allocation per item per render */
+const VIRTUAL_ITEM_BASE_STYLE: CSSProperties = {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+} as const;
+
 export interface CommandListProps extends ComponentPropsWithRef<'div'> {
   /** Override automatic virtualization (default: auto at >100 items, false to opt-out) */
   readonly virtualize?: boolean;
@@ -19,14 +27,18 @@ export interface CommandListProps extends ComponentPropsWithRef<'div'> {
   readonly estimateSize?: number;
   /** Overscan count for virtualization (default: 8) */
   readonly overscan?: number;
+  /** Custom aria-live announcement formatter for i18n (receives filtered count, returns announcement text) */
+  readonly announceResults?: (count: number) => string;
 }
 
+/** Scrollable list container with auto-virtualization and aria-live announcements. */
 export function CommandList({
   ref,
   children,
   virtualize,
   estimateSize = 44,
   overscan = 8,
+  announceResults,
   style,
   ...props
 }: CommandListProps): ReactNode {
@@ -129,13 +141,7 @@ export function CommandList({
                 data-command-virtual-item=""
                 data-index={vItem.index}
                 ref={virtualizer.measureElement}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  translate: `0 ${vItem.start}px`,
-                }}
+                style={{ ...VIRTUAL_ITEM_BASE_STYLE, translate: `0 ${vItem.start}px` }}
               />
             ))}
             {/* Children still render for React reconciliation */}
@@ -157,8 +163,9 @@ export function CommandList({
         data-command-aria-live=""
         className="sr-only"
       >
-        {stateCtx.state.filteredCount} result{stateCtx.state.filteredCount !== 1 ? 's' : ''}{' '}
-        available.
+        {announceResults
+          ? announceResults(stateCtx.state.filteredCount)
+          : `${stateCtx.state.filteredCount} result${stateCtx.state.filteredCount !== 1 ? 's' : ''} available.`}
       </div>
     </CommandListStatusContext>
   );

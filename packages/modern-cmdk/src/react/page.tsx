@@ -17,6 +17,7 @@ export interface CommandPageProps {
   readonly children?: ReactNode;
 }
 
+/** Page navigation container that only renders when its ID matches the active page. */
 export function CommandPage({ id, children }: CommandPageProps): ReactNode {
   const stateCtx = useStateContext('Command.Page');
 

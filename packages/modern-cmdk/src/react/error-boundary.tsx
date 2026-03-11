@@ -21,6 +21,7 @@ const INITIAL_STATE: CommandErrorBoundaryState = {
   error: null,
 } as const satisfies CommandErrorBoundaryState;
 
+/** Error boundary for graceful failure recovery in command subtrees. */
 export class CommandErrorBoundary extends Component<
   CommandErrorBoundaryProps,
   CommandErrorBoundaryState

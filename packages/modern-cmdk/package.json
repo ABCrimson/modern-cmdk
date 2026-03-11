@@ -1,22 +1,31 @@
 {
   "name": "modern-cmdk",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "type": "module",
   "description": "The definitive command palette engine for the modern web",
   "license": "MIT",
+  "homepage": "https://github.com/ABCrimson/modern-cmdk#readme",
+  "bugs": {
+    "url": "https://github.com/ABCrimson/modern-cmdk/issues"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "publishConfig": {
     "access": "public"
   },
   "exports": {
     ".": {
       "types": "./dist/core/index.d.mts",
-      "import": "./dist/core/index.mjs"
+      "import": "./dist/core/index.mjs",
+      "default": "./dist/core/index.mjs"
     },
     "./react": {
       "types": "./dist/react/index.d.mts",
-      "import": "./dist/react/index.mjs"
+      "import": "./dist/react/index.mjs",
+      "default": "./dist/react/index.mjs"
     },
-    "./styles.css": "./src/react/styles.css"
+    "./styles.css": "./dist/react/styles.css"
   },
   "main": "./dist/core/index.mjs",
   "types": "./dist/core/index.d.mts",
@@ -25,19 +34,21 @@
   },
   "files": [
     "dist",
-    "src/react/styles.css"
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown src/core/index.ts src/react/index.ts --format esm --dts && tsdown src/codemod/cli.ts src/codemod/transforms/*.ts --format esm --dts --out-dir dist/codemod",
+    "build": "tsdown --config tsdown.config.ts && node -e \"const fs=require('fs');fs.cpSync('src/react/styles.css','dist/react/styles.css')\"",
     "dev": "tsdown src/core/index.ts src/react/index.ts --format esm --dts --watch",
     "typecheck": "tsc --noEmit"
   },
   "sideEffects": [
-    "./src/react/styles.css"
+    "./dist/react/styles.css",
+    "./dist/react/index.mjs"
   ],
   "peerDependencies": {
-    "react": ">=19.0.0",
-    "react-dom": ">=19.0.0"
+    "react": ">=19.0.0 <21.0.0",
+    "react-dom": ">=19.0.0 <21.0.0",
+    "radix-ui": ">=1.4.0 <2.0.0"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -45,15 +56,18 @@
     },
     "react-dom": {
       "optional": true
+    },
+    "radix-ui": {
+      "optional": true
     }
   },
   "dependencies": {
-    "idb-keyval": "6.2.2",
-    "radix-ui": "1.4.4-rc.1766004502650"
+    "idb-keyval": "6.2.2"
   },
   "devDependencies": {
     "globby": "16.1.1",
     "jscodeshift": "17.3.0",
+    "radix-ui": "1.4.4-rc.1766004502650",
     "@types/jscodeshift": "^17.3.0"
   },
   "keywords": [
@@ -67,7 +81,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/ABCrimson/modern-cmdk",
+    "url": "git+https://github.com/ABCrimson/modern-cmdk.git",
     "directory": "packages/modern-cmdk"
   }
 }

@@ -131,7 +131,7 @@ describe('FrecencyEngine — Full Pipeline', () => {
     for (let i = 0; i < 100; i++) {
       engine.recordSelection(itemId(`item-${i}`));
     }
-    engine.getAllBonuses();
+    engine.getAllBonuses(NOW);
   });
 
   bench('create + 1K records + getAllBonuses', () => {
@@ -139,6 +139,6 @@ describe('FrecencyEngine — Full Pipeline', () => {
     for (let i = 0; i < 1_000; i++) {
       engine.recordSelection(itemId(`item-${i}`));
     }
-    engine.getAllBonuses();
+    engine.getAllBonuses(NOW);
   });
 });

@@ -86,6 +86,9 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   let frecencyEngine: FrecencyEngine | null = null;
   if (options.frecency?.enabled) {
     frecencyEngine = new FrecencyEngine(options.frecency);
+    // Fire-and-forget async hydration — loads persisted frecency data (IDB)
+    // so bonuses are available after the first microtask settles
+    void frecencyEngine.load();
   }
 
   // Register initial items and groups

@@ -30,6 +30,7 @@ export interface VirtualizerReturn {
   readonly measureElement: (element: HTMLElement | null) => void;
 }
 
+/** Lightweight virtualizer for large item lists using ResizeObserver and scroll tracking. */
 export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
   const { count, estimateSize, overscan = 8, scrollElement, enabled = true } = options;
   const [scrollOffset, setScrollOffset] = useState<number>(0);

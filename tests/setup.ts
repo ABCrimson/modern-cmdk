@@ -1,6 +1,9 @@
 // tests/setup.ts
 // Vitest 4.1 global setup — polyfills ES2026 APIs not yet in the test runtime
 
+// React 19 act() environment — suppresses "not configured to support act()" warnings
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
 import 'fake-indexeddb/auto';
 import { Temporal as TemporalPolyfill } from '@js-temporal/polyfill';
 

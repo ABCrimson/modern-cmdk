@@ -14,6 +14,7 @@ export interface CommandInputProps
   readonly onValueChange?: (value: string) => void;
 }
 
+/** Combobox input that drives the command palette search state. */
 export function CommandInput({
   ref,
   placeholder = 'Search...',
@@ -38,7 +39,7 @@ export function CommandInput({
       data-command-input=""
       type="text"
       role="combobox"
-      aria-expanded={stateCtx.state.filteredCount > 0 || stateCtx.state.loading}
+      aria-expanded={true}
       aria-controls={stable.listId}
       aria-activedescendant={stateCtx.state.activeId ?? undefined}
       aria-autocomplete="list"

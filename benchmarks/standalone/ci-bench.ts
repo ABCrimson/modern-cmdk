@@ -36,8 +36,9 @@ async function run(): Promise<void> {
     engine.search('apple', items10K).toArray();
   });
 
+  const items1K = items10K.slice(0, 1_000);
+
   bench.add('create machine + filter 1K', () => {
-    const items1K = items10K.slice(0, 1000);
     using machine = createCommandMachine({ items: items1K });
     machine.send({ type: 'SEARCH_CHANGE', query: 'apple' });
   });

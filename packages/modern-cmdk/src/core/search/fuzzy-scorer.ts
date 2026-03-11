@@ -10,10 +10,7 @@ import type { SearchResult } from './types.js';
  * Async-safe fuzzy scorer — wraps scoring in Promise.try (ES2026) for error resilience.
  * Falls back gracefully on error via Promise.try's synchronous-throw capture.
  */
-export async function scoreItemAsync(
-  query: string,
-  item: CommandItem,
-): Promise<SearchResult | null> {
+export function scoreItemAsync(query: string, item: CommandItem): Promise<SearchResult | null> {
   return Promise.try(() => scoreItem(query, item));
 }
 
@@ -22,7 +19,7 @@ export async function scoreItemAsync(
  * Eliminates per-item microtask overhead from async generators — runs the
  * entire scoring pipeline in one synchronous pass, wrapped for error safety.
  */
-export async function batchScoreItems(
+export function batchScoreItems(
   query: string,
   items: readonly CommandItem[],
 ): Promise<SearchResult[]> {

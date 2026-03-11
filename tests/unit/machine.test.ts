@@ -220,4 +220,51 @@ describe('CommandMachine', () => {
     const state = machine.getState();
     expect(state.groupedIds.size).toBeGreaterThan(0);
   });
+
+  it('should handle group unregistration', async () => {
+    const gid = groupId('test-group');
+    const items = [{ id: itemId('a'), value: 'A', groupId: gid }];
+    const groups = [{ id: gid, heading: 'Test' }];
+    using machine = createCommandMachine({ items, groups });
+
+    // Verify group exists in registry
+    expect(machine.getRegistry().getGroup(gid)).toBeDefined();
+
+    machine.send({ type: 'UNREGISTER_GROUP', id: gid });
+    await vi.waitFor(() => {
+      // After unregistering, the group should no longer be in the registry
+      expect(machine.getRegistry().getGroup(gid)).toBeUndefined();
+    });
+  });
+
+  it('should not loop when loop is false', async () => {
+    const items = [
+      { id: itemId('a'), value: 'A' },
+      { id: itemId('b'), value: 'B' },
+    ];
+    using machine = createCommandMachine({ items, loop: false });
+
+    // Navigate to last item
+    machine.send({ type: 'NAVIGATE', direction: 'next' });
+    await vi.waitFor(() => {
+      expect(machine.getState().activeId).toBe(items[1]?.id);
+    });
+
+    // Navigate past last — should stay at last
+    machine.send({ type: 'NAVIGATE', direction: 'next' });
+    await vi.waitFor(() => {
+      expect(machine.getState().activeId).toBe(items[1]?.id);
+    });
+  });
+
+  it('should handle PAGE_POP on root page gracefully', async () => {
+    using machine = createCommandMachine();
+
+    // Pop when on root — should not crash and page should remain 'root'
+    machine.send({ type: 'PAGE_POP' });
+    await vi.waitFor(() => {
+      expect(machine.getState().page).toBe('root');
+      expect(machine.getState().pageStack).toEqual([]);
+    });
+  });
 });

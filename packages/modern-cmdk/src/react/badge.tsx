@@ -9,6 +9,7 @@ import type { ComponentPropsWithRef, ReactNode } from 'react';
 
 export interface CommandBadgeProps extends ComponentPropsWithRef<'span'> {}
 
+/** Inline badge for categorization or status indicators on command items. */
 export function CommandBadge({ ref, children, ...props }: CommandBadgeProps): ReactNode {
   return (
     <span ref={ref} data-command-badge="" {...props}>

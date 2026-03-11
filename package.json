@@ -19,7 +19,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "format": "biome format . --write",
-    "typecheck": "pnpm --filter 'modern-cmdk' exec tsc --noEmit",
+    "typecheck": "pnpm --filter modern-cmdk --filter playground --filter modern-cmdk-search-wasm --filter create-modern-cmdk exec tsc --noEmit",
     "size": "pnpm build && size-limit",
     "docs:dev": "pnpm --filter docs run dev",
     "docs:build": "pnpm --filter docs run build",

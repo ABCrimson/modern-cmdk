@@ -23,7 +23,7 @@ const AVAILABLE_TRANSFORMS: Map<string, string> = new Map<string, string>([
  * Dynamically import a transform module by name and return its default export.
  */
 async function loadTransform(name: string): Promise<(fileInfo: FileInfo, api: API) => string> {
-  const mod = await import(`./transforms/${name}.js`);
+  const mod = await import(`./transforms/${name}.mjs`);
   return mod.default as (fileInfo: FileInfo, api: API) => string;
 }
 

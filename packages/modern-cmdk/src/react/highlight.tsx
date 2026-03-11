@@ -17,6 +17,7 @@ export interface CommandHighlightProps {
   readonly highlightClassName?: string;
 }
 
+/** Renders search match highlighting by splitting text at scored match ranges. */
 export function CommandHighlight({
   text,
   ranges,
