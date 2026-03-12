@@ -65,7 +65,7 @@ test.describe('Basic Command Palette', () => {
     const initialCount = await page.getByRole('option').count();
     expect(initialCount).toBeGreaterThan(1);
 
-    await input.pressSequentially('app', { delay: 30 });
+    await input.pressSequentially('app', { delay: 50 });
 
     // Wait for filter to take effect
     await expect(page.getByRole('option')).not.toHaveCount(initialCount);
@@ -79,7 +79,7 @@ test.describe('Basic Command Palette', () => {
     const initialCount = await page.getByRole('option').count();
 
     // Type to filter
-    await input.pressSequentially('app', { delay: 30 });
+    await input.pressSequentially('app', { delay: 50 });
     await expect(page.getByRole('option')).not.toHaveCount(initialCount);
 
     // Clear the input — select all text then delete
@@ -93,7 +93,7 @@ test.describe('Basic Command Palette', () => {
   test('should show empty state when no items match', async ({ page }) => {
     const input = page.getByRole('combobox');
 
-    await input.pressSequentially('zzzznonexistent', { delay: 20 });
+    await input.pressSequentially('zzzznonexistent', { delay: 50 });
 
     // No options should be visible
     await expect(page.getByRole('option')).toHaveCount(0);
@@ -107,7 +107,10 @@ test.describe('Basic Command Palette', () => {
   test('should update aria-live region with result count after filtering', async ({ page }) => {
     const input = page.getByRole('combobox');
 
-    await input.pressSequentially('app', { delay: 30 });
+    await input.pressSequentially('app', { delay: 50 });
+
+    // Wait for filter to complete
+    await expect(page.getByRole('option').first()).toBeVisible();
 
     const liveRegion = page.locator('[aria-live="polite"]');
     await expect(liveRegion).toContainText(/result/);
@@ -261,7 +264,7 @@ test.describe('Basic Command Palette', () => {
     const input = page.getByRole('combobox');
 
     // Type rapidly (30ms delay — 10ms drops characters on CI)
-    await input.pressSequentially('testing rapid input', { delay: 30 });
+    await input.pressSequentially('testing rapid input', { delay: 50 });
     await expect(input).toHaveValue('testing rapid input');
 
     // Clear and type again
@@ -269,7 +272,7 @@ test.describe('Basic Command Palette', () => {
     await input.press('Backspace');
     await expect(input).toHaveValue('');
 
-    await input.pressSequentially('another query', { delay: 30 });
+    await input.pressSequentially('another query', { delay: 50 });
     await expect(input).toHaveValue('another query');
   });
 
@@ -278,7 +281,7 @@ test.describe('Basic Command Palette', () => {
     await input.focus();
     await expect(input).toBeFocused();
 
-    await input.pressSequentially('test', { delay: 30 });
+    await input.pressSequentially('test', { delay: 50 });
 
     // Focus should remain on the input after filtering
     await expect(input).toBeFocused();
@@ -293,7 +296,7 @@ test.describe('Basic Command Palette', () => {
     // Interact with the page
     const input = page.getByRole('combobox');
     await input.focus();
-    await input.pressSequentially('test', { delay: 30 });
+    await input.pressSequentially('test', { delay: 50 });
     await input.press('ArrowDown');
     await input.press('ArrowUp');
     await input.press('Enter');

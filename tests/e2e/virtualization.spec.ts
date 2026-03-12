@@ -302,7 +302,7 @@ test.describe('Virtualization — 10K Items', () => {
     const input = page.getByRole('combobox');
 
     // Type a search query
-    await input.pressSequentially('item 5', { delay: 30 });
+    await input.pressSequentially('item 5', { delay: 50 });
 
     // Playwright 1.59 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
@@ -319,7 +319,7 @@ test.describe('Virtualization — 10K Items', () => {
     const initialCount = await page.locator('[data-command-item]').count();
 
     // Filter
-    await input.pressSequentially('item 5', { delay: 30 });
+    await input.pressSequentially('item 5', { delay: 50 });
     // Playwright 1.59 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 

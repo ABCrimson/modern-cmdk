@@ -267,7 +267,7 @@ test.describe('Keyboard Navigation', () => {
     await input.focus();
 
     // Type something first
-    await input.pressSequentially('test', { delay: 30 });
+    await input.pressSequentially('test', { delay: 50 });
     await expect(input).toHaveValue('test');
 
     // Backspace should delete a character, not pop page
@@ -302,7 +302,7 @@ test.describe('Keyboard Navigation', () => {
   test('should handle special characters via pressSequentially', async ({ page }) => {
     const input = page.getByRole('combobox');
 
-    await input.pressSequentially('file.ts', { delay: 30 });
+    await input.pressSequentially('file.ts', { delay: 50 });
     await expect(input).toHaveValue('file.ts');
   });
 
@@ -386,7 +386,7 @@ test.describe('Keyboard Navigation', () => {
     await input.focus();
 
     // Type a search query
-    await input.pressSequentially('app', { delay: 30 });
+    await input.pressSequentially('app', { delay: 50 });
 
     // Navigate down
     await input.press('ArrowDown');
@@ -408,7 +408,7 @@ test.describe('Keyboard Navigation', () => {
     const initialCount = await page.getByRole('option').count();
 
     // Type to filter
-    await input.pressSequentially('test', { delay: 30 });
+    await input.pressSequentially('test', { delay: 50 });
 
     // Clear with Ctrl+A then Backspace
     await input.press('Control+a');
