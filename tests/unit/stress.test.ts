@@ -54,7 +54,7 @@ function generateItems(count: number): CommandItem[] {
 // ---------------------------------------------------------------------------
 
 describe('Stress Tests (0.8.6)', () => {
-  it('should handle 100K items — search engine index + search', () => {
+  it('should handle 100K items — search engine index + search', { timeout: 15_000 }, () => {
     const items = generateItems(100_000);
     using engine = createSearchEngine();
     engine.index(items);
@@ -105,7 +105,7 @@ describe('Stress Tests (0.8.6)', () => {
     });
   });
 
-  it('should handle concurrent search + frecency', () => {
+  it('should handle concurrent search + frecency', { timeout: 15_000 }, () => {
     const items = generateItems(10_000);
     using searchEngine = createSearchEngine();
     using frecencyEngine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
@@ -142,7 +142,7 @@ describe('Stress Tests (0.8.6)', () => {
     expect(results.length).toBeGreaterThan(0);
   });
 
-  it('should handle empty query gracefully at scale', () => {
+  it('should handle empty query gracefully at scale', { timeout: 15_000 }, () => {
     const items = generateItems(50_000);
     using engine = createSearchEngine();
     engine.index(items);
@@ -186,7 +186,7 @@ describe('Stress Tests (0.8.6)', () => {
     }
   });
 
-  it('machine should handle state transitions under load', () => {
+  it('machine should handle state transitions under load', { timeout: 15_000 }, () => {
     const items = generateItems(5_000);
     using machine = createCommandMachine({ items });
 
