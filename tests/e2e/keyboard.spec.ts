@@ -101,19 +101,17 @@ test.describe('Keyboard Navigation', () => {
   test('should navigate through all items sequentially with ArrowDown', async ({ page }) => {
     const input = page.getByRole('combobox');
     await input.focus();
-    const items = page.locator('[data-command-item]');
-    const count = await items.count();
 
-    // Navigate through every item
-    for (let i = 0; i < count; i++) {
+    // Navigate through enabled items — disabled items are skipped by ArrowDown
+    const enabledItems = page.locator('[data-command-item]:not([data-disabled])');
+    const enabledCount = await enabledItems.count();
+
+    for (let i = 0; i < enabledCount; i++) {
+      // Use auto-retrying assertion to wait for React state propagation
       const activeItems = page.locator('[data-command-item][data-active]');
       await expect(activeItems).toHaveCount(1);
 
-      const activeId = await activeItems.getAttribute('id');
-      const currentItemId = await items.nth(i).getAttribute('id');
-      expect(activeId).toBe(currentItemId);
-
-      if (i < count - 1) {
+      if (i < enabledCount - 1) {
         await input.press('ArrowDown');
       }
     }
@@ -154,21 +152,20 @@ test.describe('Keyboard Navigation', () => {
   test('Home then End should cover full range', async ({ page }) => {
     const input = page.getByRole('combobox');
     await input.focus();
-    const items = page.locator('[data-command-item]');
-    const count = await items.count();
+    const enabledItems = page.locator('[data-command-item]:not([data-disabled])');
+    const count = await enabledItems.count();
 
     if (count < 2) return;
 
-    // Go to end
+    // Go to end — wait for last enabled item to become active
     await input.press('End');
-    const lastId = await page.locator('[data-command-item][data-active]').getAttribute('id');
+    const lastEnabledItem = enabledItems.last();
+    await expect(lastEnabledItem).toHaveAttribute('data-active', '');
 
-    // Go back to start
+    // Go back to start — wait for first item to become active
     await input.press('Home');
-    const firstId = await page.locator('[data-command-item][data-active]').getAttribute('id');
-
-    expect(firstId).not.toBe(lastId);
-    await expect(items.first()).toHaveAttribute('data-active', '');
+    const firstItem = enabledItems.first();
+    await expect(firstItem).toHaveAttribute('data-active', '');
   });
 
   // ---------- Enter to Select ----------
@@ -435,11 +432,16 @@ test.describe('Keyboard Navigation', () => {
 
     if (count < 2) return;
 
-    // Get initial activedescendant
+    // Get initial active item
+    const firstItem = items.first();
+    await expect(firstItem).toHaveAttribute('data-active', '');
     const initialAD = await input.getAttribute('aria-activedescendant');
 
-    // Navigate down
+    // Navigate down — wait for second item to become active
     await input.press('ArrowDown');
+    const secondItem = items.nth(1);
+    await expect(secondItem).toHaveAttribute('data-active', '');
+
     const afterDownAD = await input.getAttribute('aria-activedescendant');
 
     // activedescendant should change

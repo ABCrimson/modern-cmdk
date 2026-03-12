@@ -369,13 +369,13 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
     await trigger.click();
 
-    const dialog = page.locator('[data-command-dialog]');
-    await expect(dialog).toBeVisible();
-
-    // Dialog should contain combobox and listbox
-    const combobox = dialog.getByRole('combobox');
-    await expect(combobox).toBeVisible();
+    // Wait for the dialog combobox to receive focus (confirms dialog is open and interactive)
+    const combobox = page.getByRole('combobox');
     await expect(combobox).toBeFocused();
+
+    // Dialog element should be in the DOM with open state
+    const dialog = page.locator('[data-command-dialog]');
+    await expect(dialog).toHaveAttribute('data-state', 'open');
 
     // Should pass axe audit (disable color-contrast — OKLCH not supported by axe-core)
     const results = await new AxeBuilder({ page })
@@ -394,12 +394,12 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
     await trigger.click();
 
-    const dialog = page.locator('[data-command-dialog]');
-    await expect(dialog).toBeVisible();
-
-    // Tab through the dialog — focus should stay within
-    const input = dialog.getByRole('combobox');
+    // Wait for dialog to be interactive
+    const input = page.getByRole('combobox');
     await expect(input).toBeFocused();
+
+    const dialog = page.locator('[data-command-dialog]');
+    await expect(dialog).toHaveAttribute('data-state', 'open');
 
     // Tab forward multiple times — should cycle within dialog
     await page.keyboard.press('Tab');

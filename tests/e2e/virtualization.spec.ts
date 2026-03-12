@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test';
 
 // Playwright 1.59 — locator-first assertions, toBeInViewport()
 test.describe('Virtualization — 10K Items', () => {
+  // 10K items is heavy — triple the timeout for CI
+  test.slow();
+
   test.beforeEach(async ({ page }) => {
     await page.goto('/virtualization');
     // Playwright 1.59 — wait for hydration using locator-first pattern
