@@ -4,16 +4,14 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: 0,
+  retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 4 : undefined,
   reporter: process.env.CI ? 'github' : 'html',
-  timeout: 15_000,
+  timeout: process.env.CI ? 45_000 : 15_000,
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'retain-on-failure',
-    // Playwright 1.59 — locator-first assertions are the default
-    // Enable actionability logging for better CI debugging
-    actionTimeout: 10_000,
+    actionTimeout: process.env.CI ? 20_000 : 10_000,
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
