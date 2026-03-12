@@ -73,8 +73,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      # Build all packages INCLUDING playground — E2E tests need the playground dev server
-      - run: pnpm -r --filter '!docs' --filter '!modern-cmdk-monorepo' --parallel run build
+      # Build sequentially — playground depends on modern-cmdk dist (styles.css, exports)
+      - run: pnpm -r --filter '!docs' --filter '!modern-cmdk-monorepo' run build
       - run: pnpm playwright install --with-deps chromium firefox webkit
       - run: pnpm playwright test
       - uses: actions/upload-artifact@v7
