@@ -18,11 +18,15 @@ export default defineConfig({
     trace: 'retain-on-failure',
     actionTimeout: isCI ? 30_000 : 10_000,
   },
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-  ],
+  // CI: chromium only (firefox/webkit E2E is too slow with retries + timeouts)
+  // Local: all 3 browsers for comprehensive cross-browser testing
+  projects: isCI
+    ? [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }]
+    : [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+        { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+      ],
   webServer: {
     command: 'pnpm --filter playground run dev',
     port: 5173,
