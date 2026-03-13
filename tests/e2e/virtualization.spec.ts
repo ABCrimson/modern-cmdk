@@ -6,7 +6,6 @@ import { expect, test } from '@playwright/test';
 const virtualizationUrl = '/virtualization?count=2000';
 
 test.describe('Virtualization — Large Item Set', () => {
-
   test.beforeEach(async ({ page }) => {
     await page.goto(virtualizationUrl);
     // Playwright 1.59 — wait for hydration using locator-first pattern
@@ -64,11 +63,13 @@ test.describe('Virtualization — Large Item Set', () => {
 
     // Wait for virtualized content to actually change (auto-retrying poll)
     const initialSet = new Set(initialItems);
-    await expect.poll(async () => {
-      const currentItems = await page.locator('[data-command-item]').allTextContents();
-      const overlap = currentItems.filter((item) => initialSet.has(item));
-      return overlap.length < initialItems.length;
-    }).toBeTruthy();
+    await expect
+      .poll(async () => {
+        const currentItems = await page.locator('[data-command-item]').allTextContents();
+        const overlap = currentItems.filter((item) => initialSet.has(item));
+        return overlap.length < initialItems.length;
+      })
+      .toBeTruthy();
   });
 
   test('should still limit DOM nodes after scrolling down', async ({ page }) => {
@@ -100,19 +101,23 @@ test.describe('Virtualization — Large Item Set', () => {
     await list.evaluate((el) => {
       el.scrollTop = 5_000;
     });
-    await expect.poll(async () => {
-      const items = await page.locator('[data-command-item]').allTextContents();
-      return items.some((item) => !initialSet.has(item));
-    }).toBeTruthy();
+    await expect
+      .poll(async () => {
+        const items = await page.locator('[data-command-item]').allTextContents();
+        return items.some((item) => !initialSet.has(item));
+      })
+      .toBeTruthy();
 
     // Scroll back to top and wait for content to restore
     await list.evaluate((el) => {
       el.scrollTop = 0;
     });
-    await expect.poll(async () => {
-      const items = await page.locator('[data-command-item]').allTextContents();
-      return JSON.stringify(items) === JSON.stringify(initialItems);
-    }).toBeTruthy();
+    await expect
+      .poll(async () => {
+        const items = await page.locator('[data-command-item]').allTextContents();
+        return JSON.stringify(items) === JSON.stringify(initialItems);
+      })
+      .toBeTruthy();
   });
 
   test('should maintain DOM node budget after scroll up/down cycle', async ({ page }) => {
@@ -266,12 +271,14 @@ test.describe('Virtualization — Large Item Set', () => {
     await expect(activeItem).toHaveCount(1);
 
     // Wait for scroll to settle near the bottom (auto-retrying poll)
-    await expect.poll(async () => {
-      const scrollTop = await list.evaluate((el) => el.scrollTop);
-      const scrollHeight = await list.evaluate((el) => el.scrollHeight);
-      const clientHeight = await list.evaluate((el) => el.clientHeight);
-      return scrollTop + clientHeight > scrollHeight - 100;
-    }).toBeTruthy();
+    await expect
+      .poll(async () => {
+        const scrollTop = await list.evaluate((el) => el.scrollTop);
+        const scrollHeight = await list.evaluate((el) => el.scrollHeight);
+        const clientHeight = await list.evaluate((el) => el.clientHeight);
+        return scrollTop + clientHeight > scrollHeight - 100;
+      })
+      .toBeTruthy();
   });
 
   test('should scroll active item into view when pressing Home after End', async ({ page }) => {

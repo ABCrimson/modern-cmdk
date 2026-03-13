@@ -1,8 +1,8 @@
 // packages/command/src/keyboard/matcher.ts
 // KeyboardEvent → Shortcut matcher — conflict detection via mapGroupBy helper
 
-import type { ParsedShortcut } from './parser.js';
 import { mapGroupBy } from '../utils/group-by.js';
+import type { ParsedShortcut } from './parser.js';
 
 /**
  * Tests whether a KeyboardEvent exactly matches a ParsedShortcut,
@@ -30,8 +30,8 @@ export function findMatchingShortcut(
 
 /**
  * Detects conflicting shortcut bindings by grouping on their normalized form
- * via Map.groupBy (ES2026). Returns only groups with two or more colliding shortcuts.
- * Map.groupBy returns a Map directly — no Object.entries conversion needed.
+ * via mapGroupBy helper. Returns only groups with two or more colliding shortcuts.
+ * mapGroupBy returns a Map directly — no Object.entries conversion needed.
  */
 export function detectConflicts(
   shortcuts: readonly ParsedShortcut[],

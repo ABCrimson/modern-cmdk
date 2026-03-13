@@ -1,5 +1,15 @@
 # modern-cmdk
 
+## 1.1.4
+
+### Patch Changes
+
+- **fix(ci): resolve all 7 Biome lint/format errors** — Trailing zero in OKLCH value, import ordering (value before type), regex line width wrapping, `useExhaustiveDependencies` dependency extraction, `expect.poll()` chain formatting, `noUncheckedIndexedAccess` narrowing in `objectGroupBy`.
+
+- **chore(ci): modernize all GitHub Actions workflows** — Added explicit `permissions` blocks (principle of least privilege) and `timeout-minutes` to all jobs across ci.yml, benchmarks.yml, codeql.yml, docs.yml, and release.yml. Improved CI summary table with status labels. Added `security-extended` query suite to CodeQL. Optimized build commands in benchmarks and release workflows.
+
+- **chore(deps): enhance Dependabot configuration** — Added dependency groups for TypeScript, Biome, Playwright, and Vitest. Added ignore rules to prevent major version bumps on pinned React pre-releases.
+
 ## 1.1.3
 
 ### Patch Changes

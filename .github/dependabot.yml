@@ -13,6 +13,24 @@ updates:
       production-dependencies:
         dependency-type: production
         update-types: [minor, patch]
+      typescript:
+        patterns: ['typescript']
+        update-types: [minor, patch]
+      biome:
+        patterns: ['@biomejs/*']
+        update-types: [minor, patch]
+      playwright:
+        patterns: ['@playwright/*', 'playwright', 'playwright-core']
+        update-types: [minor, patch]
+      vitest:
+        patterns: ['vitest', '@vitest/*']
+        update-types: [minor, patch]
+    ignore:
+      # Pinned to specific pre-release versions — manual update only
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
     labels:
       - dependencies
     commit-message:

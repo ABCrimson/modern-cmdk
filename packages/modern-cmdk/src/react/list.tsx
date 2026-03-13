@@ -110,9 +110,9 @@ export function CommandList({
   );
 
   // Compute visible IDs and position map from virtualizer output
+  const filteredIds = stateCtx.state.filteredIds;
   const { visibleIdSet, virtualPositionMap } = useMemo(() => {
     if (!shouldVirtualize) return { visibleIdSet: null, virtualPositionMap: null };
-    const { filteredIds } = stateCtx.state;
     const idSet = new Set<ItemId>();
     const posMap = new Map<ItemId, number>();
     for (const vItem of virtualizer.virtualItems) {
@@ -126,14 +126,17 @@ export function CommandList({
       visibleIdSet: idSet as ReadonlySet<ItemId>,
       virtualPositionMap: posMap as ReadonlyMap<ItemId, number>,
     };
-  }, [shouldVirtualize, virtualizer.virtualItems, stateCtx.state.filteredIds]);
+  }, [shouldVirtualize, virtualizer.virtualItems, filteredIds]);
 
   // Override state context for children — adds visibleIdSet and virtualPositionMap
-  const virtualizedStateCtx = useMemo<CommandStateContextValue>(() => ({
-    ...stateCtx,
-    visibleIdSet,
-    virtualPositionMap,
-  }), [stateCtx, visibleIdSet, virtualPositionMap]);
+  const virtualizedStateCtx = useMemo<CommandStateContextValue>(
+    () => ({
+      ...stateCtx,
+      visibleIdSet,
+      virtualPositionMap,
+    }),
+    [stateCtx, visibleIdSet, virtualPositionMap],
+  );
 
   // Stabilize external ref via useRef — prevents ref callback recreation when caller passes inline ref
   const externalRefRef = useRef(ref);
@@ -168,9 +171,7 @@ export function CommandList({
             data-command-list-virtual=""
             style={{ height: `${virtualizer.totalSize}px`, position: 'relative' }}
           >
-            <CommandStateContext value={virtualizedStateCtx}>
-              {children}
-            </CommandStateContext>
+            <CommandStateContext value={virtualizedStateCtx}>{children}</CommandStateContext>
           </div>
         ) : (
           <div ref={innerRef} data-command-list-inner="">

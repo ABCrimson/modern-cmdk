@@ -31,8 +31,9 @@ export function objectGroupBy<V>(
   const result: Record<string, V[]> = Object.create(null) as Record<string, V[]>;
   for (const item of items) {
     const key = keyFn(item);
-    if (key in result) {
-      result[key].push(item);
+    const existing = result[key];
+    if (existing) {
+      existing.push(item);
     } else {
       result[key] = [item];
     }

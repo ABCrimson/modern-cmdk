@@ -7,7 +7,8 @@
  * A lone high surrogate (U+D800–U+DBFF) not followed by a low surrogate,
  * or a lone low surrogate (U+DC00–U+DFFF) not preceded by a high surrogate.
  */
-const LONE_SURROGATE_RE: RegExp = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+const LONE_SURROGATE_RE: RegExp =
+  /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
 
 /** Unicode replacement character used to replace lone surrogates. */
 const REPLACEMENT_CHAR = '\uFFFD';
