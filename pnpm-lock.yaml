@@ -49,8 +49,8 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
       '@vitest/coverage-v8':
-        specifier: 4.1.0-beta.6
-        version: 4.1.0-beta.6(vitest@4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)))
+        specifier: 4.1.0
+        version: 4.1.0(vitest@4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)))
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.3.0-canary-46103596-20260305(react@19.3.0-canary-46103596-20260305))(react@19.3.0-canary-46103596-20260305)
@@ -2098,11 +2098,11 @@ packages:
       vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0
       vue: ^3.2.25
 
-  '@vitest/coverage-v8@4.1.0-beta.6':
-    resolution: {integrity: sha512-9e3a956eoJrVebh69jqFgQ77SFl5OkDM49AUj/JLu0jVSg/z1YCii/cbA94FZrayV2uzRG9jueXe6J3iXKQb9A==}
+  '@vitest/coverage-v8@4.1.0':
+    resolution: {integrity: sha512-nDWulKeik2bL2Va/Wl4x7DLuTKAXa906iRFooIRPR+huHkcvp9QDkPQ2RJdmjOFrqOqvNfoSQLF68deE3xC3CQ==}
     peerDependencies:
-      '@vitest/browser': 4.1.0-beta.6
-      vitest: 4.1.0-beta.6
+      '@vitest/browser': 4.1.0
+      vitest: 4.1.0
     peerDependenciesMeta:
       '@vitest/browser':
         optional: true
@@ -2121,6 +2121,9 @@ packages:
       vite:
         optional: true
 
+  '@vitest/pretty-format@4.1.0':
+    resolution: {integrity: sha512-3RZLZlh88Ib0J7NQTRATfc/3ZPOnSUn2uDBUoGNn5T36+bALixmzphN26OUD3LRXWkJu4H0s5vvUeqBiw+kS0A==}
+
   '@vitest/pretty-format@4.1.0-beta.6':
     resolution: {integrity: sha512-Wx7Gjy7jdz7iC09/R5fzw0YfJFgzqgBddBGrQs7S9b3ds38p6CBBcXJ5DhrJpaUAtQZ+EoI2/I3RigWmKt1zOw==}
 
@@ -2132,6 +2135,9 @@ packages:
 
   '@vitest/spy@4.1.0-beta.6':
     resolution: {integrity: sha512-Oiy+/uXTkTHHZ5IKDYgwUFSl9PFUL1lTsEzzsDO9jZYR9TM4gbHavdkp/4WeHDlcceS0ME5fXmAyHJV7edVoFA==}
+
+  '@vitest/utils@4.1.0':
+    resolution: {integrity: sha512-XfPXT6a8TZY3dcGY8EdwsBulFCIw+BeeX0RZn2x/BtiY/75YGh8FeWGG8QISN/WhaqSrE2OrlDgtF8q5uhOTmw==}
 
   '@vitest/utils@4.1.0-beta.6':
     resolution: {integrity: sha512-dKZffS4O0ES7XxvZZejyJ2R9QseK3dRwzipRtsPs7njPTIgnJ8FWjSulwv6SVD8fhbYIia92kMgq83+xEqygTw==}
@@ -3260,6 +3266,9 @@ packages:
   std-env@3.10.0:
     resolution: {integrity: sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==}
 
+  std-env@4.0.0:
+    resolution: {integrity: sha512-zUMPtQ/HBY3/50VbpkupYHbRroTRZJPRLvreamgErJVys0ceuzMkD44J/QjqhHjOzK42GQ3QZIeFG1OYfOtKqQ==}
+
   stringify-entities@4.0.4:
     resolution: {integrity: sha512-IwfBptatlO+QCJUo19AqvrPNqlVMpW9YEL2LIVY+Rpv2qsjCGxaDLNRgeGsQWJhfItebuJhsGSLjaBbNSQ+ieg==}
 
@@ -3303,6 +3312,10 @@ packages:
 
   tinyrainbow@3.0.3:
     resolution: {integrity: sha512-PSkbLUoxOFRzJYjjxHJt9xro7D+iilgMX/C9lawzVuYiIdcihh9DXmVibBe8lmcFrRi/VzlPjBxbN7rH24q8/Q==}
+    engines: {node: '>=14.0.0'}
+
+  tinyrainbow@3.1.0:
+    resolution: {integrity: sha512-Bf+ILmBgretUrdJxzXM0SgXLZ3XfiaUuOj/IKQHuTXip+05Xn+uyEYdVg0kYDipTBcLrCVyUzAPz7QmArb0mmw==}
     engines: {node: '>=14.0.0'}
 
   tmp@0.2.5:
@@ -5483,18 +5496,18 @@ snapshots:
       vite: 7.3.1(@types/node@25.3.5)(lightningcss@1.31.1)(tsx@4.21.0)
       vue: 3.5.29(typescript@6.0.1-rc)
 
-  '@vitest/coverage-v8@4.1.0-beta.6(vitest@4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)))':
+  '@vitest/coverage-v8@4.1.0(vitest@4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)))':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
-      '@vitest/utils': 4.1.0-beta.6
+      '@vitest/utils': 4.1.0
       ast-v8-to-istanbul: 1.0.0
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
       istanbul-reports: 3.2.0
       magicast: 0.5.2
       obug: 2.1.1
-      std-env: 3.10.0
-      tinyrainbow: 3.0.3
+      std-env: 4.0.0
+      tinyrainbow: 3.1.0
       vitest: 4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0))
 
   '@vitest/expect@4.1.0-beta.6':
@@ -5504,7 +5517,7 @@ snapshots:
       '@vitest/spy': 4.1.0-beta.6
       '@vitest/utils': 4.1.0-beta.6
       chai: 6.2.2
-      tinyrainbow: 3.0.3
+      tinyrainbow: 3.1.0
 
   '@vitest/mocker@4.1.0-beta.6(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0))':
     dependencies:
@@ -5514,9 +5527,13 @@ snapshots:
     optionalDependencies:
       vite: 8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)
 
+  '@vitest/pretty-format@4.1.0':
+    dependencies:
+      tinyrainbow: 3.1.0
+
   '@vitest/pretty-format@4.1.0-beta.6':
     dependencies:
-      tinyrainbow: 3.0.3
+      tinyrainbow: 3.1.0
 
   '@vitest/runner@4.1.0-beta.6':
     dependencies:
@@ -5532,11 +5549,17 @@ snapshots:
 
   '@vitest/spy@4.1.0-beta.6': {}
 
+  '@vitest/utils@4.1.0':
+    dependencies:
+      '@vitest/pretty-format': 4.1.0
+      convert-source-map: 2.0.0
+      tinyrainbow: 3.1.0
+
   '@vitest/utils@4.1.0-beta.6':
     dependencies:
       '@vitest/pretty-format': 4.1.0-beta.6
       convert-source-map: 2.0.0
-      tinyrainbow: 3.0.3
+      tinyrainbow: 3.1.0
 
   '@vue/compiler-core@3.5.29':
     dependencies:
@@ -6669,6 +6692,8 @@ snapshots:
 
   std-env@3.10.0: {}
 
+  std-env@4.0.0: {}
+
   stringify-entities@4.0.4:
     dependencies:
       character-entities-html4: 2.1.0
@@ -6710,6 +6735,8 @@ snapshots:
       picomatch: 4.0.3
 
   tinyrainbow@3.0.3: {}
+
+  tinyrainbow@3.1.0: {}
 
   tmp@0.2.5: {}
 
