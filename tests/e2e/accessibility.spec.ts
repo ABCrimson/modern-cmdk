@@ -13,10 +13,8 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
   // ---------- axe-core Audit ----------
 
   test('should pass axe accessibility audit (WCAG 2.1 AA)', async ({ page }) => {
-    // Disable color-contrast — axe-core cannot compute OKLCH color space contrast ratios
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .disableRules(['color-contrast'])
       .analyze();
 
     expect(results.violations).toEqual([]);
@@ -31,7 +29,6 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .disableRules(['color-contrast'])
       .analyze();
 
     expect(results.violations).toEqual([]);
@@ -46,7 +43,6 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .disableRules(['color-contrast'])
       .analyze();
 
     expect(results.violations).toEqual([]);
@@ -60,7 +56,6 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .disableRules(['color-contrast'])
       .analyze();
 
     expect(results.violations).toEqual([]);
@@ -377,10 +372,8 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     const dialog = page.locator('[data-command-dialog]');
     await expect(dialog).toHaveAttribute('data-state', 'open');
 
-    // Should pass axe audit (disable color-contrast — OKLCH not supported by axe-core)
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .disableRules(['color-contrast'])
       .analyze();
 
     expect(results.violations).toEqual([]);
