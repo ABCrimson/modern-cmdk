@@ -283,7 +283,7 @@ function CommandPalette({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
 
 After migrating, you get access to features not available in cmdk:
 
-- **[Frecency ranking](/guide/frecency)** -- Items ranked by frequency + recency via `Temporal`
+- **[Frecency ranking](/guide/frecency)** -- Items ranked by frequency + recency via `Date.now()`
 - **[Keyboard shortcuts](/guide/shortcuts)** -- Built-in registry with `<Command.Shortcut />`
 - **[Fuzzy search](/guide/wasm-search)** -- Optional WASM-accelerated search for large datasets
 - **[Virtualization](/guide/virtualization)** -- Automatic for 100+ items

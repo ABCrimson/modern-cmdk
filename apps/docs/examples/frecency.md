@@ -152,7 +152,7 @@ async function demo() {
     },
   });
 
-  // Select an item -- recorded with Temporal.Now.instant()
+  // Select an item -- recorded with Date.now()
   machine.send({ type: 'ITEM_SELECT', id: 'settings' });
 
   // Future empty searches rank "Settings" higher

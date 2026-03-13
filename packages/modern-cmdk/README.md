@@ -104,7 +104,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
-| **Bundle** | ~6 KB | Core ~5.2 KB, React ~6.3 KB |
+| **Bundle** | ~6 KB | Core ~6.3 KB, React ~25.2 KB |
 | **TypeScript** | 4.x/5.x | 6.0, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Error handling** | None | `CommandErrorBoundary` with fallback UI |
@@ -191,8 +191,8 @@ machine.subscribe(() => {
 | Search 100K items (WASM) | < 1 ms | ~0.7 ms |
 | Filter 10K (incremental) | < 2 ms | ~1.1 ms |
 | State update cycle | < 4 ms | ~2.3 ms |
-| Core bundle (gzipped) | <= 6 KB | ~5.2 KB |
-| React bundle (gzipped) | <= 25 KB | ~6.3 KB |
+| Core bundle (gzipped) | <= 6.5 KB | ~6.3 KB |
+| React bundle (gzipped) | <= 25.5 KB | ~25.2 KB |
 
 CI enforces 5% warning / 15% failure regression thresholds with 3-run averaging.
 

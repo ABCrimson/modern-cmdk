@@ -8,7 +8,7 @@ A ground-up reimagination of `cmdk` (pacocoursey/cmdk) built for 2026:
 
 - **Framework-agnostic core** — Pure TypeScript state machine, zero dependencies
 - **React 19 adapter** — Leverages `useTransition`, `useOptimistic`, React Compiler
-- **ES2026 throughout** — Iterator Helpers, Set methods, `using`/`await using`, `Temporal`, `Promise.try`
+- **ES2026 throughout** — Iterator Helpers, Set methods, `using`/`await using`, `Promise.withResolvers`
 - **GPU-composited animations** — `@starting-style`, View Transitions, `scroll-timeline`
 - **Full WAI-ARIA** — Combobox pattern, live regions, `forced-colors`, `prefers-contrast`
 
@@ -18,7 +18,7 @@ A ground-up reimagination of `cmdk` (pacocoursey/cmdk) built for 2026:
 modern-cmdk (core)
 ├── State Machine (pure TS)
 ├── Search Engine (pluggable, WASM optional)
-├── Frecency Engine (Temporal-based)
+├── Frecency Engine (time-weighted)
 ├── Keyboard Registry
 └── Command Registry
 

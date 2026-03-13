@@ -14,15 +14,15 @@ Demonstrates smooth 60fps scrolling with 10,000 items using the built-in virtual
 
 import { Command } from 'modern-cmdk/react';
 
-// Generate 10,000 items using Iterator Helpers (ES2026)
-const items = Iterator.range(0, 10_000)
-  .map((i) => ({
-    id: `item-${i}`,
-    label: `Item ${i} -- ${['Settings', 'Profile', 'Billing', 'Analytics', 'Security'][i % 5]}`,
-    value: `item-${i}`,
-    category: ['General', 'Account', 'Finance', 'Data', 'Security'][i % 5]!,
-  }))
-  .toArray();
+// Generate 10,000 items
+const categories = ['General', 'Account', 'Finance', 'Data', 'Security'];
+const labels = ['Settings', 'Profile', 'Billing', 'Analytics', 'Security'];
+const items = Array.from({ length: 10_000 }, (_, i) => ({
+  id: `item-${i}`,
+  label: `Item ${i} -- ${labels[i % 5]}`,
+  value: `item-${i}`,
+  category: categories[i % 5]!,
+}));
 
 export function VirtualizedExample() {
   return (
@@ -116,7 +116,7 @@ export function WasmVirtualizedExample() {
       wasmEngine = await createWasmSearchEngine();
       setEngine(wasmEngine);
     }
-    Promise.try(() => init());
+    init();
     return () => { wasmEngine?.[Symbol.asyncDispose](); };
   }, []);
 
