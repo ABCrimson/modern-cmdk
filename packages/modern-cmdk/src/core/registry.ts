@@ -1,12 +1,22 @@
 // packages/command/src/registry.ts
-// Command/item registration — Set methods (union/intersection/difference) for ID management
+// Command/item registration — set operations (union/intersection/difference) for ID management
 // Performance: O(1) registration/lookup via Map + Set, O(1) order tracking via array + Set guard
 
 import type { CommandGroup, CommandItem, GroupId, ItemId } from './types.js';
+import { mapGroupBy } from './utils/group-by.js';
+import {
+  setDifference,
+  setIntersection,
+  setIsDisjointFrom,
+  setIsSubsetOf,
+  setIsSupersetOf,
+  setSymmetricDifference,
+  setUnion,
+} from './utils/set-ops.js';
 
 /**
  * Manages registration and lookup of command items and groups.
- * Uses ES2026 Set methods (union/intersection/difference) for efficient ID operations.
+ * Uses set operation helpers (union/intersection/difference) for efficient ID operations.
  * All registration methods return Disposable for automatic cleanup via `using`.
  */
 export class CommandRegistry implements Disposable {
@@ -73,12 +83,12 @@ export class CommandRegistry implements Disposable {
     this.#invalidateCache();
   }
 
-  /** Bulk unregister using Set.difference (ES2026) — for...of for hot path */
+  /** Bulk unregister — for...of for hot path */
   unregisterItems(ids: ReadonlySet<ItemId>): void {
     for (const id of ids) {
       this.#items.delete(id);
     }
-    this.#itemOrderSet = this.#itemOrderSet.difference(ids);
+    this.#itemOrderSet = setDifference(this.#itemOrderSet, ids);
     this.#itemOrder = this.#itemOrder.filter((id) => !ids.has(id));
     this.#invalidateCache();
   }
@@ -132,11 +142,10 @@ export class CommandRegistry implements Disposable {
     return this.#cachedGroups;
   }
 
-  /** Get items grouped by groupId using Map.groupBy (ES2026) — direct Map, no Object.entries conversion */
+  /** Get items grouped by groupId — direct Map, no Object.entries conversion */
   getGroupedItems(): ReadonlyMap<GroupId, readonly CommandItem[]> {
     const items = this.getItems();
-    // Map.groupBy (ES2026) — returns Map<GroupId, CommandItem[]> directly
-    const grouped = Map.groupBy(items, (item) => item.groupId ?? ('__ungrouped' as GroupId));
+    const grouped = mapGroupBy(items, (item) => item.groupId ?? ('__ungrouped' as GroupId));
 
     // Build result in group priority order, then append ungrouped
     const result = new Map<GroupId, readonly CommandItem[]>();
@@ -162,39 +171,39 @@ export class CommandRegistry implements Disposable {
     return this.#itemOrderSet;
   }
 
-  /** Find intersection of registered items with a candidate set (ES2026 Set.intersection) */
+  /** Find intersection of registered items with a candidate set */
   intersectWith(candidateIds: ReadonlySet<ItemId>): ReadonlySet<ItemId> {
-    return this.#itemOrderSet.intersection(candidateIds);
+    return setIntersection(this.#itemOrderSet, candidateIds);
   }
 
-  /** Find items registered but not in a given set (ES2026 Set.difference) */
+  /** Find items registered but not in a given set */
   differenceFrom(otherIds: ReadonlySet<ItemId>): ReadonlySet<ItemId> {
-    return this.#itemOrderSet.difference(otherIds);
+    return setDifference(this.#itemOrderSet, otherIds);
   }
 
-  /** Union of registered IDs with another set (ES2026 Set.union) */
+  /** Union of registered IDs with another set */
   unionWith(otherIds: ReadonlySet<ItemId>): ReadonlySet<ItemId> {
-    return this.#itemOrderSet.union(otherIds);
+    return setUnion(this.#itemOrderSet, otherIds);
   }
 
-  /** Check if registered items are a subset of the given set (ES2026 Set.isSubsetOf) */
+  /** Check if registered items are a subset of the given set */
   isSubsetOf(otherIds: ReadonlySet<ItemId>): boolean {
-    return this.#itemOrderSet.isSubsetOf(otherIds);
+    return setIsSubsetOf(this.#itemOrderSet, otherIds);
   }
 
-  /** Check if registered items are a superset of the given set (ES2026 Set.isSupersetOf) */
+  /** Check if registered items are a superset of the given set */
   isSupersetOf(otherIds: ReadonlySet<ItemId>): boolean {
-    return this.#itemOrderSet.isSupersetOf(otherIds);
+    return setIsSupersetOf(this.#itemOrderSet, otherIds);
   }
 
-  /** Check if registered items share no IDs with the given set (ES2026 Set.isDisjointFrom) */
+  /** Check if registered items share no IDs with the given set */
   isDisjointFrom(otherIds: ReadonlySet<ItemId>): boolean {
-    return this.#itemOrderSet.isDisjointFrom(otherIds);
+    return setIsDisjointFrom(this.#itemOrderSet, otherIds);
   }
 
-  /** Symmetric difference between registered IDs and another set (ES2026 Set.symmetricDifference) */
+  /** Symmetric difference between registered IDs and another set */
   symmetricDifferenceWith(otherIds: ReadonlySet<ItemId>): ReadonlySet<ItemId> {
-    return this.#itemOrderSet.symmetricDifference(otherIds);
+    return setSymmetricDifference(this.#itemOrderSet, otherIds);
   }
 
   /** Total number of registered items */

@@ -17,6 +17,7 @@ import type {
 } from './types.js';
 import { createInitialState } from './types.js';
 import { TypedEmitter } from './utils/event-emitter.js';
+import { mapGroupBy } from './utils/group-by.js';
 import type { Scheduler } from './utils/scheduler.js';
 import { createScheduler } from './utils/scheduler.js';
 
@@ -149,8 +150,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     filteredIdSet = new Set(filteredIds);
     filteredIdIndex = new Map(filteredIds.entries().map(([i, id]) => [id, i] as const));
 
-    // Build grouped IDs — Map.groupBy (ES2026)
-    const groupedIds = Map.groupBy(filteredIds, (id) => {
+    // Build grouped IDs
+    const groupedIds = mapGroupBy(filteredIds, (id) => {
       const item = registry.getItem(id);
       return (item?.groupId ?? ('__ungrouped' as GroupId)) as GroupId;
     });

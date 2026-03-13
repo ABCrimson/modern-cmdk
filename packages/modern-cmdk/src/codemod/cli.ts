@@ -9,6 +9,7 @@ import { resolve } from 'node:path';
 import { globby } from 'globby';
 import type { API, FileInfo } from 'jscodeshift';
 import jscodeshift from 'jscodeshift';
+import { objectGroupBy } from '../core/utils/group-by.js';
 
 // --- Transform registry ---------------------------------------------------
 
@@ -144,8 +145,11 @@ async function main(): Promise<void> {
     report: (): void => {},
   });
 
-  // Process files in concurrent batches using Promise.withResolvers for tracking
-  const { promise: done, resolve: resolveDone } = Promise.withResolvers<TransformResult[]>();
+  // Process files in concurrent batches
+  let resolveDone!: (v: TransformResult[]) => void;
+  const done = new Promise<TransformResult[]>((r) => {
+    resolveDone = r;
+  });
   const allResults: TransformResult[] = [];
 
   // Use chunked async generator for batched concurrency
@@ -167,8 +171,8 @@ async function main(): Promise<void> {
   resolveDone(allResults);
   const results = await done;
 
-  // Group results using Object.groupBy
-  const grouped = Object.groupBy(results, (r) => {
+  // Group results
+  const grouped = objectGroupBy(results, (r) => {
     if (r.error) return 'errors';
     if (r.changed) return 'changed';
     return 'unchanged';
