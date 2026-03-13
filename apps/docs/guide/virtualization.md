@@ -11,10 +11,12 @@ Virtualization is opt-out, not opt-in. When your filtered results exceed the thr
 
 import { Command } from 'modern-cmdk/react';
 
-// Generate 10,000 items using Iterator Helpers
-const items = Iterator.range(0, 10_000)
-  .map((i) => ({ id: `item-${i}`, label: `Item ${i}`, value: `item-${i}` }))
-  .toArray();
+// Generate 10,000 items using Iterator Helpers (ES2026)
+const items = Array.from({ length: 10_000 }, (_, i) => ({
+  id: `item-${i}`,
+  label: `Item ${i}`,
+  value: `item-${i}`,
+}));
 
 function LargeList() {
   return (

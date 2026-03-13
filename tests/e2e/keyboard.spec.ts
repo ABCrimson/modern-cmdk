@@ -247,10 +247,6 @@ test.describe('Keyboard Navigation', () => {
     const input = page.getByRole('combobox');
     await input.focus();
 
-    // If there are pages, the initial page should be visible
-    const pages = page.locator('[data-command-page]');
-    const _initialPageCount = await pages.count();
-
     // Pressing Backspace with empty input should attempt to pop page
     await expect(input).toHaveValue('');
     await input.press('Backspace');

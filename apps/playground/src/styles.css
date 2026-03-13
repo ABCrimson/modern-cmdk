@@ -467,8 +467,8 @@
       font-size: 0.875rem;
       color: var(--text-secondary);
       transition:
-        background-color var(--duration-fast) linear(0, 0.25, 0.5, 0.75, 1),
-        color var(--duration-fast) ease;
+        background-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
 
       &[data-active] {
         background: var(--bg-active);
