@@ -49,7 +49,7 @@ Raw filter throughput across 15 scenarios (100 / 1K / 10K items x 5 query types)
 | Package | Size | Limit |
 |---------|------|-------|
 | modern-cmdk (core) | 6.12 KB | 6.5 KB |
-| modern-cmdk/react | 24.89 KB | 25 KB |
+| modern-cmdk/react | 24.89 KB | 25.5 KB |
 | modern-cmdk-search-wasm (JS) | 1.5 KB | 2.0 KB |
 
 ### Filter Performance
