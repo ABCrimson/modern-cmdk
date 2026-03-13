@@ -1,6 +1,8 @@
 // packages/command/src/types.ts
-// TypeScript 6.0.1-rc — ES2026 target — all modern type features
+// TypeScript 6.0.1-rc — ESNext target — all modern type features
 // Branded types, const type params, NoInfer<T>, satisfies on values
+
+import { ensureWellFormed } from './utils/string-wellformed.js';
 
 /**
  * Branded type for command item IDs.
@@ -22,14 +24,14 @@ export type ItemId = string & { readonly [__itemIdBrand]: never };
 declare const __groupIdBrand: unique symbol;
 export type GroupId = string & { readonly [__groupIdBrand]: never };
 
-/** Create a branded {@link ItemId} from a plain string. Ensures well-formed Unicode (ES2026). */
+/** Create a branded {@link ItemId} from a plain string. Ensures well-formed Unicode. */
 export function itemId(id: string): ItemId {
-  return (id.isWellFormed() ? id : id.toWellFormed()) as ItemId;
+  return ensureWellFormed(id) as ItemId;
 }
 
-/** Create a branded {@link GroupId} from a plain string. Ensures well-formed Unicode (ES2026). */
+/** Create a branded {@link GroupId} from a plain string. Ensures well-formed Unicode. */
 export function groupId(id: string): GroupId {
-  return (id.isWellFormed() ? id : id.toWellFormed()) as GroupId;
+  return ensureWellFormed(id) as GroupId;
 }
 
 /**

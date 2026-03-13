@@ -5,6 +5,7 @@
 
 import type { UseStore } from 'idb-keyval';
 import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';
+import { ensureWellFormed } from '../utils/string-wellformed.js';
 
 /** JSON-safe serialized form of a FrecencyRecord */
 interface SerializedFrecencyRecord {
@@ -55,9 +56,9 @@ function deserializeData(serialized: SerializedFrecencyData): FrecencyData {
   };
 }
 
-/** Build the namespaced IDB key — String.toWellFormed() (ES2026) ensures valid Unicode in key */
+/** Build the namespaced IDB key — ensures valid Unicode in key */
 function storageKey(namespace: string): string {
-  const safeNamespace = namespace.isWellFormed() ? namespace : namespace.toWellFormed();
+  const safeNamespace = ensureWellFormed(namespace);
   return `frecency:${safeNamespace}`;
 }
 

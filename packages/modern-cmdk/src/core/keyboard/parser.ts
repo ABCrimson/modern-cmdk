@@ -1,6 +1,8 @@
 // packages/command/src/keyboard/parser.ts
 // Shortcut string parser ("Mod+K")
 
+import { ensureWellFormed } from '../utils/string-wellformed.js';
+
 /**
  * Structured representation of a keyboard shortcut after parsing.
  * The `normalized` field provides a deterministic string for dedup and comparison.
@@ -42,11 +44,11 @@ const MODIFIER_MAP: Readonly<
 
 /**
  * Parse a shortcut string like "Mod+Shift+K" into a structured ParsedShortcut.
- * Uses String.isWellFormed() (ES2026) to ensure valid Unicode input.
+ * Ensures valid Unicode input via ensureWellFormed helper.
  */
 export function parseShortcut(shortcut: string): ParsedShortcut {
-  // String.isWellFormed() (ES2026) — validate Unicode before processing
-  const safeShortcut = shortcut.isWellFormed() ? shortcut : shortcut.toWellFormed();
+  // Ensure valid Unicode before processing
+  const safeShortcut = ensureWellFormed(shortcut);
 
   const parts = safeShortcut.split('+').map((p) => p.trim().toLowerCase());
 
