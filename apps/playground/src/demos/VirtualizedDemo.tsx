@@ -31,13 +31,23 @@ const CATEGORIES = ['action', 'setting', 'navigation', 'tool', 'utility'] as con
 
 const ICONS = ['\u2726', '\u25C6', '\u25CF', '\u25B2', '\u2605'] as const;
 
+/** Default item count — configurable via ?count= URL param for CI/testing */
+const DEFAULT_ITEM_COUNT = 10_000;
+
+function getItemCount(): number {
+  const params = new URLSearchParams(globalThis.location?.search ?? '');
+  const count = Number(params.get('count'));
+  return count > 0 ? count : DEFAULT_ITEM_COUNT;
+}
+
 export function VirtualizedDemo(): React.ReactNode {
   const headingId = useId();
+  const itemCount = useMemo(getItemCount, []);
 
-  // Generate 10,000 items using Array.from
+  // Generate items using Array.from
   const items = useMemo(
     () =>
-      Array.from({ length: 10_000 }, (_, i) => {
+      Array.from({ length: itemCount }, (_, i) => {
         const word = WORDS[i % WORDS.length] as string;
         const category = CATEGORIES[i % CATEGORIES.length] as string;
         const icon = ICONS[i % ICONS.length] as string;
@@ -48,7 +58,7 @@ export function VirtualizedDemo(): React.ReactNode {
           icon,
         };
       }),
-    [],
+    [itemCount],
   );
 
   const handleSelect = useCallback((_value: string) => {
@@ -83,20 +93,21 @@ export function VirtualizedDemo(): React.ReactNode {
     <div className="demo-container" role="region" aria-labelledby={headingId}>
       <h2 className="demo-title" id={headingId}>
         Virtualized
-        <span className="demo-badge demo-badge--beta">10,000 items</span>
+        <span className="demo-badge demo-badge--beta">{itemCount.toLocaleString()} items</span>
       </h2>
       <p className="demo-description">
-        Rendering 10K items with automatic virtualization. The list auto-virtualizes when the
-        filtered count exceeds 100 items. Uses <code>content-visibility: auto</code> for
-        GPU-optimized rendering and <code>contain-intrinsic-size</code> for stable scroll height.
+        Rendering {itemCount.toLocaleString()} items with automatic virtualization. The list
+        auto-virtualizes when the filtered count exceeds 100 items. Uses{' '}
+        <code>content-visibility: auto</code> for GPU-optimized rendering and{' '}
+        <code>contain-intrinsic-size</code> for stable scroll height.
       </p>
 
       <Command
         className="command-palette command-palette--tall"
         label="Virtualized command palette"
       >
-        <Command.Input placeholder="Search 10,000 items..." />
-        <Command.List estimateSize={44} overscan={12}>
+        <Command.Input placeholder={`Search ${itemCount.toLocaleString()} items...`} />
+        <Command.List virtualize estimateSize={44} overscan={12}>
           <Command.Empty>No results found.</Command.Empty>
           {renderedItems}
         </Command.List>
