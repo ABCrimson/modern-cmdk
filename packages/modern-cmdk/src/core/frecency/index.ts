@@ -1,5 +1,5 @@
 // packages/command/src/frecency/index.ts
-// Uses: Iterator Helpers, Date.now() for timestamps
+// Uses: Date.now() for timestamps
 
 import type {
   FrecencyData,
@@ -148,12 +148,13 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
 
   [Symbol.dispose](): void {
     // Attempt to flush synchronously (best effort for memory storage)
-    // Promise.try handles both sync and async returns transparently
     if (this.#dirty) {
-      Promise.try(() => this.#storage.save(this.#namespace, this.#data)).catch((err: unknown) => {
-        // biome-ignore lint/suspicious/noConsole: Dispose-time diagnostic for production debugging
-        console.warn('[modern-cmdk] FrecencyEngine dispose flush failed:', err);
-      });
+      Promise.resolve()
+        .then(() => this.#storage.save(this.#namespace, this.#data))
+        .catch((err: unknown) => {
+          // biome-ignore lint/suspicious/noConsole: Dispose-time diagnostic for production debugging
+          console.warn('[modern-cmdk] FrecencyEngine dispose flush failed:', err);
+        });
     }
     this.#storage[Symbol.dispose]();
   }
