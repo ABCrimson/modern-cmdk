@@ -153,7 +153,7 @@ formatShortcut('Mod+Shift+K', 'windows');
 
 ### `detectConflicts(shortcuts)`
 
-Detects conflicting keyboard shortcuts using `Map.groupBy` (ES2026):
+Detects conflicting keyboard shortcuts by grouping shortcuts by normalized form:
 
 ```typescript
 import { parseShortcut, detectConflicts } from 'modern-cmdk';
@@ -171,7 +171,7 @@ const conflicts = detectConflicts(shortcuts);
 ```
 
 ::: tip
-`detectConflicts` uses `Map.groupBy` internally to group shortcuts by their normalized form, then filters for groups with more than one entry. This is O(n) and runs during registration, not on every keystroke.
+`detectConflicts` groups shortcuts by their normalized form internally, then filters for groups with more than one entry. This is O(n) and runs during registration, not on every keystroke.
 :::
 
 ## ARIA Integration

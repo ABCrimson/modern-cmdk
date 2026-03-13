@@ -62,7 +62,7 @@ This document describes the technical architecture of `modern-cmdk` -- a ground-
 |  |   State     |  |   Search      |  |   Frecency          |  |
 |  |   Machine   |  |   Engine      |  |   Engine            |  |
 |  |             |  |               |  |                     |  |
-|  | Pure TS     |  | Pluggable     |  | Temporal API        |  |
+|  | Pure TS     |  | Pluggable     |  | Time Decay          |  |
 |  | Disposable  |  | scorer fn     |  | Exponential decay   |  |
 |  | Immutable   |  | Incremental   |  | Pluggable storage   |  |
 |  | snapshots   |  | filtering     |  | Disposable          |  |
@@ -71,15 +71,15 @@ This document describes the technical architecture of `modern-cmdk` -- a ground-
 |  +------v-----------------v----------------------v----------+  |
 |  |              Command Registry                            |  |
 |  |  Items (Map) | Groups (Map) | Order (Array + Set)        |  |
-|  |  Set.intersection | Set.difference | Set.union           |  |
-|  |  Iterator Helpers | Object.groupBy | Disposable          |  |
+|  |  setIntersection | setDifference | setUnion (helpers)  |  |
+|  |  Iterator Helpers | objectGroupBy | Disposable          |  |
 |  +---+---------------------------------------------+-------+  |
 |      |                                              |          |
 |  +---v--------------------------+  +----------------v-------+  |
 |  | Keyboard Shortcut Registry   |  | Scheduler              |  |
 |  | Parser (RegExp.escape)       |  | rAF batching (browser) |  |
 |  | Matcher (event matching)     |  | microtask (Node.js)    |  |
-|  | Conflicts (Object.groupBy)   |  | Promise.withResolvers  |  |
+|  | Conflicts (objectGroupBy)    |  | Promise.withResolvers  |  |
 |  | Disposable (using)           |  | Disposable             |  |
 |  +------------------------------+  +------------------------+  |
 +---------------------------------------------------------------+
@@ -147,7 +147,7 @@ createCommandMachine(options)
 | `page` | `string` | Current page name |
 | `pageStack` | `readonly string[]` | Page navigation history |
 | `open` | `boolean` | Dialog open state |
-| `lastUpdated` | `Temporal.Instant` | Timestamp of last state change |
+| `lastUpdated` | `number` | Timestamp of last state change (epoch ms) |
 
 **Event types** (`CommandEvent`):
 
@@ -191,7 +191,7 @@ CommandRegistry
   +-- unionWith(set) -> Set                 -- Set.union (ES2026)
 ```
 
-ES2026 Set methods (`intersection`, `difference`, `union`) are used for efficient bulk ID operations during filtering and registration.
+Cross-browser set operation helpers (`setIntersection`, `setDifference`, `setUnion`) are used for efficient bulk ID operations during filtering and registration.
 
 ### Event Emitter
 
@@ -292,7 +292,7 @@ The frecency bonus is computed using exponential decay buckets based on elapsed 
 frecency_bonus = frequency_count * recency_weight
 ```
 
-Time elapsed is computed using `Temporal.Instant.since()` and `.total('hours')`. The `FrecencyEngine` implements `Disposable` -- on dispose, it flushes dirty data to storage (best-effort for async storage).
+Time elapsed is computed using `(Date.now() - lastUsed) / 3_600_000` for hours. The `FrecencyEngine` implements `Disposable` -- on dispose, it flushes dirty data to storage (best-effort for async storage).
 
 **Storage interface:**
 
@@ -372,10 +372,10 @@ Global shortcut management:
 
 ### Conflict Detection
 
-Uses `Object.groupBy` (ES2024) to group shortcuts by normalized form:
+Uses `objectGroupBy` helper to group shortcuts by normalized form:
 
 ```ts
-const grouped = Object.groupBy(shortcuts, (s) => s.normalized);
+const grouped = objectGroupBy(shortcuts, (s) => s.normalized);
 // Any group with length > 1 is a conflict
 ```
 
@@ -575,24 +575,22 @@ React Context triggers re-renders in all consumers when any value changes. The m
 3. **Bundle efficiency** -- Users who only need the core (e.g., for a CLI tool or a non-React app) get a 3 KB package with zero dependencies.
 4. **Separation of concerns** -- Framework quirks (React's batching, Svelte's reactivity) are isolated in the adapter layer.
 
-### Why Temporal over `Date`?
+### Why `Date.now()` for timestamps?
 
-- `Temporal.Instant` is immutable -- fits the immutable state model.
-- `Temporal.Duration` has `.total('hours')` for precise time bucket calculation in frecency decay. No `(Date.now() - timestamp) / 3600000` arithmetic.
-- `Temporal.Now.instant()` has nanosecond precision -- useful for benchmark timing.
-- The frecency engine stores `Temporal.Instant` values directly. No serialization ambiguity.
+- Simple epoch milliseconds (`number`) fit the immutable state model with zero serialization overhead.
+- Elapsed hours computed via `(Date.now() - lastUsed) / 3_600_000` -- straightforward and cross-browser compatible.
+- No polyfill or runtime dependency required (Temporal API was previously used but is not yet available in browsers).
 
 ### Why ES2026 target?
 
-The project targets Node.js 25.8.0+, which ships all ES2026 features natively. Benefits:
+The project targets Node.js 25.8.0+, which ships many ES2026 features natively. Benefits:
 
 - **Iterator Helpers** (`map`, `filter`, `toArray`, `some`, `forEach`) -- pipeline operations on Map/Set iterators without intermediate arrays.
-- **Set methods** (`intersection`, `difference`, `union`) -- efficient bulk ID operations in the registry without manual loops.
 - **`using` / `await using`** -- Explicit Resource Management prevents leaked listeners, timers, and storage connections. Every class implements `Disposable`.
-- **`Promise.try`** -- Safe async scoring wrapper that catches synchronous exceptions.
 - **`Promise.withResolvers`** -- Clean scheduler flush implementation.
 - **`RegExp.escape`** -- Safe pattern construction from user-provided shortcut strings.
-- **`Object.groupBy`** -- Keyboard conflict detection and item grouping.
+
+Some ES2026 features (Set methods, `Map.groupBy`, `Object.groupBy`, `Promise.try`, `Temporal`, `Math.sumPrecise`) are replaced with cross-browser helper functions to ensure compatibility with current browsers via the tsdown build pipeline.
 
 ### Why `Disposable` everywhere?
 
@@ -670,14 +668,14 @@ packages/command/src/
     types.ts             -- SearchEngine, SearchResult, ScorerFn
     index.ts             -- Search engine factory (incremental filtering)
     default-scorer.ts    -- Built-in fuzzy scorer
-    fuzzy-scorer.ts      -- Async scorer (Promise.try)
+    fuzzy-scorer.ts      -- Async scorer
   frecency/
-    index.ts             -- FrecencyEngine (Temporal, Disposable)
+    index.ts             -- FrecencyEngine (Date.now, Disposable)
     storage.ts           -- FrecencyStorage interface
     memory-storage.ts    -- In-memory storage implementation
   keyboard/
     parser.ts            -- Shortcut string parser (RegExp.escape)
-    matcher.ts           -- KeyboardEvent matcher (Object.groupBy)
+    matcher.ts           -- KeyboardEvent matcher
     index.ts             -- KeyboardShortcutRegistry (Disposable)
   utils/
     event-emitter.ts     -- TypedEmitter (WeakRef, Iterator Helpers)

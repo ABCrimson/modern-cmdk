@@ -59,7 +59,7 @@ Raw filter throughput across 15 scenarios (100 / 1K / 10K items x 5 query types)
 | 10K items | 1.2ms | 8.2ms |
 | 100K items | 12ms | 85ms |
 
-Incremental filtering uses `Set.difference()` (ES2026) to only re-score items that changed, achieving 7x speedup on subsequent keystrokes.
+Incremental filtering uses `setDifference()` helper to only re-score items that changed, achieving 7x speedup on subsequent keystrokes.
 
 ### Frecency
 
@@ -72,7 +72,7 @@ Incremental filtering uses `Set.difference()` (ES2026) to only re-score items th
 ## Why It's Fast
 
 1. **Iterator Helpers** — Zero intermediate array allocations in filter/map pipelines
-2. **Set.difference/intersection** — O(n) bulk operations instead of O(n*m) loops
+2. **Set operation helpers** — O(n) bulk operations instead of O(n*m) loops
 3. **Incremental search** — Only re-scores candidates from previous result set
 4. **Scheduler with yield** — Batches updates, yields to browser when input pending
 5. **content-visibility: auto** — Skips rendering off-screen items

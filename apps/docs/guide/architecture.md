@@ -42,13 +42,13 @@ stateDiagram-v2
 | Module | Responsibility |
 |--------|---------------|
 | `machine.ts` | State transitions, subscriber notification |
-| `registry.ts` | Item/group registration with Set methods (union/intersection/difference) |
-| `search/default-scorer.ts` | Fuzzy matching with Math.sumPrecise scoring |
+| `registry.ts` | Item/group registration with set operation helpers (union/intersection/difference) |
+| `search/default-scorer.ts` | Fuzzy matching and scoring |
 | `search/index.ts` | Search engine factory, pluggable scorer interface |
-| `frecency/index.ts` | Temporal.Duration-based decay buckets |
+| `frecency/index.ts` | Time-based decay buckets (Date.now) |
 | `frecency/idb-storage.ts` | IndexedDB persistence via idb-keyval |
 | `keyboard/parser.ts` | Shortcut string parsing with RegExp.escape |
-| `keyboard/matcher.ts` | Conflict detection via Map.groupBy |
+| `keyboard/matcher.ts` | Conflict detection via groupBy helper |
 | `utils/scheduler.ts` | Microtask batching for state updates |
 | `utils/event-emitter.ts` | Type-safe pub/sub with Disposable cleanup |
 
@@ -149,17 +149,15 @@ All engines implement `Disposable` or `AsyncDisposable` for automatic cleanup:
 } // engine[Symbol.asyncDispose]() called automatically
 ```
 
-## ES2026 Features Map
+## ES2026 & Cross-Browser Features
 
-| Feature | Where Used |
-|---------|-----------|
-| Iterator Helpers | Search pipelines, registry operations, frecency bonuses |
-| Set methods | Registry union/intersection/difference for group operations |
-| Math.sumPrecise | Search score aggregation |
-| Promise.withResolvers | Worker communication, async engine initialization |
-| Promise.try | Safe async operation wrapping |
-| using / await using | Engine lifecycle, subscription cleanup |
-| Temporal.Now.instant() | Frecency timestamps |
-| Temporal.Duration | Decay bucket boundaries |
-| RegExp.escape | Keyboard shortcut parser |
-| Map.groupBy | Shortcut conflict detection |
+| Feature | Where Used | Native/Helper |
+|---------|-----------|---------------|
+| Iterator Helpers | Search pipelines, registry operations, frecency bonuses | Native ES2026 |
+| `using` / `await using` | Engine lifecycle, subscription cleanup | Native ES2026 |
+| `Promise.withResolvers` | Worker communication, async engine initialization | Native ES2026 |
+| `RegExp.escape` | Keyboard shortcut parser | Native ES2026 |
+| Set operations | Registry union/intersection/difference for group operations | Helper functions (`set-ops.ts`) |
+| `mapGroupBy` / `objectGroupBy` | Shortcut conflict detection, item grouping | Helper functions (`group-by.ts`) |
+| `Date.now()` | Frecency timestamps, state `lastUpdated` | Native (replaces Temporal) |
+| `ensureWellFormed` | Branded ID creation | Helper function (`string-wellformed.ts`) |

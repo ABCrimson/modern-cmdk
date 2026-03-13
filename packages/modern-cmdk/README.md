@@ -99,7 +99,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 | **Architecture** | React-only, tightly coupled | Framework-agnostic core + thin adapters |
 | **React** | 18 | 19 (`use()`, `useOptimistic`, `useId`, `ref` as prop) |
 | **Search** | Basic substring | Fuzzy scoring + optional WASM (sub-1ms on 100K items) |
-| **Ranking** | Static order | Frecency with `Temporal`-based exponential decay |
+| **Ranking** | Static order | Frecency with time-based exponential decay |
 | **Virtualization** | None | Automatic variable-height, `content-visibility: auto` |
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
@@ -118,8 +118,8 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 - **React 19 adapter** -- 14 compound components. `useSyncExternalStore`, `useTransition`, `useOptimistic`, `use()` for Suspense. React Compiler compatible.
 - **Automatic virtualization** -- Variable-height virtual scrolling kicks in at 100+ items. Handles 100K+ items smoothly with `content-visibility: auto`.
 - **Fuzzy search** -- Built-in TypeScript scorer with incremental filtering. Optional [WASM engine](https://www.npmjs.com/package/modern-cmdk-search-wasm) for sub-1ms on 100K items.
-- **Frecency ranking** -- Frequency x recency with `Temporal`-based exponential decay. Pluggable persistence (memory or IndexedDB).
-- **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, conflict detection, and `RegExp.escape` parsing.
+- **Frecency ranking** -- Frequency x recency with time-based exponential decay. Pluggable persistence (memory or IndexedDB).
+- **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, conflict detection, and `RegExp.escape` parsing. Cross-browser helper functions for grouping and set operations.
 - **Full accessibility** -- WAI-ARIA combobox pattern, `aria-live` announcements, `forced-colors`, `prefers-contrast`, `prefers-reduced-motion`.
 - **GPU-composited animations** -- `@starting-style` entry, `scroll-timeline` progress, spring `linear()` easing. All customizable via CSS custom properties.
 - **Error boundary** -- `CommandErrorBoundary` with static or render-function fallback.

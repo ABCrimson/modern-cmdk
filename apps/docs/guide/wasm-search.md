@@ -113,7 +113,7 @@ function WorkerSearchPalette() {
       if (!disposed) setEngine(workerEngine);
     }
 
-    Promise.try(() => init());
+    Promise.resolve().then(() => init());
     return () => { disposed = true; };
   }, []);
 

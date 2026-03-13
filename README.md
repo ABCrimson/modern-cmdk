@@ -36,7 +36,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 | **Architecture** | React-only, tightly coupled | Framework-agnostic core + thin adapters |
 | **React** | 18 | 19 (`use()`, `useOptimistic`, `useId`, `ref` as prop) |
 | **Search** | Basic substring | Fuzzy scoring + optional WASM (sub-1ms on 100K items) |
-| **Ranking** | Static order | Frecency with `Temporal`-based exponential decay |
+| **Ranking** | Static order | Frecency with time-based exponential decay |
 | **Virtualization** | None | Automatic variable-height, `content-visibility: auto` |
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
@@ -58,14 +58,14 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 - **React 19 adapter** -- `useSyncExternalStore`, `useTransition`, `useOptimistic`, `useId`, `use()` for Suspense. React Compiler compatible.
 - **Automatic virtualization** -- Variable-height virtual scrolling at configurable threshold. 100K+ items with `content-visibility: auto`.
 - **Fuzzy search** -- Built-in TS scorer with incremental filtering. Optional WASM engine for sub-1ms on 100K items with graceful TS fallback.
-- **Frecency ranking** -- Frequency x recency with `Temporal`-based exponential decay and pluggable persistence (memory, IndexedDB).
-- **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, `RegExp.escape` parsing, `Object.groupBy` conflict detection.
+- **Frecency ranking** -- Frequency x recency with time-based exponential decay and pluggable persistence (memory, IndexedDB).
+- **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, `RegExp.escape` parsing, conflict detection.
 - **Full accessibility** -- WAI-ARIA combobox, `aria-live`, `aria-roledescription`, `forced-colors`, `prefers-contrast`, `prefers-reduced-motion`.
 - **GPU-composited animations** -- `@starting-style` entry, `scroll-timeline` progress, spring `linear()` easing, all customizable via CSS custom properties.
 - **Error boundary** -- `CommandErrorBoundary` with static or render-function fallback.
 - **DevTools** -- `useCommandDevtools()` exposes machine state via `CustomEvent` for browser inspection.
 - **Telemetry middleware** -- Pluggable hooks for palette open/close, search, and item selection analytics.
-- **ES2026 throughout** -- Iterator Helpers, Set methods, `using`/`await using`, `Promise.try`, `Promise.withResolvers`, `Temporal`, `RegExp.escape`, `Object.groupBy`.
+- **ES2026 throughout** -- Iterator Helpers, `using`/`await using`, `Promise.withResolvers`, `RegExp.escape`. Cross-browser helpers for Set operations, grouping, and time calculations.
 - **ESM-only** -- Zero CommonJS. Tree-shakeable. `sideEffects: false`. Isolated declarations.
 
 ---
@@ -158,7 +158,7 @@ function CommandPalette() {
 |  +-------------+ +-------------+ +------------------+        |
 |  | State       | | Search      | | Frecency         |        |
 |  | Machine     | | Engine      | | Engine           |        |
-|  | (Pure TS)   | | (Pluggable) | | (Temporal API)   |        |
+|  | (Pure TS)   | | (Pluggable) | | (Time Decay)     |        |
 |  +------+------+ +------+------+ +---------+--------+        |
 |  +------v----------------v------------------v---------+       |
 |  |     Command Registry & Event Emitter               |       |
@@ -373,7 +373,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 | TypeScript | 6.0.1-rc | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
 | React | 19.3.0-canary | `use()`, `useOptimistic`, `ref` as prop, Activity API |
 | Vite | 8.0.0-beta.16 | Playground dev server, HMR, build tooling |
-| Node.js | >= 25.8.0 | ES2026: Temporal, Iterator Helpers, Set methods |
+| Node.js | >= 25.8.0 | ES2026: Iterator Helpers, Explicit Resource Management |
 | Vitest | 4.1.0-beta.6 | Unit tests, benchmarks, V8 coverage |
 | Playwright | 1.59.0-alpha | Cross-browser E2E (Chromium, Firefox, WebKit) |
 | Biome | 2.4.6 | Lint + format (no ESLint, no Prettier) |

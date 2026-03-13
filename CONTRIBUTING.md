@@ -33,7 +33,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 25.8.0 | Required for ES2026 features (Temporal, Iterator Helpers, Set methods) |
+| Node.js | >= 25.8.0 | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
 | pnpm | >= 11.0.0-alpha.13 | Workspace protocol, `pnpm-workspace.yaml` |
 | TypeScript | 6.0.1-rc | Installed via devDependencies -- do not install globally |
 | Rust + wasm-pack | Latest stable | Only needed if working on `command-search-wasm` |
@@ -97,14 +97,14 @@ modern-cmdk/
           types.ts                SearchEngine, SearchResult, ScorerFn
           index.ts                Engine factory (incremental filtering)
           default-scorer.ts       Built-in fuzzy scorer
-          fuzzy-scorer.ts         Async scorer (Promise.try)
+          fuzzy-scorer.ts         Async scorer
         frecency/                 Frecency ranking subsystem
-          index.ts                FrecencyEngine (Temporal)
+          index.ts                FrecencyEngine (Date.now)
           storage.ts              Storage interface
           memory-storage.ts       In-memory storage
         keyboard/                 Keyboard shortcut subsystem
           parser.ts               Shortcut parser (RegExp.escape)
-          matcher.ts              Event matcher (Object.groupBy)
+          matcher.ts              Event matcher
           index.ts                ShortcutRegistry (Disposable)
         utils/
           event-emitter.ts        TypedEmitter (WeakRef, Iterator Helpers)
@@ -333,18 +333,27 @@ These are set in `tsconfig.base.json` and must not be overridden:
 
 ## ES2026 Feature Usage
 
-Use these features when they fit naturally. Do not avoid them for "compatibility" -- Node.js 25.8.0 supports them all natively.
+Use native ES2026 features that are supported in target browsers. Features not yet available in browsers use cross-browser helper functions.
+
+### Native ES2026 (use directly)
 
 | Feature | Where Used | Example |
 |---|---|---|
 | Iterator Helpers | Registry, search, emitter | `map.values().filter(fn).toArray()` |
-| Set methods | Registry, search | `setA.intersection(setB)`, `setA.difference(setB)` |
 | `using` / `await using` | Machine, registry, emitter, keyboard | `using machine = createCommandMachine(...)` |
-| `Promise.try` | Fuzzy scorer | `Promise.try(() => scoreItem(query, item))` |
 | `Promise.withResolvers` | Scheduler | `const { promise, resolve } = Promise.withResolvers()` |
-| `Temporal` | Frecency engine | `Temporal.Now.instant()`, `.since()`, `.total('hours')` |
 | `RegExp.escape` | Keyboard parser | `RegExp.escape(userInput)` |
-| `Object.groupBy` | Conflict detection, registry | `Object.groupBy(shortcuts, s => s.normalized)` |
+
+### Cross-browser helpers (use helpers, not native)
+
+| Feature | Helper | Location |
+|---|---|---|
+| Set methods | `setIntersection`, `setDifference`, `setUnion`, etc. | `core/utils/set-ops.ts` |
+| `Map.groupBy` / `Object.groupBy` | `mapGroupBy`, `objectGroupBy` | `core/utils/group-by.ts` |
+| `Temporal` | `Date.now()` | Direct usage (epoch ms) |
+| `Promise.try` | `Promise.resolve().then(fn)` | Direct usage |
+| `Math.sumPrecise` | `+= loop` | Direct usage |
+| `String.isWellFormed` | `ensureWellFormed` | `core/utils/string-wellformed.ts` |
 
 ---
 
@@ -669,9 +678,9 @@ The changeset config (`.changeset/config.json`):
 
 ## Troubleshooting
 
-### `Cannot find module 'temporal-polyfill'` or `Temporal is not defined`
+### `Iterator.range is not a function` or missing ES2026 features
 
-Node.js 25.8.0+ ships `Temporal` natively. If you see this error, your Node.js version is too old:
+Node.js 25.8.0+ ships these features natively. If you see this error, your Node.js version is too old:
 
 ```bash
 node --version  # Must be >= 25.8.0

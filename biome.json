@@ -117,7 +117,7 @@
       "arrowParentheses": "always",
       "bracketSameLine": false
     },
-    "globals": ["Temporal"]
+    "globals": []
   },
   "css": {
     "formatter": {

@@ -24,7 +24,7 @@ graph TB
     subgraph "Layer 1: Core Engine"
         MACHINE["State Machine\nPure TypeScript"]
         SEARCH["Search Engine\nPluggable scorer"]
-        FRECENCY["Frecency Engine\nTemporal.Duration decay"]
+        FRECENCY["Frecency Engine\nTime-based decay"]
         KEYBOARD["Keyboard Registry\nRegExp.escape parser"]
     end
 
@@ -43,8 +43,8 @@ Pure TypeScript state machine with zero DOM dependencies. Manages:
 
 - **Item registry** -- Registration, deregistration, grouping
 - **Search and filtering** -- Pluggable `SearchEngine` interface
-- **Frecency ranking** -- `Temporal.Duration` decay buckets with configurable weights
-- **Keyboard shortcuts** -- `RegExp.escape`-based parser, `Map.groupBy` conflict detection
+- **Frecency ranking** -- Time-based decay buckets with configurable weights
+- **Keyboard shortcuts** -- `RegExp.escape`-based parser, conflict detection via groupBy helper
 - **Navigation** -- Active item tracking, page stack, loop/no-loop
 - **State snapshots** -- Immutable `CommandState` objects for efficient change detection
 
@@ -246,18 +246,18 @@ class RedisFrecencyStorage implements FrecencyStorage {
 }
 ```
 
-## ES2026 Features Used
+## ES2026 & Cross-Browser Features
 
-| Feature | Where Used |
-|---|---|
-| Iterator Helpers (`.map`, `.filter`, `.toArray`) | Search pipelines, registry operations |
-| `Map.groupBy` | Shortcut conflict detection |
-| `Temporal.Now.instant()` | Frecency timestamps, state `lastUpdated` |
-| `Temporal.Duration` | Frecency decay bucket boundaries |
-| `using` / `await using` | Machine, engine, and storage lifecycle |
-| `RegExp.escape` | Shortcut string parser |
-| `Promise.withResolvers()` | Worker request tracking |
-| `Promise.try()` | Safe async initialization |
-| Branded types (`ItemId`, `GroupId`) | Type-safe ID handling |
-| `NoInfer<T>` | Callback type inference |
-| `satisfies` | Default configuration validation |
+| Feature | Where Used | Native/Helper |
+|---|---|---|
+| Iterator Helpers (`.map`, `.filter`, `.toArray`) | Search pipelines, registry operations | Native ES2026 |
+| `using` / `await using` | Machine, engine, and storage lifecycle | Native ES2026 |
+| `RegExp.escape` | Shortcut string parser | Native ES2026 |
+| `Promise.withResolvers()` | Worker request tracking | Native ES2026 |
+| `mapGroupBy` / `objectGroupBy` | Shortcut conflict detection, item grouping | Helper functions |
+| `Date.now()` | Frecency timestamps, state `lastUpdated` | Native (replaces Temporal) |
+| Set operations (`setIntersection`, etc.) | Registry bulk operations | Helper functions |
+| `ensureWellFormed` | Branded ID creation | Helper function |
+| Branded types (`ItemId`, `GroupId`) | Type-safe ID handling | TypeScript |
+| `NoInfer<T>` | Callback type inference | TypeScript |
+| `satisfies` | Default configuration validation | TypeScript |

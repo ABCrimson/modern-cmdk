@@ -32,7 +32,7 @@ function FrecencyPalette() {
 }
 ```
 
-When enabled, each time a user selects an item via `onSelect`, the frecency engine records the selection with a `Temporal.Now.instant()` timestamp. Future searches re-rank results by applying a frecency bonus to the search score.
+When enabled, each time a user selects an item via `onSelect`, the frecency engine records the selection with a `Date.now()` timestamp. Future searches re-rank results by applying a frecency bonus to the search score.
 
 ::: tip
 Frecency only affects the **order** of results, not whether they appear. An item must still match the search query to be shown. The frecency bonus is added to the search score to promote frequently/recently used items.
@@ -119,9 +119,9 @@ async function createMachineWithFrecency() {
 }
 ```
 
-## Temporal Duration Decay Buckets
+## Time-Based Decay Buckets
 
-The frecency algorithm uses `Temporal.Duration` to define time-based decay buckets. Items receive a recency multiplier based on when they were last used:
+The frecency algorithm uses time-based decay buckets. Items receive a recency multiplier based on when they were last used:
 
 | Time Since Last Use | Recency Multiplier |
 |---|---|
@@ -137,7 +137,7 @@ The final frecency score is:
 frecencyScore = frequency x recencyWeight
 ```
 
-Where `frequency` is the total number of selections and `recencyWeight` is determined by the elapsed `Temporal.Duration` since the last use.
+Where `frequency` is the total number of selections and `recencyWeight` is determined by the elapsed time since the last use.
 
 ## Custom Decay Curves
 
@@ -161,16 +161,15 @@ Override the default decay configuration with `decayConfig`:
 ```
 
 ::: details How Decay Weights Are Evaluated
-The elapsed time since an item was last used is computed in hours using `Temporal.Instant`. The weight corresponding to the matching time bucket is applied. If the item is older than a month, `olderWeight` is used.
+The elapsed time since an item was last used is computed in hours using `Date.now()`. The weight corresponding to the matching time bucket is applied. If the item is older than a month, `olderWeight` is used.
 
 ```typescript
-// Internal implementation using Temporal
+// Internal implementation using Date.now()
 export function computeFrecencyBonus(
   history: FrecencyRecord,
-  now: Temporal.Instant = Temporal.Now.instant(),
+  now: number = Date.now(),
 ): number {
-  const elapsed = now.since(history.lastUsed);
-  const hours = elapsed.total('hours');
+  const hours = (now - history.lastUsed) / 3_600_000;
 
   const recencyWeight =
     hours < 1    ? 4.0 :
@@ -208,7 +207,7 @@ using machine = createCommandMachine({
   frecency: { enabled: true },
 });
 
-// Select an item — frecency is recorded with Temporal.Now.instant()
+// Select an item — frecency is recorded with Date.now()
 machine.send({ type: 'ITEM_SELECT', id: 'settings' });
 
 // Future searches rank "Settings" higher due to frecency bonus

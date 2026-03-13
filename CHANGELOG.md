@@ -1,6 +1,32 @@
 # Changelog
 
-All notable changes to `@crimson_dev/command` packages are documented here.
+All notable changes to modern-cmdk packages are documented here.
+
+## [1.1.3] - 2026-03-13
+
+### Fixed
+- Virtualization DOM rendering — items now check `visibleIdSet` and only render when in viewport + overscan, reducing DOM nodes from thousands to ~30
+- Latch-based auto-virtualization with hysteresis (>100 enables, <=50 disables) prevents circular dependency race conditions
+- WCAG 2.1 AA contrast compliance in both light and dark themes (OKLCH color values updated)
+- CSS RTL support: `transform-origin: left center` → `transform-origin: inline-start center`
+- E2E test reliability: auto-retrying assertions replace snapshot reads throughout all test suites
+- Virtualization E2E tests run in CI with `?count=2000` instead of being skipped
+
+### Changed
+- Replaced `Temporal.Now.instant()` / `Temporal.Duration` with `Date.now()` for cross-browser compatibility
+- Replaced `Math.sumPrecise` with `+=` loops (Stage 2.7, not in browsers)
+- Replaced `Map.groupBy` / `Object.groupBy` with cross-browser helper functions
+- Replaced `Set.intersection` / `.difference` / `.union` / `.isSubsetOf` with helper functions
+- Replaced `Promise.try` with `Promise.resolve().then()`
+- Replaced `String.isWellFormed` / `.toWellFormed` with regex-based surrogate replacement
+- `scrollToIndex` uses `behavior: 'instant'` for responsive keyboard navigation
+- Removed `Temporal` from Biome globals list
+
+### Retained ES2026 Features
+- Iterator Helpers (`.map`, `.filter`, `.toArray`, `.forEach`, `.some`)
+- `using` / `await using` (Explicit Resource Management)
+- `Promise.withResolvers`
+- `RegExp.escape`
 
 ## [0.10.0] - 2026-03-09
 
@@ -28,8 +54,8 @@ All notable changes to `@crimson_dev/command` packages are documented here.
 ### Added — Core Engine (`@crimson_dev/command`)
 - Pure TypeScript state machine with zero DOM dependencies
 - Pluggable `SearchEngine` interface with built-in fuzzy scorer
-- Incremental filtering — query-append optimization using `Set.difference`
-- `FrecencyEngine` with `Temporal.Duration` decay buckets (hour/day/week/month)
+- Incremental filtering — query-append optimization using set difference
+- `FrecencyEngine` with time-based decay buckets (hour/day/week/month)
 - `MemoryFrecencyStorage` (in-memory) and `IdbFrecencyStorage` (IndexedDB persistence)
 - `KeyboardShortcutRegistry` with `RegExp.escape` parser and `Object.groupBy` conflict detection
 - `TypedEmitter` with `WeakRef`-based GC-safe listeners
@@ -68,19 +94,22 @@ All notable changes to `@crimson_dev/command` packages are documented here.
 - `should-filter` — `shouldFilter` to `filter` prop rename
 - CLI with `--dry-run`, `--transform`, file globbing
 
-### ES2026 Features
+### ES2026 Features (native)
 - Iterator Helpers (`.map`, `.filter`, `.toArray`, `.forEach`, `.some`, `.find`)
-- Set methods (`.intersection`, `.difference`, `.union`)
-- `Math.sumPrecise` for floating-point-safe score aggregation
-- `Object.groupBy` for shortcut conflict detection and item grouping
-- `Temporal.Now.instant()` and `Temporal.Duration` for frecency
-- `RegExp.escape` for keyboard shortcut parser
-- `Promise.withResolvers()` for scheduler and worker communication
-- `Promise.try()` for safe async scoring
 - `using` / `await using` for automatic resource cleanup
+- `Promise.withResolvers()` for scheduler and worker communication
+- `RegExp.escape` for keyboard shortcut parser
 - `satisfies` for config validation
 - `NoInfer<T>` for callback type inference
 - Branded types for type-safe IDs
+
+### Cross-browser helpers (replacing browser-incompatible APIs)
+- Set operation helpers (`setIntersection`, `setDifference`, `setUnion`) replace `Set` methods
+- `mapGroupBy` / `objectGroupBy` helpers replace `Map.groupBy` / `Object.groupBy`
+- `Date.now()` replaces `Temporal.Now.instant()` and `Temporal.Duration`
+- `Promise.resolve().then()` replaces `Promise.try()`
+- `ensureWellFormed()` replaces `String.isWellFormed()`
+- `+=` loops replace `Math.sumPrecise`
 
 ### Technical
 - TypeScript 6.0.1-rc with `isolatedDeclarations`, `erasableSyntaxOnly`, `verbatimModuleSyntax`
