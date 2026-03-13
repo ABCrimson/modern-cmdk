@@ -86,6 +86,8 @@ export function useCommandSetup(
         state,
         isPending,
         filteredIdSet,
+        visibleIdSet: null,
+        virtualPositionMap: null,
       }) satisfies CommandStateContextValue,
     [state, isPending, filteredIdSet],
   );

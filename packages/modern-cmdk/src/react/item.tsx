@@ -5,7 +5,7 @@
 // React 19: use() for context
 // Isolated declarations: explicit return types on all exports
 
-import type { ComponentPropsWithRef, ReactNode } from 'react';
+import type { ComponentPropsWithRef, CSSProperties, ReactNode } from 'react';
 import { use, useCallback, useRef } from 'react';
 import { CommandGroupContext, useStableContext, useStateContext } from './context.js';
 import { useRegisterItem } from './hooks/use-register.js';
@@ -49,6 +49,8 @@ export function CommandItem({
   const isActive: boolean = stateCtx.state.activeId === id;
   // O(1) Set.has instead of O(n) Array.includes — critical for large lists
   const isFiltered: boolean = stateCtx.filteredIdSet.has(id);
+  // Virtual visibility — null means not virtualizing, so all filtered items are visible
+  const isVisible: boolean = stateCtx.visibleIdSet === null || stateCtx.visibleIdSet.has(id);
 
   const handleSelect = useCallback((): void => {
     if (!disabled) {
@@ -67,7 +69,15 @@ export function CommandItem({
     }
   }, [stable.machine, stable.setOptimisticActiveId, id, disabled]);
 
-  if (!isFiltered) return null;
+  // Items must still register (useRegisterItem above) but don't render DOM if filtered out or off-screen
+  if (!isFiltered || !isVisible) return null;
+
+  // Virtual positioning — absolute + translateY when virtualizing
+  const virtualStart = stateCtx.virtualPositionMap?.get(id);
+  const virtualStyle: CSSProperties | undefined =
+    virtualStart !== undefined
+      ? { position: 'absolute', top: 0, left: 0, width: '100%', translate: `0 ${virtualStart}px` }
+      : undefined;
 
   return (
     <div
@@ -83,6 +93,7 @@ export function CommandItem({
       aria-keyshortcuts={shortcut ?? undefined}
       onClick={handleSelect}
       onPointerMove={handlePointerMove}
+      style={virtualStyle}
       {...props}
     >
       {children}

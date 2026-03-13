@@ -20,6 +20,10 @@ export interface CommandContextValue {
   readonly setOptimisticActiveId: (id: ItemId | null) => void;
   /** O(1) membership check for filtered items — avoids O(n) Array.includes per item */
   readonly filteredIdSet: ReadonlySet<ItemId>;
+  /** IDs currently visible in virtual viewport + overscan. null = not virtualizing (render all filtered). */
+  readonly visibleIdSet: ReadonlySet<ItemId> | null;
+  /** Map of visible item IDs to their translateY pixel offsets. null = not virtualizing. */
+  readonly virtualPositionMap: ReadonlyMap<ItemId, number> | null;
   readonly rootId: CommandRootId;
   readonly listId: string;
   readonly inputId: string;
@@ -42,6 +46,10 @@ export interface CommandStateContextValue {
   readonly state: CommandState;
   readonly isPending: boolean;
   readonly filteredIdSet: ReadonlySet<ItemId>;
+  /** IDs currently visible in virtual viewport + overscan. null = not virtualizing (render all filtered). */
+  readonly visibleIdSet: ReadonlySet<ItemId> | null;
+  /** Map of visible item IDs to their translateY pixel offsets. null = not virtualizing. */
+  readonly virtualPositionMap: ReadonlyMap<ItemId, number> | null;
 }
 
 export const CommandStableContext: Context<CommandStableContextValue | null> =

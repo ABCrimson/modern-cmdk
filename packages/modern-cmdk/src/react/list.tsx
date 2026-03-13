@@ -9,16 +9,15 @@
 
 import type { ComponentPropsWithRef, CSSProperties, ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CommandListStatusContext, useStableContext, useStateContext } from './context.js';
+import type { ItemId } from '../core/index.js';
+import {
+  CommandListStatusContext,
+  CommandStateContext,
+  type CommandStateContextValue,
+  useStableContext,
+  useStateContext,
+} from './context.js';
 import { useVirtualizer } from './hooks/use-virtualizer.js';
-
-/** Base style for virtual items — hoisted to avoid allocation per item per render */
-const VIRTUAL_ITEM_BASE_STYLE: CSSProperties = {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  width: '100%',
-} as const;
 
 export interface CommandListProps extends ComponentPropsWithRef<'div'> {
   /** Override automatic virtualization (default: auto at >100 items, false to opt-out) */
@@ -47,10 +46,17 @@ export function CommandList({
 
   const innerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // State-tracked scroll element — triggers re-render when ref callback fires,
+  // so the virtualizer receives the actual DOM element instead of null
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
   const [height, setHeight] = useState<number>(0);
 
-  // Auto-virtualize when filteredCount > 100 (cmdk threshold)
-  const shouldVirtualize: boolean = virtualize ?? stateCtx.state.filteredCount > 100;
+  // Latch: once virtualization enables, keep it until explicit override or count drops well below threshold
+  const shouldVirtualizeRef = useRef<boolean>(false);
+  const computedVirtualize: boolean = virtualize ?? stateCtx.state.filteredCount > 100;
+  if (computedVirtualize) shouldVirtualizeRef.current = true;
+  else if (stateCtx.state.filteredCount <= 50) shouldVirtualizeRef.current = false;
+  const shouldVirtualize: boolean = virtualize ?? shouldVirtualizeRef.current;
 
   // ResizeObserver for --command-list-height CSS custom property
   useEffect(() => {
@@ -74,7 +80,7 @@ export function CommandList({
     count: stateCtx.state.filteredCount,
     estimateSize,
     overscan,
-    scrollElement: shouldVirtualize ? scrollRef.current : null,
+    scrollElement: shouldVirtualize ? scrollElement : null,
     enabled: shouldVirtualize,
   });
 
@@ -103,13 +109,41 @@ export function CommandList({
     [style, height],
   );
 
+  // Compute visible IDs and position map from virtualizer output
+  const { visibleIdSet, virtualPositionMap } = useMemo(() => {
+    if (!shouldVirtualize) return { visibleIdSet: null, virtualPositionMap: null };
+    const { filteredIds } = stateCtx.state;
+    const idSet = new Set<ItemId>();
+    const posMap = new Map<ItemId, number>();
+    for (const vItem of virtualizer.virtualItems) {
+      const id = filteredIds[vItem.index];
+      if (id !== undefined) {
+        idSet.add(id);
+        posMap.set(id, vItem.start);
+      }
+    }
+    return {
+      visibleIdSet: idSet as ReadonlySet<ItemId>,
+      virtualPositionMap: posMap as ReadonlyMap<ItemId, number>,
+    };
+  }, [shouldVirtualize, virtualizer.virtualItems, stateCtx.state.filteredIds]);
+
+  // Override state context for children — adds visibleIdSet and virtualPositionMap
+  const virtualizedStateCtx = useMemo<CommandStateContextValue>(() => ({
+    ...stateCtx,
+    visibleIdSet,
+    virtualPositionMap,
+  }), [stateCtx, visibleIdSet, virtualPositionMap]);
+
   // Stabilize external ref via useRef — prevents ref callback recreation when caller passes inline ref
   const externalRefRef = useRef(ref);
   externalRefRef.current = ref;
 
   // Ref merge callback — combines internal scrollRef with external ref prop (stable forever)
+  // Also updates scrollElement state to trigger re-render so virtualizer gets the DOM element
   const setScrollRef = useCallback((el: HTMLDivElement | null): void => {
     (scrollRef as RefObject<HTMLDivElement | null>).current = el;
+    setScrollElement(el);
     const externalRef = externalRefRef.current;
     if (typeof externalRef === 'function') externalRef(el);
     else if (externalRef) (externalRef as RefObject<HTMLDivElement | null>).current = el;
@@ -130,22 +164,13 @@ export function CommandList({
         {...props}
       >
         {shouldVirtualize ? (
-          // Virtualized rendering — GPU-composited translateY positioning
           <div
             data-command-list-virtual=""
             style={{ height: `${virtualizer.totalSize}px`, position: 'relative' }}
           >
-            {virtualizer.virtualItems.map((vItem) => (
-              <div
-                key={vItem.key}
-                data-command-virtual-item=""
-                data-index={vItem.index}
-                ref={virtualizer.measureElement}
-                style={{ ...VIRTUAL_ITEM_BASE_STYLE, translate: `0 ${vItem.start}px` }}
-              />
-            ))}
-            {/* Children still render for React reconciliation */}
-            {children}
+            <CommandStateContext value={virtualizedStateCtx}>
+              {children}
+            </CommandStateContext>
           </div>
         ) : (
           <div ref={innerRef} data-command-list-inner="">
