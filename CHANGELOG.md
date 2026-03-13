@@ -2,6 +2,20 @@
 
 All notable changes to modern-cmdk packages are documented here.
 
+## [1.1.5] - 2026-03-13
+
+### Fixed
+- CI sharded tests: removed `--coverage` flag incompatible with Vitest sharding
+- Package exports alignment: corrected `engines` field and export paths for WASM package
+- React bundle size limit updated to 25.5 KB in root `package.json` and benchmarks docs
+
+### Changed
+- API documentation (`apps/docs/api/command.md`): comprehensive expansion with full core engine reference
+- Coverage thresholds added to `vitest.config.ts` for CI enforcement
+- Docs: fixed `Iterator.range` bug in virtualization guide, aligned tsdown targets across packages
+- README: updated bundle sizes and pnpm version to match current state
+- `create-modern-cmdk` version synced to monorepo release
+
 ## [1.1.4] - 2026-03-13
 
 ### Fixed

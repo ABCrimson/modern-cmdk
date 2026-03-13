@@ -1,5 +1,17 @@
 # modern-cmdk
 
+## 1.1.5
+
+### Patch Changes
+
+- **fix(ci): remove `--coverage` from sharded tests** — Vitest coverage thresholds are incompatible with sharding; removed flag to fix CI failures.
+
+- **fix: pre-launch readiness** — Aligned package exports, `engines` field, and docs across `modern-cmdk` and `command-search-wasm`. Fixed bundle size limits in root `package.json` and benchmarks documentation (25 KB -> 25.5 KB for React bundle).
+
+- **docs: comprehensive API reference expansion** — Expanded `apps/docs/api/command.md` with full core engine documentation covering state machine, search engine, frecency, keyboard registry, telemetry, and branded types.
+
+- **chore: docs and build cleanup** — Fixed `Iterator.range` bug in virtualization guide, aligned tsdown targets across packages, updated README bundle sizes and pnpm version.
+
 ## 1.1.4
 
 ### Patch Changes
