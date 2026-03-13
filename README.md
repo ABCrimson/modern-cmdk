@@ -41,7 +41,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
-| **Bundle** | ~6 KB | Core ~6.1 KB, React ~24.3 KB |
+| **Bundle** | ~6 KB | Core ~6.3 KB, React ~25.2 KB |
 | **TypeScript** | 4.x/5.x | 6.0.1-rc, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Telemetry** | None | Pluggable telemetry middleware |
@@ -124,8 +124,8 @@ function CommandPalette() {
 
 | Package | Description | Size |
 |---|---|---|
-| [`modern-cmdk`](./packages/modern-cmdk) | Framework-agnostic core -- state machine, search, frecency, keyboard | ~6.1 KB |
-| [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | ~24.3 KB |
+| [`modern-cmdk`](./packages/modern-cmdk) | Framework-agnostic core -- state machine, search, frecency, keyboard | ~6.3 KB |
+| [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | ~25.2 KB |
 | [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items | <= 50 KB |
 | [`modern-cmdk (codemods)`](./packages/modern-cmdk/src/codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
 | [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding -- 3 templates (basic, dialog, full) | CLI |
@@ -261,8 +261,8 @@ Raw filter throughput measured across 15 scenarios (100 / 1K / 10K items x 5 que
 | Search 100K items (WASM) | < 1 ms | ~0.7 ms |
 | Filter 10K (incremental) | < 2 ms | ~1.1 ms |
 | State update cycle | < 4 ms | ~2.3 ms |
-| Core bundle (gzipped) | <= 6.5 KB | ~6.1 KB |
-| React bundle (gzipped) | <= 25 KB | ~24.3 KB |
+| Core bundle (gzipped) | <= 6.5 KB | ~6.3 KB |
+| React bundle (gzipped) | <= 25.5 KB | ~25.2 KB |
 
 CI enforces 5% warning / 15% failure regression thresholds with 3-run averaging.
 
@@ -378,7 +378,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 | Playwright | 1.59.0-alpha | Cross-browser E2E (Chromium, Firefox, WebKit) |
 | Biome | 2.4.6 | Lint + format (no ESLint, no Prettier) |
 | tsdown | 0.21.0 | ESM builds, isolated declarations |
-| pnpm | 11.0.0-alpha.12 | Workspace protocol, lockfile v10 |
+| pnpm | 11.0.0-alpha.13 | Workspace protocol, lockfile v10 |
 | VitePress | 2.0.0-alpha.16 | Documentation, Shiki twoslash |
 | Radix UI | 1.4.4-rc | Accessible dialog primitives |
 | Rust + wasm-pack | Latest | WASM fuzzy search engine |
