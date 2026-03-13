@@ -3,7 +3,7 @@
 // packages/command-react/src/hooks/use-virtualizer.ts
 // Virtualization hook — ResizeObserver + requestIdleCallback for measurement
 // GPU-composited transforms via translateY, content-visibility: auto for off-screen items
-// ES2026: Iterator Helpers (.map, .filter, .reduce), Math.sumPrecise
+// ES2026: Iterator Helpers (.map, .filter, .reduce)
 // Isolated declarations: explicit return types on all exports
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -65,14 +65,13 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     [estimateSize],
   );
 
-  // Memoize totalSize — Iterator Helpers + Math.sumPrecise (ES2026)
-  // measureVersion triggers recalc when elements are measured
+  // Memoize totalSize — measureVersion triggers recalc when elements are measured
   const totalSize: number = useMemo((): number => {
     void measureVersion; // dependency trigger
     if (!enabled) return 0;
-    const sizes: number[] = [];
-    for (let i = 0; i < count; i++) sizes.push(getItemSize(i));
-    return Math.sumPrecise(sizes);
+    let total = 0;
+    for (let i = 0; i < count; i++) total += getItemSize(i);
+    return total;
   }, [enabled, count, getItemSize, measureVersion]);
 
   // Memoize virtual items computation
@@ -87,11 +86,10 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
       startIdx++;
     }
 
-    // Apply overscan — recalculate offset with Iterator Helpers + Math.sumPrecise
+    // Apply overscan — recalculate offset
     startIdx = Math.max(0, startIdx - overscan);
-    const offsetSizes: number[] = [];
-    for (let i = 0; i < startIdx; i++) offsetSizes.push(getItemSize(i));
-    offset = Math.sumPrecise(offsetSizes);
+    offset = 0;
+    for (let i = 0; i < startIdx; i++) offset += getItemSize(i);
 
     // Collect visible items + overscan
     const items: VirtualItem[] = [];
@@ -115,15 +113,14 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     return items;
   }, [enabled, containerHeight, count, scrollOffset, overscan, estimateSize, getItemSize]);
 
-  // Scroll to a specific index — Math.sumPrecise (ES2026) + smooth GPU-composited scrolling
+  // Scroll to a specific index — smooth GPU-composited scrolling
   const scrollToIndex = useCallback(
     (index: number): void => {
       if (!scrollElement || !enabled) return;
 
       const clampedIndex = Math.min(index, count - 1);
-      const sizes: number[] = [];
-      for (let i = 0; i < clampedIndex; i++) sizes.push(getItemSize(i));
-      const targetOffset: number = Math.sumPrecise(sizes);
+      let targetOffset = 0;
+      for (let i = 0; i < clampedIndex; i++) targetOffset += getItemSize(i);
 
       scrollElement.scrollTo({ top: targetOffset, behavior: 'smooth' });
     },
