@@ -29,6 +29,12 @@ export default defineConfig({
         '**/codemod/**',
         '**/create-modern-cmdk/**',
       ],
+      thresholds: {
+        lines: 80,
+        functions: 75,
+        branches: 70,
+        statements: 80,
+      },
     },
     benchmark: {
       include: ['benchmarks/**/*.bench.ts'],
