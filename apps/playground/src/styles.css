@@ -21,10 +21,10 @@
     --bg-active: oklch(0.3 0.03 250);
     --bg-surface: oklch(0.15 0.014 260);
 
-    /* Text palette */
+    /* Text palette — WCAG 2.1 AA compliant (≥4.5:1 on respective surfaces) */
     --text-primary: oklch(0.95 0.008 260);
-    --text-secondary: oklch(0.72 0.018 260);
-    --text-muted: oklch(0.62 0.012 260);
+    --text-secondary: oklch(0.75 0.018 260);
+    --text-muted: oklch(0.68 0.012 260);
     --text-inverse: oklch(0.13 0.012 260);
 
     /* Border palette */
@@ -99,20 +99,20 @@
     --bg-surface: oklch(0.97 0.004 260);
 
     --text-primary: oklch(0.2 0.015 260);
-    --text-secondary: oklch(0.45 0.02 260);
-    --text-muted: oklch(0.6 0.015 260);
+    --text-secondary: oklch(0.38 0.02 260);
+    --text-muted: oklch(0.48 0.015 260);
 
     --border-default: oklch(0.82 0.012 260);
     --border-subtle: oklch(0.88 0.008 260);
 
-    --accent: oklch(0.55 0.22 250);
-    --accent-hover: oklch(0.5 0.24 250);
-    --accent-subtle: oklch(0.55 0.22 250 / 0.1);
+    --accent: oklch(0.45 0.22 250);
+    --accent-hover: oklch(0.40 0.24 250);
+    --accent-subtle: oklch(0.45 0.22 250 / 0.1);
 
     --shadow-sm: oklch(0 0 0 / 0.05);
     --shadow-md: oklch(0 0 0 / 0.1);
     --shadow-lg: oklch(0 0 0 / 0.15);
-    --shadow-glow: oklch(0.55 0.22 250 / 0.05);
+    --shadow-glow: oklch(0.45 0.22 250 / 0.05);
 
     color-scheme: light;
   }
