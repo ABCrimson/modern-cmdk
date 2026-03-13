@@ -139,17 +139,14 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     // Navigate down
     await input.press('ArrowDown');
 
-    // Wait for the active item to change
-    const newActiveItem = page.locator('[data-command-item][data-active]');
-    await expect(newActiveItem).toHaveCount(1);
-
-    const afterDownAD = await input.getAttribute('aria-activedescendant');
-    expect(afterDownAD).toBeTruthy();
-    expect(afterDownAD).not.toBe(initialAD);
+    // Wait for aria-activedescendant to change (auto-retrying assertion)
+    await expect(input).not.toHaveAttribute('aria-activedescendant', initialAD as string);
 
     // Verify it matches the active item's ID
+    const newActiveItem = page.locator('[data-command-item][data-active]');
+    await expect(newActiveItem).toHaveCount(1);
     const activeId = await newActiveItem.getAttribute('id');
-    expect(afterDownAD).toBe(activeId);
+    await expect(input).toHaveAttribute('aria-activedescendant', activeId as string);
   });
 
   test('should clear aria-activedescendant when no results', async ({ page }) => {

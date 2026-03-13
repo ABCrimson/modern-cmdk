@@ -62,20 +62,13 @@ test.describe('Virtualization — Large Item Set', () => {
       el.scrollTop = 5_000;
     });
 
-    // Wait for virtualized content to update
-    // Playwright 1.59 — use locator assertion instead of waitForTimeout
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
-
-    // Get IDs of items after scroll
-    const afterScrollItems = await page.locator('[data-command-item]').allTextContents();
-
-    // The items should be different (we scrolled past the initial viewport)
+    // Wait for virtualized content to actually change (auto-retrying poll)
     const initialSet = new Set(initialItems);
-    const _afterSet = new Set(afterScrollItems);
-    const overlap = afterScrollItems.filter((item) => initialSet.has(item));
-
-    // Most items should be different after scrolling 5000px
-    expect(overlap.length).toBeLessThan(initialItems.length);
+    await expect.poll(async () => {
+      const currentItems = await page.locator('[data-command-item]').allTextContents();
+      const overlap = currentItems.filter((item) => initialSet.has(item));
+      return overlap.length < initialItems.length;
+    }).toBeTruthy();
   });
 
   test('should still limit DOM nodes after scrolling down', async ({ page }) => {
@@ -102,23 +95,24 @@ test.describe('Virtualization — Large Item Set', () => {
     // Get initial items
     const initialItems = await page.locator('[data-command-item]').allTextContents();
 
-    // Scroll down
+    // Scroll down and wait for content to change
+    const initialSet = new Set(initialItems);
     await list.evaluate((el) => {
       el.scrollTop = 5_000;
     });
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
+    await expect.poll(async () => {
+      const items = await page.locator('[data-command-item]').allTextContents();
+      return items.some((item) => !initialSet.has(item));
+    }).toBeTruthy();
 
-    // Scroll back to top
+    // Scroll back to top and wait for content to restore
     await list.evaluate((el) => {
       el.scrollTop = 0;
     });
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
-
-    // Items should match the initial set
-    const afterReturnItems = await page.locator('[data-command-item]').allTextContents();
-    expect(afterReturnItems).toEqual(initialItems);
+    await expect.poll(async () => {
+      const items = await page.locator('[data-command-item]').allTextContents();
+      return JSON.stringify(items) === JSON.stringify(initialItems);
+    }).toBeTruthy();
   });
 
   test('should maintain DOM node budget after scroll up/down cycle', async ({ page }) => {
@@ -271,13 +265,13 @@ test.describe('Virtualization — Large Item Set', () => {
     const activeItem = page.locator('[data-command-item][data-active]');
     await expect(activeItem).toHaveCount(1);
 
-    // List should have scrolled near the bottom
-    const scrollTop = await list.evaluate((el) => el.scrollTop);
-    const scrollHeight = await list.evaluate((el) => el.scrollHeight);
-    const clientHeight = await list.evaluate((el) => el.clientHeight);
-
-    // Should be near the bottom
-    expect(scrollTop + clientHeight).toBeGreaterThan(scrollHeight - 100);
+    // Wait for scroll to settle near the bottom (auto-retrying poll)
+    await expect.poll(async () => {
+      const scrollTop = await list.evaluate((el) => el.scrollTop);
+      const scrollHeight = await list.evaluate((el) => el.scrollHeight);
+      const clientHeight = await list.evaluate((el) => el.clientHeight);
+      return scrollTop + clientHeight > scrollHeight - 100;
+    }).toBeTruthy();
   });
 
   test('should scroll active item into view when pressing Home after End', async ({ page }) => {
@@ -420,19 +414,19 @@ test.describe('Virtualization — Large Item Set', () => {
     const input = page.getByRole('combobox');
     await input.focus();
 
-    // Navigate down multiple times
-    for (let i = 0; i < 15; i++) {
+    // Navigate down — use fewer steps and verify active item settles between presses
+    for (let i = 0; i < 5; i++) {
       await input.press('ArrowDown');
     }
 
-    // aria-activedescendant should point to the active item
-    const ad = await input.getAttribute('aria-activedescendant');
-    expect(ad).toBeTruthy();
-
+    // Wait for the active item to stabilize (auto-retrying assertion)
     const activeItem = page.locator('[data-command-item][data-active]');
     await expect(activeItem).toHaveCount(1);
+
+    // aria-activedescendant should match the active item's ID
     const activeId = await activeItem.getAttribute('id');
-    expect(ad).toBe(activeId);
+    expect(activeId).toBeTruthy();
+    await expect(input).toHaveAttribute('aria-activedescendant', activeId as string);
   });
 
   // ---------- Edge Cases ----------

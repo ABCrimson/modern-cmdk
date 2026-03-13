@@ -24,7 +24,7 @@
     /* Text palette — WCAG 2.1 AA compliant (≥4.5:1 on respective surfaces) */
     --text-primary: oklch(0.95 0.008 260);
     --text-secondary: oklch(0.75 0.018 260);
-    --text-muted: oklch(0.68 0.012 260);
+    --text-muted: oklch(0.83 0.012 260);
     --text-inverse: oklch(0.13 0.012 260);
 
     /* Border palette */

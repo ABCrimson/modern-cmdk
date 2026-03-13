@@ -113,7 +113,7 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     return items;
   }, [enabled, containerHeight, count, scrollOffset, overscan, estimateSize, getItemSize]);
 
-  // Scroll to a specific index — smooth GPU-composited scrolling
+  // Scroll to a specific index — instant for keyboard nav responsiveness
   const scrollToIndex = useCallback(
     (index: number): void => {
       if (!scrollElement || !enabled) return;
@@ -122,7 +122,7 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
       let targetOffset = 0;
       for (let i = 0; i < clampedIndex; i++) targetOffset += getItemSize(i);
 
-      scrollElement.scrollTo({ top: targetOffset, behavior: 'smooth' });
+      scrollElement.scrollTo({ top: targetOffset, behavior: 'instant' });
     },
     [scrollElement, enabled, count, getItemSize],
   );

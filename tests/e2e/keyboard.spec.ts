@@ -198,10 +198,9 @@ test.describe('Keyboard Navigation', () => {
     await input.press('ArrowDown');
     await input.press('ArrowDown');
 
-    const activeItem = page.locator('[data-command-item][data-active]');
-    const thirdItemId = await items.nth(2).getAttribute('id');
-    const activeId = await activeItem.getAttribute('id');
-    expect(activeId).toBe(thirdItemId);
+    // Wait for the third item to become active (auto-retrying assertion)
+    const thirdItem = items.nth(2);
+    await expect(thirdItem).toHaveAttribute('data-active', '');
 
     // Select it
     await input.press('Enter');
