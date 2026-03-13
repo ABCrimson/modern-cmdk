@@ -28,7 +28,7 @@
     "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.11.2-9a07fd7.0",
+    "@axe-core/playwright": "4.11.2-22ddeaf.0",
     "@biomejs/biome": "2.4.6",
     "@changesets/changelog-github": "1.0.0-next.1",
     "@changesets/cli": "3.0.0-next.1",

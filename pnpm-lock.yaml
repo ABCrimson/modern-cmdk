@@ -13,8 +13,8 @@ importers:
   .:
     devDependencies:
       '@axe-core/playwright':
-        specifier: 4.11.2-9a07fd7.0
-        version: 4.11.2-9a07fd7.0(playwright-core@1.59.0-alpha-2026-03-07)
+        specifier: 4.11.2-22ddeaf.0
+        version: 4.11.2-22ddeaf.0(playwright-core@1.59.0-alpha-2026-03-07)
       '@biomejs/biome':
         specifier: 2.4.6
         version: 2.4.6
@@ -181,8 +181,8 @@ importers:
 
 packages:
 
-  '@axe-core/playwright@4.11.2-9a07fd7.0':
-    resolution: {integrity: sha512-CmE0+ohwDhOgbDK7jWj1y0FIG82fx8xWltr0X6YT+olnPixekzGSy45Se8ZX+ETY6a4bHS7WDqkjg5KHa7Azww==}
+  '@axe-core/playwright@4.11.2-22ddeaf.0':
+    resolution: {integrity: sha512-NLxmkKHZukzNpD5QPDfwnNu8LvmqyylOVNor7GKLVu/SqX+qs7StHPJzSYCxtpwyW/X5aDJNXo37qU0rmq6+Nw==}
     peerDependencies:
       playwright-core: '>= 1.0.0'
 
@@ -3631,7 +3631,7 @@ packages:
 
 snapshots:
 
-  '@axe-core/playwright@4.11.2-9a07fd7.0(playwright-core@1.59.0-alpha-2026-03-07)':
+  '@axe-core/playwright@4.11.2-22ddeaf.0(playwright-core@1.59.0-alpha-2026-03-07)':
     dependencies:
       axe-core: 4.11.1
       playwright-core: 1.59.0-alpha-2026-03-07
