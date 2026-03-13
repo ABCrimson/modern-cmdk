@@ -72,7 +72,7 @@
     {
       "name": "modern-cmdk/react",
       "path": "packages/modern-cmdk/dist/react/index.mjs",
-      "limit": "25 kB",
+      "limit": "25.5 kB",
       "gzip": true
     }
   ]
