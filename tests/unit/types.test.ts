@@ -55,8 +55,8 @@ describe('Type Foundation (0.0.2)', () => {
       expectTypeOf<CommandState>().toHaveProperty('lastUpdated');
     });
 
-    it('should use Temporal.Instant for lastUpdated', () => {
-      expectTypeOf<CommandState['lastUpdated']>().toEqualTypeOf<Temporal.Instant>();
+    it('should use number for lastUpdated (epoch ms)', () => {
+      expectTypeOf<CommandState['lastUpdated']>().toEqualTypeOf<number>();
     });
 
     it('should use ReadonlyMap for groupedIds', () => {
@@ -143,7 +143,8 @@ describe('Type Foundation (0.0.2)', () => {
       expect(state.filteredCount).toBe(0);
       expect(state.open).toBe(false);
       expect(state.page).toBe('root');
-      expect(state.lastUpdated).toBeInstanceOf(Temporal.Instant);
+      expect(typeof state.lastUpdated).toBe('number');
+      expect(state.lastUpdated).toBeGreaterThan(0);
     });
 
     it('should accept options for initial open state', () => {

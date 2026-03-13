@@ -1,5 +1,5 @@
 // packages/command/src/frecency/index.ts
-// Uses: Temporal (ES2026), Iterator Helpers, Temporal.Duration for readable bucket boundaries
+// Uses: Iterator Helpers, Date.now() for timestamps
 
 import type {
   FrecencyData,
@@ -25,16 +25,15 @@ const BUCKET_HOURS = {
 
 /**
  * Computes a frecency bonus for an item based on usage frequency and recency.
- * Uses Temporal.Duration bucket boundaries (hour/day/week/month) with
+ * Uses hour/day/week/month bucket boundaries with
  * configurable exponential decay weights per time bucket.
  */
 export function computeFrecencyBonus(
   history: FrecencyRecord,
-  now: Temporal.Instant = Temporal.Now.instant(),
+  now: number = Date.now(),
   config: FrecencyDecayConfig = DEFAULT_FRECENCY_DECAY,
 ): number {
-  const elapsed = now.since(history.lastUsed);
-  const hours = elapsed.total('hours');
+  const hours = (now - history.lastUsed) / 3_600_000;
 
   const {
     hourWeight = 4.0,
@@ -62,7 +61,7 @@ export function computeFrecencyBonus(
 /**
  * Stateful frecency engine that tracks item selection history and provides
  * ranking boosts for search results. Supports pluggable storage backends
- * and automatic flush on dispose. Uses Temporal.Now.instant() for timestamps.
+ * and automatic flush on dispose. Uses Date.now() for timestamps.
  */
 export class FrecencyEngine implements Disposable, AsyncDisposable {
   #storage: FrecencyStorage;
@@ -86,7 +85,7 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
 
   /** Record a selection event for an item */
   recordSelection(itemId: ItemId): void {
-    const now = Temporal.Now.instant();
+    const now = Date.now();
     const existing = this.#data.records.get(itemId);
 
     const updated: FrecencyRecord = {
@@ -100,14 +99,14 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
   }
 
   /** Get frecency bonus for an item */
-  getBonus(itemId: ItemId, now?: Temporal.Instant): number {
+  getBonus(itemId: ItemId, now?: number): number {
     const record = this.#data.records.get(itemId);
     if (!record) return 0;
     return computeFrecencyBonus(record, now, this.#config);
   }
 
   /** Get all frecency bonuses as a map — for...of for hot ranking path (no closure overhead) */
-  getAllBonuses(now: Temporal.Instant = Temporal.Now.instant()): ReadonlyMap<ItemId, number> {
+  getAllBonuses(now: number = Date.now()): ReadonlyMap<ItemId, number> {
     if (this.#data.records.size === 0) return EMPTY_BONUS_MAP;
     const bonuses = new Map<ItemId, number>();
     for (const [id, record] of this.#data.records) {

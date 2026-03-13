@@ -4,16 +4,19 @@
 import type { SnapshotSerializer } from 'vitest';
 
 /**
- * Snapshot serializer for Temporal.Instant — renders as ISO string
- * instead of opaque object representation.
+ * Snapshot serializer for epoch-millisecond timestamps — renders as ISO date string
+ * instead of raw number for readable snapshots.
+ * Note: This serializer is kept for backward compatibility but timestamps
+ * are now plain numbers (Date.now() epoch ms) rather than Temporal.Instant.
  */
-export const temporalInstantSerializer: SnapshotSerializer = {
+export const timestampSerializer: SnapshotSerializer = {
   test(val: unknown): boolean {
-    return typeof val === 'object' && val !== null && val instanceof Temporal.Instant;
+    // Only serialize numbers that look like epoch-ms timestamps (after 2000-01-01)
+    return typeof val === 'number' && val > 946_684_800_000 && Number.isFinite(val);
   },
-  serialize(val: Temporal.Instant): string {
-    return `Temporal.Instant <${val.toString()}>`;
+  serialize(val: number): string {
+    return `Timestamp <${new Date(val).toISOString()}>`;
   },
 };
 
-export default [temporalInstantSerializer];
+export default [timestampSerializer];

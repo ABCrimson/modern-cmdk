@@ -216,12 +216,13 @@ describe('Machine Integration (0.0.9)', () => {
     });
   });
 
-  it('should use Temporal.Instant for all state timestamps', async () => {
+  it('should use Date.now() for all state timestamps', async () => {
     using machine = createCommandMachine();
 
     machine.send({ type: 'OPEN' });
     await vi.waitFor(() => {
-      expect(machine.getState().lastUpdated).toBeInstanceOf(Temporal.Instant);
+      expect(typeof machine.getState().lastUpdated).toBe('number');
+      expect(machine.getState().lastUpdated).toBeGreaterThan(0);
     });
   });
 

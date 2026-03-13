@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 describe('computeFrecencyBonus', () => {
   it('should give highest weight to items used within the last hour', () => {
-    const now = Temporal.Now.instant();
+    const now = Date.now();
     const record: FrecencyRecord = {
       frequency: 1,
-      lastUsed: now.subtract({ minutes: 30 }),
+      lastUsed: now - 30 * 60_000, // 30 minutes ago
     };
 
     const bonus = computeFrecencyBonus(record, now);
@@ -15,10 +15,10 @@ describe('computeFrecencyBonus', () => {
   });
 
   it('should give day weight for items used 12 hours ago', () => {
-    const now = Temporal.Now.instant();
+    const now = Date.now();
     const record: FrecencyRecord = {
       frequency: 1,
-      lastUsed: now.subtract({ hours: 12 }),
+      lastUsed: now - 12 * 3_600_000, // 12 hours ago
     };
 
     const bonus = computeFrecencyBonus(record, now);
@@ -26,10 +26,10 @@ describe('computeFrecencyBonus', () => {
   });
 
   it('should give week weight for items used 3 days ago', () => {
-    const now = Temporal.Now.instant();
+    const now = Date.now();
     const record: FrecencyRecord = {
       frequency: 1,
-      lastUsed: now.subtract({ hours: 72 }),
+      lastUsed: now - 72 * 3_600_000, // 72 hours ago
     };
 
     const bonus = computeFrecencyBonus(record, now);
@@ -37,10 +37,10 @@ describe('computeFrecencyBonus', () => {
   });
 
   it('should give month weight for items used 2 weeks ago', () => {
-    const now = Temporal.Now.instant();
+    const now = Date.now();
     const record: FrecencyRecord = {
       frequency: 1,
-      lastUsed: now.subtract({ hours: 336 }),
+      lastUsed: now - 336 * 3_600_000, // 336 hours ago
     };
 
     const bonus = computeFrecencyBonus(record, now);
@@ -48,10 +48,10 @@ describe('computeFrecencyBonus', () => {
   });
 
   it('should give older weight for items used more than a month ago', () => {
-    const now = Temporal.Now.instant();
+    const now = Date.now();
     const record: FrecencyRecord = {
       frequency: 1,
-      lastUsed: now.subtract({ hours: 1000 }),
+      lastUsed: now - 1000 * 3_600_000, // 1000 hours ago
     };
 
     const bonus = computeFrecencyBonus(record, now);
@@ -59,10 +59,10 @@ describe('computeFrecencyBonus', () => {
   });
 
   it('should multiply by frequency', () => {
-    const now = Temporal.Now.instant();
+    const now = Date.now();
     const record: FrecencyRecord = {
       frequency: 5,
-      lastUsed: now.subtract({ minutes: 30 }),
+      lastUsed: now - 30 * 60_000, // 30 minutes ago
     };
 
     const bonus = computeFrecencyBonus(record, now);
@@ -70,10 +70,10 @@ describe('computeFrecencyBonus', () => {
   });
 
   it('should support custom decay config', () => {
-    const now = Temporal.Now.instant();
+    const now = Date.now();
     const record: FrecencyRecord = {
       frequency: 1,
-      lastUsed: now.subtract({ minutes: 30 }),
+      lastUsed: now - 30 * 60_000, // 30 minutes ago
     };
 
     const bonus = computeFrecencyBonus(record, now, { hourWeight: 10.0 });
@@ -134,7 +134,7 @@ describe('MemoryFrecencyStorage', () => {
   it('should persist and reload data', () => {
     using storage = new MemoryFrecencyStorage();
     const records = new Map();
-    records.set(itemId('a'), { frequency: 3, lastUsed: Temporal.Now.instant() });
+    records.set(itemId('a'), { frequency: 3, lastUsed: Date.now() });
 
     storage.save('test', { records });
     const loaded = storage.load('test');
@@ -145,7 +145,7 @@ describe('MemoryFrecencyStorage', () => {
   it('should serialize to JSON using Iterator.prototype.toArray()', () => {
     using storage = new MemoryFrecencyStorage();
     const records = new Map();
-    records.set(itemId('a'), { frequency: 1, lastUsed: Temporal.Now.instant() });
+    records.set(itemId('a'), { frequency: 1, lastUsed: Date.now() });
 
     storage.save('test', { records });
     const json = storage.toJSON();

@@ -168,7 +168,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       groupedIds,
       filteredCount: filteredIds.length,
       activeId,
-      lastUpdated: Temporal.Now.instant(),
+      lastUpdated: Date.now(),
     });
   }
 
@@ -180,7 +180,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     if (direction === 'first') {
       const newActiveId = filteredIds[0] ?? null;
       if (newActiveId !== activeId) {
-        setState({ ...state, activeId: newActiveId, lastUpdated: Temporal.Now.instant() });
+        setState({ ...state, activeId: newActiveId, lastUpdated: Date.now() });
         options.onActiveChange?.(newActiveId);
       }
       return;
@@ -188,7 +188,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     if (direction === 'last') {
       const newActiveId = filteredIds[filteredIds.length - 1] ?? null;
       if (newActiveId !== activeId) {
-        setState({ ...state, activeId: newActiveId, lastUpdated: Temporal.Now.instant() });
+        setState({ ...state, activeId: newActiveId, lastUpdated: Date.now() });
         options.onActiveChange?.(newActiveId);
       }
       return;
@@ -219,7 +219,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       setState({
         ...state,
         activeId: newActiveId,
-        lastUpdated: Temporal.Now.instant(),
+        lastUpdated: Date.now(),
       });
       options.onActiveChange?.(newActiveId);
     }
@@ -249,7 +249,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
           setState({
             ...state,
             activeId: event.id,
-            lastUpdated: Temporal.Now.instant(),
+            lastUpdated: Date.now(),
           });
           options.onActiveChange?.(event.id);
         }
@@ -264,7 +264,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
           ...state,
           page: event.page,
           pageStack: [...state.pageStack, state.page],
-          lastUpdated: Temporal.Now.instant(),
+          lastUpdated: Date.now(),
         });
         break;
 
@@ -275,27 +275,27 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
             ...state,
             page: prevPage,
             pageStack: state.pageStack.toSpliced(-1, 1),
-            lastUpdated: Temporal.Now.instant(),
+            lastUpdated: Date.now(),
           });
         }
         break;
       }
 
       case 'OPEN':
-        setState({ ...state, open: true, lastUpdated: Temporal.Now.instant() });
+        setState({ ...state, open: true, lastUpdated: Date.now() });
         emitter.emit('openChange', true);
         options.onOpenChange?.(true);
         break;
 
       case 'CLOSE':
-        setState({ ...state, open: false, lastUpdated: Temporal.Now.instant() });
+        setState({ ...state, open: false, lastUpdated: Date.now() });
         emitter.emit('openChange', false);
         options.onOpenChange?.(false);
         break;
 
       case 'TOGGLE': {
         const newOpen = !state.open;
-        setState({ ...state, open: newOpen, lastUpdated: Temporal.Now.instant() });
+        setState({ ...state, open: newOpen, lastUpdated: Date.now() });
         emitter.emit('openChange', newOpen);
         options.onOpenChange?.(newOpen);
         break;

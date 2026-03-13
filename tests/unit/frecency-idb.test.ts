@@ -32,11 +32,11 @@ describe('IdbFrecencyStorage', () => {
     it.sequential('should persist and reload frecency data', async () => {
       const db = uniqueDb();
       using storage = new IdbFrecencyStorage(db);
-      const now = Temporal.Now.instant();
+      const now = Date.now();
 
       const records = new Map<ItemId, FrecencyRecord>([
         [itemId('cmd-copy'), { frequency: 5, lastUsed: now }],
-        [itemId('cmd-paste'), { frequency: 3, lastUsed: now.subtract({ hours: 2 }) }],
+        [itemId('cmd-paste'), { frequency: 3, lastUsed: now - 2 * 3_600_000 }],
       ]);
       const data: FrecencyData = { records };
 
@@ -48,7 +48,7 @@ describe('IdbFrecencyStorage', () => {
       const copyRecord = loaded.records.get(itemId('cmd-copy'));
       expect(copyRecord).toBeDefined();
       expect(copyRecord?.frequency).toBe(5);
-      expect(copyRecord?.lastUsed.equals(now)).toBe(true);
+      expect(copyRecord?.lastUsed).toBe(now);
 
       const pasteRecord = loaded.records.get(itemId('cmd-paste'));
       expect(pasteRecord).toBeDefined();
@@ -57,10 +57,10 @@ describe('IdbFrecencyStorage', () => {
 
     it.sequential('should handle single-item data', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
-      const instant = Temporal.Instant.fromEpochNanoseconds(1_700_000_000_000_000_000n);
+      const timestamp = 1_700_000_000_000; // epoch ms
 
       const records = new Map<ItemId, FrecencyRecord>([
-        [itemId('solo'), { frequency: 1, lastUsed: instant }],
+        [itemId('solo'), { frequency: 1, lastUsed: timestamp }],
       ]);
 
       await storage.save('ns', { records });
@@ -68,14 +68,14 @@ describe('IdbFrecencyStorage', () => {
 
       expect(loaded.records.size).toBe(1);
       const record = loaded.records.get(itemId('solo'));
-      expect(record?.lastUsed.epochNanoseconds).toBe(1_700_000_000_000_000_000n);
+      expect(record?.lastUsed).toBe(1_700_000_000_000);
     });
   });
 
   describe('namespace isolation', () => {
     it.sequential('should isolate data between different namespaces', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
-      const now = Temporal.Now.instant();
+      const now = Date.now();
 
       const dataA: FrecencyData = {
         records: new Map<ItemId, FrecencyRecord>([
@@ -106,28 +106,27 @@ describe('IdbFrecencyStorage', () => {
     });
   });
 
-  describe('Temporal.Instant serialization', () => {
-    it.sequential('should correctly serialize and deserialize via epochNanoseconds', async () => {
+  describe('timestamp serialization', () => {
+    it.sequential('should correctly serialize and deserialize epoch-ms timestamps', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
-      const precise = Temporal.Instant.fromEpochNanoseconds(1_709_251_200_123_456_789n);
+      const precise = 1_709_251_200_123; // epoch ms
 
-      await storage.save('temporal-test', {
+      await storage.save('timestamp-test', {
         records: new Map<ItemId, FrecencyRecord>([
           [itemId('precise'), { frequency: 1, lastUsed: precise }],
         ]),
       });
 
-      const loaded = await storage.load('temporal-test');
+      const loaded = await storage.load('timestamp-test');
       const record = loaded.records.get(itemId('precise'));
 
       expect(record).toBeDefined();
-      expect(record?.lastUsed.epochNanoseconds).toBe(1_709_251_200_123_456_789n);
-      expect(record?.lastUsed.equals(precise)).toBe(true);
+      expect(record?.lastUsed).toBe(1_709_251_200_123);
     });
 
-    it.sequential('should handle Temporal.Instant at epoch zero', async () => {
+    it.sequential('should handle timestamp at epoch zero', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
-      const epoch = Temporal.Instant.fromEpochNanoseconds(0n);
+      const epoch = 0;
 
       await storage.save('epoch', {
         records: new Map([[itemId('zero'), { frequency: 1, lastUsed: epoch }]]),
@@ -135,7 +134,7 @@ describe('IdbFrecencyStorage', () => {
 
       const loaded = await storage.load('epoch');
       const record = loaded.records.get(itemId('zero'));
-      expect(record?.lastUsed.epochNanoseconds).toBe(0n);
+      expect(record?.lastUsed).toBe(0);
     });
   });
 
@@ -158,7 +157,7 @@ describe('IdbFrecencyStorage', () => {
 
       {
         using storage = new IdbFrecencyStorage(db);
-        const now = Temporal.Now.instant();
+        const now = Date.now();
 
         await storage.save('dispose-test', {
           records: new Map([[itemId('d'), { frequency: 1, lastUsed: now }]]),
@@ -175,7 +174,7 @@ describe('IdbFrecencyStorage', () => {
       storage[Symbol.dispose]();
 
       await storage.save('post-dispose', {
-        records: new Map([[itemId('x'), { frequency: 1, lastUsed: Temporal.Now.instant() }]]),
+        records: new Map([[itemId('x'), { frequency: 1, lastUsed: Date.now() }]]),
       });
 
       const data = await storage.load('post-dispose');
@@ -186,7 +185,7 @@ describe('IdbFrecencyStorage', () => {
   describe('delete', () => {
     it.sequential('should remove data for a specific namespace', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
-      const now = Temporal.Now.instant();
+      const now = Date.now();
 
       await storage.save('to-delete', {
         records: new Map([[itemId('gone'), { frequency: 5, lastUsed: now }]]),
@@ -214,7 +213,7 @@ describe('IdbFrecencyStorage', () => {
 
     it.sequential('should handle overwriting existing data', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
-      const now = Temporal.Now.instant();
+      const now = Date.now();
 
       await storage.save('overwrite', {
         records: new Map([[itemId('a'), { frequency: 1, lastUsed: now }]]),

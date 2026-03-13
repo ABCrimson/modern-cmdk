@@ -1,12 +1,5 @@
-// Polyfill Temporal, Math.sumPrecise, and RegExp.escape for benchmark scripts
+// Polyfill Math.sumPrecise and RegExp.escape for benchmark scripts
 // Node doesn't ship these yet — same pattern as tests/setup.ts
-
-import { Temporal as TemporalPolyfill } from '@js-temporal/polyfill';
-
-if (typeof globalThis.Temporal === 'undefined') {
-  // @ts-expect-error — polyfill assignment
-  globalThis.Temporal = TemporalPolyfill;
-}
 
 if (typeof Math.sumPrecise !== 'function') {
   // @ts-expect-error — polyfill assignment

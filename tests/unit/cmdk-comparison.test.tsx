@@ -1528,7 +1528,7 @@ describe('17. NEW Features Not In cmdk (Superset)', () => {
 
   describe('17d. Frecency Engine', () => {
     it('should compute frecency bonus from a record', () => {
-      const now = Temporal.Now.instant();
+      const now = Date.now();
       const record: FrecencyRecord = {
         frequency: 5,
         lastUsed: now,
@@ -1539,14 +1539,14 @@ describe('17. NEW Features Not In cmdk (Superset)', () => {
     });
 
     it('should give higher bonus to more recently used items', () => {
-      const now = Temporal.Now.instant();
+      const now = Date.now();
       const recentRecord: FrecencyRecord = {
         frequency: 1,
         lastUsed: now,
       };
       const oldRecord: FrecencyRecord = {
         frequency: 1,
-        lastUsed: now.subtract(Temporal.Duration.from({ hours: 720 })), // 30 days ago
+        lastUsed: now - 720 * 3_600_000, // 30 days ago
       };
 
       const recentBonus = computeFrecencyBonus(recentRecord, now);
@@ -1555,14 +1555,14 @@ describe('17. NEW Features Not In cmdk (Superset)', () => {
     });
 
     it('should give higher bonus to more frequently used items', () => {
-      const now = Temporal.Now.instant();
+      const now = Date.now();
       const frequentRecord: FrecencyRecord = {
         frequency: 10,
-        lastUsed: now.subtract(Temporal.Duration.from({ hours: 1 })),
+        lastUsed: now - 1 * 3_600_000, // 1 hour ago
       };
       const rareRecord: FrecencyRecord = {
         frequency: 1,
-        lastUsed: now.subtract(Temporal.Duration.from({ hours: 1 })),
+        lastUsed: now - 1 * 3_600_000, // 1 hour ago
       };
 
       const frequentBonus = computeFrecencyBonus(frequentRecord, now);

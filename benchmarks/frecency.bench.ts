@@ -6,12 +6,11 @@ import { bench, describe } from 'vitest';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const NOW = Temporal.Now.instant();
+const NOW = Date.now();
 
 function makeRecord(hoursAgo: number, frequency: number): FrecencyRecord {
-  const minutes = Math.round(hoursAgo * 60);
-  const past = NOW.subtract(Temporal.Duration.from({ minutes }));
-  return { lastUsed: past, frequency };
+  const msAgo = hoursAgo * 3_600_000;
+  return { lastUsed: NOW - msAgo, frequency };
 }
 
 // ES2026 Iterator Helpers — generate frecency records via iterator pipeline

@@ -5,13 +5,6 @@
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 import 'fake-indexeddb/auto';
-import { Temporal as TemporalPolyfill } from '@js-temporal/polyfill';
-
-// Polyfill Temporal if not natively available
-if (typeof globalThis.Temporal === 'undefined') {
-  // @ts-expect-error — polyfill assignment to global
-  globalThis.Temporal = TemporalPolyfill;
-}
 
 // Polyfill Math.sumPrecise if not natively available
 if (typeof Math.sumPrecise !== 'function') {

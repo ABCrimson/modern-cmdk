@@ -1,6 +1,6 @@
 // packages/command/src/types.ts
 // TypeScript 6.0.1-rc — ES2026 target — all modern type features
-// Branded types, const type params, NoInfer<T>, satisfies on values, Temporal
+// Branded types, const type params, NoInfer<T>, satisfies on values
 
 /**
  * Branded type for command item IDs.
@@ -92,8 +92,8 @@ export interface CommandState {
   readonly pageStack: readonly string[];
   /** Whether the command palette dialog is open */
   readonly open: boolean;
-  /** Temporal.Instant of the last state mutation (ES2026) */
-  readonly lastUpdated: Temporal.Instant;
+  /** Epoch-millisecond timestamp of the last state mutation */
+  readonly lastUpdated: number;
 }
 
 /** All possible events the state machine accepts */
@@ -116,7 +116,8 @@ export type CommandEvent =
 /** Frecency record for a single item */
 export interface FrecencyRecord {
   readonly frequency: number;
-  readonly lastUsed: Temporal.Instant;
+  /** Epoch-millisecond timestamp of last usage */
+  readonly lastUsed: number;
 }
 
 /** Complete frecency data for persistence */
@@ -205,6 +206,6 @@ export function createInitialState(options?: CommandMachineOptions): CommandStat
     page: 'root',
     pageStack: [],
     open: options?.open ?? false,
-    lastUpdated: Temporal.Now.instant(),
+    lastUpdated: Date.now(),
   };
 }

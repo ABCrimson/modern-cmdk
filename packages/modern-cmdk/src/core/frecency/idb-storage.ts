@@ -1,7 +1,7 @@
 // packages/command/src/frecency/idb-storage.ts
 // IndexedDB-backed frecency persistence — idb-keyval 6.2.2 (lazy-loaded)
 // Implements both Disposable and AsyncDisposable for await using support
-// ES2026: Iterator Helpers, Temporal, using/await using
+// ES2026: Iterator Helpers, using/await using
 
 import type { UseStore } from 'idb-keyval';
 import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';
@@ -9,8 +9,8 @@ import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../t
 /** JSON-safe serialized form of a FrecencyRecord */
 interface SerializedFrecencyRecord {
   readonly frequency: number;
-  /** Temporal.Instant epochNanoseconds as string (bigint serialization) */
-  readonly lastUsedNs: string;
+  /** Epoch-millisecond timestamp of last usage */
+  readonly lastUsedMs: number;
 }
 
 /** JSON-safe serialized form of FrecencyData stored in IndexedDB */
@@ -22,7 +22,7 @@ interface SerializedFrecencyData {
 function serializeRecord(record: FrecencyRecord): SerializedFrecencyRecord {
   return {
     frequency: record.frequency,
-    lastUsedNs: record.lastUsed.epochNanoseconds.toString(),
+    lastUsedMs: record.lastUsed,
   };
 }
 
@@ -30,7 +30,7 @@ function serializeRecord(record: FrecencyRecord): SerializedFrecencyRecord {
 function deserializeRecord(serialized: SerializedFrecencyRecord): FrecencyRecord {
   return {
     frequency: serialized.frequency,
-    lastUsed: Temporal.Instant.fromEpochNanoseconds(BigInt(serialized.lastUsedNs)),
+    lastUsed: serialized.lastUsedMs,
   };
 }
 

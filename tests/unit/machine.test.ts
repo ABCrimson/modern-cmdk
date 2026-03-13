@@ -153,10 +153,11 @@ describe('CommandMachine', () => {
     });
   });
 
-  it('should use Temporal for lastUpdated timestamps', () => {
+  it('should use Date.now() for lastUpdated timestamps', () => {
     using machine = createCommandMachine();
     const state = machine.getState();
-    expect(state.lastUpdated).toBeInstanceOf(Temporal.Instant);
+    expect(typeof state.lastUpdated).toBe('number');
+    expect(state.lastUpdated).toBeGreaterThan(0);
   });
 
   it('should navigate with loop enabled (default)', async () => {
