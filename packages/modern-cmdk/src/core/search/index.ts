@@ -4,6 +4,7 @@
 // Performance: pre-cached lowercase at index time, charCode comparison, zero redundant allocation
 
 import type { CommandItem, ItemId } from '../types.js';
+import { setDifference } from '../utils/set-ops.js';
 import { scoreItemPreLowered } from './default-scorer.js';
 import type { ScorerFn, SearchEngine, SearchResult } from './types.js';
 
@@ -134,7 +135,7 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
         indexedEntries.delete(id);
       }
       // Prune incremental cache
-      previousResults = previousResults.difference(ids);
+      previousResults = setDifference(previousResults, ids);
     },
 
     clear(): void {
