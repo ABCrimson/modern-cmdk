@@ -430,7 +430,7 @@
 
   [data-command-scroll-indicator] {
     block-size: 2px;
-    transform-origin: left center;
+    transform-origin: inline-start center;
     scale: 0 1;
     animation: scroll-progress linear both;
     animation-timeline: --list-scroll;
