@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -44,7 +44,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -61,7 +61,7 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -86,7 +86,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -114,7 +114,7 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -129,7 +129,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
