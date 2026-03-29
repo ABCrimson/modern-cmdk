@@ -23,7 +23,7 @@ importers:
         version: 1.0.0-next.1
       '@changesets/cli':
         specifier: 3.0.0-next.1
-        version: 3.0.0-next.1(@types/node@25.3.5)
+        version: 3.0.0-next.1(@types/node@25.5.0)
       '@js-temporal/polyfill':
         specifier: ^0.5.1
         version: 0.5.1
@@ -50,7 +50,7 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
       '@vitest/coverage-v8':
         specifier: 4.1.0-beta.6
-        version: 4.1.0-beta.6(vitest@4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)))
+        version: 4.1.0-beta.6(vitest@4.1.0-beta.6(@types/node@25.5.0)(happy-dom@20.8.9)(vite@8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0)))
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.3.0-canary-46103596-20260305(react@19.3.0-canary-46103596-20260305))(react@19.3.0-canary-46103596-20260305)
@@ -58,8 +58,8 @@ importers:
         specifier: ^6.2.5
         version: 6.2.5
       happy-dom:
-        specifier: 20.8.3
-        version: 20.8.3
+        specifier: 20.8.9
+        version: 20.8.9
       idb-keyval:
         specifier: 6.2.2
         version: 6.2.2
@@ -92,7 +92,7 @@ importers:
         version: 6.0.1-rc
       vitest:
         specifier: 4.1.0-beta.6
-        version: 4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0))
+        version: 4.1.0-beta.6(@types/node@25.5.0)(happy-dom@20.8.9)(vite@8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0))
 
   apps/docs:
     devDependencies:
@@ -107,7 +107,7 @@ importers:
         version: 4.0.1
       vitepress:
         specifier: 2.0.0-alpha.16
-        version: 2.0.0-alpha.16(@types/node@25.3.5)(idb-keyval@6.2.2)(lightningcss@1.31.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@6.0.1-rc)
+        version: 2.0.0-alpha.16(@types/node@25.5.0)(idb-keyval@6.2.2)(lightningcss@1.31.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@6.0.1-rc)
 
   apps/playground:
     dependencies:
@@ -126,13 +126,13 @@ importers:
     devDependencies:
       '@vitejs/plugin-react':
         specifier: 6.0.0-beta.0
-        version: 6.0.0-beta.0(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0))
+        version: 6.0.0-beta.0(vite@8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0))
       typescript:
         specifier: 6.0.1-rc
         version: 6.0.1-rc
       vite:
         specifier: 8.0.0-beta.16
-        version: 8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)
+        version: 8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0)
 
   packages/command-search-wasm:
     dependencies:
@@ -370,6 +370,10 @@ packages:
 
   '@babel/runtime@7.28.6':
     resolution: {integrity: sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.29.2':
+    resolution: {integrity: sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.28.6':
@@ -2047,8 +2051,8 @@ packages:
   '@types/node@22.19.15':
     resolution: {integrity: sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg==}
 
-  '@types/node@25.3.5':
-    resolution: {integrity: sha512-oX8xrhvpiyRCQkG1MFchB09f+cXftgIXb3a7UUa4Y3wpmZPw5tyZGTLWhlESOLq1Rq6oDlc8npVU2/9xiCuXMA==}
+  '@types/node@25.5.0':
+    resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -2579,8 +2583,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  happy-dom@20.8.3:
-    resolution: {integrity: sha512-lMHQRRwIPyJ70HV0kkFT7jH/gXzSI7yDkQFe07E2flwmNDFoWUTRMKpW2sglsnpeA7b6S2TJPp98EbQxai8eaQ==}
+  happy-dom@20.8.9:
+    resolution: {integrity: sha512-Tz23LR9T9jOGVZm2x1EPdXqwA37G/owYMxRwU0E4miurAtFsPMQ1d2Jc2okUaSjZqAFz2oEn3FLXC5a0a+siyA==}
     engines: {node: '>=20.0.0'}
 
   has-flag@4.0.0:
@@ -3607,8 +3611,8 @@ packages:
     resolution: {integrity: sha512-+QU2zd6OTD8XWIJCbffaiQeH9U73qIqafo1x6V1snCWYGJf6cVE0cDR4D8xRzcEnfI21IFrUPzPGtcPf8AC+Rw==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
 
-  ws@8.19.0:
-    resolution: {integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==}
+  ws@8.20.0:
+    resolution: {integrity: sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -3874,6 +3878,8 @@ snapshots:
 
   '@babel/runtime@7.28.6': {}
 
+  '@babel/runtime@7.29.2': {}
+
   '@babel/template@7.28.6':
     dependencies:
       '@babel/code-frame': 7.29.0
@@ -3971,7 +3977,7 @@ snapshots:
       '@changesets/types': 7.0.0-next.1
       dotenv: 16.6.1
 
-  '@changesets/cli@3.0.0-next.1(@types/node@25.3.5)':
+  '@changesets/cli@3.0.0-next.1(@types/node@25.5.0)':
     dependencies:
       '@changesets/apply-release-plan': 8.0.0-next.1
       '@changesets/assemble-release-plan': 7.0.0-next.1
@@ -3987,7 +3993,7 @@ snapshots:
       '@changesets/should-skip-package': 1.0.0-next.1
       '@changesets/types': 7.0.0-next.1
       '@changesets/write': 1.0.0-next.1
-      '@inquirer/external-editor': 1.0.3(@types/node@25.3.5)
+      '@inquirer/external-editor': 1.0.3(@types/node@25.5.0)
       '@manypkg/get-packages': 1.1.3
       ansi-colors: 4.1.3
       ci-info: 3.9.0
@@ -4202,12 +4208,12 @@ snapshots:
 
   '@iconify/types@2.0.0': {}
 
-  '@inquirer/external-editor@1.0.3(@types/node@25.3.5)':
+  '@inquirer/external-editor@1.0.3(@types/node@25.5.0)':
     dependencies:
       chardet: 2.1.1
       iconv-lite: 0.7.2
     optionalDependencies:
-      '@types/node': 25.3.5
+      '@types/node': 25.5.0
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -5373,7 +5379,7 @@ snapshots:
   '@testing-library/dom@10.4.1':
     dependencies:
       '@babel/code-frame': 7.29.0
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       dom-accessibility-api: 0.5.16
@@ -5441,9 +5447,10 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  '@types/node@25.3.5':
+  '@types/node@25.5.0':
     dependencies:
       undici-types: 7.18.2
+    optional: true
 
   '@types/react-dom@19.2.3(@types/react@19.2.14)':
     dependencies:
@@ -5472,18 +5479,18 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
-  '@vitejs/plugin-react@6.0.0-beta.0(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0))':
+  '@vitejs/plugin-react@6.0.0-beta.0(vite@8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.6
-      vite: 8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0)
 
-  '@vitejs/plugin-vue@6.0.4(vite@7.3.1(@types/node@25.3.5)(lightningcss@1.31.1)(tsx@4.21.0))(vue@3.5.29(typescript@6.0.1-rc))':
+  '@vitejs/plugin-vue@6.0.4(vite@7.3.1(@types/node@25.5.0)(lightningcss@1.31.1)(tsx@4.21.0))(vue@3.5.29(typescript@6.0.1-rc))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.2
-      vite: 7.3.1(@types/node@25.3.5)(lightningcss@1.31.1)(tsx@4.21.0)
+      vite: 7.3.1(@types/node@25.5.0)(lightningcss@1.31.1)(tsx@4.21.0)
       vue: 3.5.29(typescript@6.0.1-rc)
 
-  '@vitest/coverage-v8@4.1.0-beta.6(vitest@4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)))':
+  '@vitest/coverage-v8@4.1.0-beta.6(vitest@4.1.0-beta.6(@types/node@25.5.0)(happy-dom@20.8.9)(vite@8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0)))':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
       '@vitest/utils': 4.1.0-beta.6
@@ -5495,7 +5502,7 @@ snapshots:
       obug: 2.1.1
       std-env: 3.10.0
       tinyrainbow: 3.0.3
-      vitest: 4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0))
+      vitest: 4.1.0-beta.6(@types/node@25.5.0)(happy-dom@20.8.9)(vite@8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0))
 
   '@vitest/expect@4.1.0-beta.6':
     dependencies:
@@ -5506,13 +5513,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.0.3
 
-  '@vitest/mocker@4.1.0-beta.6(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0))':
+  '@vitest/mocker@4.1.0-beta.6(vite@8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0))':
     dependencies:
       '@vitest/spy': 4.1.0-beta.6
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0)
 
   '@vitest/pretty-format@4.1.0-beta.6':
     dependencies:
@@ -5958,14 +5965,14 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  happy-dom@20.8.3:
+  happy-dom@20.8.9:
     dependencies:
-      '@types/node': 25.3.5
+      '@types/node': 22.19.15
       '@types/whatwg-mimetype': 3.0.2
       '@types/ws': 8.18.1
       entities: 7.0.1
       whatwg-mimetype: 3.0.0
-      ws: 8.19.0
+      ws: 8.20.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -6776,7 +6783,8 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.18.2: {}
+  undici-types@7.18.2:
+    optional: true
 
   unicorn-magic@0.4.0: {}
 
@@ -6844,7 +6852,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite@7.3.1(@types/node@25.3.5)(lightningcss@1.31.1)(tsx@4.21.0):
+  vite@7.3.1(@types/node@25.5.0)(lightningcss@1.31.1)(tsx@4.21.0):
     dependencies:
       esbuild: 0.27.3
       fdir: 6.5.0(picomatch@4.0.3)
@@ -6853,12 +6861,12 @@ snapshots:
       rollup: 4.59.0
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 25.3.5
+      '@types/node': 25.5.0
       fsevents: 2.3.3
       lightningcss: 1.31.1
       tsx: 4.21.0
 
-  vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0):
+  vite@8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0):
     dependencies:
       '@oxc-project/runtime': 0.115.0
       lightningcss: 1.31.1
@@ -6867,12 +6875,12 @@ snapshots:
       rolldown: 1.0.0-rc.6
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 25.3.5
+      '@types/node': 25.5.0
       esbuild: 0.27.3
       fsevents: 2.3.3
       tsx: 4.21.0
 
-  vitepress@2.0.0-alpha.16(@types/node@25.3.5)(idb-keyval@6.2.2)(lightningcss@1.31.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@6.0.1-rc):
+  vitepress@2.0.0-alpha.16(@types/node@25.5.0)(idb-keyval@6.2.2)(lightningcss@1.31.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@6.0.1-rc):
     dependencies:
       '@docsearch/css': 4.6.0
       '@docsearch/js': 4.6.0
@@ -6882,7 +6890,7 @@ snapshots:
       '@shikijs/transformers': 3.23.0
       '@shikijs/types': 3.23.0
       '@types/markdown-it': 14.1.2
-      '@vitejs/plugin-vue': 6.0.4(vite@7.3.1(@types/node@25.3.5)(lightningcss@1.31.1)(tsx@4.21.0))(vue@3.5.29(typescript@6.0.1-rc))
+      '@vitejs/plugin-vue': 6.0.4(vite@7.3.1(@types/node@25.5.0)(lightningcss@1.31.1)(tsx@4.21.0))(vue@3.5.29(typescript@6.0.1-rc))
       '@vue/devtools-api': 8.0.7
       '@vue/shared': 3.5.29
       '@vueuse/core': 14.2.1(vue@3.5.29(typescript@6.0.1-rc))
@@ -6891,7 +6899,7 @@ snapshots:
       mark.js: 8.11.1
       minisearch: 7.2.0
       shiki: 3.23.0
-      vite: 7.3.1(@types/node@25.3.5)(lightningcss@1.31.1)(tsx@4.21.0)
+      vite: 7.3.1(@types/node@25.5.0)(lightningcss@1.31.1)(tsx@4.21.0)
       vue: 3.5.29(typescript@6.0.1-rc)
     optionalDependencies:
       postcss: 8.5.8
@@ -6920,10 +6928,10 @@ snapshots:
       - universal-cookie
       - yaml
 
-  vitest@4.1.0-beta.6(@types/node@25.3.5)(happy-dom@20.8.3)(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)):
+  vitest@4.1.0-beta.6(@types/node@25.5.0)(happy-dom@20.8.9)(vite@8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0)):
     dependencies:
       '@vitest/expect': 4.1.0-beta.6
-      '@vitest/mocker': 4.1.0-beta.6(vite@8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0))
+      '@vitest/mocker': 4.1.0-beta.6(vite@8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0))
       '@vitest/pretty-format': 4.1.0-beta.6
       '@vitest/runner': 4.1.0-beta.6
       '@vitest/snapshot': 4.1.0-beta.6
@@ -6940,11 +6948,11 @@ snapshots:
       tinyexec: 1.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: 8.0.0-beta.16(@types/node@25.3.5)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.0-beta.16(@types/node@25.5.0)(esbuild@0.27.3)(tsx@4.21.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@types/node': 25.3.5
-      happy-dom: 20.8.3
+      '@types/node': 25.5.0
+      happy-dom: 20.8.9
     transitivePeerDependencies:
       - msw
 
@@ -6974,7 +6982,7 @@ snapshots:
       imurmurhash: 0.1.4
       signal-exit: 4.1.0
 
-  ws@8.19.0: {}
+  ws@8.20.0: {}
 
   yallist@3.1.1: {}
 
