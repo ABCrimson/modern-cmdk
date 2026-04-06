@@ -65,7 +65,7 @@
     "idb-keyval": "6.2.2"
   },
   "devDependencies": {
-    "globby": "16.1.1",
+    "globby": "16.2.0",
     "jscodeshift": "17.3.0",
     "radix-ui": "1.4.4-rc.1766004502650",
     "@types/jscodeshift": "^17.3.0"
