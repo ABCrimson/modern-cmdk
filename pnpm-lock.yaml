@@ -61,8 +61,8 @@ importers:
         specifier: 20.8.3
         version: 20.8.3
       idb-keyval:
-        specifier: 6.2.2
-        version: 6.2.2
+        specifier: 6.2.4
+        version: 6.2.4
       jscodeshift:
         specifier: 17.3.0
         version: 17.3.0
@@ -107,7 +107,7 @@ importers:
         version: 4.0.1
       vitepress:
         specifier: 2.0.0-alpha.16
-        version: 2.0.0-alpha.16(@types/node@25.3.5)(idb-keyval@6.2.2)(lightningcss@1.31.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@6.0.1-rc)
+        version: 2.0.0-alpha.16(@types/node@25.3.5)(idb-keyval@6.2.4)(lightningcss@1.31.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@6.0.1-rc)
 
   apps/playground:
     dependencies:
@@ -155,8 +155,8 @@ importers:
   packages/modern-cmdk:
     dependencies:
       idb-keyval:
-        specifier: 6.2.2
-        version: 6.2.2
+        specifier: 6.2.4
+        version: 6.2.4
       react:
         specifier: 19.3.0-canary-46103596-20260305
         version: 19.3.0-canary-46103596-20260305
@@ -188,6 +188,10 @@ packages:
 
   '@babel/code-frame@7.29.0':
     resolution: {integrity: sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/code-frame@7.29.7':
+    resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/compat-data@7.29.0':
@@ -266,6 +270,10 @@ packages:
 
   '@babel/helper-validator-identifier@7.28.5':
     resolution: {integrity: sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-validator-identifier@7.29.7':
+    resolution: {integrity: sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-validator-identifier@8.0.0-rc.2':
@@ -370,6 +378,10 @@ packages:
 
   '@babel/runtime@7.28.6':
     resolution: {integrity: sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.29.7':
+    resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.28.6':
@@ -2077,6 +2089,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@vitejs/plugin-react@6.0.0-beta.0':
     resolution: {integrity: sha512-kQ6H3X6Mz62N909sNhcYty7AYuBKucfMJ3PV49HU7EbHOO0dEM+yeg221VlroajR9avjHE51YRbyHdBJpm1CwA==}
@@ -2613,8 +2626,8 @@ packages:
     resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
     engines: {node: '>=0.10.0'}
 
-  idb-keyval@6.2.2:
-    resolution: {integrity: sha512-yjD9nARJ/jb1g+CvD0tlhUHOrJ9Sy0P8T9MF3YaLlHnSRpwPfpTX0XIvpmw3gAJUmEu3FiICLBDPXVwyEvrleg==}
+  idb-keyval@6.2.4:
+    resolution: {integrity: sha512-D/NzHWUmYJGXi++z67aMSrnisb9A3621CyRK5G89JyTlN13C8xf0g04DLxUKMufPem3e3L2JAXR6Z00OWy183Q==}
 
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
@@ -3642,6 +3655,12 @@ snapshots:
       js-tokens: 4.0.0
       picocolors: 1.1.1
 
+  '@babel/code-frame@7.29.7':
+    dependencies:
+      '@babel/helper-validator-identifier': 7.29.7
+      js-tokens: 4.0.0
+      picocolors: 1.1.1
+
   '@babel/compat-data@7.29.0': {}
 
   '@babel/core@7.29.0':
@@ -3759,6 +3778,8 @@ snapshots:
 
   '@babel/helper-validator-identifier@7.28.5': {}
 
+  '@babel/helper-validator-identifier@7.29.7': {}
+
   '@babel/helper-validator-identifier@8.0.0-rc.2': {}
 
   '@babel/helper-validator-option@7.27.1': {}
@@ -3873,6 +3894,8 @@ snapshots:
       source-map-support: 0.5.21
 
   '@babel/runtime@7.28.6': {}
+
+  '@babel/runtime@7.29.7': {}
 
   '@babel/template@7.28.6':
     dependencies:
@@ -5372,8 +5395,8 @@ snapshots:
 
   '@testing-library/dom@10.4.1':
     dependencies:
-      '@babel/code-frame': 7.29.0
-      '@babel/runtime': 7.28.6
+      '@babel/code-frame': 7.29.7
+      '@babel/runtime': 7.29.7
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       dom-accessibility-api: 0.5.16
@@ -5612,14 +5635,14 @@ snapshots:
       '@vueuse/shared': 14.2.1(vue@3.5.29(typescript@6.0.1-rc))
       vue: 3.5.29(typescript@6.0.1-rc)
 
-  '@vueuse/integrations@14.2.1(focus-trap@7.8.0)(idb-keyval@6.2.2)(vue@3.5.29(typescript@6.0.1-rc))':
+  '@vueuse/integrations@14.2.1(focus-trap@7.8.0)(idb-keyval@6.2.4)(vue@3.5.29(typescript@6.0.1-rc))':
     dependencies:
       '@vueuse/core': 14.2.1(vue@3.5.29(typescript@6.0.1-rc))
       '@vueuse/shared': 14.2.1(vue@3.5.29(typescript@6.0.1-rc))
       vue: 3.5.29(typescript@6.0.1-rc)
     optionalDependencies:
       focus-trap: 7.8.0
-      idb-keyval: 6.2.2
+      idb-keyval: 6.2.4
 
   '@vueuse/metadata@14.2.1': {}
 
@@ -6004,7 +6027,7 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
-  idb-keyval@6.2.2: {}
+  idb-keyval@6.2.4: {}
 
   ignore@5.3.2: {}
 
@@ -6872,7 +6895,7 @@ snapshots:
       fsevents: 2.3.3
       tsx: 4.21.0
 
-  vitepress@2.0.0-alpha.16(@types/node@25.3.5)(idb-keyval@6.2.2)(lightningcss@1.31.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@6.0.1-rc):
+  vitepress@2.0.0-alpha.16(@types/node@25.3.5)(idb-keyval@6.2.4)(lightningcss@1.31.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@6.0.1-rc):
     dependencies:
       '@docsearch/css': 4.6.0
       '@docsearch/js': 4.6.0
@@ -6886,7 +6909,7 @@ snapshots:
       '@vue/devtools-api': 8.0.7
       '@vue/shared': 3.5.29
       '@vueuse/core': 14.2.1(vue@3.5.29(typescript@6.0.1-rc))
-      '@vueuse/integrations': 14.2.1(focus-trap@7.8.0)(idb-keyval@6.2.2)(vue@3.5.29(typescript@6.0.1-rc))
+      '@vueuse/integrations': 14.2.1(focus-trap@7.8.0)(idb-keyval@6.2.4)(vue@3.5.29(typescript@6.0.1-rc))
       focus-trap: 7.8.0
       mark.js: 8.11.1
       minisearch: 7.2.0
