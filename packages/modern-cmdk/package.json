@@ -62,7 +62,7 @@
     }
   },
   "dependencies": {
-    "idb-keyval": "6.2.2"
+    "idb-keyval": "6.2.4"
   },
   "devDependencies": {
     "globby": "16.1.1",
