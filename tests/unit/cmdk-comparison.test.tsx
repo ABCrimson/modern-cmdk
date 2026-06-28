@@ -862,12 +862,19 @@ describe('8. Dialog Variant', () => {
       expect(container.querySelector('[data-command-overlay]')).not.toBeNull();
     });
 
+    // Radix's DismissableLayer registers its outside-pointerdown listener on a
+    // deferred macrotask (setTimeout 0) — flush it before simulating the click.
+    await act(async () => {
+      await new Promise<void>((r) => setTimeout(r, 0));
+    });
+
+    // Radix 1.6 DismissableLayer dismisses on a full outside click (pointerdown +
+    // pointerup + click), not a bare pointerdown — simulate a real mouse click.
     const overlay = container.querySelector('[data-command-overlay]') as Element;
     await act(async () => {
       overlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-    });
-    await act(async () => {
       overlay.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+      overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     await act(async () => {
       await new Promise<void>((r) => queueMicrotask(r));

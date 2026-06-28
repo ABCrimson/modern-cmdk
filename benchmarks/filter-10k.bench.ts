@@ -1,6 +1,6 @@
 import type { CommandItem } from 'modern-cmdk';
 import { createSearchEngine, itemId, scoreItem } from 'modern-cmdk';
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 
 const WORDS = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
 
@@ -21,26 +21,34 @@ function generateItems(count: number): CommandItem[] {
 
 const items10K = generateItems(10_000);
 
+// Vitest 5 — `bench` is a test-context fixture FACTORY: bench(name, fn) registers,
+// and .run() actually executes/measures the task.
 describe('Filter 10K Items', () => {
-  bench('default scorer — scoreItem per item', () => {
-    for (const item of items10K) {
-      scoreItem('apple', item);
-    }
+  test('default scorer — scoreItem per item', async ({ bench }) => {
+    await bench('default scorer — scoreItem per item', () => {
+      for (const item of items10K) {
+        scoreItem('apple', item);
+      }
+    }).run();
   });
 
-  bench('search engine — full search pipeline', () => {
-    using engine = createSearchEngine();
-    engine.index(items10K);
-    const _results = engine.search('apple', items10K).toArray();
+  test('search engine — full search pipeline', async ({ bench }) => {
+    await bench('search engine — full search pipeline', () => {
+      using engine = createSearchEngine();
+      engine.index(items10K);
+      const _results = engine.search('apple', items10K).toArray();
+    }).run();
   });
 
-  bench('search engine — incremental append', () => {
-    using engine = createSearchEngine();
-    engine.index(items10K);
+  test('search engine — incremental append', async ({ bench }) => {
+    await bench('search engine — incremental append', () => {
+      using engine = createSearchEngine();
+      engine.index(items10K);
 
-    // Simulate typing "a" then "ap" then "app"
-    engine.search('a', items10K).toArray();
-    engine.search('ap', items10K).toArray();
-    engine.search('app', items10K).toArray();
+      // Simulate typing "a" then "ap" then "app"
+      engine.search('a', items10K).toArray();
+      engine.search('ap', items10K).toArray();
+      engine.search('app', items10K).toArray();
+    }).run();
   });
 });

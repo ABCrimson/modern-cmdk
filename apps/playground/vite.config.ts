@@ -1,8 +1,8 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-// Vite 8.0.0-beta.16 config
-// Environment API is stable, CSS features auto-detected
+// Vite 8.1.0 config
+// Environment API is stable; Rolldown + Oxc power the bundler/minifier, CSS features auto-detected
 export default defineConfig({
   plugins: [react()],
 
@@ -20,7 +20,7 @@ export default defineConfig({
 
   build: {
     target: 'esnext',
-    // Vite 8 uses esbuild by default, enable minification
+    // Vite 8 minifies with Oxc by default; pin esbuild explicitly for stable, fast output
     minify: 'esbuild',
     cssMinify: 'esbuild',
     // Modern CSS features (nesting, @layer, @starting-style) — no transform needed

@@ -1,6 +1,6 @@
 // tests/unit/command.test.tsx
 // React adapter compound component tests — Vitest + happy-dom
-// React 19.3.0-canary, TypeScript 6.0.1-rc, ES2026
+// React 19.3.0-canary, TypeScript 7.0.1-rc, ES2026
 
 import { groupId, itemId } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
@@ -883,13 +883,19 @@ describe('Command — React Compound Components', () => {
         expect(container.querySelector('[data-command-overlay]')).not.toBeNull();
       });
 
-      // Radix Dialog dismisses on pointer-down + pointer-up outside content (not click)
+      // Radix's DismissableLayer registers its outside-pointerdown listener on a
+      // deferred macrotask (setTimeout 0) — flush it before simulating the click.
+      await act(async () => {
+        await new Promise<void>((r) => setTimeout(r, 0));
+      });
+
+      // Radix 1.6 DismissableLayer dismisses on a full outside click (pointerdown +
+      // pointerup + click), not a bare pointerdown — simulate a real mouse click.
       const overlay = container.querySelector('[data-command-overlay]') as Element;
       await act(async () => {
         overlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-      });
-      await act(async () => {
         overlay.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+        overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
       await act(async () => {
         await new Promise<void>((r) => queueMicrotask(r));

@@ -1,7 +1,7 @@
 import type { CommandItem } from 'modern-cmdk';
 import { createSearchEngine, itemId } from 'modern-cmdk';
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Item generation
@@ -58,6 +58,8 @@ const wasmReady = createWasmSearchEngine().then((engine) => {
   wasmEngine = engine;
 });
 
+// Vitest 5 — `bench` is a fixture factory; .run() executes/measures the task.
+
 // ---------------------------------------------------------------------------
 // 1. WASM index build time at each scale
 // ---------------------------------------------------------------------------
@@ -65,19 +67,25 @@ const wasmReady = createWasmSearchEngine().then((engine) => {
 describe('WASM Index Build', async () => {
   await wasmReady;
 
-  bench('index 100 items', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items100);
+  test('index 100 items', async ({ bench }) => {
+    await bench('index 100 items', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items100);
+    }).run();
   });
 
-  bench('index 1K items', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items1K);
+  test('index 1K items', async ({ bench }) => {
+    await bench('index 1K items', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items1K);
+    }).run();
   });
 
-  bench('index 10K items', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items10K);
+  test('index 10K items', async ({ bench }) => {
+    await bench('index 10K items', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items10K);
+    }).run();
   });
 });
 
@@ -88,32 +96,40 @@ describe('WASM Index Build', async () => {
 describe('WASM vs JS Search — 1K Items', async () => {
   await wasmReady;
 
-  bench('JS scorer — full pipeline', () => {
-    using engine = createSearchEngine();
-    engine.index(items1K);
-    engine.search('apple', items1K).toArray();
+  test('JS scorer — full pipeline', async ({ bench }) => {
+    await bench('JS scorer — full pipeline', () => {
+      using engine = createSearchEngine();
+      engine.index(items1K);
+      engine.search('apple', items1K).toArray();
+    }).run();
   });
 
-  bench('WASM scorer — full pipeline', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items1K);
-    wasmEngine.search('apple', items1K).toArray();
+  test('WASM scorer — full pipeline', async ({ bench }) => {
+    await bench('WASM scorer — full pipeline', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items1K);
+      wasmEngine.search('apple', items1K).toArray();
+    }).run();
   });
 
-  bench('JS scorer — incremental (a -> ap -> app)', () => {
-    using engine = createSearchEngine();
-    engine.index(items1K);
-    engine.search('a', items1K).toArray();
-    engine.search('ap', items1K).toArray();
-    engine.search('app', items1K).toArray();
+  test('JS scorer — incremental (a -> ap -> app)', async ({ bench }) => {
+    await bench('JS scorer — incremental (a -> ap -> app)', () => {
+      using engine = createSearchEngine();
+      engine.index(items1K);
+      engine.search('a', items1K).toArray();
+      engine.search('ap', items1K).toArray();
+      engine.search('app', items1K).toArray();
+    }).run();
   });
 
-  bench('WASM scorer — incremental (a -> ap -> app)', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items1K);
-    wasmEngine.search('a', items1K).toArray();
-    wasmEngine.search('ap', items1K).toArray();
-    wasmEngine.search('app', items1K).toArray();
+  test('WASM scorer — incremental (a -> ap -> app)', async ({ bench }) => {
+    await bench('WASM scorer — incremental (a -> ap -> app)', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items1K);
+      wasmEngine.search('a', items1K).toArray();
+      wasmEngine.search('ap', items1K).toArray();
+      wasmEngine.search('app', items1K).toArray();
+    }).run();
   });
 });
 
@@ -124,34 +140,42 @@ describe('WASM vs JS Search — 1K Items', async () => {
 describe('WASM vs JS Search — 10K Items', async () => {
   await wasmReady;
 
-  bench('JS scorer — full pipeline', () => {
-    using engine = createSearchEngine();
-    engine.index(items10K);
-    engine.search('banana', items10K).toArray();
+  test('JS scorer — full pipeline', async ({ bench }) => {
+    await bench('JS scorer — full pipeline', () => {
+      using engine = createSearchEngine();
+      engine.index(items10K);
+      engine.search('banana', items10K).toArray();
+    }).run();
   });
 
-  bench('WASM scorer — full pipeline', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items10K);
-    wasmEngine.search('banana', items10K).toArray();
+  test('WASM scorer — full pipeline', async ({ bench }) => {
+    await bench('WASM scorer — full pipeline', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items10K);
+      wasmEngine.search('banana', items10K).toArray();
+    }).run();
   });
 
-  bench('JS scorer — incremental (b -> ba -> ban -> bana)', () => {
-    using engine = createSearchEngine();
-    engine.index(items10K);
-    engine.search('b', items10K).toArray();
-    engine.search('ba', items10K).toArray();
-    engine.search('ban', items10K).toArray();
-    engine.search('bana', items10K).toArray();
+  test('JS scorer — incremental (b -> ba -> ban -> bana)', async ({ bench }) => {
+    await bench('JS scorer — incremental (b -> ba -> ban -> bana)', () => {
+      using engine = createSearchEngine();
+      engine.index(items10K);
+      engine.search('b', items10K).toArray();
+      engine.search('ba', items10K).toArray();
+      engine.search('ban', items10K).toArray();
+      engine.search('bana', items10K).toArray();
+    }).run();
   });
 
-  bench('WASM scorer — incremental (b -> ba -> ban -> bana)', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items10K);
-    wasmEngine.search('b', items10K).toArray();
-    wasmEngine.search('ba', items10K).toArray();
-    wasmEngine.search('ban', items10K).toArray();
-    wasmEngine.search('bana', items10K).toArray();
+  test('WASM scorer — incremental (b -> ba -> ban -> bana)', async ({ bench }) => {
+    await bench('WASM scorer — incremental (b -> ba -> ban -> bana)', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items10K);
+      wasmEngine.search('b', items10K).toArray();
+      wasmEngine.search('ba', items10K).toArray();
+      wasmEngine.search('ban', items10K).toArray();
+      wasmEngine.search('bana', items10K).toArray();
+    }).run();
   });
 });
 
@@ -162,7 +186,6 @@ describe('WASM vs JS Search — 10K Items', async () => {
 describe('WASM Trigram Query Lengths — 10K Items', async () => {
   await wasmReady;
 
-  // Pre-index once; each bench re-indexes to isolate measurement
   const queries = {
     '2-char query': 'ap',
     '5-char query': 'apple',
@@ -170,16 +193,20 @@ describe('WASM Trigram Query Lengths — 10K Items', async () => {
   } as const;
 
   for (const [label, query] of Object.entries(queries)) {
-    bench(`WASM search — ${label} ("${query}")`, () => {
-      wasmEngine.clear();
-      wasmEngine.index(items10K);
-      wasmEngine.search(query, items10K).toArray();
+    test(`WASM search — ${label} ("${query}")`, async ({ bench }) => {
+      await bench(`WASM search — ${label} ("${query}")`, () => {
+        wasmEngine.clear();
+        wasmEngine.index(items10K);
+        wasmEngine.search(query, items10K).toArray();
+      }).run();
     });
 
-    bench(`JS search — ${label} ("${query}")`, () => {
-      using engine = createSearchEngine();
-      engine.index(items10K);
-      engine.search(query, items10K).toArray();
+    test(`JS search — ${label} ("${query}")`, async ({ bench }) => {
+      await bench(`JS search — ${label} ("${query}")`, () => {
+        using engine = createSearchEngine();
+        engine.index(items10K);
+        engine.search(query, items10K).toArray();
+      }).run();
     });
   }
 });
@@ -191,39 +218,51 @@ describe('WASM Trigram Query Lengths — 10K Items', async () => {
 describe('WASM Clear + Re-index Cycle', async () => {
   await wasmReady;
 
-  bench('clear + re-index 100 items', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items100);
+  test('clear + re-index 100 items', async ({ bench }) => {
+    await bench('clear + re-index 100 items', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items100);
+    }).run();
   });
 
-  bench('clear + re-index 1K items', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items1K);
+  test('clear + re-index 1K items', async ({ bench }) => {
+    await bench('clear + re-index 1K items', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items1K);
+    }).run();
   });
 
-  bench('clear + re-index 10K items', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items10K);
+  test('clear + re-index 10K items', async ({ bench }) => {
+    await bench('clear + re-index 10K items', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items10K);
+    }).run();
   });
 
-  bench('clear + re-index + search 1K items', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items1K);
-    wasmEngine.search('cherry', items1K).toArray();
+  test('clear + re-index + search 1K items', async ({ bench }) => {
+    await bench('clear + re-index + search 1K items', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items1K);
+      wasmEngine.search('cherry', items1K).toArray();
+    }).run();
   });
 
-  bench('clear + re-index + search 10K items', () => {
-    wasmEngine.clear();
-    wasmEngine.index(items10K);
-    wasmEngine.search('cherry', items10K).toArray();
+  test('clear + re-index + search 10K items', async ({ bench }) => {
+    await bench('clear + re-index + search 10K items', () => {
+      wasmEngine.clear();
+      wasmEngine.index(items10K);
+      wasmEngine.search('cherry', items10K).toArray();
+    }).run();
   });
 
   // Multi-cycle: simulate rapid filter changes requiring full re-index
-  bench('3x clear + re-index cycle — 1K items', () => {
-    for (const query of ['fig', 'grape', 'honeydew']) {
-      wasmEngine.clear();
-      wasmEngine.index(items1K);
-      wasmEngine.search(query, items1K).toArray();
-    }
+  test('3x clear + re-index cycle — 1K items', async ({ bench }) => {
+    await bench('3x clear + re-index cycle — 1K items', () => {
+      for (const query of ['fig', 'grape', 'honeydew']) {
+        wasmEngine.clear();
+        wasmEngine.index(items1K);
+        wasmEngine.search(query, items1K).toArray();
+      }
+    }).run();
   });
 });

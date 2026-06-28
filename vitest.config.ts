@@ -2,10 +2,8 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  esbuild: {
-    jsx: 'automatic',
-    target: 'esnext',
-  },
+  // Vitest 5 transpiles with oxc (not esbuild) by default — JSX automatic runtime
+  // and ESNext syntax (incl. `using`) are handled natively, so no transform block needed.
   resolve: {
     alias: {
       'modern-cmdk/react': resolve(__dirname, 'packages/modern-cmdk/src/react/index.ts'),
@@ -38,6 +36,10 @@ export default defineConfig({
     },
     benchmark: {
       include: ['benchmarks/**/*.bench.ts'],
+      // wasm-search needs the browser-target WASM engine (createWasmSearchEngine loads
+      // a `--target web` module) — it runs via the standalone benchmarks/standalone
+      // harness, not the Node-based `vitest bench` runner.
+      exclude: ['benchmarks/wasm-search.bench.ts'],
     },
   },
 });

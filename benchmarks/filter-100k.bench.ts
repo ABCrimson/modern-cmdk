@@ -1,6 +1,6 @@
 import type { CommandItem } from 'modern-cmdk';
 import { createSearchEngine, itemId } from 'modern-cmdk';
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 
 const WORDS = [
   'apple',
@@ -41,19 +41,24 @@ function generateItems(count: number): CommandItem[] {
 
 const items100K = generateItems(100_000);
 
+// Vitest 5 — `bench` is a fixture factory; .run() executes/measures the task.
 describe('Filter 100K Items (TS scorer)', () => {
-  bench('search engine — full pipeline', () => {
-    using engine = createSearchEngine();
-    engine.index(items100K);
-    engine.search('apple', items100K).toArray();
+  test('search engine — full pipeline', async ({ bench }) => {
+    await bench('search engine — full pipeline', () => {
+      using engine = createSearchEngine();
+      engine.index(items100K);
+      engine.search('apple', items100K).toArray();
+    }).run();
   });
 
-  bench('search engine — incremental', () => {
-    using engine = createSearchEngine();
-    engine.index(items100K);
-    engine.search('a', items100K).toArray();
-    engine.search('ap', items100K).toArray();
-    engine.search('app', items100K).toArray();
-    engine.search('appl', items100K).toArray();
+  test('search engine — incremental', async ({ bench }) => {
+    await bench('search engine — incremental', () => {
+      using engine = createSearchEngine();
+      engine.index(items100K);
+      engine.search('a', items100K).toArray();
+      engine.search('ap', items100K).toArray();
+      engine.search('app', items100K).toArray();
+      engine.search('appl', items100K).toArray();
+    }).run();
   });
 });

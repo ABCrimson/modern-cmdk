@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-// Playwright 1.59 — locator-first assertions, toBeInViewport()
+// Playwright 1.62 — locator-first assertions, toBeInViewport()
 // 2000 items: well above the 100-item virtualization threshold,
 // fast enough for parallel E2E workers (10K hangs the browser).
 const virtualizationUrl = '/virtualization?count=2000';
@@ -8,7 +8,7 @@ const virtualizationUrl = '/virtualization?count=2000';
 test.describe('Virtualization — Large Item Set', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(virtualizationUrl);
-    // Playwright 1.59 — wait for hydration using locator-first pattern
+    // Playwright 1.62 — wait for hydration using locator-first pattern
     await expect(page.locator('[data-command-root]')).toBeVisible();
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
   });
@@ -80,7 +80,7 @@ test.describe('Virtualization — Large Item Set', () => {
       el.scrollTop = el.scrollHeight / 2;
     });
 
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+    // Playwright 1.62 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
     const itemCount = await page.locator('[data-command-item]').count();
@@ -127,7 +127,7 @@ test.describe('Virtualization — Large Item Set', () => {
     await list.evaluate((el) => {
       el.scrollTop = 3_000;
     });
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+    // Playwright 1.62 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
     // Scroll further down
@@ -156,7 +156,7 @@ test.describe('Virtualization — Large Item Set', () => {
     await list.evaluate((el) => {
       el.scrollTop = el.scrollHeight;
     });
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+    // Playwright 1.62 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
     const items = page.locator('[data-command-item]');
@@ -310,7 +310,7 @@ test.describe('Virtualization — Large Item Set', () => {
     // Type a search query
     await input.pressSequentially('item 5', { delay: 50 });
 
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+    // Playwright 1.62 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
     // Items should be filtered
@@ -326,13 +326,13 @@ test.describe('Virtualization — Large Item Set', () => {
 
     // Filter
     await input.pressSequentially('item 5', { delay: 50 });
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+    // Playwright 1.62 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
     // Clear
     await input.press('Control+a');
     await input.press('Backspace');
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+    // Playwright 1.62 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
     // Should return to approximately the same DOM count
@@ -366,7 +366,7 @@ test.describe('Virtualization — Large Item Set', () => {
       await list.evaluate((el, pos) => {
         el.scrollTop = pos;
       }, position);
-      // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+      // Playwright 1.62 — locator-first assertion instead of waitForTimeout
       await expect(page.locator('[data-command-item]').first()).toBeVisible();
     }
 
@@ -384,7 +384,7 @@ test.describe('Virtualization — Large Item Set', () => {
       await list.evaluate((el) => {
         el.scrollTop = Math.random() * el.scrollHeight;
       });
-      // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+      // Playwright 1.62 — locator-first assertion instead of waitForTimeout
       await expect(page.locator('[data-command-item]').first()).toBeVisible();
     }
 
@@ -403,7 +403,7 @@ test.describe('Virtualization — Large Item Set', () => {
     await list.evaluate((el) => {
       el.scrollTop = 5_000;
     });
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+    // Playwright 1.62 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
     // ARIA attributes should still be correct
@@ -444,7 +444,7 @@ test.describe('Virtualization — Large Item Set', () => {
     // Simulate mouse wheel by scrolling the element
     await list.hover();
     await page.mouse.wheel(0, 500);
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+    // Playwright 1.62 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
     const items = page.locator('[data-command-item]');
@@ -456,7 +456,7 @@ test.describe('Virtualization — Large Item Set', () => {
   test('should render correctly when list container is resized', async ({ page }) => {
     // Resize the viewport
     await page.setViewportSize({ width: 600, height: 400 });
-    // Playwright 1.59 — locator-first assertion instead of waitForTimeout
+    // Playwright 1.62 — locator-first assertion instead of waitForTimeout
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
     const items = page.locator('[data-command-item]');

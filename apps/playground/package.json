@@ -10,12 +10,12 @@
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
     "modern-cmdk": "workspace:*",
-    "react": "19.3.0-canary-46103596-20260305",
-    "react-dom": "19.3.0-canary-46103596-20260305"
+    "react": "19.3.0-canary-68631c04-20260626",
+    "react-dom": "19.3.0-canary-68631c04-20260626"
   },
   "devDependencies": {
-    "vite": "8.0.0-beta.16",
-    "@vitejs/plugin-react": "6.0.0-beta.0",
-    "typescript": "6.0.1-rc"
+    "vite": "8.1.0",
+    "@vitejs/plugin-react": "6.0.3",
+    "typescript": "7.0.1-rc"
   }
 }

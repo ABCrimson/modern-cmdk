@@ -7,18 +7,18 @@
   "license": "MIT",
   "exports": {
     ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
-  "main": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "pkg"
   ],
   "scripts": {
-    "build": "[ -f pkg/command_search_wasm.js ] && tsdown || echo 'Skipping WASM build (run build:wasm first)'",
+    "build": "node --input-type=commonjs -e \"process.exit(require('fs').existsSync('pkg/command_search_wasm.js')?0:1)\" && tsdown || echo Skipping WASM build - run build:wasm first",
     "build:wasm": "wasm-pack build crate --target web --out-dir ../pkg",
     "typecheck": "tsc --noEmit"
   },

@@ -1,5 +1,5 @@
 // packages/command/src/types.ts
-// TypeScript 6.0.1-rc — ESNext target — all modern type features
+// TypeScript 7.0.1-rc — ESNext target — all modern type features
 // Branded types, const type params, NoInfer<T>, satisfies on values
 
 import { ensureWellFormed } from './utils/string-wellformed.js';

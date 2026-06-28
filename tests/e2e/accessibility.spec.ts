@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-// Playwright 1.59 — locator-first assertions, @axe-core/playwright 4.11.2-rc
+// Playwright 1.62 — locator-first assertions, @axe-core/playwright 4.12.2
 test.describe('Accessibility — WCAG 2.1 AA', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -304,7 +304,7 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     }
   });
 
-  // ---------- ARIA Snapshot Testing (Playwright 1.59) ----------
+  // ---------- ARIA Snapshot Testing (Playwright 1.62) ----------
 
   test('should match ARIA snapshot for combobox structure', async ({ page }) => {
     const root = page.locator('[data-command-root]');

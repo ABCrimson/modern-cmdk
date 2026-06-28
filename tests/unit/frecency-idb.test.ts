@@ -8,10 +8,11 @@ function uniqueDb(): string {
   return `test-db-${++dbCounter}-${Date.now()}`;
 }
 
-// Vitest 4.1 — test.sequential for IDB tests that rely on global fake-indexeddb state
+// Vitest 5 — each test uses a unique DB name (uniqueDb), so the default within-file
+// sequential execution is all these IDB tests need (no shared cross-test state).
 describe('IdbFrecencyStorage', () => {
   describe('load', () => {
-    it.sequential('should return empty data for a new namespace', async () => {
+    it('should return empty data for a new namespace', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const data = await storage.load('test-ns');
 
@@ -19,7 +20,7 @@ describe('IdbFrecencyStorage', () => {
       expect(data.records.size).toBe(0);
     });
 
-    it.sequential('should return empty data when disposed', async () => {
+    it('should return empty data when disposed', async () => {
       const storage = new IdbFrecencyStorage(uniqueDb());
       storage[Symbol.dispose]();
 
@@ -29,7 +30,7 @@ describe('IdbFrecencyStorage', () => {
   });
 
   describe('save and load round-trip', () => {
-    it.sequential('should persist and reload frecency data', async () => {
+    it('should persist and reload frecency data', async () => {
       const db = uniqueDb();
       using storage = new IdbFrecencyStorage(db);
       const now = Date.now();
@@ -55,7 +56,7 @@ describe('IdbFrecencyStorage', () => {
       expect(pasteRecord?.frequency).toBe(3);
     });
 
-    it.sequential('should handle single-item data', async () => {
+    it('should handle single-item data', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const timestamp = 1_700_000_000_000; // epoch ms
 
@@ -73,7 +74,7 @@ describe('IdbFrecencyStorage', () => {
   });
 
   describe('namespace isolation', () => {
-    it.sequential('should isolate data between different namespaces', async () => {
+    it('should isolate data between different namespaces', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const now = Date.now();
 
@@ -107,7 +108,7 @@ describe('IdbFrecencyStorage', () => {
   });
 
   describe('timestamp serialization', () => {
-    it.sequential('should correctly serialize and deserialize epoch-ms timestamps', async () => {
+    it('should correctly serialize and deserialize epoch-ms timestamps', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const precise = 1_709_251_200_123; // epoch ms
 
@@ -124,7 +125,7 @@ describe('IdbFrecencyStorage', () => {
       expect(record?.lastUsed).toBe(1_709_251_200_123);
     });
 
-    it.sequential('should handle timestamp at epoch zero', async () => {
+    it('should handle timestamp at epoch zero', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const epoch = 0;
 
@@ -151,7 +152,7 @@ describe('IdbFrecencyStorage', () => {
       await storage[Symbol.asyncDispose]();
     });
 
-    it.sequential('should work with using declaration', async () => {
+    it('should work with using declaration', async () => {
       const db = uniqueDb();
       let loadedOutside: FrecencyData | undefined;
 
@@ -169,7 +170,7 @@ describe('IdbFrecencyStorage', () => {
       expect(loadedOutside?.records.size).toBe(1);
     });
 
-    it.sequential('should reject operations after dispose', async () => {
+    it('should reject operations after dispose', async () => {
       const storage = new IdbFrecencyStorage(uniqueDb());
       storage[Symbol.dispose]();
 
@@ -183,7 +184,7 @@ describe('IdbFrecencyStorage', () => {
   });
 
   describe('delete', () => {
-    it.sequential('should remove data for a specific namespace', async () => {
+    it('should remove data for a specific namespace', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const now = Date.now();
 
@@ -202,7 +203,7 @@ describe('IdbFrecencyStorage', () => {
   });
 
   describe('edge cases', () => {
-    it.sequential('should handle empty records map', async () => {
+    it('should handle empty records map', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
 
       await storage.save('empty', { records: new Map() });
@@ -211,7 +212,7 @@ describe('IdbFrecencyStorage', () => {
       expect(loaded.records.size).toBe(0);
     });
 
-    it.sequential('should handle overwriting existing data', async () => {
+    it('should handle overwriting existing data', async () => {
       using storage = new IdbFrecencyStorage(uniqueDb());
       const now = Date.now();
 
