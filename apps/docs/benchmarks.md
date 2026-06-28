@@ -4,7 +4,7 @@ modern-cmdk is engineered for speed at every layer.
 
 ## Benchmark Results
 
-All benchmarks run on Node 25.8.0, Ubuntu 24.04, averaged over 3 runs.
+All benchmarks run on Node 26.4.0, Ubuntu 26.04, averaged over 3 runs.
 
 ### Head-to-Head vs cmdk
 

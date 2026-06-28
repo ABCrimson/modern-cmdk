@@ -33,17 +33,17 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 25.8.0 | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
-| pnpm | >= 11.0.0-alpha.13 | Workspace protocol, `pnpm-workspace.yaml` |
-| TypeScript | 6.0.1-rc | Installed via devDependencies -- do not install globally |
+| Node.js | >= 26.4.0 | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
+| pnpm | >= 11.9.0 | Workspace protocol, `pnpm-workspace.yaml` |
+| TypeScript | 7.0.1-rc | Installed via devDependencies -- do not install globally |
 | Rust + wasm-pack | Latest stable | Only needed if working on `command-search-wasm` |
 | Git | >= 2.40 | For Lefthook pre-commit/pre-push hooks |
 
 Verify your setup:
 
 ```bash
-node --version    # v25.8.0 or higher
-pnpm --version    # 11.0.0-alpha.13 or higher
+node --version    # v26.4.0 or higher
+pnpm --version    # 11.9.0 or higher
 ```
 
 ---
@@ -154,7 +154,7 @@ modern-cmdk/
           scorer.rs               Fuzzy scorer
   |
   apps/
-    docs/                         VitePress 2.0.0-alpha.16 documentation site
+    docs/                         VitePress 2.0.0-alpha.17 documentation site
       package.json
       index.md
       .vitepress/
@@ -217,7 +217,7 @@ modern-cmdk/
 | `pnpm test` | Run unit tests (Vitest, happy-dom) |
 | `pnpm test:watch` | Run unit tests in watch mode |
 | `pnpm test:coverage` | Run tests with V8 coverage report |
-| `pnpm test:e2e` | Run E2E tests (Playwright 1.59, 4 browsers) |
+| `pnpm test:e2e` | Run E2E tests (Playwright 1.62, 3 browsers) |
 | `pnpm bench` | Run benchmarks (Vitest bench mode) |
 | `pnpm bench:ci` | Run CI benchmarks (standalone, no Vitest) |
 | `pnpm lint` | Check lint rules (Biome) |
@@ -238,7 +238,7 @@ modern-cmdk/
 pnpm --filter modern-cmdk run dev
 pnpm --filter modern-cmdk/react run dev
 
-# Run the playground (Vite 8.0.0-beta.16)
+# Run the playground (Vite 8.1.0)
 pnpm --filter playground run dev
 # Opens at http://localhost:5173
 
@@ -250,7 +250,7 @@ pnpm --filter modern-cmdk-search-wasm run build:wasm
 
 ## Code Style
 
-This project uses **Biome 2.4.6** for both linting and formatting. There is no ESLint or Prettier.
+This project uses **Biome 2.5.1** for both linting and formatting. There is no ESLint or Prettier.
 
 ### Formatter settings
 
@@ -294,7 +294,7 @@ All imports use the `.js` extension suffix (required by `verbatimModuleSyntax`).
 
 ## TypeScript Guidelines
 
-This project uses **TypeScript 6.0.1-rc** with strict configuration.
+This project uses **TypeScript 7.0.1-rc** with strict configuration.
 
 ### Required tsconfig flags
 
@@ -362,7 +362,7 @@ Use native ES2026 features that are supported in target browsers. Features not y
 ### Unit Tests
 
 **Config:** `vitest.config.ts`
-**Environment:** happy-dom 20.8.3
+**Environment:** happy-dom 20.10.6
 **Files:** `packages/*/src/**/*.test.ts`, `tests/unit/**/*.test.{ts,tsx}`
 
 ```bash
@@ -545,7 +545,7 @@ fix(react): prevent stale activeId after unmount
 perf(core): use Set.difference for bulk item removal
 docs(architecture): add search pipeline diagram
 test(core): add frecency decay edge cases
-chore: bump Biome to 2.4.6
+chore: bump Biome to 2.5.1
 ```
 
 ### Pull request process
@@ -680,10 +680,10 @@ The changeset config (`.changeset/config.json`):
 
 ### `Iterator.range is not a function` or missing ES2026 features
 
-Node.js 25.8.0+ ships these features natively. If you see this error, your Node.js version is too old:
+Node.js 26.4.0+ ships these features natively. If you see this error, your Node.js version is too old:
 
 ```bash
-node --version  # Must be >= 25.8.0
+node --version  # Must be >= 26.4.0
 ```
 
 ### `ERR_UNSUPPORTED_DIR_IMPORT` or missing `.js` extension
@@ -715,7 +715,7 @@ import { CommandState } from './types.js';
 Make sure you have the correct Biome version. It is installed as a devDependency -- do not install it globally:
 
 ```bash
-pnpm biome --version  # Should output 2.4.6
+pnpm biome --version  # Should output 2.5.1
 ```
 
 If hooks are not running, reinstall Lefthook:
@@ -752,7 +752,7 @@ pnpm typecheck
 
 ### Vite 8 HMR not working in the playground
 
-Vite 8.0.0-beta.16 requires `strictPort: true` in development. If port 5173 is already in use, the server will fail to start rather than silently picking another port. Kill any other process on port 5173 or change the port in `apps/playground/vite.config.ts`.
+Vite 8.1.0 requires `strictPort: true` in development. If port 5173 is already in use, the server will fail to start rather than silently picking another port. Kill any other process on port 5173 or change the port in `apps/playground/vite.config.ts`.
 
 ### WASM build fails
 

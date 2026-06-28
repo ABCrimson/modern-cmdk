@@ -583,7 +583,7 @@ React Context triggers re-renders in all consumers when any value changes. The m
 
 ### Why ES2026 target?
 
-The project targets Node.js 25.8.0+, which ships many ES2026 features natively. Benefits:
+The project targets Node.js 26.4.0+, which ships many ES2026 features natively. Benefits:
 
 - **Iterator Helpers** (`map`, `filter`, `toArray`, `some`, `forEach`) -- pipeline operations on Map/Set iterators without intermediate arrays.
 - **`using` / `await using`** -- Explicit Resource Management prevents leaked listeners, timers, and storage connections. Every class implements `Disposable`.
@@ -623,7 +623,7 @@ Building a production-quality dialog from scratch would add significant bundle s
 
 ### Why Vite 8 for the playground?
 
-The interactive playground uses **Vite 8.0.0-beta.16** with `@vitejs/plugin-react` 6.0.0-beta.0. Key benefits:
+The interactive playground uses **Vite 8.1.0** with `@vitejs/plugin-react` 6.0.3. Key benefits:
 
 - **ES2026 build target** -- No downleveling of Iterator Helpers, Set methods, or `using` syntax.
 - **Native CSS nesting** -- Vite 8 passes through CSS nesting, `@layer`, and `@starting-style` without transformation.
@@ -648,7 +648,7 @@ type ItemId = string & { readonly __brand: unique symbol };
 type GroupId = string & { readonly __brand: unique symbol };
 ```
 
-This prevents accidentally passing a `GroupId` where an `ItemId` is expected. The runtime cost is zero -- brands are erased by the compiler. TypeScript 6.0.1-rc's improved `unique symbol` inference makes this pattern ergonomic.
+This prevents accidentally passing a `GroupId` where an `ItemId` is expected. The runtime cost is zero -- brands are erased by the compiler. TypeScript 7.0.1-rc's improved `unique symbol` inference makes this pattern ergonomic.
 
 ### Why `sideEffects: false`?
 

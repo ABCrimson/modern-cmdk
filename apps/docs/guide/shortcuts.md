@@ -126,29 +126,26 @@ import { parseShortcut } from 'modern-cmdk';
 
 const parsed = parseShortcut('Mod+Shift+K');
 // {
-//   modifiers: Set { 'mod', 'shift' },
 //   key: 'k',
-//   normalized: 'mod+shift+k',
-//   platform: { mac: 'meta+shift+k', other: 'ctrl+shift+k' }
+//   meta: false,
+//   ctrl: true,
+//   shift: true,
+//   alt: false,
+//   raw: 'Mod+Shift+K',
+//   normalized: 'ctrl+shift+k'  // 'meta+shift+k' on macOS
 // }
 ```
 
-### `formatShortcut(shortcut, platform?)`
+### `formatShortcut(parsed)`
 
-Formats a shortcut string into a human-readable, platform-specific display string:
+Formats a parsed shortcut (the result of `parseShortcut`) into a human-readable display string using the symbols for the current platform:
 
 ```typescript
-import { formatShortcut } from 'modern-cmdk';
+import { formatShortcut, parseShortcut } from 'modern-cmdk';
 
-formatShortcut('Mod+Shift+K');
+formatShortcut(parseShortcut('Mod+Shift+K'));
 // macOS: '⌘⇧K'
-// Windows: 'Ctrl+Shift+K'
-
-formatShortcut('Mod+Shift+K', 'mac');
-// Always: '⌘⇧K'
-
-formatShortcut('Mod+Shift+K', 'windows');
-// Always: 'Ctrl+Shift+K'
+// Windows/Linux: 'Ctrl+Shift+K'
 ```
 
 ### `detectConflicts(shortcuts)`
@@ -166,7 +163,7 @@ const shortcuts = [
 
 const conflicts = detectConflicts(shortcuts);
 // ReadonlyMap {
-//   'mod+c' => [ParsedShortcut, ParsedShortcut],
+//   'ctrl+c' => [ParsedShortcut, ParsedShortcut],  // 'meta+c' on macOS
 // }
 ```
 
@@ -180,7 +177,7 @@ Items with shortcuts automatically receive `aria-keyshortcuts` for screen reader
 
 ```html
 <!-- Rendered HTML -->
-<div role="option" aria-keyshortcuts="Meta+C" data-command-item data-value="copy">
+<div role="option" aria-keyshortcuts="Mod+C" data-command-item data-value="copy">
   Copy
   <kbd data-command-shortcut>⌘C</kbd>
 </div>

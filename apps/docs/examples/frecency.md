@@ -105,7 +105,7 @@ export function PersistentFrecencyExample() {
 ```
 
 ::: tip
-`IdbFrecencyStorage` uses `idb-keyval@6.2.2` under the hood. It is included as a direct dependency of `modern-cmdk`, so no separate install is needed.
+`IdbFrecencyStorage` uses `idb-keyval@6.2.5` under the hood. It is included as a direct dependency of `modern-cmdk`, so no separate install is needed.
 :::
 
 ## Custom Decay Curve

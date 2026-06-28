@@ -158,7 +158,7 @@ The Dialog component uses the unified `radix-ui` package instead of individual `
 
 ```diff
 - "@radix-ui/react-dialog": "^1.1.2"
-+ "radix-ui": "1.4.4-rc"
++ "radix-ui": "1.6.0"
 ```
 
 You do not need to install Radix separately unless you use it directly.
@@ -275,7 +275,7 @@ function CommandPalette({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
 | `React.forwardRef` | `ref` as regular prop | React 19 native |
 | No `"use client"` | `"use client"` on every component | RSC boundary |
 | No virtualization | Automatic at 100+ items | Opt-out with `virtualize={false}` |
-| `@radix-ui/react-dialog` | `radix-ui@1.4.4-rc` | Unified package |
+| `@radix-ui/react-dialog` | `radix-ui@1.6.0` | Unified package |
 | `use-sync-external-store` shim | Native `useSyncExternalStore` | React 19 built-in |
 | `data-selected="true"` | `data-active` | Presence-based attribute |
 
