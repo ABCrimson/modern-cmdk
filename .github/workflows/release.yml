@@ -26,7 +26,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
 
@@ -38,6 +37,8 @@ jobs:
           commit: "chore: release packages"
           title: "chore: release packages"
         env:
+          # Publish via npm OIDC Trusted Publishing — no long-lived token.
+          # An empty NPM_TOKEN / NODE_AUTH_TOKEN would make npm/pnpm try an empty
+          # token and skip the OIDC fallback, so they are intentionally omitted.
+          # id-token: write (permissions, above) supplies the short-lived OIDC token.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
