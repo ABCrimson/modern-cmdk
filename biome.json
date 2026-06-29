@@ -131,6 +131,8 @@
     "includes": [
       "**",
       "!dist/",
+      "!**/target/",
+      "!packages/command-search-wasm/pkg/",
       "!*.wasm",
       "!coverage/",
       "!.changeset/",
