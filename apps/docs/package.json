@@ -8,9 +8,10 @@
     "preview": "vitepress preview"
   },
   "devDependencies": {
-    "vitepress": "2.0.0-alpha.16",
-    "shiki": "4.0.1",
-    "@shikijs/twoslash": "4.0.1",
-    "svgo": "4.0.1"
+    "vitepress": "2.0.0-alpha.17",
+    "shiki": "4.3.0",
+    "@shikijs/twoslash": "4.3.0",
+    "svgo": "4.0.1",
+    "vue": "^3.5.29"
   }
 }

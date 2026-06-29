@@ -1,5 +1,5 @@
 // import { transformerTwoslash } from '@shikijs/twoslash';
-// Disabled: twoslash/@typescript/vfs not yet compatible with TypeScript 6
+// Disabled: twoslash/@typescript/vfs not yet compatible with TypeScript 7
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
@@ -32,7 +32,7 @@ export default defineConfig({
     ['meta', { name: 'twitter:image', content: 'https://command.crimson.dev/og-image.png' }],
   ],
 
-  // Twoslash disabled until @typescript/vfs supports TypeScript 6
+  // Twoslash disabled until @typescript/vfs supports TypeScript 7
   // markdown: {
   //   codeTransformers: [
   //     transformerTwoslash({ ... }),

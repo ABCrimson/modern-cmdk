@@ -12,7 +12,7 @@
   <a href="https://bundlephobia.com/package/modern-cmdk"><img alt="core size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27&label=core"/></a>
   <a href="https://bundlephobia.com/package/modern-cmdk/react"><img alt="react size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk/react?style=flat-square&color=dc2626&labelColor=0a0e27&label=react"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
-  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6.0.1--rc-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.0.1--rc-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-19.3.0--canary-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
 </p>
@@ -29,7 +29,7 @@
 
 ## Why modern-cmdk?
 
-A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**. Framework-agnostic core. Zero compromise on performance, accessibility, or developer experience.
+A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**. Framework-agnostic core. Zero compromise on performance, accessibility, or developer experience.
 
 | | cmdk | modern-cmdk |
 |---|---|---|
@@ -41,8 +41,8 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
-| **Bundle** | ~6 KB | Core ~6.3 KB, React ~25.2 KB |
-| **TypeScript** | 4.x/5.x | 6.0.1-rc, isolated declarations, branded types |
+| **Bundle** | ~6 KB | Core ~6.3 KB, React ~10.2 KB |
+| **TypeScript** | 4.x/5.x | 7.0.1-rc, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Telemetry** | None | Pluggable telemetry middleware |
 | **DevTools** | None | Built-in devtools hook for browser inspection |
@@ -125,7 +125,7 @@ function CommandPalette() {
 | Package | Description | Size |
 |---|---|---|
 | [`modern-cmdk`](./packages/modern-cmdk) | Framework-agnostic core -- state machine, search, frecency, keyboard | ~6.3 KB |
-| [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | ~25.2 KB |
+| [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | ~10.2 KB |
 | [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items | <= 50 KB |
 | [`modern-cmdk (codemods)`](./packages/modern-cmdk/src/codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
 | [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding -- 3 templates (basic, dialog, full) | CLI |
@@ -262,7 +262,7 @@ Raw filter throughput measured across 15 scenarios (100 / 1K / 10K items x 5 que
 | Filter 10K (incremental) | < 2 ms | ~1.1 ms |
 | State update cycle | < 4 ms | ~2.3 ms |
 | Core bundle (gzipped) | <= 6.5 KB | ~6.3 KB |
-| React bundle (gzipped) | <= 25.5 KB | ~25.2 KB |
+| React bundle (gzipped) | <= 12 KB | ~10.2 KB |
 
 CI enforces 5% warning / 15% failure regression thresholds with 3-run averaging.
 
@@ -354,11 +354,11 @@ pnpm install && pnpm build && pnpm test
 | Command | Description |
 |---|---|
 | `pnpm build` | Build all packages in parallel |
-| `pnpm test` | Unit tests (Vitest 4.1, happy-dom) |
-| `pnpm test:e2e` | E2E tests (Playwright 1.59, 3 browsers, 3 OS) |
+| `pnpm test` | Unit tests (Vitest 5, happy-dom) |
+| `pnpm test:e2e` | E2E tests (Playwright 1.62, 3 browsers, 3 OS) |
 | `pnpm bench` | Benchmarks (Vitest bench mode) |
-| `pnpm lint` | Lint (Biome 2.4.6) |
-| `pnpm typecheck` | Type-check (TypeScript 6.0.1-rc) |
+| `pnpm lint` | Lint (Biome 2.5.1) |
+| `pnpm typecheck` | Type-check (TypeScript 7.0.1-rc) |
 | `pnpm size` | Bundle size budgets |
 | `pnpm docs:dev` | Docs dev server (VitePress 2.0) |
 
@@ -370,17 +370,17 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 
 | Tool | Version | Purpose |
 |---|---|---|
-| TypeScript | 6.0.1-rc | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
+| TypeScript | 7.0.1-rc | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
 | React | 19.3.0-canary | `use()`, `useOptimistic`, `ref` as prop, Activity API |
-| Vite | 8.0.0-beta.16 | Playground dev server, HMR, build tooling |
-| Node.js | >= 25.8.0 | ES2026: Iterator Helpers, Explicit Resource Management |
-| Vitest | 4.1.0-beta.6 | Unit tests, benchmarks, V8 coverage |
-| Playwright | 1.59.0-alpha | Cross-browser E2E (Chromium, Firefox, WebKit) |
-| Biome | 2.4.6 | Lint + format (no ESLint, no Prettier) |
-| tsdown | 0.21.0 | ESM builds, isolated declarations |
-| pnpm | 11.0.0-alpha.13 | Workspace protocol, lockfile v10 |
-| VitePress | 2.0.0-alpha.16 | Documentation, Shiki twoslash |
-| Radix UI | 1.4.4-rc | Accessible dialog primitives |
+| Vite | 8.1.0 | Playground dev server, HMR, build tooling |
+| Node.js | >= 26.4.0 | ES2026: Iterator Helpers, Explicit Resource Management |
+| Vitest | 5.0.0-beta.5 | Unit tests, benchmarks, V8 coverage |
+| Playwright | 1.62.0-alpha | Cross-browser E2E (Chromium, Firefox, WebKit) |
+| Biome | 2.5.1 | Lint + format (no ESLint, no Prettier) |
+| tsdown | 0.22.3 | ESM builds, isolated declarations |
+| pnpm | 11.9.0 | Workspace protocol, lockfile v10 |
+| VitePress | 2.0.0-alpha.17 | Documentation, Shiki twoslash |
+| Radix UI | 1.6.0 | Accessible dialog primitives |
 | Rust + wasm-pack | Latest | WASM fuzzy search engine |
 
 ---

@@ -175,7 +175,7 @@ const gid = groupId('navigation');  // type: GroupId (not string)
 
 ## Search Engine
 
-### `createSearchEngine(scorer?)`
+### `createSearchEngine(options?)`
 
 Creates a pluggable search engine with fuzzy scoring, incremental filtering, and Iterator Helpers pipeline.
 
@@ -237,10 +237,10 @@ Frequency x recency ranking with time-based exponential decay. Items used recent
 import { FrecencyEngine, MemoryFrecencyStorage } from 'modern-cmdk';
 
 using storage = new MemoryFrecencyStorage();
-using frecency = new FrecencyEngine(storage, 'my-app');
+using frecency = new FrecencyEngine({ storage, namespace: 'my-app' });
 
 frecency.recordSelection(itemId('settings'));
-const bonus = frecency.computeBonus(itemId('settings')); // e.g., 4.0
+const bonus = frecency.getBonus(itemId('settings')); // e.g., 4.0
 ```
 
 ### `FrecencyOptions`
@@ -297,12 +297,12 @@ Built-in keyboard shortcut management with cross-platform `Mod` key, conflict de
 import { KeyboardShortcutRegistry, itemId } from 'modern-cmdk';
 
 using registry = new KeyboardShortcutRegistry();
-registry.register(itemId('copy'), 'Mod+C');
-registry.register(itemId('paste'), 'Mod+V');
+registry.register('Mod+C', itemId('copy'), () => copy());
+registry.register('Mod+V', itemId('paste'), () => paste());
 
 // Detect conflicts
-const conflicts = registry.detectConflicts();
-// conflicts: Map<string, ItemId[]> (shortcut → conflicting IDs)
+const conflicts = registry.getConflicts();
+// conflicts: ReadonlyMap<string, readonly ParsedShortcut[]> (normalized shortcut → conflicting bindings)
 ```
 
 ### Shortcut Utilities
@@ -312,19 +312,20 @@ const conflicts = registry.detectConflicts();
 | `parseShortcut(shortcut)` | `ParsedShortcut` | Parse `"Mod+Shift+K"` into structured object |
 | `formatShortcut(parsed)` | `string` | Format back to display string |
 | `matchesShortcut(event, parsed)` | `boolean` | Check if a `KeyboardEvent` matches a parsed shortcut |
-| `findMatchingShortcut(event, shortcuts)` | `ParsedShortcut \| undefined` | Find first matching shortcut |
-| `detectConflicts(shortcuts)` | `Map<string, ItemId[]>` | Detect duplicate shortcut bindings |
+| `findMatchingShortcut(event, shortcuts)` | `ParsedShortcut \| null` | Find first matching shortcut |
+| `detectConflicts(shortcuts)` | `ReadonlyMap<string, readonly ParsedShortcut[]>` | Detect duplicate shortcut bindings |
 
 ### `ParsedShortcut`
 
 ```ts
 interface ParsedShortcut {
-  readonly key: string;       // Normalized key name
-  readonly ctrl: boolean;
+  readonly key: string;        // Normalized key name
   readonly meta: boolean;
+  readonly ctrl: boolean;
   readonly shift: boolean;
   readonly alt: boolean;
-  readonly mod: boolean;       // true if Mod was specified (Cmd on macOS, Ctrl elsewhere)
+  readonly raw: string;        // Original shortcut string (well-formed)
+  readonly normalized: string; // Deterministic form for dedup/comparison
 }
 ```
 

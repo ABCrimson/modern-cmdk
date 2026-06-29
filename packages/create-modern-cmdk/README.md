@@ -63,7 +63,7 @@ All dependencies are pinned to compatible versions:
 
 ## Requirements
 
-- Node.js >= 25.8.0
+- Node.js >= 26.4.0
 - npm, pnpm, or yarn
 
 ## Links

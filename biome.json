@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -8,7 +8,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "nursery": {
         "useExplicitType": "warn"
       },
@@ -131,6 +131,8 @@
     "includes": [
       "**",
       "!dist/",
+      "!**/target/",
+      "!packages/command-search-wasm/pkg/",
       "!*.wasm",
       "!coverage/",
       "!.changeset/",

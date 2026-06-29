@@ -1,6 +1,6 @@
 import type { FrecencyRecord, ItemId } from 'modern-cmdk';
 import { computeFrecencyBonus, FrecencyEngine, itemId, MemoryFrecencyStorage } from 'modern-cmdk';
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -29,6 +29,8 @@ function _generateRecords(count: number): Map<ItemId, FrecencyRecord> {
   );
 }
 
+// Vitest 5 — `bench` is a fixture factory; .run() executes/measures the task.
+
 // ---------------------------------------------------------------------------
 // 1. computeFrecencyBonus — pure function performance
 // ---------------------------------------------------------------------------
@@ -40,24 +42,34 @@ describe('computeFrecencyBonus — Pure Function', () => {
   const monthRecord = makeRecord(500, 2);
   const oldRecord = makeRecord(2000, 1);
 
-  bench('recent (< 1 hour)', () => {
-    computeFrecencyBonus(recentRecord, NOW);
+  test('recent (< 1 hour)', async ({ bench }) => {
+    await bench('recent (< 1 hour)', () => {
+      computeFrecencyBonus(recentRecord, NOW);
+    }).run();
   });
 
-  bench('day-old', () => {
-    computeFrecencyBonus(dayRecord, NOW);
+  test('day-old', async ({ bench }) => {
+    await bench('day-old', () => {
+      computeFrecencyBonus(dayRecord, NOW);
+    }).run();
   });
 
-  bench('week-old', () => {
-    computeFrecencyBonus(weekRecord, NOW);
+  test('week-old', async ({ bench }) => {
+    await bench('week-old', () => {
+      computeFrecencyBonus(weekRecord, NOW);
+    }).run();
   });
 
-  bench('month-old', () => {
-    computeFrecencyBonus(monthRecord, NOW);
+  test('month-old', async ({ bench }) => {
+    await bench('month-old', () => {
+      computeFrecencyBonus(monthRecord, NOW);
+    }).run();
   });
 
-  bench('old (> 30 days)', () => {
-    computeFrecencyBonus(oldRecord, NOW);
+  test('old (> 30 days)', async ({ bench }) => {
+    await bench('old (> 30 days)', () => {
+      computeFrecencyBonus(oldRecord, NOW);
+    }).run();
   });
 });
 
@@ -78,18 +90,24 @@ describe('FrecencyEngine.getBonus — 10K Records', () => {
     }
   }
 
-  bench('single getBonus lookup', () => {
-    engine.getBonus(ids[5000] as ItemId);
+  test('single getBonus lookup', async ({ bench }) => {
+    await bench('single getBonus lookup', () => {
+      engine.getBonus(ids[5000] as ItemId);
+    }).run();
   });
 
-  bench('100 sequential getBonus lookups', () => {
-    for (let i = 0; i < 100; i++) {
-      engine.getBonus(ids[i * 100] as ItemId);
-    }
+  test('100 sequential getBonus lookups', async ({ bench }) => {
+    await bench('100 sequential getBonus lookups', () => {
+      for (let i = 0; i < 100; i++) {
+        engine.getBonus(ids[i * 100] as ItemId);
+      }
+    }).run();
   });
 
-  bench('getAllBonuses (10K items)', () => {
-    engine.getAllBonuses(NOW);
+  test('getAllBonuses (10K items)', async ({ bench }) => {
+    await bench('getAllBonuses (10K items)', () => {
+      engine.getAllBonuses(NOW);
+    }).run();
   });
 });
 
@@ -98,25 +116,31 @@ describe('FrecencyEngine.getBonus — 10K Records', () => {
 // ---------------------------------------------------------------------------
 
 describe('FrecencyEngine — Record Selection', () => {
-  bench('100 selections', () => {
-    using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
-    for (let i = 0; i < 100; i++) {
-      engine.recordSelection(itemId(`item-${i}`));
-    }
+  test('100 selections', async ({ bench }) => {
+    await bench('100 selections', () => {
+      using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
+      for (let i = 0; i < 100; i++) {
+        engine.recordSelection(itemId(`item-${i}`));
+      }
+    }).run();
   });
 
-  bench('1K selections', () => {
-    using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
-    for (let i = 0; i < 1_000; i++) {
-      engine.recordSelection(itemId(`item-${i}`));
-    }
+  test('1K selections', async ({ bench }) => {
+    await bench('1K selections', () => {
+      using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
+      for (let i = 0; i < 1_000; i++) {
+        engine.recordSelection(itemId(`item-${i}`));
+      }
+    }).run();
   });
 
-  bench('10K selections (rapid typing simulation)', () => {
-    using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
-    for (let i = 0; i < 10_000; i++) {
-      engine.recordSelection(itemId(`item-${i % 500}`));
-    }
+  test('10K selections (rapid typing simulation)', async ({ bench }) => {
+    await bench('10K selections (rapid typing simulation)', () => {
+      using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
+      for (let i = 0; i < 10_000; i++) {
+        engine.recordSelection(itemId(`item-${i % 500}`));
+      }
+    }).run();
   });
 });
 
@@ -125,19 +149,23 @@ describe('FrecencyEngine — Record Selection', () => {
 // ---------------------------------------------------------------------------
 
 describe('FrecencyEngine — Full Pipeline', () => {
-  bench('create + 100 records + getAllBonuses', () => {
-    using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
-    for (let i = 0; i < 100; i++) {
-      engine.recordSelection(itemId(`item-${i}`));
-    }
-    engine.getAllBonuses(NOW);
+  test('create + 100 records + getAllBonuses', async ({ bench }) => {
+    await bench('create + 100 records + getAllBonuses', () => {
+      using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
+      for (let i = 0; i < 100; i++) {
+        engine.recordSelection(itemId(`item-${i}`));
+      }
+      engine.getAllBonuses(NOW);
+    }).run();
   });
 
-  bench('create + 1K records + getAllBonuses', () => {
-    using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
-    for (let i = 0; i < 1_000; i++) {
-      engine.recordSelection(itemId(`item-${i}`));
-    }
-    engine.getAllBonuses(NOW);
+  test('create + 1K records + getAllBonuses', async ({ bench }) => {
+    await bench('create + 1K records + getAllBonuses', () => {
+      using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
+      for (let i = 0; i < 1_000; i++) {
+        engine.recordSelection(itemId(`item-${i}`));
+      }
+      engine.getAllBonuses(NOW);
+    }).run();
   });
 });

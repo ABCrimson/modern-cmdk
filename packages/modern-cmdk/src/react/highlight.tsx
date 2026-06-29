@@ -33,8 +33,8 @@ export function CommandHighlight({
     const segments: ReactNode[] = [];
     let lastEnd = 0;
 
-    // Build segments from sorted ranges — native Array.forEach provides (value, index)
-    sorted.forEach(([start, end], i) => {
+    // Build segments from sorted, non-overlapping ranges
+    sorted.forEach(([start, end]) => {
       // Text before the match
       if (start > lastEnd) {
         segments.push(text.slice(lastEnd, start));
@@ -42,7 +42,7 @@ export function CommandHighlight({
 
       // Highlighted match
       segments.push(
-        <mark key={i} data-command-highlight="" className={highlightClassName}>
+        <mark key={`h${start}-${end}`} data-command-highlight="" className={highlightClassName}>
           {text.slice(start, end)}
         </mark>,
       );

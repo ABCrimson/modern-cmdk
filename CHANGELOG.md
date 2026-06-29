@@ -2,6 +2,25 @@
 
 All notable changes to modern-cmdk packages are documented here.
 
+## [1.2.0] - 2026-06-28
+
+### Changed
+- Bleeding-edge evergreen upgrade — moved the entire toolchain and dependencies to their newest releases: TypeScript 6.0.1-rc → 7.0.1-rc (native Go compiler), React 19.3 canary (Jun 26 build), radix-ui 1.4.4-rc → 1.6.0, Vite 8 GA (8.1.0), Vitest 4.1 → 5.0.0-beta.5, Playwright 1.59 → 1.62.0-alpha, Biome 2.4.6 → 2.5.1, tsdown 0.22.3, pnpm 11.9.0, VitePress 2.0.0-alpha.17
+- Rust/WASM crate: edition 2021 → 2024, wasm-bindgen 0.2.100 → 0.2.126, wasm-pack 0.15 (with wasm-opt feature flags)
+- Raised `engines.node` to `>=26.4.0`; CI runs Node 26.4.0 on `ubuntu-26.04`
+- Bumped `idb-keyval` runtime dependency to 6.2.5
+- CI actions: checkout v7, pnpm/action-setup v6, codeql v4, upload-pages-artifact v5, deploy-pages v5
+- `size-limit` React budget now measures the adapter's own code (react/react-dom/radix-ui externalized): ~10.2 KB gzip / 12 KB limit
+- `create-modern-cmdk` scaffold template updated to newest installable versions; generated `tsconfig.json` fixed to ESNext
+
+### Fixed
+- Vitest 5 benchmark migration (fixture API with `.run()`), `it.sequential` → `it`, oxc transform
+- radix 1.6 dialog dismissal — unit tests dispatch a full outside click; cross-platform WASM build guard (Node `existsSync` instead of POSIX `[ -f ]`)
+- Documentation accuracy pass — corrected every version reference, bundle-size figure, and API example (`FrecencyEngine`, `KeyboardShortcutRegistry`, `ParsedShortcut` signatures) across the README, npm pages, and docs site
+
+### Notes
+- No public API or behavior changes — a toolchain/dependency refresh. The minimum Node version was raised to 26.4.0.
+
 ## [1.1.5] - 2026-03-13
 
 ### Fixed

@@ -190,7 +190,7 @@ export function computeFrecencyBonus(
 | `enabled` | `boolean` | `false` | Enable frecency ranking |
 | `storage` | `FrecencyStorage` | `MemoryFrecencyStorage` | Storage adapter (memory or IndexedDB) |
 | `namespace` | `string` | `'default'` | Namespace for storage isolation (useful for multiple palettes) |
-| `decayConfig` | `DecayConfig` | See table above | Custom decay curve configuration |
+| `decayConfig` | `FrecencyDecayConfig` | See table above | Custom decay curve configuration |
 
 ## Core State Machine Usage
 

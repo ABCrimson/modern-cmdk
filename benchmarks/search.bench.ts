@@ -1,6 +1,6 @@
 import type { CommandItem } from 'modern-cmdk';
 import { createCommandMachine, itemId } from 'modern-cmdk';
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 
 const WORDS = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
 
@@ -22,24 +22,33 @@ function generateItems(count: number): CommandItem[] {
 const items1K = generateItems(1_000);
 const items10K = generateItems(10_000);
 
+// Vitest 5 — `bench` is a fixture factory; .run() executes/measures the task.
 describe('Search Scoring', () => {
-  bench('filter 1K items (default scorer)', () => {
-    using machine = createCommandMachine({ items: items1K });
-    machine.send({ type: 'SEARCH_CHANGE', query: 'apple' });
+  test('filter 1K items (default scorer)', async ({ bench }) => {
+    await bench('filter 1K items (default scorer)', () => {
+      using machine = createCommandMachine({ items: items1K });
+      machine.send({ type: 'SEARCH_CHANGE', query: 'apple' });
+    }).run();
   });
 
-  bench('filter 10K items (default scorer)', () => {
-    using machine = createCommandMachine({ items: items10K });
-    machine.send({ type: 'SEARCH_CHANGE', query: 'banana' });
+  test('filter 10K items (default scorer)', async ({ bench }) => {
+    await bench('filter 10K items (default scorer)', () => {
+      using machine = createCommandMachine({ items: items10K });
+      machine.send({ type: 'SEARCH_CHANGE', query: 'banana' });
+    }).run();
   });
 
-  bench('create machine with 1K items', () => {
-    using machine = createCommandMachine({ items: items1K });
-    machine.getState();
+  test('create machine with 1K items', async ({ bench }) => {
+    await bench('create machine with 1K items', () => {
+      using machine = createCommandMachine({ items: items1K });
+      machine.getState();
+    }).run();
   });
 
-  bench('create machine with 10K items', () => {
-    using machine = createCommandMachine({ items: items10K });
-    machine.getState();
+  test('create machine with 10K items', async ({ bench }) => {
+    await bench('create machine with 10K items', () => {
+      using machine = createCommandMachine({ items: items10K });
+      machine.getState();
+    }).run();
   });
 });

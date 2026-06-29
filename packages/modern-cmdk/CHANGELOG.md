@@ -1,5 +1,15 @@
 # modern-cmdk
 
+## 1.2.0
+
+### Minor Changes
+
+- **chore: bleeding-edge evergreen upgrade** — Moved the entire toolchain and dependencies to their newest releases: TypeScript 7.0.1-rc (native compiler), React 19.3 canary, radix-ui 1.6.0, Vite 8.1, Vitest 5, Playwright 1.62, Biome 2.5.1, pnpm 11.9, tsdown 0.22.3, and the Rust/WASM crate to edition 2024 + wasm-bindgen 0.2.126. Raised `engines.node` to `>=26.4.0` and bumped the `idb-keyval` runtime dependency to 6.2.5. No public API or behavior changes.
+
+- **chore: size-limit measures own code** — The React adapter budget now externalizes the `react`/`react-dom`/`radix-ui` peers and reports the adapter's own gzipped size (~10.2 KB), so the gate stays stable across peer version bumps.
+
+- **docs: full accuracy pass** — Corrected every version reference, bundle-size figure, and API example across the README, npm page, and the documentation site to match the upgraded code (including the real `FrecencyEngine`, `KeyboardShortcutRegistry`, and `ParsedShortcut` signatures).
+
 ## 1.1.5
 
 ### Patch Changes

@@ -11,7 +11,7 @@
   <a href="https://www.npmjs.com/package/modern-cmdk"><img alt="npm version" src="https://img.shields.io/npm/v/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
   <a href="https://bundlephobia.com/package/modern-cmdk"><img alt="bundle size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27&label=core"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
-  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6.0-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.0-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-19-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
 </p>
@@ -92,7 +92,7 @@ npm create modern-cmdk
 
 ## Why modern-cmdk?
 
-A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**. Framework-agnostic core. Zero compromise on performance, accessibility, or developer experience.
+A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**. Framework-agnostic core. Zero compromise on performance, accessibility, or developer experience.
 
 | | cmdk | modern-cmdk |
 |---|---|---|
@@ -104,8 +104,8 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 6**
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
-| **Bundle** | ~6 KB | Core ~6.3 KB, React ~25.2 KB |
-| **TypeScript** | 4.x/5.x | 6.0, isolated declarations, branded types |
+| **Bundle** | ~6 KB | Core ~6.3 KB, React ~10.2 KB |
+| **TypeScript** | 4.x/5.x | 7.0, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Error handling** | None | `CommandErrorBoundary` with fallback UI |
 | **DevTools** | None | Built-in devtools hook for browser inspection |
@@ -192,7 +192,7 @@ machine.subscribe(() => {
 | Filter 10K (incremental) | < 2 ms | ~1.1 ms |
 | State update cycle | < 4 ms | ~2.3 ms |
 | Core bundle (gzipped) | <= 6.5 KB | ~6.3 KB |
-| React bundle (gzipped) | <= 25.5 KB | ~25.2 KB |
+| React bundle (gzipped) | <= 12 KB | ~10.2 KB |
 
 CI enforces 5% warning / 15% failure regression thresholds with 3-run averaging.
 

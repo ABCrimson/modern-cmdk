@@ -83,7 +83,7 @@ The Rust crate builds a trigram index at startup, enabling O(1) candidate lookup
 
 ## Peer Dependencies
 
-- `modern-cmdk` >= 1.0.0
+- `modern-cmdk` >= 1.0.2
 
 ## Links
 

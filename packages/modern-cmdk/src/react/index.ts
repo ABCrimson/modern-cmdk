@@ -1,5 +1,5 @@
 // modern-cmdk/react — React 19 adapter
-// ES2026 target — TypeScript 6.0.1-rc — ESM-only
+// ES2026 target — TypeScript 7.0.1-rc — ESM-only
 // Isolated declarations: type-only imports, explicit re-exports
 
 export type { ActivityMode, CommandActivityProps } from './activity.js';

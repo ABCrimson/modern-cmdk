@@ -83,24 +83,24 @@ async function main(): Promise<void> {
       preview: 'vite preview',
     },
     dependencies: {
-      'modern-cmdk': '^1.0.0',
-      react: '^19.3.0',
-      'react-dom': '^19.3.0',
+      'modern-cmdk': '^1.1.5',
+      react: '^19.2.0',
+      'react-dom': '^19.2.0',
     },
     devDependencies: {
-      '@vitejs/plugin-react': '^5.0.0',
+      '@vitejs/plugin-react': '^6.0.0',
       typescript: '^6.0.0',
-      vite: '^7.0.0',
+      vite: '^8.0.0',
     },
   };
 
   // tsconfig.json
   const tsconfig = {
     compilerOptions: {
-      target: 'ES2026',
-      module: 'ES2025',
+      target: 'ESNext',
+      module: 'ESNext',
       moduleResolution: 'bundler',
-      lib: ['ES2026', 'DOM', 'DOM.Iterable'],
+      lib: ['ESNext', 'DOM', 'DOM.Iterable'],
       jsx: 'react-jsx',
       strict: true,
       noEmit: true,

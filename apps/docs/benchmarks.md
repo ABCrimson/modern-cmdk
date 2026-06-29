@@ -4,7 +4,7 @@ modern-cmdk is engineered for speed at every layer.
 
 ## Benchmark Results
 
-All benchmarks run on Node 25.8.0, Ubuntu 24.04, averaged over 3 runs.
+All benchmarks run on Node 26.4.0, Ubuntu 26.04, averaged over 3 runs.
 
 ### Head-to-Head vs cmdk
 
@@ -48,9 +48,11 @@ Raw filter throughput across 15 scenarios (100 / 1K / 10K items x 5 query types)
 
 | Package | Size | Limit |
 |---------|------|-------|
-| modern-cmdk (core) | 6.12 KB | 6.5 KB |
-| modern-cmdk/react | 24.89 KB | 25.5 KB |
-| modern-cmdk-search-wasm (JS) | 1.5 KB | 2.0 KB |
+| modern-cmdk (core) | 6.28 KB | 6.5 KB |
+| modern-cmdk/react | 10.18 KB | 12 KB |
+| modern-cmdk-search-wasm (JS) | 1.4 KB | 2.0 KB |
+
+> `modern-cmdk/react` is measured as the adapter's **own** emitted code. React, React DOM, and `radix-ui` are externalized peer dependencies the consumer already ships, so they're excluded from the budget — keeping it meaningful and stable across peer version bumps.
 
 ### Filter Performance
 
