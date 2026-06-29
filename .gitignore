@@ -10,4 +10,5 @@ test-results/
 .DS_Store
 *.local
 target/
+packages/command-search-wasm/pkg/
 .playwright-mcp/
