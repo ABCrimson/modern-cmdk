@@ -17,7 +17,7 @@
   - `import { createCommandMachine } from 'modern-cmdk'` — core engine
   - `import { Command } from 'modern-cmdk/react'` — React 19 adapter
   - `import 'modern-cmdk/styles.css'` — default styles
-  - `npx modern-cmdk migrate <transform> <glob>` — codemods
+  - `npx modern-cmdk <transform> <glob>` — codemods
 
   ### Highlights
 

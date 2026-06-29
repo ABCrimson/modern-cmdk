@@ -1,5 +1,11 @@
 # modern-cmdk
 
+## 1.2.1
+
+### Patch Changes
+
+- **docs: documentation accuracy pass** — Corrected the codemod CLI usage everywhere to its real positional form `npx modern-cmdk <transform> <glob>` (one transform per run; only `--dry-run` and `--concurrency=N` are accepted). The previous `migrate` / `--transform` / `--verbose` / `--extensions` / `--ignore` forms never matched the implementation. Replaced the inaccurate `sideEffects: false` claim with the actual scoped array (`./dist/react/styles.css`, `./dist/react/index.mjs`), and clarified that the optional `modern-cmdk-search-wasm` engine is experimental and not yet published to npm. No code, API, or behavior changes — republished so the corrected README ships to npm.
+
 ## 1.2.0
 
 ### Minor Changes
@@ -69,7 +75,7 @@
   - `import { createCommandMachine } from 'modern-cmdk'` — core engine
   - `import { Command } from 'modern-cmdk/react'` — React 19 adapter
   - `import 'modern-cmdk/styles.css'` — default styles
-  - `npx modern-cmdk migrate <transform> <glob>` — codemods
+  - `npx modern-cmdk <transform> <glob>` — codemods
 
   ### Highlights
 

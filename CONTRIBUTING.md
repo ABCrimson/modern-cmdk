@@ -84,74 +84,81 @@ modern-cmdk/
   playwright.config.ts            E2E test config (4 browsers)
   |
   packages/
-    command/                      modern-cmdk (core)
-      package.json                Zero dependencies, sideEffects: false
+    modern-cmdk/                   The published package: core + React adapter + codemod CLI
+      package.json                Runtime dep: idb-keyval; optional peers: react, react-dom, radix-ui; sideEffects array (React entry + styles.css)
       tsconfig.json               Extends tsconfig.base.json
-      tsdown.config.ts            Build config
+      tsdown.config.ts            Multi-entry build (core, react, codemod)
       src/
-        index.ts                  Public exports
-        types.ts                  Branded types, interfaces, state
-        machine.ts                State machine factory
-        registry.ts               Item/group registry
-        search/                   Search engine subsystem
-          types.ts                SearchEngine, SearchResult, ScorerFn
-          index.ts                Engine factory (incremental filtering)
-          default-scorer.ts       Built-in fuzzy scorer
-          fuzzy-scorer.ts         Async scorer
-        frecency/                 Frecency ranking subsystem
-          index.ts                FrecencyEngine (Date.now)
-          storage.ts              Storage interface
-          memory-storage.ts       In-memory storage
-        keyboard/                 Keyboard shortcut subsystem
-          parser.ts               Shortcut parser (RegExp.escape)
-          matcher.ts              Event matcher
-          index.ts                ShortcutRegistry (Disposable)
-        utils/
-          event-emitter.ts        TypedEmitter (WeakRef, Iterator Helpers)
-          scheduler.ts            rAF/microtask batching
+        core/                     Framework-agnostic engine -- exported as "modern-cmdk"
+          index.ts                Public exports
+          types.ts                Branded types, interfaces, state
+          machine.ts              State machine factory (createCommandMachine)
+          registry.ts             Item/group registry
+          telemetry.ts            Telemetry middleware hooks
+          search/                 Search engine subsystem
+            types.ts              SearchEngine, SearchResult, ScorerFn
+            index.ts              Engine factory (incremental filtering)
+            default-scorer.ts     Built-in fuzzy scorer
+            fuzzy-scorer.ts       Async scorer
+          frecency/               Frecency ranking subsystem
+            index.ts              FrecencyEngine (Date.now)
+            storage.ts            Storage interface
+            memory-storage.ts     In-memory storage
+            idb-storage.ts        IndexedDB storage (idb-keyval)
+          keyboard/               Keyboard shortcut subsystem
+            parser.ts             Shortcut parser (RegExp.escape)
+            matcher.ts            Event matcher
+            index.ts              KeyboardShortcutRegistry (Disposable)
+          utils/                  Cross-browser helpers
+            event-emitter.ts      TypedEmitter (WeakRef, Iterator Helpers)
+            scheduler.ts          rAF/microtask batching
+            set-ops.ts            Set operation helpers
+            group-by.ts           Object/Map groupBy helpers
+            string-wellformed.ts  ensureWellFormed()
+        react/                    React 19 adapter -- exported as "modern-cmdk/react"
+          index.ts                Public exports
+          command.tsx             <Command> root
+          context.ts              React context (stable + state split)
+          dialog.tsx              <Command.Dialog> (Radix)
+          input.tsx               <Command.Input>
+          list.tsx                <Command.List> (virtualization)
+          item.tsx                <Command.Item>
+          group.tsx               <Command.Group>
+          empty.tsx               <Command.Empty>
+          loading.tsx             <Command.Loading>
+          separator.tsx           <Command.Separator>
+          highlight.tsx           <Command.Highlight>
+          badge.tsx               <Command.Badge>
+          shortcut.tsx            <Command.Shortcut>
+          page.tsx                <Command.Page>
+          activity.tsx            <Command.Activity>
+          async-items.tsx         <Command.AsyncItems>
+          error-boundary.tsx      <CommandErrorBoundary>
+          primitives.ts           Shared utilities
+          styles.css              GPU-composited animations
+          hooks/                  use-command, use-command-setup, use-command-state,
+                                  use-register, use-virtualizer, use-keyboard, use-devtools
+        codemod/                  cmdk -> modern-cmdk migration CLI (bin: modern-cmdk)
+          cli.ts                  Runner -- positional `<transform> <glob>`
+          transforms/             import-rewrite, data-attrs, forward-ref, should-filter
     |
-    command-react/                modern-cmdk/react (React adapter)
-      package.json                Peer deps: react 19, modern-cmdk
-      tsconfig.json
-      tsdown.config.ts
-      src/
-        index.ts                  Public exports
-        command.ts                <Command> root
-        context.ts                React context
-        dialog.ts                 <Command.Dialog> (Radix)
-        input.ts                  <Command.Input>
-        list.tsx                  <Command.List> (virtualization)
-        item.ts                   <Command.Item>
-        group.tsx                 <Command.Group>
-        empty.tsx                 <Command.Empty>
-        loading.tsx               <Command.Loading>
-        separator.tsx             <Command.Separator>
-        highlight.tsx             <Command.Highlight>
-        badge.tsx                 <Command.Badge>
-        shortcut.tsx              <Command.Shortcut>
-        page.tsx                  <Command.Page>
-        async-items.tsx           <Command.AsyncItems>
-        primitives.ts             Shared utilities
-        styles.css                GPU-composited animations
-        hooks/
-          use-command.ts
-          use-command-state.ts
-          use-register.ts
-          use-virtualizer.ts
-    |
-    command-search-wasm/          modern-cmdk-search-wasm (WASM)
-      package.json                Peer dep: modern-cmdk
-      tsconfig.json
+    command-search-wasm/          modern-cmdk-search-wasm (Rust/WASM -- experimental, not yet published)
+      package.json                name: modern-cmdk-search-wasm (private/unpublished)
       tsdown.config.ts
       src/
         index.ts                  TypeScript entry point
-        wasm-engine.ts            WASM engine wrapper
+        wasm-engine.ts            Main-thread WASM engine wrapper
+        worker-engine.ts          Web Worker engine wrapper
+        worker.ts                 Worker entry
       crate/
-        Cargo.toml                Rust crate config
+        Cargo.toml                Rust crate config (edition 2024)
         src/
           lib.rs                  WASM entry point
           trigram.rs              Trigram index
           scorer.rs               Fuzzy scorer
+    |
+    create-modern-cmdk/           Project scaffolder (bin: create-modern-cmdk) -- 3 templates
+    vscode-modern-cmdk/           VS Code snippets extension (publisher: crimson-dev)
   |
   apps/
     docs/                         VitePress 2.0.0-alpha.17 documentation site

@@ -113,7 +113,7 @@ Dependencies flow strictly downward. The core never imports from adapters or ext
 
 ### State Machine
 
-**File:** `packages/command/src/machine.ts`
+**File:** `packages/modern-cmdk/src/core/machine.ts`
 
 The state machine is the central coordinator. It implements the `CommandMachine` interface and the `Disposable` protocol.
 
@@ -169,7 +169,7 @@ All state transitions produce a new immutable `CommandState` object. The machine
 
 ### Command Registry
 
-**File:** `packages/command/src/registry.ts`
+**File:** `packages/modern-cmdk/src/core/registry.ts`
 
 The registry manages item and group storage with O(1) lookup performance.
 
@@ -195,7 +195,7 @@ Cross-browser set operation helpers (`setIntersection`, `setDifference`, `setUni
 
 ### Event Emitter
 
-**File:** `packages/command/src/utils/event-emitter.ts`
+**File:** `packages/modern-cmdk/src/core/utils/event-emitter.ts`
 
 A typed, GC-safe event emitter using `WeakRef` for listener storage and Iterator Helpers for pipeline operations.
 
@@ -207,7 +207,7 @@ Key characteristics:
 
 ### Scheduler
 
-**File:** `packages/command/src/utils/scheduler.ts`
+**File:** `packages/modern-cmdk/src/core/utils/scheduler.ts`
 
 The scheduler coalesces state updates to prevent redundant re-renders:
 
@@ -247,7 +247,7 @@ flowchart LR
 
 ### Default Scorer
 
-**File:** `packages/command/src/search/default-scorer.ts`
+**File:** `packages/modern-cmdk/src/core/search/default-scorer.ts`
 
 The built-in scorer performs fuzzy matching against the item's `value` and `keywords` fields. It returns a `SearchResult` with:
 - `id: ItemId` -- the matched item
@@ -258,7 +258,7 @@ The scorer is pluggable -- pass a custom `filter` function to `createCommandMach
 
 ### Incremental Filtering
 
-**File:** `packages/command/src/search/index.ts`
+**File:** `packages/modern-cmdk/src/core/search/index.ts`
 
 When the user appends characters to the search query (e.g., "cop" -> "copy"), the engine only re-scores items that matched the previous query. This is tracked via:
 - `previousQuery: string` -- the last query string
@@ -270,7 +270,7 @@ Bulk removal uses `Set.difference` (ES2026) to efficiently prune the incremental
 
 ### Frecency Re-Ranking
 
-**File:** `packages/command/src/frecency/index.ts`
+**File:** `packages/modern-cmdk/src/core/frecency/index.ts`
 
 After scoring, results are optionally re-ranked by frecency bonus:
 
@@ -338,7 +338,7 @@ flowchart TB
 
 ### Parser
 
-**File:** `packages/command/src/keyboard/parser.ts`
+**File:** `packages/modern-cmdk/src/core/keyboard/parser.ts`
 
 Parses human-readable shortcut strings into structured `ParsedShortcut` objects:
 
@@ -355,13 +355,13 @@ The `normalized` field produces a deterministic modifier ordering (`meta+ctrl+sh
 
 ### Matcher
 
-**File:** `packages/command/src/keyboard/matcher.ts`
+**File:** `packages/modern-cmdk/src/core/keyboard/matcher.ts`
 
 Compares `KeyboardEvent` properties against `ParsedShortcut` fields. All four modifier keys (`metaKey`, `ctrlKey`, `shiftKey`, `altKey`) must match exactly -- no partial matching.
 
 ### Keyboard Shortcut Registry
 
-**File:** `packages/command/src/keyboard/index.ts`
+**File:** `packages/modern-cmdk/src/core/keyboard/index.ts`
 
 Global shortcut management:
 
@@ -475,7 +475,7 @@ sequenceDiagram
 
 ### GPU-Composited Animations
 
-**File:** `packages/command-react/src/styles.css`
+**File:** `packages/modern-cmdk/src/react/styles.css`
 
 All animations use compositor-only properties (`opacity`, `scale`, `translate`) to avoid layout thrashing:
 
@@ -650,16 +650,16 @@ type GroupId = string & { readonly __brand: unique symbol };
 
 This prevents accidentally passing a `GroupId` where an `ItemId` is expected. The runtime cost is zero -- brands are erased by the compiler. TypeScript 7.0.1-rc's improved `unique symbol` inference makes this pattern ergonomic.
 
-### Why `sideEffects: false`?
+### Why a scoped `sideEffects` array?
 
-Declaring `sideEffects: false` in `package.json` tells bundlers (Vite, webpack, Rollup) that any module can be safely tree-shaken if its exports are unused. This is critical for the core package -- consumers who only import `createCommandMachine` should not pay for `KeyboardShortcutRegistry` or `FrecencyEngine`.
+`package.json` declares `"sideEffects": ["./dist/react/styles.css", "./dist/react/index.mjs"]`. Listing only the React entry and its stylesheet tells bundlers (Vite, webpack, Rollup) that *every other* module -- the entire framework-agnostic core -- is side-effect-free and can be tree-shaken when its exports are unused. Consumers who only import `createCommandMachine` do not pay for `KeyboardShortcutRegistry` or `FrecencyEngine`, while the listed entries are preserved so `import "modern-cmdk/styles.css"` is never dropped.
 
 ---
 
 ## File Map
 
 ```
-packages/command/src/
+packages/modern-cmdk/src/core/
   index.ts               -- Public API exports
   types.ts               -- Branded types, interfaces, defaults
   machine.ts             -- State machine (createCommandMachine)
@@ -681,7 +681,7 @@ packages/command/src/
     event-emitter.ts     -- TypedEmitter (WeakRef, Iterator Helpers)
     scheduler.ts         -- rAF/microtask batching (Promise.withResolvers)
 
-packages/command-react/src/
+packages/modern-cmdk/src/react/
   index.ts               -- Public API exports
   command.ts             -- <Command> root component
   context.ts             -- React context definitions

@@ -2,6 +2,18 @@
 
 All notable changes to modern-cmdk packages are documented here.
 
+## [1.2.1] - 2026-06-29
+
+### Fixed
+- Codemod CLI documentation now matches the implementation everywhere — the real interface is `npx modern-cmdk <transform> <glob>` (one transform per invocation), with only `--dry-run` and `--concurrency=N` flags. Removed the non-working `migrate` / `--transform` / `--verbose` / `--extensions` / `--ignore` forms from the README, npm README, and migration guide.
+- Replaced the inaccurate `sideEffects: false` claim with the actual scoped array (`./dist/react/styles.css`, `./dist/react/index.mjs`) across the README, npm README, `ARCHITECTURE.md`, and `CONTRIBUTING.md`.
+- Corrected the root README packages table: `vscode-command` → `vscode-modern-cmdk`, and flagged the unpublished WASM package.
+- Rewrote `CONTRIBUTING.md`'s project-structure tree to the merged single-package layout (`packages/modern-cmdk/src/{core,react,codemod}`) and fixed `ARCHITECTURE.md`'s stale `packages/command` / `packages/command-react` paths.
+- Marked the optional `modern-cmdk-search-wasm` engine as experimental / not yet published on the installation, WASM-search, and API doc pages.
+
+### Notes
+- Docs-only patch. No code, API, or behavior changes. Only `modern-cmdk` is republished (so the corrected npm README ships); `create-modern-cmdk` is unchanged.
+
 ## [1.2.0] - 2026-06-28
 
 ### Changed

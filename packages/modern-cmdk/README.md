@@ -117,7 +117,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 - **Framework-agnostic core** -- Pure TypeScript state machine. Zero DOM dependencies. Portable to any runtime.
 - **React 19 adapter** -- 14 compound components. `useSyncExternalStore`, `useTransition`, `useOptimistic`, `use()` for Suspense. React Compiler compatible.
 - **Automatic virtualization** -- Variable-height virtual scrolling kicks in at 100+ items. Handles 100K+ items smoothly with `content-visibility: auto`.
-- **Fuzzy search** -- Built-in TypeScript scorer with incremental filtering. Optional [WASM engine](https://www.npmjs.com/package/modern-cmdk-search-wasm) for sub-1ms on 100K items.
+- **Fuzzy search** -- Built-in TypeScript scorer with incremental filtering. Optional Rust/WASM engine for sub-1ms on 100K items with graceful TS fallback _(experimental, not yet published to npm)_.
 - **Frecency ranking** -- Frequency x recency with time-based exponential decay. Pluggable persistence (memory or IndexedDB).
 - **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, conflict detection, and `RegExp.escape` parsing. Cross-browser helper functions for grouping and set operations.
 - **Full accessibility** -- WAI-ARIA combobox pattern, `aria-live` announcements, `forced-colors`, `prefers-contrast`, `prefers-reduced-motion`.
@@ -125,7 +125,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 - **Error boundary** -- `CommandErrorBoundary` with static or render-function fallback.
 - **DevTools** -- `useCommandDevtools()` exposes machine state via `CustomEvent` for browser inspection.
 - **Telemetry middleware** -- Pluggable hooks for palette open/close, search, and item selection analytics.
-- **ESM-only** -- Zero CommonJS. Tree-shakeable. `sideEffects: false`. Isolated declarations.
+- **ESM-only** -- Zero CommonJS. Tree-shakeable -- the framework-agnostic core is side-effect-free; only the React entry and `styles.css` are flagged in `sideEffects`. Isolated declarations.
 
 ---
 
@@ -224,10 +224,10 @@ All styles use `@layer command` for zero-specificity conflicts and CSS logical p
 Automated codemods handle the most common migration patterns:
 
 ```bash
-npx modern-cmdk --transform import-rewrite ./src
-npx modern-cmdk --transform data-attrs ./src
-npx modern-cmdk --transform forward-ref ./src
-npx modern-cmdk --transform should-filter ./src
+npx modern-cmdk import-rewrite ./src
+npx modern-cmdk data-attrs ./src
+npx modern-cmdk forward-ref ./src
+npx modern-cmdk should-filter ./src
 ```
 
 See the [full migration guide](https://command.crimson.dev/guide/migration-from-cmdk).
@@ -251,7 +251,7 @@ See the [full migration guide](https://command.crimson.dev/guide/migration-from-
 | Package | Description |
 |---|---|
 | [`create-modern-cmdk`](https://www.npmjs.com/package/create-modern-cmdk) | `npm create modern-cmdk` -- scaffold a new project |
-| [`modern-cmdk-search-wasm`](https://www.npmjs.com/package/modern-cmdk-search-wasm) | Rust/WASM fuzzy search -- sub-1ms on 100K items |
+| `modern-cmdk-search-wasm` _(experimental, not yet published)_ | Rust/WASM fuzzy search -- sub-1ms on 100K items |
 | [`vscode-modern-cmdk`](https://marketplace.visualstudio.com/items?itemName=crimson-dev.vscode-modern-cmdk) | VS Code snippets extension |
 
 ---

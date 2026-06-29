@@ -4,6 +4,10 @@ For datasets over 5K items, `modern-cmdk-search-wasm` provides a Rust-based trig
 
 ## Installation
 
+::: warning Experimental -- not yet published
+`modern-cmdk-search-wasm` is not published to npm yet. Build it from source with `wasm-pack` (see the [package directory](https://github.com/ABCrimson/modern-cmdk/tree/main/packages/command-search-wasm)). The package-manager commands below will work once it ships; until then the built-in TypeScript scorer in `modern-cmdk` is the default.
+:::
+
 ::: code-group
 ```bash [pnpm]
 pnpm add modern-cmdk-search-wasm

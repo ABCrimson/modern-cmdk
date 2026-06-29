@@ -15,37 +15,44 @@ The compound component API, data attributes, and CSS custom properties all work 
 
 ## Automated Migration with Codemod
 
-The fastest way to migrate is the provided codemod CLI:
+`modern-cmdk` ships a codemod CLI. It runs **one transform per invocation** against a file glob -- `modern-cmdk <transform> <glob>` -- so apply the transforms you need in sequence:
 
 ::: code-group
 ```bash [npx]
-npx modern-cmdk (codemods) migrate ./src
+npx modern-cmdk import-rewrite ./src
+npx modern-cmdk data-attrs ./src
+npx modern-cmdk forward-ref ./src
+npx modern-cmdk should-filter ./src
 ```
 
 ```bash [pnpm]
-pnpm dlx modern-cmdk (codemods) migrate ./src
+pnpm dlx modern-cmdk import-rewrite ./src
+pnpm dlx modern-cmdk data-attrs ./src
+pnpm dlx modern-cmdk forward-ref ./src
+pnpm dlx modern-cmdk should-filter ./src
 ```
 :::
 
-### What the Codemod Handles
+### Available Transforms
 
-| Transformation | Example |
+| Transform | What it does |
 |---|---|
-| Import rewriting | `'cmdk'` to `'modern-cmdk/react'` |
-| Data attribute renaming | `[cmdk-root]` to `[data-command-root]` |
-| CSS custom property renaming | `--cmdk-list-height` to `--command-list-height` |
-| `forwardRef` removal | Removes `forwardRef` wrapper, uses `ref` as prop |
-| `shouldFilter` to `filter` | `shouldFilter={false}` to `filter={false}` |
+| `import-rewrite` | Rewrites `'cmdk'` imports to `'modern-cmdk/react'` |
+| `data-attrs` | Renames `[cmdk-*]` selectors (e.g. `[cmdk-item]` to `[data-command-item]`) and `--cmdk-*` CSS custom properties (e.g. `--cmdk-list-height` to `--command-list-height`) |
+| `forward-ref` | Removes `React.forwardRef` wrappers, using `ref` as a prop |
+| `should-filter` | Converts `shouldFilter={false}` to `filter={false}` |
 
 ### Codemod Options
 
+Two flags are supported:
+
 ```bash
-npx modern-cmdk (codemods) migrate ./src \
-  --dry-run          # Preview changes without writing
-  --verbose          # Show detailed transformation log
-  --extensions ts,tsx # File extensions to process (default: ts,tsx,js,jsx)
-  --ignore node_modules,dist  # Directories to skip
+npx modern-cmdk import-rewrite ./src \
+  --dry-run          # Preview changes without writing files
+  --concurrency=8    # Files processed per batch (default: 8)
 ```
+
+`node_modules`, `dist`, `build`, and `.next` are skipped automatically.
 
 ::: tip
 Always run with `--dry-run` first to review changes before applying them.

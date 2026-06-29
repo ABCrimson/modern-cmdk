@@ -66,7 +66,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 - **DevTools** -- `useCommandDevtools()` exposes machine state via `CustomEvent` for browser inspection.
 - **Telemetry middleware** -- Pluggable hooks for palette open/close, search, and item selection analytics.
 - **ES2026 throughout** -- Iterator Helpers, `using`/`await using`, `Promise.withResolvers`, `RegExp.escape`. Cross-browser helpers for Set operations, grouping, and time calculations.
-- **ESM-only** -- Zero CommonJS. Tree-shakeable. `sideEffects: false`. Isolated declarations.
+- **ESM-only** -- Zero CommonJS. Tree-shakeable -- the framework-agnostic core is side-effect-free; only the React entry and `styles.css` are flagged in `sideEffects`. Isolated declarations.
 
 ---
 
@@ -126,10 +126,10 @@ function CommandPalette() {
 |---|---|---|
 | [`modern-cmdk`](./packages/modern-cmdk) | Framework-agnostic core -- state machine, search, frecency, keyboard | ~6.3 KB |
 | [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | ~10.2 KB |
-| [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items | <= 50 KB |
+| [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items _(experimental, not yet published)_ | <= 50 KB |
 | [`modern-cmdk (codemods)`](./packages/modern-cmdk/src/codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
 | [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding -- 3 templates (basic, dialog, full) | CLI |
-| [`vscode-command`](./packages/vscode-modern-cmdk) | VS Code snippets -- 10 snippets for fast development | Extension |
+| [`vscode-modern-cmdk`](./packages/vscode-modern-cmdk) | VS Code snippets -- 10 snippets for fast development | Extension |
 
 ---
 
@@ -320,10 +320,10 @@ All library styles use `@layer command` and CSS logical properties for full RTL 
 ## Migration from cmdk
 
 ```bash
-npx modern-cmdk (codemods) --transform import-rewrite ./src
-npx modern-cmdk (codemods) --transform data-attrs ./src
-npx modern-cmdk (codemods) --transform forward-ref ./src
-npx modern-cmdk (codemods) --transform should-filter ./src
+npx modern-cmdk import-rewrite ./src
+npx modern-cmdk data-attrs ./src
+npx modern-cmdk forward-ref ./src
+npx modern-cmdk should-filter ./src
 ```
 
 See the [migration guide](https://command.crimson.dev/guide/migration-from-cmdk).

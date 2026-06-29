@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 // modern-cmdk — Codemod CLI entry point
-// Usage: modern-cmdk migrate <transform> <glob> [--dry-run] [--concurrency=N]
+// Usage: modern-cmdk <transform> <glob> [--dry-run] [--concurrency=N]
+//   e.g. npx modern-cmdk import-rewrite ./src
 // Available transforms: import-rewrite, data-attrs, forward-ref, should-filter
 
 import { readFile, writeFile } from 'node:fs/promises';

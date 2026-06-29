@@ -9,6 +9,10 @@ Rust-based trigram fuzzy search engine compiled to WebAssembly. Provides sub-1ms
 
 ## Installation
 
+::: warning Experimental -- not yet published
+`modern-cmdk-search-wasm` is not published to npm yet. Build it from source with `wasm-pack` (see the [package directory](https://github.com/ABCrimson/modern-cmdk/tree/main/packages/command-search-wasm)). The commands below will work once it ships.
+:::
+
 ::: code-group
 ```bash [pnpm]
 pnpm add modern-cmdk-search-wasm
