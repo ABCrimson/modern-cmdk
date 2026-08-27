@@ -160,15 +160,23 @@ CommandRegistry
   |
   +-- registerItem(item) -> Disposable      -- `using` auto-deregister
   +-- registerItems(items) -> Disposable    -- batch registration
-  +-- unregisterItems(ids: Set) -> void     -- Set.difference for pruning
-  +-- getItems() -> readonly CommandItem[]  -- Iterator Helpers pipeline
-  +-- getGroupedItems() -> ReadonlyMap      -- Object.groupBy
-  +-- intersectWith(set) -> Set             -- Set.intersection (ES2026)
-  +-- differenceFrom(set) -> Set            -- Set.difference (ES2026)
-  +-- unionWith(set) -> Set                 -- Set.union (ES2026)
+  +-- unregisterItem(id) -> void            -- single removal
+  +-- unregisterItems(ids: Set) -> void     -- setDifference for pruning
+  +-- registerGroup(group) -> Disposable    -- group lifecycle
+  +-- unregisterGroup(id) -> void
+  +-- getItem(id) / getGroup(id)            -- O(1) Map lookup
+  +-- getItems() -> readonly CommandItem[]  -- Iterator Helpers pipeline, cached
+  +-- getGroups() -> readonly CommandGroup[]-- sorted by priority, cached
+  +-- getGroupedItems() -> ReadonlyMap      -- mapGroupBy, emitted in group-priority order
+  +-- getItemIds() -> ReadonlySet<ItemId>   -- internal set, zero allocation
+  +-- intersectWith / differenceFrom / unionWith / symmetricDifferenceWith
+  +-- isSubsetOf / isSupersetOf / isDisjointFrom
+  +-- size / groupCount (getters) · clear()
 ```
 
-Cross-browser set operation helpers (`setIntersection`, `setDifference`, `setUnion`) are used for efficient bulk ID operations during filtering and registration.
+Cross-browser set operation helpers (`setIntersection`, `setDifference`, `setUnion`) back the set methods above -- they are used for efficient bulk ID operations during filtering and registration.
+
+`getItems()` and `getGroups()` memoize their results and invalidate the cache on the next mutation, so repeated reads inside a single filter pass are free. `getGroupedItems()` buckets with `mapGroupBy` and then re-emits groups in `priority` order, appending an `__ungrouped` bucket last.
 
 ### Event Emitter
 
@@ -394,7 +402,7 @@ All components consume the machine via React context using `use(CommandContext)`
 | `Command.Badge` | Status badge on items | -- |
 | `Command.Shortcut` | Keyboard shortcut display (platform-aware) | -- |
 | `Command.Page` | Nested page for hierarchical navigation | `id` |
-| `Command.AsyncItems` | Suspense-powered async data loading | `load` |
+| `Command.AsyncItems` | Suspense-powered async data loading | `items` (a `Promise<readonly CommandItem[]>`), `fallback`, `children` (render fn) |
 | `Command.Activity` | React Activity API state preservation (falls back to conditional rendering) | `mode` |
 
 All components:
@@ -483,7 +491,8 @@ The spring easings are `linear()` approximations of a critically-damped spring (
 
 ### Scroll-Driven Animations
 
-The list uses `scroll-timeline` to drive a scroll progress indicator:
+`styles.css` declares a `scroll-timeline` on the list and a matching progress-indicator
+rule driven by it:
 
 ```css
 [data-command-list] {
@@ -497,6 +506,12 @@ The list uses `scroll-timeline` to drive a scroll progress indicator:
 ```
 
 No JavaScript scroll event listeners. Zero main-thread cost.
+
+> [!NOTE]
+> The timeline is declared, but **no built-in component renders a
+> `[data-command-scroll-indicator]` element** -- the rule is a styling hook for consumers
+> who want a progress bar. Render your own element with that attribute inside
+> `<Command.List>` and it picks up the timeline with no JavaScript.
 
 ### Content Visibility
 

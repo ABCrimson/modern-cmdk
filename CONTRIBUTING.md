@@ -95,6 +95,7 @@ modern-cmdk/
           machine.ts              State machine factory (createCommandMachine)
           registry.ts             Item/group registry
           telemetry.ts            Telemetry middleware hooks
+          es2026.d.ts             Ambient declarations for ES2026 features
           search/                 Search engine subsystem
             types.ts              SearchEngine, SearchResult, ScorerFn
             index.ts              Engine factory (incremental filtering)
@@ -280,21 +281,51 @@ This project uses **Biome 2.5.10** for both linting and formatting. There is no 
 | Trailing commas | All |
 | Arrow parens | Always |
 | Bracket same line | No |
+| Line ending | LF |
+
+The base rule set is Biome's `recommended` preset. Everything below is an explicit
+override on top of it, taken from `biome.json`.
 
 ### Key lint rules
 
-| Rule | Level | Why |
-|---|---|---|
-| `noUnusedImports` | Error | Dead code elimination |
-| `noUnusedVariables` | Error | Dead code elimination |
-| `useImportType` | Error | `import type` for type-only imports (verbatimModuleSyntax) |
-| `useExhaustiveDependencies` | Error | React hook correctness |
-| `noAccumulatingSpread` | Error | Performance -- no `{...acc, ...item}` in reduce |
-| `noBarrelFile` | Error | No `export * from` re-exports |
-| `noReExportAll` | Error | Explicit named exports only |
-| `noConsole` | Warn | Use structured logging |
-| `useSortedClasses` | Error | Consistent class ordering |
-| `useExplicitType` | Warn | Explicit return types on functions |
+| Rule | Group | Level | Why |
+|---|---|---|---|
+| `noUnusedImports` | correctness | Error | Dead code elimination |
+| `noUnusedVariables` | correctness | Error | Dead code elimination |
+| `useExhaustiveDependencies` | correctness | Error | React hook correctness |
+| `noAccumulatingSpread` | performance | Error | No `{...acc, ...item}` in reduce |
+| `noBarrelFile` | performance | Error | No `export * from` re-exports |
+| `noReExportAll` | performance | Error | Explicit named exports only |
+| `useImportType` | style | Error | `import type` for type-only imports (`verbatimModuleSyntax`) |
+| `useTemplate` | style | Error | Template literals over `+` concatenation |
+| `useExponentiationOperator` | style | Error | `**` over `Math.pow` |
+| `noNonNullAssertion` | style | Warn | `!` hides the `noUncheckedIndexedAccess` contract |
+| `useButtonType` | a11y | Error | Explicit `type` on every `<button>` |
+| `noConsole` | suspicious | Warn | Use structured logging |
+| `noAssignInExpressions` | suspicious | Warn | Assignment inside a condition is usually a typo |
+| `useIterableCallbackReturn` | suspicious | Warn | Iterator-helper callbacks must return a value |
+| `useExplicitType` | nursery | Warn | Explicit return types (required by `isolatedDeclarations`) |
+
+Rules deliberately turned **off** for this codebase: `useSemanticElements`,
+`useKeyWithClickEvents`, `useFocusableInteractive` and `useAriaPropsForRole` (the
+combobox pattern is hand-rolled against the WAI-ARIA spec, so Biome's heuristics
+fight it), plus `noDuplicateCustomProperties` / `noDuplicateProperties` (CSS
+fallback declarations are intentional).
+
+<details>
+<summary>Per-path overrides</summary>
+
+| Path | Override |
+|---|---|
+| `benchmarks/**`, `apps/playground/**`, `tests/unit/cmdk-performance-accuracy.test.tsx` | `useExplicitType` and `noConsole` off -- these files print results |
+| `apps/docs/**/*.css` | `noImportantStyles` downgraded to Warn (VitePress theme overrides need `!important`) |
+| `**/index.ts` | `noBarrelFile` off -- public entry points are barrels by design |
+| `packages/modern-cmdk/src/codemod/**` | `noExplicitAny` downgraded to Warn (jscodeshift AST nodes are loosely typed) |
+
+`packages/modern-cmdk/src/react/primitives.ts` is excluded from Biome entirely via
+`files.includes`.
+
+</details>
 
 ### Import organization
 
@@ -575,13 +606,14 @@ chore: bump Biome to 2.5.10
    ```
    Select the affected packages and the semver bump type (patch, minor, major).
 
-3. **Pre-commit hooks** -- Lefthook runs automatically:
-   - `biome check --staged` -- lint and format staged files
-   - `tsc --noEmit` -- type-check (skipped during merge/rebase)
+3. **Pre-commit hooks** -- Lefthook runs both in parallel:
+   - `biome check --staged` -- lint and format staged files (`*.{ts,tsx,js,jsx,json,css}`)
+   - `tsc --noEmit` -- type-check `modern-cmdk` (skipped during merge and rebase)
 
-4. **Pre-push hooks** -- Lefthook runs:
-   - `vitest run` -- all unit tests
-   - `size-limit` -- bundle size check
+4. **Pre-push hooks** -- Lefthook runs both in parallel:
+   - `vitest run --reporter=dot` -- all unit tests
+   - `size-limit` -- builds `packages/*` then checks the budget. Gated on a
+     `packages/*/src/**/*.{ts,tsx}` glob, so docs-only pushes skip the rebuild.
 
 5. **CI checks** -- The CI pipeline runs:
    - Lint (`biome check .`)
@@ -698,13 +730,21 @@ The changeset config (`.changeset/config.json`):
 
 ## Troubleshooting
 
-### `Iterator.range is not a function` or missing ES2026 features
+### `.toArray is not a function`, `Symbol.dispose` undefined, or other missing ES2026 features
 
-Node.js 26.4.0+ ships these features natively. If you see this error, your Node.js version is too old:
+The codebase uses Iterator Helpers (`.map`/`.filter`/`.toArray`), Explicit Resource
+Management (`using`), `Promise.withResolvers` and `RegExp.escape` natively -- no polyfills.
+Node.js 26.4.0+ ships all of them. If you hit one of these errors, your Node.js is too old:
 
 ```bash
-node --version  # Must be >= 26.4.0
+node --version  # Must be >= 26.4.0; .nvmrc pins 26.8.1
 ```
+
+> [!NOTE]
+> Only features that actually shipped are used directly. Proposals that have **not**
+> landed in browsers -- `Set` methods, `Map.groupBy`/`Object.groupBy`, `Promise.try`,
+> `Temporal`, `Math.sumPrecise` -- are routed through the helpers in `core/utils/`
+> instead. See [ES2026 Feature Usage](#es2026-feature-usage).
 
 ### `ERR_UNSUPPORTED_DIR_IMPORT` or missing `.js` extension
 

@@ -173,7 +173,7 @@ All animations and transitions are gated behind `prefers-reduced-motion: no-pref
 ```css
 @media (prefers-reduced-motion: reduce) {
   [data-command-dialog],
-  [data-command-dialog-overlay],
+  [data-command-overlay],
   [data-command-item],
   [data-command-list] {
     transition-duration: 0ms !important;

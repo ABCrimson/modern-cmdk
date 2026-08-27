@@ -2,9 +2,32 @@
 
 ## Requirements
 
-- **React** >= 19.0.0
-- **Node.js** >= 26.4.0 (for development)
-- **TypeScript** >= 7.0.2 (recommended)
+| | Version | Notes |
+|---|---|---|
+| **Node.js** | >= 26.4.0 | Only for building/developing. The published package runs anywhere ES2026 does. |
+| **TypeScript** | >= 7.0.2 | Recommended. Types are emitted with `isolatedDeclarations`. |
+
+## Peer dependencies
+
+The core engine has **no** peer dependencies -- `import { createCommandMachine } from 'modern-cmdk'` works on its own. Everything React-related is an *optional* peer, declared so that non-React consumers are never forced to install it:
+
+| Peer | Range | Needed for |
+|---|---|---|
+| `react` | `>=19.0.0 <21.0.0` | Anything from `modern-cmdk/react` |
+| `react-dom` | `>=19.0.0 <21.0.0` | Anything from `modern-cmdk/react` |
+| `radix-ui` | `>=1.4.0 <2.0.0` | `<Command.Dialog>` only |
+
+> [!IMPORTANT]
+> Because these peers are optional, your package manager will **not** install them
+> automatically and will **not** warn when they are missing. If you render
+> `<Command.Dialog>` without `radix-ui` installed, the import fails at runtime. Install the
+> ones you use:
+>
+> ```bash
+> pnpm add react react-dom radix-ui
+> ```
+
+`modern-cmdk` itself ships exactly one runtime dependency, `idb-keyval`, and it is lazy-loaded — see [Frecency Persistence](#optional-frecency-persistence) below.
 
 ## Install
 

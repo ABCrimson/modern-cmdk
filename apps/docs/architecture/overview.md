@@ -128,6 +128,14 @@ flowchart LR
 7. **Grouping** -- Results are partitioned into groups based on `groupId`
 8. **Rendering** -- React adapter renders visible items, virtualizing if needed
 
+::: tip Virtualization is latched, not a bare threshold
+The `filteredCount > 100` test in the diagram above is the **turn-on** edge. Once
+virtualization engages it stays engaged until the count falls to **50 or below**. That
+hysteresis band stops a query hovering around 100 results from thrashing the list between
+virtualized and full-DOM rendering on every keystroke. An explicit `virtualize` prop on
+`<Command.List>` overrides both edges.
+:::
+
 ## Component Tree
 
 ```mermaid
@@ -193,13 +201,20 @@ Without `SharedArrayBuffer`, results are transferred via structured clone (`post
 Any object implementing `SearchEngine` can replace the built-in TypeScript scorer:
 
 ```typescript
-interface SearchEngine {
+interface SearchEngine extends Disposable {
   index(items: readonly CommandItem[]): void;
   search(query: string, items: readonly CommandItem[]): IteratorObject<SearchResult>;
   remove(ids: ReadonlySet<ItemId>): void;
   clear(): void;
+  [Symbol.dispose](): void;
 }
 ```
+
+::: warning `SearchEngine` extends `Disposable`
+`[Symbol.dispose]()` is **required**, not optional -- a custom engine without it will not
+typecheck. The machine disposes its engine when the machine itself is disposed, so this is
+where you release indexes, workers, or WASM instances.
+:::
 
 ### Frecency Storage Interface
 
@@ -229,6 +244,7 @@ const myEngine: SearchEngine = {
   *search(query, items) { /* yield SearchResult objects */ },
   remove(ids) { /* remove from index */ },
   clear() { /* clear index */ },
+  [Symbol.dispose]() { /* release the index, worker, or WASM instance */ },
 };
 
 using machine = createCommandMachine({ search: myEngine });
@@ -253,7 +269,7 @@ class RedisFrecencyStorage implements FrecencyStorage {
 | Iterator Helpers (`.map`, `.filter`, `.toArray`) | Search pipelines, registry operations | Native ES2026 |
 | `using` / `await using` | Machine, engine, and storage lifecycle | Native ES2026 |
 | `RegExp.escape` | Shortcut string parser | Native ES2026 |
-| `Promise.withResolvers()` | Worker request tracking | Native ES2026 |
+| `Promise.withResolvers()` | Worker request tracking, scheduler flush | Native (ES2024) |
 | `mapGroupBy` / `objectGroupBy` | Shortcut conflict detection, item grouping | Helper functions |
 | `Date.now()` | Frecency timestamps, state `lastUpdated` | Native (replaces Temporal) |
 | Set operations (`setIntersection`, etc.) | Registry bulk operations | Helper functions |

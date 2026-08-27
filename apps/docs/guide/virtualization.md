@@ -11,7 +11,7 @@ Virtualization is opt-out, not opt-in. When your filtered results exceed the thr
 
 import { Command } from 'modern-cmdk/react';
 
-// Generate 10,000 items using Iterator Helpers (ES2026)
+// Generate 10,000 items
 const items = Array.from({ length: 10_000 }, (_, i) => ({
   id: `item-${i}`,
   label: `Item ${i}`,
@@ -79,9 +79,16 @@ Control how many items are rendered outside the visible viewport. Higher values 
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `virtualize` | `boolean` | `true` (auto) | Enable/disable virtualization. When `true`, activates automatically at 100+ filtered items. |
+| `virtualize` | `boolean \| undefined` | `undefined` (auto) | Leave unset for automatic activation. `true` forces virtualization on at any count; `false` forces it off. |
 | `estimateSize` | `number` | `44` | Estimated item height in pixels for initial layout |
 | `overscan` | `number` | `8` | Number of items to render beyond the visible viewport (each direction) |
+
+::: tip Automatic mode uses hysteresis
+In auto mode virtualization turns **on** above 100 filtered items and only turns back
+**off** at 50 or below. The gap between the two edges keeps a result count hovering around
+100 from flipping the list between virtualized and full-DOM rendering on every keystroke.
+Passing an explicit `virtualize` value bypasses both edges.
+:::
 
 ## CSS Optimization
 
@@ -94,7 +101,7 @@ Off-screen items use `content-visibility: auto` to skip rendering of non-visible
 ```css
 [data-command-item] {
   content-visibility: auto;
-  contain-intrinsic-size: auto 36px;
+  contain-intrinsic-size: auto var(--command-item-height); /* 44px by default */
 }
 ```
 

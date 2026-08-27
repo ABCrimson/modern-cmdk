@@ -58,13 +58,41 @@ Only the components you import are included in the client bundle. The core engin
 
 ## Streaming SSR
 
-The `<Command.Dialog>` component works with React Suspense boundaries. Async items via `<Command.AsyncItems>` integrate with `use()` for streaming:
+The `<Command.Dialog>` component works with React Suspense boundaries. Async items via `<Command.AsyncItems>` integrate with `use()` for streaming.
+
+`items` takes the **promise itself**, not a function, and `children` is a render function
+that receives the resolved items:
 
 ```tsx
-<Suspense fallback={<Command.Loading>Searching...</Command.Loading>}>
-  <Command.AsyncItems items={fetchResults} />
-</Suspense>
+'use client';
+
+import { Command } from 'modern-cmdk/react';
+import { itemId } from 'modern-cmdk';
+
+// Created once, outside render — a new promise on every render re-suspends forever.
+const resultsPromise = fetchResults().then((rows) =>
+  rows.map((row) => ({ id: itemId(row.slug), value: row.title })),
+);
+
+<Command.AsyncItems
+  items={resultsPromise}
+  fallback={<Command.Loading>Searching...</Command.Loading>}
+>
+  {(items) =>
+    items.map((item) => (
+      <Command.Item key={item.id} value={item.value}>
+        {item.value}
+      </Command.Item>
+    ))
+  }
+</Command.AsyncItems>;
 ```
+
+::: warning
+`items` must resolve to `CommandItem[]` -- objects with a branded `id` and a `value`. Raw
+API rows will not register. See [Async Items](/guide/async-items) for the debounced,
+transition-driven version.
+:::
 
 ## Static Generation (SSG)
 

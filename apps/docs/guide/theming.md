@@ -135,8 +135,37 @@ Every component renders with a `data-command-*` attribute for styling. No class 
 | `[data-command-separator]` | `Command.Separator` | Group separator |
 | `[data-command-shortcut]` | `Command.Shortcut` | Shortcut badge |
 | `[data-command-badge]` | `Command.Badge` | Category badge |
-| `[data-command-dialog]` | `Command.Dialog` | Dialog container |
-| `[data-command-dialog-overlay]` | `Command.Dialog` | Dialog overlay |
+| `[data-command-highlight]` | `Command.Highlight` | Matched character run inside an item |
+| `[data-command-page]` | `Command.Page` | Nested page container (carries `data-command-page-id`) |
+| `[data-command-dialog]` | `Command.Dialog` | Dialog root |
+| `[data-command-dialog-content]` | `Command.Dialog` | Radix dialog content wrapper |
+| `[data-command-overlay]` | `Command.Dialog` | Dialog overlay (backdrop) |
+
+<details>
+<summary>Structural attributes (layout internals)</summary>
+
+These are emitted by the list, group and root internals. They are stable enough to style,
+but they are implementation surface rather than a component-per-attribute mapping.
+
+| Selector | Emitted by | Description |
+|---|---|---|
+| `[data-command-state]` | `Command` | Root open state -- the value is `"open"` or `"closed"` |
+| `[data-command-group-items]` | `Command.Group` | Wrapper around a group's options |
+| `[data-command-list-inner]` | `Command.List` | Content wrapper, rendered **only** when not virtualizing |
+| `[data-command-list-virtual]` | `Command.List` | Sized spacer, rendered **only** while virtualizing |
+| `[data-command-list-status]` | `Command.List` | Portal target for `Command.Empty`, kept outside the listbox for valid ARIA |
+| `[data-command-aria-live]` | `Command.List` | Visually hidden result-count live region |
+
+`[data-command-list-inner]` and `[data-command-list-virtual]` are mutually exclusive --
+selecting on one is a reliable way to style only one virtualization mode.
+
+> [!NOTE]
+> `styles.css` also ships rules for `[data-command-virtual-item]` and
+> `[data-command-scroll-indicator]`, but **no component currently emits either attribute**.
+> They are styling hooks reserved for custom rows built on the `useVirtualizer` hook; the
+> built-in list does not render a scroll-progress element.
+
+</details>
 
 ### Example Styling
 

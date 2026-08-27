@@ -4,7 +4,17 @@ modern-cmdk is engineered for speed at every layer.
 
 ## Benchmark Results
 
-All benchmarks run on Node 26.4.0, Ubuntu 26.04, averaged over 3 runs.
+The search, filter, frecency and state-update figures on this page are the committed
+baseline in [`benchmarks/baseline.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/baseline.json),
+recorded on **Node 25.8.0 / Ubuntu 24.04 / TypeScript 6.0.1-rc (2026-03-07, v0.9.0)**.
+Every PR re-runs them and compares against that file — see [Regression Tracking](#regression-tracking).
+
+Bundle sizes are measured fresh by `size-limit` on each run and are current for `1.2.1`.
+
+> [!NOTE]
+> The baseline is a *frozen record*, not a live reading. It is the reference the regression
+> gate diffs against, so it is deliberately not re-recorded on every toolchain bump. Run
+> `pnpm bench` locally to get numbers for your own machine.
 
 ### Head-to-Head vs cmdk
 
@@ -46,11 +56,11 @@ Raw filter throughput across 15 scenarios (100 / 1K / 10K items x 5 query types)
 
 ### Bundle Size (gzip)
 
-| Package | Size | Limit |
-|---------|------|-------|
-| modern-cmdk (core) | 6.28 KB | 6.5 KB |
-| modern-cmdk/react | 10.18 KB | 12 KB |
-| modern-cmdk-search-wasm (JS) | 1.4 KB | 2.0 KB |
+| Package | Size | Limit | Headroom |
+|---------|------|-------|----------|
+| modern-cmdk (core) | 6.29 KB | 6.5 KB | 0.21 KB |
+| modern-cmdk/react | 10.17 KB | 12 KB | 1.83 KB |
+| modern-cmdk-search-wasm (JS) | 1.4 KB | 2.0 KB | target only -- unpublished, not in `size-limit` |
 
 > `modern-cmdk/react` is measured as the adapter's **own** emitted code. React, React DOM, and `radix-ui` are externalized peer dependencies the consumer already ships, so they're excluded from the budget — keeping it meaningful and stable across peer version bumps.
 
