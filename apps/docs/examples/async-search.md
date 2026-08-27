@@ -12,17 +12,21 @@ Demonstrates async data loading from an API, debounced input, loading states, an
 ```tsx
 'use client';
 
+import type { CommandItem } from 'modern-cmdk';
+import { itemId } from 'modern-cmdk';
 import { Command, useCommandState } from 'modern-cmdk/react';
 import { Suspense } from 'react';
 
-interface SearchResult {
+interface ApiResult {
   id: string;
   title: string;
   description: string;
   category: string;
 }
 
-async function searchAPI(query: string): Promise<SearchResult[]> {
+// Map raw API results into CommandItem shape — AsyncItems requires
+// Promise<readonly CommandItem[]> so it can register results with the machine
+async function searchAPI(query: string): Promise<readonly CommandItem[]> {
   if (!query.trim()) return [];
 
   const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
@@ -30,7 +34,14 @@ async function searchAPI(query: string): Promise<SearchResult[]> {
   });
 
   if (!response.ok) throw new Error(`Search failed: ${response.status}`);
-  return response.json();
+  const results: ApiResult[] = await response.json();
+
+  return results.map((r) => ({
+    id: itemId(r.id),
+    value: r.title,
+    keywords: [r.description],
+    data: { description: r.description, category: r.category },
+  }));
 }
 
 function SearchResults() {
@@ -44,19 +55,19 @@ function SearchResults() {
       {(results) => (
         <>
           {Object.entries(
-            Object.groupBy(results, (r) => r.category)
+            Object.groupBy(results, (r) => String(r.data?.category))
           ).map(([category, items]) => (
             <Command.Group key={category} heading={category}>
               {items!.map((item) => (
                 <Command.Item
                   key={item.id}
-                  value={item.title}
-                  keywords={[item.description]}
+                  value={item.value}
+                  keywords={item.keywords}
                   onSelect={() => console.log('Selected:', item.id)}
                 >
-                  <span>{item.title}</span>
+                  <span>{item.value}</span>
                   <span style={{ opacity: 0.5, fontSize: '0.875em' }}>
-                    {item.description}
+                    {String(item.data?.description)}
                   </span>
                 </Command.Item>
               ))}
@@ -140,7 +151,7 @@ Load items from multiple sources with independent Suspense boundaries:
     <Suspense fallback={<Command.Loading>Loading recent...</Command.Loading>}>
       <Command.AsyncItems items={fetchRecent()}>
         {(items) => items.map((item) => (
-          <Command.Item key={item.id} value={item.value}>{item.label}</Command.Item>
+          <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
         ))}
       </Command.AsyncItems>
     </Suspense>
@@ -150,7 +161,7 @@ Load items from multiple sources with independent Suspense boundaries:
     <Suspense fallback={<Command.Loading>Loading commands...</Command.Loading>}>
       <Command.AsyncItems items={fetchAllCommands()}>
         {(items) => items.map((item) => (
-          <Command.Item key={item.id} value={item.value}>{item.label}</Command.Item>
+          <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
         ))}
       </Command.AsyncItems>
     </Suspense>

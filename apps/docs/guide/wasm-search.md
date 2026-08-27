@@ -71,19 +71,21 @@ function WasmSearchPalette() {
 Creates a WASM search engine instance on the main thread.
 
 ```typescript
+import { itemId } from 'modern-cmdk';
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 
 await using engine = await createWasmSearchEngine();
 
 // Index items
-engine.index([
-  { id: 'item-1', value: 'Application Settings', keywords: ['preferences', 'config'] },
-  { id: 'item-2', value: 'User Profile', keywords: ['account'] },
-]);
+const items = [
+  { id: itemId('item-1'), value: 'Application Settings', keywords: ['preferences', 'config'] },
+  { id: itemId('item-2'), value: 'User Profile', keywords: ['account'] },
+];
+engine.index(items);
 
 // Search with fuzzy matching + typo tolerance
-const results = engine.search('applcation'); // typo-tolerant: matches "Application Settings"
-// => [{ id: 'item-1', score: 0.85, matches: [[0, 11]] }]
+const results = engine.search('applcation', items); // typo-tolerant: matches "Application Settings"
+// => yields { id: 'item-1', score: 0.85, matches: [[0, 11]] }
 ```
 
 ::: tip
@@ -108,12 +110,7 @@ function WorkerSearchPalette() {
     let disposed = false;
 
     async function init() {
-      const workerEngine = await createWorkerSearchEngine({
-        wasmUrl: new URL(
-          'modern-cmdk-search-wasm/pkg/command_search_wasm_bg.wasm',
-          import.meta.url,
-        ),
-      });
+      const workerEngine = await createWorkerSearchEngine({ maxResults: 100 });
       if (!disposed) setEngine(workerEngine);
     }
 
@@ -137,33 +134,34 @@ function WorkerSearchPalette() {
 
 ### `createWorkerSearchEngine(options?)`
 
-Creates a WASM search engine that runs in a Web Worker.
+Creates a WASM search engine that runs in a Web Worker. The worker module and WASM binary are resolved automatically relative to the package -- no URL configuration needed.
 
 ```typescript
 import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
 
-const engine = await createWorkerSearchEngine({
-  wasmUrl: new URL('./command_search_wasm_bg.wasm', import.meta.url),
-  useSharedArrayBuffer: true, // zero-copy score transfer
-});
+await using engine = await createWorkerSearchEngine({ maxResults: 100 });
+
+// Preferred API for worker engines — async search off the main thread
+const results = await engine.searchAsync('settings');
+
+// engine.useSharedMemory tells you whether zero-copy transfer is active
 ```
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `wasmUrl` | `URL \| string` | bundled | URL to the WASM binary |
-| `useSharedArrayBuffer` | `boolean` | `false` | Use `SharedArrayBuffer` for zero-copy score transfer |
+| `maxResults` | `number` | `50` | Maximum results returned per search query |
 
 ## SharedArrayBuffer Requirements
 
-When `useSharedArrayBuffer: true` is enabled, your server must send the following headers for cross-origin isolation:
+`SharedArrayBuffer` zero-copy score transfer is detected automatically -- when the page is cross-origin isolated (`crossOriginIsolated === true`), scores are written directly into shared memory; otherwise the engine transparently falls back to structured clone. To enable isolation, your server must send the following headers:
 
 ```
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Embedder-Policy: require-corp
 ```
 
-::: warning COOP/COEP Headers Required
-Without these headers, `SharedArrayBuffer` is unavailable and the engine falls back to structured clone (postMessage) for score transfer. This is still fast but involves a copy.
+::: warning No headers, no shared memory
+Without these headers, `SharedArrayBuffer` is unavailable and the engine falls back to structured clone (`postMessage`) for score transfer. This is still fast but involves a copy. Check `engine.useSharedMemory` to see which mode is active.
 :::
 
 ### Vite Configuration
@@ -243,5 +241,5 @@ The compiled WASM binary is approximately 45KB gzipped. It is loaded asynchronou
 - **Fuzzy matching** — Typo tolerance via Levenshtein distance (up to 2 for short queries, up to 3 for longer)
 - **Trigram index** — Pre-built index on item registration for O(1) candidate lookup
 - **Match positions** — Returns `[start, end]` ranges for use with `<Command.Highlight>`
-- **Incremental indexing** — Items can be added/removed without rebuilding the full index
+- **Graceful fallback** — Automatically degrades to the TypeScript engine when WASM cannot load (`isWasm: false`)
 - **Explicit resource management** — `await using` / `Symbol.asyncDispose` for clean WASM memory cleanup

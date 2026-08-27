@@ -35,16 +35,16 @@ await using engine = await createWasmSearchEngine();
 
 ### Returns
 
-`Promise<WasmSearchEngine>` -- an object implementing `SearchEngine` and `AsyncDisposable`.
+`Promise<WasmSearchEngine | FallbackSearchEngine>` -- an object implementing `SearchEngine` and `AsyncDisposable`. If the WASM module fails to load (CSP restrictions, unsupported browser, network error), the factory automatically falls back to the TypeScript search engine from `modern-cmdk` -- check the `isWasm` discriminant if you need to know which engine you got.
 
 ### WasmSearchEngine Interface
 
 | Property / Method | Type | Description |
 |---|---|---|
-| `isWasm` | `true` | Identifies this as a WASM engine |
+| `isWasm` | `true` | Discriminant -- `false` on the TypeScript fallback engine |
 | `index(items)` | `(items: CommandItem[]) => void` | Index items for search. Serializes and sends to WASM trigram index |
 | `search(query, items)` | `(query: string, items: CommandItem[]) => IteratorObject<SearchResult>` | Synchronous fuzzy search returning scored results |
-| `remove(ids)` | `(ids: Set<ItemId>) => void` | Remove items from the index (clears and re-indexes) |
+| `remove(ids)` | `(ids: Set<ItemId>) => void` | The immutable WASM index is cleared; it is rebuilt on the next `index()` call |
 | `clear()` | `() => void` | Clear the entire index |
 | `[Symbol.dispose]()` | `() => void` | Free WASM memory (synchronous) |
 | `[Symbol.asyncDispose]()` | `() => Promise<void>` | Free WASM memory (async, for `await using`) |
@@ -64,12 +64,15 @@ interface SearchResult {
 The engine implements `AsyncDisposable`, so `await using` automatically frees WASM memory when the scope exits:
 
 ```typescript
+import { itemId } from 'modern-cmdk';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
+
 async function search() {
   await using engine = await createWasmSearchEngine();
 
   engine.index([
-    { id: 'item-1', value: 'Application Settings', keywords: ['preferences'] },
-    { id: 'item-2', value: 'User Profile', keywords: ['account'] },
+    { id: itemId('item-1'), value: 'Application Settings', keywords: ['preferences'] },
+    { id: itemId('item-2'), value: 'User Profile', keywords: ['account'] },
   ]);
 
   const results = engine.search('applcation', []);
@@ -237,7 +240,7 @@ The compiled WASM binary is approximately 45KB gzipped. It is loaded asynchronou
 - **Fuzzy matching** -- Typo tolerance via Levenshtein distance (up to 2 edits for short queries, up to 3 for longer)
 - **Trigram index** -- Pre-built index on item registration for O(1) candidate lookup
 - **Match positions** -- Returns `[start, end]` ranges for highlighting via `<Command.Highlight>`
-- **Incremental indexing** -- Items can be added/removed without rebuilding the full index
+- **Graceful fallback** -- Automatically degrades to the TypeScript engine when WASM cannot load (`isWasm: false`)
 - **Explicit resource management** -- `await using` / `Symbol.asyncDispose` for clean WASM memory cleanup
 - **Worker isolation** -- Optional Web Worker for off-main-thread search
 - **SharedArrayBuffer** -- Zero-copy score transfer when cross-origin isolation is available

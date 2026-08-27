@@ -22,5 +22,5 @@ features:
   - title: Fully Accessible
     details: WAI-ARIA combobox pattern, live regions, forced-colors, prefers-contrast support.
   - title: GPU Composited
-    details: "@starting-style animations, View Transitions, scroll-timeline. Zero layout thrash."
+    details: "@starting-style animations, spring linear() easing, scroll-timeline. Zero layout thrash."
 ---

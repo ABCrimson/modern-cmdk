@@ -26,7 +26,7 @@ This policy covers:
 - `modern-cmdk` (core engine)
 - `modern-cmdk/react` (React adapter)
 - `modern-cmdk-search-wasm` (WASM search)
-- `modern-cmdk (codemods)` (migration codemods)
+- `modern-cmdk` codemod CLI (migration codemods)
 - Documentation site (command.crimson.dev)
 - Interactive playground
 

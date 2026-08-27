@@ -104,3 +104,4 @@ Use `Command.Highlight` to show where the search query matched:
 | `Command.Badge` | Category/type badge |
 | `Command.Page` | Multi-page navigation |
 | `Command.AsyncItems` | Async data source with Suspense |
+| `Command.Activity` | State preservation via the React Activity API |

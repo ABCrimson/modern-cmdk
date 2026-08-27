@@ -134,7 +134,7 @@ Tune the decay weights to match your usage patterns:
 Frecency works at the core state machine level, independent of React:
 
 ```typescript
-import { createCommandMachine } from 'modern-cmdk';
+import { createCommandMachine, itemId } from 'modern-cmdk';
 import { IdbFrecencyStorage } from 'modern-cmdk';
 
 async function demo() {
@@ -142,8 +142,8 @@ async function demo() {
 
   using machine = createCommandMachine({
     items: [
-      { id: 'settings', value: 'Settings' },
-      { id: 'profile', value: 'Profile' },
+      { id: itemId('settings'), value: 'Settings' },
+      { id: itemId('profile'), value: 'Profile' },
     ],
     frecency: {
       enabled: true,
@@ -153,7 +153,7 @@ async function demo() {
   });
 
   // Select an item -- recorded with Date.now()
-  machine.send({ type: 'ITEM_SELECT', id: 'settings' });
+  machine.send({ type: 'ITEM_SELECT', id: itemId('settings') });
 
   // Future empty searches rank "Settings" higher
   machine.send({ type: 'SEARCH_CHANGE', query: '' });

@@ -53,7 +53,7 @@ flowchart TB
         SE["Search Engine<br/>Pluggable scorer fn<br/>Incremental filtering"]
         FE["Frecency Engine<br/>Exponential time decay<br/>Pluggable storage · Disposable"]
         REG["Command Registry<br/>Items (Map) · Groups (Map) · Order (Array + Set)<br/>setIntersection / setDifference / setUnion helpers<br/>Iterator Helpers · objectGroupBy · Disposable"]
-        KB["Keyboard Shortcut Registry<br/>Parser (RegExp.escape) · Matcher<br/>Conflicts (objectGroupBy) · Disposable"]
+        KB["Keyboard Shortcut Registry<br/>Parser (RegExp.escape) · Matcher<br/>Conflicts (mapGroupBy) · Disposable"]
         SCH["Scheduler<br/>rAF batching (browser) · microtask (Node.js)<br/>Promise.withResolvers · Disposable"]
         SM --> REG
         SE --> REG
@@ -309,7 +309,7 @@ flowchart TB
     F -->|No match| H["Pass through"]
 
     D --> I["Conflict detection<br/>detectConflicts()"]
-    I --> J["Object.groupBy(shortcuts, s => s.normalized)"]
+    I --> J["mapGroupBy(shortcuts, s => s.normalized)"]
     J --> K["Map of conflicts<br/>(normalized -> shortcuts[])"]
 ```
 
@@ -349,11 +349,12 @@ Global shortcut management:
 
 ### Conflict Detection
 
-Uses `objectGroupBy` helper to group shortcuts by normalized form:
+Uses the `mapGroupBy` helper to group shortcuts by normalized form:
 
 ```ts
-const grouped = objectGroupBy(shortcuts, (s) => s.normalized);
+const grouped = mapGroupBy(shortcuts, (s) => s.normalized);
 // Any group with length > 1 is a conflict
+return new Map(grouped.entries().filter(([, group]) => group.length > 1));
 ```
 
 ---
@@ -461,17 +462,20 @@ All animations use compositor-only properties (`opacity`, `scale`, `translate`) 
 Dialog open:
   @starting-style { opacity: 0; scale: 0.96; translate: 0 8px; }
   -> opacity: 1; scale: 1; translate: 0 0;
-  -> 200ms cubic-bezier(0.16, 1, 0.3, 1)
+  -> opacity 200ms spring linear() easing
+  -> scale/translate 250ms bouncy spring linear() easing (slight overshoot)
   -> display/overlay: allow-discrete
 
 Dialog close:
   -> opacity: 0; scale: 0.96; translate: 0 4px;
-  -> 150ms cubic-bezier(0.4, 0, 1, 1)
+  -> 150ms cubic-bezier(0.4, 0, 1, 1)  // quicker, no spring overshoot
 
 Item active:
-  -> transform: translate3d(0, 0, 0)  // GPU layer promotion
-  -> background-color transition 120ms
+  -> background-color transition 120ms, linear() eased
+  -> content-visibility: auto skips off-screen item rendering
 ```
+
+The spring easings are `linear()` approximations of a critically-damped spring (stiffness 100, damping 15) -- real spring physics with zero JavaScript.
 
 `@starting-style` (CSS Nesting level) enables entry animations without JavaScript -- the browser interpolates from the starting style to the final style on first render.
 
@@ -496,12 +500,13 @@ No JavaScript scroll event listeners. Zero main-thread cost.
 
 ### Content Visibility
 
-Virtualized items use `content-visibility: auto` with `contain-intrinsic-size`:
+All items (and virtualized items) use `content-visibility: auto` with `contain-intrinsic-size`:
 
 ```css
+[data-command-item],
 [data-command-virtual-item] {
   content-visibility: auto;
-  contain-intrinsic-size: auto 44px;
+  contain-intrinsic-size: auto var(--command-item-height); /* 44px */
 }
 ```
 

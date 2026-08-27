@@ -197,18 +197,18 @@ export function computeFrecencyBonus(
 Frecency works at the core engine level, independent of React:
 
 ```typescript
-import { createCommandMachine } from 'modern-cmdk';
+import { createCommandMachine, itemId } from 'modern-cmdk';
 
 using machine = createCommandMachine({
   items: [
-    { id: 'settings', value: 'Settings' },
-    { id: 'profile', value: 'Profile' },
+    { id: itemId('settings'), value: 'Settings' },
+    { id: itemId('profile'), value: 'Profile' },
   ],
   frecency: { enabled: true },
 });
 
 // Select an item — frecency is recorded with Date.now()
-machine.send({ type: 'ITEM_SELECT', id: 'settings' });
+machine.send({ type: 'ITEM_SELECT', id: itemId('settings') });
 
 // Future searches rank "Settings" higher due to frecency bonus
 machine.send({ type: 'SEARCH_CHANGE', query: '' });

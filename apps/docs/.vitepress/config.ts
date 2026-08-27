@@ -85,7 +85,10 @@ export default defineConfig({
         },
         {
           text: 'Architecture',
-          items: [{ text: 'Overview', link: '/architecture/overview' }],
+          items: [
+            { text: 'Overview', link: '/architecture/overview' },
+            { text: 'Internals', link: '/guide/architecture' },
+          ],
         },
         {
           text: 'Migration',

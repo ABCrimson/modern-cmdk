@@ -336,7 +336,8 @@ Inherits all `CommandMachineOptions` props, plus:
 | `overlayClassName` | `string` | -- | Class name for the overlay |
 | `contentClassName` | `string` | -- | Class name for the inner content container |
 | `label` | `string` | `'Command palette'` | Accessible label |
-| `open` | `boolean` | -- | Controlled open state |
+| `description` | `string` | `'Type a command or search...'` | Accessible description for screen readers |
+| `open` | `boolean` | -- | Controlled open state (omit for uncontrolled mode) |
 | `onOpenChange` | `(open: boolean) => void` | -- | Called when open state changes |
 | `container` | `HTMLElement \| null` | `document.body` | Portal container element |
 
@@ -445,11 +446,34 @@ Wraps content in React 19.3.0-canary Activity API for state preservation. When `
 
 ---
 
+## `<CommandErrorBoundary>`
+
+Error boundary for graceful failure recovery in command subtrees. Exported as a named export (not attached to `Command`).
+
+```tsx
+import { CommandErrorBoundary } from 'modern-cmdk/react';
+
+<CommandErrorBoundary
+  fallback={(error) => <div>Palette failed: {error.message}</div>}
+  onError={(error, info) => reportError(error, info)}
+>
+  <Command>{/* ... */}</Command>
+</CommandErrorBoundary>
+```
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `children` | `ReactNode` | Required | Subtree to guard |
+| `fallback` | `ReactNode \| ((error: Error) => ReactNode)` | `null` | Rendered when an error is caught |
+| `onError` | `(error: Error, errorInfo: ErrorInfo) => void` | -- | Error reporting callback |
+
+---
+
 ## Hooks
 
-### `useCommandState(selector)`
+### `useCommandState(selector?)`
 
-Subscribe to a slice of command state via `useSyncExternalStore`:
+Subscribe to command state via `useSyncExternalStore`. Call with no arguments for the full `CommandState`, or pass a selector to re-render only when the selected value changes:
 
 ```tsx
 import { useCommandState } from 'modern-cmdk/react';
@@ -459,6 +483,51 @@ function ResultCount() {
   return <span>{count} results</span>;
 }
 ```
+
+### `useCommand(machine)`
+
+Low-level hook that binds a `CommandMachine` to React via `useSyncExternalStore`, `useTransition`, and `useOptimistic`. `<Command>` uses it internally; reach for it only when building a custom root.
+
+Returns `UseCommandReturn`:
+
+| Field | Type | Description |
+|---|---|---|
+| `state` | `CommandState` | Current state snapshot |
+| `isPending` | `boolean` | `true` while a search transition is in flight |
+| `updateSearch` | `(query: string) => void` | Dispatch a search update inside a transition |
+| `setOptimisticActiveId` | `(id: ItemId \| null) => void` | Optimistically highlight an item |
+| `filteredIdSet` | `ReadonlySet<ItemId>` | O(1) membership set for filtered items |
+| `id` | `CommandRootId` | Stable SSR-safe root ID (from `useId`) |
+
+### `useRegisterItem(value, options?)`
+
+Register a command item imperatively — auto-deregisters on unmount. Returns the branded `ItemId`. Options: `keywords`, `groupId`, `shortcut`, `disabled`, `onSelect`, `data`, `forceId`.
+
+### `useRegisterGroup(heading?, options?)`
+
+Register a command group imperatively — auto-deregisters on unmount. Returns the branded `GroupId`. Options: `priority`, `forceId`.
+
+### `useVirtualizer(options)`
+
+Lightweight list virtualizer built on `ResizeObserver` and scroll tracking. `<Command.List>` uses it internally.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `count` | `number` | Required | Total item count |
+| `estimateSize` | `number` | Required | Estimated item height (px) |
+| `overscan` | `number` | `8` | Extra items rendered per direction |
+| `scrollElement` | `HTMLElement \| null` | Required | Scroll container |
+| `enabled` | `boolean` | `true` | Toggle virtualization |
+
+Returns `{ virtualItems, totalSize, scrollToIndex, measureElement }`.
+
+### `useCommandDevtools(label?)`
+
+Exposes palette internals (registered/filtered item counts, query, active ID, page stack, open/loading state) on a global registry (`__CRIMSON_COMMAND_DEVTOOLS__`) for inspection from the browser console. Development-only — the entire effect is tree-shaken from production builds.
+
+### `createKeydownHandler(machine, getState)`
+
+Factory for the root `keydown` handler — `ArrowUp`/`ArrowDown`/`Home`/`End` navigation, `Enter` to select, `Escape` to close, `Backspace` on an empty query to pop the page stack. Used internally by `<Command>`; exported for custom roots.
 
 ---
 

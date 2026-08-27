@@ -11,7 +11,7 @@ For the simplest migration, swap the import:
 + import { Command } from 'modern-cmdk/react';
 ```
 
-The compound component API, data attributes, and CSS custom properties all work identically for basic usage.
+The compound component API works identically for basic usage. Data attributes and CSS custom properties are renamed (`[cmdk-*]` to `[data-command-*]`, `--cmdk-*` to `--command-*`) -- the codemod below rewrites those for you.
 
 ## Automated Migration with Codemod
 
@@ -62,7 +62,7 @@ Always run with `--dry-run` first to review changes before applying them.
 
 ### 1. Data Attributes Renamed
 
-All `[cmdk-*]` data attributes are renamed to `[data-command-*]`. Legacy aliases are provided for backward compatibility, but you should update your CSS and tests.
+All `[cmdk-*]` data attributes are renamed to `[data-command-*]`. There are **no runtime aliases** -- the old selectors simply stop matching, so update your CSS and tests (the `data-attrs` codemod rewrites them for you).
 
 ::: code-group
 ```css [Before (cmdk)]
@@ -99,7 +99,7 @@ All `[cmdk-*]` data attributes are renamed to `[data-command-*]`. Legacy aliases
 + height: var(--command-list-height);
 ```
 
-The `--cmdk-list-height` alias is provided for backward compatibility, but you should update to `--command-list-height`.
+There is no `--cmdk-list-height` alias at runtime -- update to `--command-list-height` (the `data-attrs` codemod rewrites this too).
 
 ### 3. `shouldFilter` Renamed to `filter`
 
@@ -117,12 +117,12 @@ The `--cmdk-list-height` alias is provided for backward compatibility, but you s
 ```
 :::
 
-The `filter` prop also accepts a custom filter function (not just a boolean):
+The `filter` prop also accepts a custom filter function (not just `false`). Note the signature differs from cmdk -- it receives the whole `CommandItem`, not separate `value`/`keywords` arguments:
 
 ```tsx
-<Command filter={(value, search, keywords) => {
-  // Return a score between 0 and 1
-  return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+<Command filter={(item, query) => {
+  // Return a score (higher = better match), or false to exclude the item
+  return item.value.toLowerCase().includes(query.toLowerCase()) ? 1 : false;
 }}>
 ```
 
@@ -236,12 +236,11 @@ const CommandPalette = forwardRef<HTMLDivElement>((props, ref) => {
 import { Command } from 'modern-cmdk/react';
 import { useState } from 'react';
 
-function CommandPalette({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
+function CommandPalette() {
   const [open, setOpen] = useState(false);
 
   return (
     <Command.Dialog
-      ref={ref}
       open={open}
       onOpenChange={setOpen}
       filter={false}
@@ -268,21 +267,21 @@ function CommandPalette({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
 | cmdk | modern-cmdk/react | Notes |
 |---|---|---|
 | `import { Command } from 'cmdk'` | `import { Command } from 'modern-cmdk/react'` | Import path |
-| `[cmdk-root]` | `[data-command-root]` | Aliased for compat |
-| `[cmdk-input]` | `[data-command-input]` | Aliased for compat |
-| `[cmdk-item]` | `[data-command-item]` | Aliased for compat |
-| `[cmdk-group]` | `[data-command-group]` | Aliased for compat |
-| `[cmdk-group-heading]` | `[data-command-group-heading]` | Aliased for compat |
-| `[cmdk-list]` | `[data-command-list]` | Aliased for compat |
-| `[cmdk-separator]` | `[data-command-separator]` | Aliased for compat |
-| `[cmdk-empty]` | `[data-command-empty]` | Aliased for compat |
-| `[cmdk-loading]` | `[data-command-loading]` | Aliased for compat |
-| `--cmdk-list-height` | `--command-list-height` | Aliased for compat |
+| `[cmdk-root]` | `[data-command-root]` | Codemod: `data-attrs` |
+| `[cmdk-input]` | `[data-command-input]` | Codemod: `data-attrs` |
+| `[cmdk-item]` | `[data-command-item]` | Codemod: `data-attrs` |
+| `[cmdk-group]` | `[data-command-group]` | Codemod: `data-attrs` |
+| `[cmdk-group-heading]` | `[data-command-group-heading]` | Codemod: `data-attrs` |
+| `[cmdk-list]` | `[data-command-list]` | Codemod: `data-attrs` |
+| `[cmdk-separator]` | `[data-command-separator]` | Codemod: `data-attrs` |
+| `[cmdk-empty]` | `[data-command-empty]` | Codemod: `data-attrs` |
+| `[cmdk-loading]` | `[data-command-loading]` | Codemod: `data-attrs` |
+| `--cmdk-list-height` | `--command-list-height` | Codemod: `data-attrs` |
 | `shouldFilter={false}` | `filter={false}` | Also accepts filter function |
 | `React.forwardRef` | `ref` as regular prop | React 19 native |
 | No `"use client"` | `"use client"` on every component | RSC boundary |
 | No virtualization | Automatic at 100+ items | Opt-out with `virtualize={false}` |
-| `@radix-ui/react-dialog` | `radix-ui@1.6.7` | Unified package |
+| `@radix-ui/react-dialog` | `radix-ui` (peer `>=1.4.0 <2.0.0`) | Unified package |
 | `use-sync-external-store` shim | Native `useSyncExternalStore` | React 19 built-in |
 | `data-selected="true"` | `data-active` | Presence-based attribute |
 
@@ -296,6 +295,6 @@ After migrating, you get access to features not available in cmdk:
 - **[Virtualization](/guide/virtualization)** -- Automatic for 100+ items
 - **[Match highlighting](/api/command-react#commandhighlight)** -- `<Command.Highlight />` component
 - **[Async items](/guide/async-items)** -- `<Command.AsyncItems />` with Suspense
-- **[Multi-page navigation](/api/command-react#commandpage)** -- `<Command.Page />` with View Transitions
+- **[Multi-page navigation](/api/command-react#commandpage)** -- `<Command.Page />` with a page stack (Backspace pops)
 - **[Activity preservation](/api/command-react#commandactivity)** -- `<Command.Activity />` for state preservation
 - **[Full ARIA support](/guide/accessibility)** -- Live regions, `forced-colors`, `prefers-contrast`

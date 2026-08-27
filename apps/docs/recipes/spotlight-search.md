@@ -24,8 +24,8 @@ function SpotlightSearch() {
           <Suspense fallback={<Command.Loading>Loading recents...</Command.Loading>}>
             <Command.AsyncItems items={fetchRecentItems()}>
               {(items) => items.map((item) => (
-                <Command.Item key={item.id} value={item.name} onSelect={() => console.log(item)}>
-                  {item.name}
+                <Command.Item key={item.id} value={item.value} onSelect={() => console.log(item)}>
+                  {item.value}
                 </Command.Item>
               ))}
             </Command.AsyncItems>
@@ -46,11 +46,23 @@ function SpotlightSearch() {
 
 ## Global Keyboard Shortcut
 
-Register `Ctrl+K` or `Cmd+K` to open from anywhere:
+Register `Cmd+K` / `Ctrl+K` to open from anywhere with a document-level listener (the dialog does not bind this for you):
 
 ```tsx
-// The dialog has built-in Ctrl+K / Cmd+K support
-<Command.Dialog>...</Command.Dialog>
+const [open, setOpen] = useState(false);
+
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      setOpen((prev) => !prev);
+    }
+  };
+  document.addEventListener('keydown', handleKeyDown);
+  return () => document.removeEventListener('keydown', handleKeyDown);
+}, []);
+
+<Command.Dialog open={open} onOpenChange={setOpen}>...</Command.Dialog>
 ```
 
 ## With Frecency + WASM

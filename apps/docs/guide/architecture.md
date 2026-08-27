@@ -1,9 +1,13 @@
 ---
-title: Architecture Overview
-description: Three-layer architecture of the modern-cmdk monorepo
+title: Architecture Internals
+description: Monorepo-level view of the modern-cmdk architecture — package graph, core subsystems, virtualization internals, and ES2026 feature usage.
 ---
 
-# Architecture Overview
+# Architecture Internals
+
+::: tip Looking for the high-level tour?
+Start with the [Architecture Overview](/architecture/overview) — this page drills into the monorepo package graph and per-subsystem internals.
+:::
 
 `modern-cmdk` is built as a three-layer architecture: a framework-agnostic **core engine**, a **React adapter**, and an optional **WASM search** acceleration layer.
 
@@ -48,8 +52,8 @@ stateDiagram-v2
 | `frecency/index.ts` | Time-based decay buckets (Date.now) |
 | `frecency/idb-storage.ts` | IndexedDB persistence via idb-keyval |
 | `keyboard/parser.ts` | Shortcut string parsing with RegExp.escape |
-| `keyboard/matcher.ts` | Conflict detection via groupBy helper |
-| `utils/scheduler.ts` | Microtask batching for state updates |
+| `keyboard/matcher.ts` | Event matching + conflict detection via groupBy helper |
+| `utils/scheduler.ts` | Update batching -- `requestAnimationFrame` in browsers, microtask in Node.js |
 | `utils/event-emitter.ts` | Type-safe pub/sub with Disposable cleanup |
 
 ### Data Flow: Search Pipeline
@@ -66,7 +70,7 @@ flowchart LR
 
 ## React Adapter (`modern-cmdk/react`)
 
-The React adapter exposes 14 compound components that bind to the core state machine:
+The React adapter exposes 15 compound components (the `Command` root plus 14 subcomponents) that bind to the core state machine:
 
 ```mermaid
 graph TD
@@ -86,7 +90,7 @@ graph TD
 
 - **`useSyncExternalStore`** — Subscribe to the core state machine without tearing
 - **`useTransition`** — Wrap search updates for concurrent rendering
-- **`useOptimistic`** — Show optimistic input values during transitions
+- **`useOptimistic`** — Optimistic `activeId` updates for instant navigation feedback
 - **`ref` as prop** — No `forwardRef` needed (React 19 native)
 - **Activity API** — `CommandActivity` for keep-alive state preservation
 
@@ -96,7 +100,7 @@ The list component auto-virtualizes when filtered items exceed a threshold. The 
 
 - `ResizeObserver` for dynamic item height measurement
 - `requestIdleCallback` for deferred measurement
-- `translate3d` transforms for GPU-composited positioning
+- `translateY` transforms for GPU-composited positioning
 - `content-visibility: auto` for off-screen rendering skip
 
 ## WASM Search (`modern-cmdk-search-wasm`)
@@ -124,7 +128,7 @@ sequenceDiagram
 
 | Mode | Function | Thread | Use Case |
 |------|----------|--------|----------|
-| Main thread | `createWasmSearchEngine()` | Main | Simple setup, < 5K items |
+| Main thread | `createWasmSearchEngine()` | Main | Simple setup, up to ~50K items |
 | Worker thread | `createWorkerSearchEngine()` | Web Worker | Large datasets, non-blocking UI |
 
 Both implement the `SearchEngine` interface from the core package and support `AsyncDisposable` for `await using` cleanup.

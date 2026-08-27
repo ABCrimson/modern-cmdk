@@ -305,6 +305,13 @@ const conflicts = registry.getConflicts();
 // conflicts: ReadonlyMap<string, readonly ParsedShortcut[]> (normalized shortcut → conflicting bindings)
 ```
 
+| Method | Returns | Description |
+|---|---|---|
+| `register(shortcut, itemId, handler)` | `Disposable` | Bind a shortcut — `using` auto-unregisters |
+| `unregister(shortcut)` | `void` | Remove a binding by shortcut string |
+| `getConflicts()` | `ReadonlyMap<string, readonly ParsedShortcut[]>` | Normalized shortcut → conflicting bindings |
+| `[Symbol.dispose]()` | `void` | Remove the global `keydown` listener and clear all bindings |
+
 ### Shortcut Utilities
 
 | Function | Returns | Description |
@@ -379,16 +386,21 @@ const telemetry = createTelemetryMiddleware({
 
 Internal registry for items and groups. Access via `machine.getRegistry()`.
 
-| Method | Description |
-|---|---|
-| `registerItem(item)` | Register a command item |
-| `unregisterItem(id)` | Remove a command item |
-| `registerGroup(group)` | Register a group |
-| `unregisterGroup(id)` | Remove a group |
-| `getItem(id)` | Get an item by ID |
-| `getGroup(id)` | Get a group by ID |
-| `getAllItems()` | Get all registered items |
-| `getAllGroups()` | Get all registered groups |
+| Method | Returns | Description |
+|---|---|---|
+| `registerItem(item)` | `Disposable` | Register a command item — `using` auto-deregisters |
+| `registerItems(items)` | `Disposable` | Batch-register items with a single disposer |
+| `unregisterItem(id)` | `void` | Remove a command item |
+| `unregisterItems(ids)` | `void` | Bulk-remove items by ID set |
+| `registerGroup(group)` | `Disposable` | Register a group — `using` auto-deregisters |
+| `unregisterGroup(id)` | `void` | Remove a group |
+| `getItem(id)` / `getGroup(id)` | item/group or `undefined` | O(1) lookup by ID |
+| `getItems()` / `getGroups()` | `readonly []` | All registered items/groups in insertion order |
+| `getGroupedItems()` | `ReadonlyMap` | Items bucketed by group ID |
+| `getItemIds()` | `ReadonlySet<ItemId>` | All registered item IDs |
+| `intersectWith(ids)` / `differenceFrom(ids)` / `unionWith(ids)` / `symmetricDifferenceWith(ids)` | `ReadonlySet<ItemId>` | Set operations against the registered ID set |
+| `isSubsetOf(ids)` / `isSupersetOf(ids)` / `isDisjointFrom(ids)` | `boolean` | Set relationship checks |
+| `clear()` | `void` | Remove all items and groups |
 
 ### `TypedEmitter`
 

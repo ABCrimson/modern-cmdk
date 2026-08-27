@@ -9,9 +9,10 @@ Wrap your async data source in `<Command.AsyncItems>`. The component suspends wh
 ```tsx
 'use client';
 
+import type { CommandItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
 
-async function fetchCommands(): Promise<CommandItem[]> {
+async function fetchCommands(): Promise<readonly CommandItem[]> {
   const res = await fetch('/api/commands');
   return res.json();
 }
@@ -31,7 +32,7 @@ function AsyncCommandPalette() {
           {(items) =>
             items.map((item) => (
               <Command.Item key={item.id} value={item.value} onSelect={item.onSelect}>
-                {item.label}
+                {item.value}
               </Command.Item>
             ))
           }
@@ -49,17 +50,21 @@ For real-world usage, you typically want to debounce the search input before mak
 ```tsx
 'use client';
 
+import type { CommandItem } from 'modern-cmdk';
+import { itemId } from 'modern-cmdk';
 import { Command, useCommandState } from 'modern-cmdk/react';
-import { Suspense, use, useTransition } from 'react';
+import { Suspense } from 'react';
 
-interface SearchResult {
+interface ApiResult {
   id: string;
   title: string;
   description: string;
   category: string;
 }
 
-async function searchAPI(query: string): Promise<SearchResult[]> {
+// Map raw API results into CommandItem shape — AsyncItems requires
+// Promise<readonly CommandItem[]> so it can register results with the machine
+async function searchAPI(query: string): Promise<readonly CommandItem[]> {
   if (!query.trim()) return [];
 
   const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
@@ -67,7 +72,14 @@ async function searchAPI(query: string): Promise<SearchResult[]> {
   });
 
   if (!response.ok) throw new Error(`Search failed: ${response.status}`);
-  return response.json();
+  const results: ApiResult[] = await response.json();
+
+  return results.map((r) => ({
+    id: itemId(r.id),
+    value: r.title,
+    keywords: [r.description],
+    data: { description: r.description, category: r.category },
+  }));
 }
 
 function SearchResults() {
@@ -81,18 +93,18 @@ function SearchResults() {
       {(results) => (
         <>
           {Object.entries(
-            Object.groupBy(results, (r) => r.category)
+            Object.groupBy(results, (r) => String(r.data?.category))
           ).map(([category, items]) => (
             <Command.Group key={category} heading={category}>
               {items!.map((item) => (
                 <Command.Item
                   key={item.id}
-                  value={item.title}
-                  keywords={[item.description]}
+                  value={item.value}
+                  keywords={item.keywords}
                   onSelect={() => console.log('Selected:', item.id)}
                 >
-                  <span>{item.title}</span>
-                  <span className="text-muted">{item.description}</span>
+                  <span>{item.value}</span>
+                  <span className="text-muted">{String(item.data?.description)}</span>
                 </Command.Item>
               ))}
             </Command.Group>
@@ -128,7 +140,7 @@ export function DebouncedSearchPalette() {
     <Suspense fallback={<Command.Loading>Loading recent...</Command.Loading>}>
       <Command.AsyncItems items={fetchRecent()}>
         {(items) => items.map((item) => (
-          <Command.Item key={item.id} value={item.value}>{item.label}</Command.Item>
+          <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
         ))}
       </Command.AsyncItems>
     </Suspense>
@@ -138,7 +150,7 @@ export function DebouncedSearchPalette() {
     <Suspense fallback={<Command.Loading>Loading commands...</Command.Loading>}>
       <Command.AsyncItems items={fetchAllCommands()}>
         {(items) => items.map((item) => (
-          <Command.Item key={item.id} value={item.value}>{item.label}</Command.Item>
+          <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
         ))}
       </Command.AsyncItems>
     </Suspense>
@@ -187,9 +199,9 @@ export function ResilientSearch() {
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `items` | `Promise<T[]>` | Required | Promise resolving to items |
+| `items` | `Promise<readonly CommandItem[]>` | Required | Promise resolving to command items |
 | `fallback` | `ReactNode` | `undefined` | Fallback UI during loading (also works via `<Suspense>`) |
-| `children` | `(items: T[]) => ReactNode` | Required | Render function receiving resolved items |
+| `children` | `(items: readonly CommandItem[]) => ReactNode` | Required | Render function receiving resolved items |
 
 ::: tip
 `<Command.AsyncItems>` uses React 19's `use()` hook internally. The promise passed to `items` is consumed directly by `use()`, triggering Suspense while pending. No additional state management is needed.

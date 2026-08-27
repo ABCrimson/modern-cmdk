@@ -4,7 +4,6 @@ Build a Notion/Linear-style file picker with fuzzy search and recent files.
 
 ```tsx
 import { Command } from 'modern-cmdk/react';
-import { createCommandMachine, itemId } from 'modern-cmdk';
 
 function FilePicker({ files, onSelect }: { files: FileEntry[]; onSelect: (file: FileEntry) => void }) {
   return (
