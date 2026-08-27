@@ -6,7 +6,7 @@ pnpm monorepo (workspaces: `packages/*`, `apps/*`). Node 26.8.1 (see `.nvmrc`), 
 
 ```bash
 pnpm install --frozen-lockfile   # install (CI adds --ignore-scripts)
-pnpm build                       # build all workspaces (pnpm -r run build)
+pnpm build                       # build all workspaces (pnpm -r --workspace-concurrency=4 run build)
 pnpm test                        # vitest run (unit)
 pnpm test:e2e                    # playwright test
 pnpm bench                       # vitest bench

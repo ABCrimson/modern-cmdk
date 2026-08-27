@@ -67,7 +67,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-Lefthook will install automatically via the `prepare` lifecycle script. Pre-commit and pre-push hooks are active immediately.
+Lefthook installs its git hooks via its own postinstall script, which pnpm is permitted to run through the `allowBuilds` entry in `pnpm-workspace.yaml`. Pre-commit and pre-push hooks are active immediately after `pnpm install`; if they are not, run `pnpm lefthook install`.
 
 ---
 
@@ -76,7 +76,7 @@ Lefthook will install automatically via the `prepare` lifecycle script. Pre-comm
 ```
 modern-cmdk/
   package.json                    Root workspace config
-  pnpm-workspace.yaml            Workspace member definitions
+  pnpm-workspace.yaml            Workspace members, version overrides, build allowlist
   tsconfig.base.json              Shared TypeScript config (ES2026 target)
   biome.json                      Biome linter + formatter config
   lefthook.yml                    Git hooks (pre-commit, pre-push)
@@ -188,7 +188,9 @@ modern-cmdk/
       vite.config.ts
   |
   tests/
-    unit/                         23 test files: machine, machine-integration, registry,
+    setup.ts                      Vitest setup (registered via setupFiles)
+    snapshot-serializers.ts       Custom snapshot serializers
+    unit/                         24 test files: machine, machine-integration, registry,
                                   search, search-incremental, keyboard, frecency, frecency-idb,
                                   scheduler, event-emitter, types, command, activity, async,
                                   virtualization, memory-leak, stress, exports-validation,
@@ -215,10 +217,11 @@ modern-cmdk/
     config.json                   Changesets config (public access, GitHub changelog)
   .github/
     workflows/
-      ci.yml                     Lint + test + e2e + size + bench
+      ci.yml                     Lint + test + e2e + size + bench + security audit
       release.yml                Changeset publish
       docs.yml                   VitePress deploy
       benchmarks.yml             Benchmark tracking
+      codeql.yml                 CodeQL static analysis
 ```
 
 ---
@@ -402,7 +405,7 @@ pnpm vitest run tests/unit/search.test.ts
 | Functions | 75% |
 | Lines | 80% |
 
-Coverage is collected with V8 provider. Excluded from coverage: test files, bench files, index re-export files.
+Coverage is collected with V8 provider. Excluded from coverage: test files, bench files, index re-export files, `react/primitives.ts`, and the codemod, WASM (`command-search-wasm`), and `create-modern-cmdk` packages.
 
 #### Writing unit tests
 
