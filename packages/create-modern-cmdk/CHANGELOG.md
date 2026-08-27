@@ -1,5 +1,11 @@
 # create-modern-cmdk
 
+## 1.2.1
+
+### Patch Changes
+
+- docs: correct the `--template` usage on the npm README — the flag must use the `--template=<name>` form; a space-separated `--template <name>` is not parsed and silently falls back to `react-basic`.
+
 ## 1.2.0
 
 ### Minor Changes

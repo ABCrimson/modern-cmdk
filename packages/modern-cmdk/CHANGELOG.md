@@ -1,5 +1,13 @@
 # modern-cmdk
 
+## 1.2.2
+
+### Patch Changes
+
+- [`05d3b74`](https://github.com/ABCrimson/modern-cmdk/commit/05d3b74868419c5076452bcdf23d9b7bc6a3fabd) Thanks [@ABCrimson](https://github.com/ABCrimson)! - Evergreen dependency refresh: bump runtime dependency `idb-keyval` to 6.3.0; rebuild with TypeScript 7.0.2, tsdown 0.23.0-rc.0, and React 19.3 canary 20260826 toolchain.
+
+- docs: refresh npm README + modernized toolchain — disclose the sole runtime dependency (`idb-keyval`, lazy-loaded only for IndexedDB frecency persistence), note ESM-only + `engines.node >= 26.4.0` and the unpublished/experimental WASM engine, and correct the virtualization threshold to `virtualizeThreshold` (default 100).
+
 ## 1.2.1
 
 ### Patch Changes

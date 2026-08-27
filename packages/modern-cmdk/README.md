@@ -31,6 +31,10 @@
 npm install modern-cmdk
 ```
 
+> [!NOTE]
+> `modern-cmdk` is ESM-only and declares `engines.node >= 26.4.0`. The optional WASM search
+> engine (`modern-cmdk-search-wasm`) is experimental and not yet published to npm.
+
 The package exports three entry points:
 
 ```ts
@@ -114,9 +118,9 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 
 ## Features
 
-- **Framework-agnostic core** -- Pure TypeScript state machine. Zero DOM dependencies. Portable to any runtime.
+- **Framework-agnostic core** -- Pure TypeScript state machine. No DOM. No React. Portable to any runtime. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
 - **React 19 adapter** -- 14 compound components. `useSyncExternalStore`, `useTransition`, `useOptimistic`, `use()` for Suspense. React Compiler compatible.
-- **Automatic virtualization** -- Variable-height virtual scrolling kicks in at 100+ items. Handles 100K+ items smoothly with `content-visibility: auto`.
+- **Automatic virtualization** -- Variable-height virtual scrolling kicks in at a configurable threshold (`virtualizeThreshold`, default 100). Handles 100K+ items smoothly with `content-visibility: auto`.
 - **Fuzzy search** -- Built-in TypeScript scorer with incremental filtering. Optional Rust/WASM engine for sub-1ms on 100K items with graceful TS fallback _(experimental, not yet published to npm)_.
 - **Frecency ranking** -- Frequency x recency with time-based exponential decay. Pluggable persistence (memory or IndexedDB).
 - **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, conflict detection, and `RegExp.escape` parsing. Cross-browser helper functions for grouping and set operations.
