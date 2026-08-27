@@ -39,8 +39,10 @@ npx create-modern-cmdk my-command-palette
 Specify a template:
 
 ```bash
-npm create modern-cmdk my-app -- --template react-dialog
+npm create modern-cmdk my-app -- --template=react-dialog
 ```
+
+> **Note:** the flag must use the `--template=<name>` form (with `=`); a space-separated `--template <name>` is not parsed.
 
 ## What you get
 

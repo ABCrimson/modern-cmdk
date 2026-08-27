@@ -6,7 +6,7 @@
 
 A ground-up reimagination of `cmdk` (pacocoursey/cmdk) built for 2026:
 
-- **Framework-agnostic core** — Pure TypeScript state machine, zero dependencies
+- **Framework-agnostic core** — Pure TypeScript state machine, no framework or DOM dependencies
 - **React 19 adapter** — Leverages `useTransition`, `useOptimistic`, React Compiler
 - **ES2026 throughout** — Iterator Helpers, Set methods, `using`/`await using`, `Promise.withResolvers`
 - **GPU-composited animations** — `@starting-style`, View Transitions, `scroll-timeline`

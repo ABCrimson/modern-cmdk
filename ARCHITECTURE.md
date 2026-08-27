@@ -40,57 +40,34 @@ This document describes the technical architecture of `modern-cmdk` -- a ground-
 
 ## Overview
 
-```
-+-------------------------------------------------------------------+
-|                        Application Layer                          |
-+-------------------------------------------------------------------+
-          |                    |                     |
-+---------v-------+  +--------v--------+  +---------v---------+
-| command-react   |  | (future)        |  | (future)          |
-| React 19        |  | Svelte adapter  |  | Vue / Solid       |
-| Compound Comps  |  |                 |  | adapters          |
-+---------+-------+  +-----------------+  +-------------------+
-          |
-          | useSyncExternalStore
-          | useTransition / useOptimistic
-          |
-+---------v-----------------------------------------------------+
-|                    modern-cmdk                        |
-|                    Framework-Agnostic Core                     |
-|                                                               |
-|  +-------------+  +---------------+  +---------------------+  |
-|  |   State     |  |   Search      |  |   Frecency          |  |
-|  |   Machine   |  |   Engine      |  |   Engine            |  |
-|  |             |  |               |  |                     |  |
-|  | Pure TS     |  | Pluggable     |  | Time Decay          |  |
-|  | Disposable  |  | scorer fn     |  | Exponential decay   |  |
-|  | Immutable   |  | Incremental   |  | Pluggable storage   |  |
-|  | snapshots   |  | filtering     |  | Disposable          |  |
-|  +------+------+  +-------+-------+  +----------+----------+  |
-|         |                 |                      |             |
-|  +------v-----------------v----------------------v----------+  |
-|  |              Command Registry                            |  |
-|  |  Items (Map) | Groups (Map) | Order (Array + Set)        |  |
-|  |  setIntersection | setDifference | setUnion (helpers)  |  |
-|  |  Iterator Helpers | objectGroupBy | Disposable          |  |
-|  +---+---------------------------------------------+-------+  |
-|      |                                              |          |
-|  +---v--------------------------+  +----------------v-------+  |
-|  | Keyboard Shortcut Registry   |  | Scheduler              |  |
-|  | Parser (RegExp.escape)       |  | rAF batching (browser) |  |
-|  | Matcher (event matching)     |  | microtask (Node.js)    |  |
-|  | Conflicts (objectGroupBy)    |  | Promise.withResolvers  |  |
-|  | Disposable (using)           |  | Disposable             |  |
-|  +------------------------------+  +------------------------+  |
-+---------------------------------------------------------------+
-          |
-          | Optional drop-in replacement
-+---------v-----------------------+
-| modern-cmdk-search-wasm|
-| Rust / wasm-pack                |
-| Trigram index + scorer          |
-| Sub-1ms on 100K items           |
-+---------------------------------+
+```mermaid
+flowchart TB
+    App["Application Layer"]
+
+    React["modern-cmdk/react<br/>React 19 · Compound Components"]
+    Future["(future)<br/>Svelte / Vue / Solid adapters"]
+
+    subgraph core ["modern-cmdk — Framework-Agnostic Core"]
+        direction TB
+        SM["State Machine<br/>Pure TS · Disposable<br/>Immutable snapshots"]
+        SE["Search Engine<br/>Pluggable scorer fn<br/>Incremental filtering"]
+        FE["Frecency Engine<br/>Exponential time decay<br/>Pluggable storage · Disposable"]
+        REG["Command Registry<br/>Items (Map) · Groups (Map) · Order (Array + Set)<br/>setIntersection / setDifference / setUnion helpers<br/>Iterator Helpers · objectGroupBy · Disposable"]
+        KB["Keyboard Shortcut Registry<br/>Parser (RegExp.escape) · Matcher<br/>Conflicts (objectGroupBy) · Disposable"]
+        SCH["Scheduler<br/>rAF batching (browser) · microtask (Node.js)<br/>Promise.withResolvers · Disposable"]
+        SM --> REG
+        SE --> REG
+        FE --> REG
+        REG --> KB
+        REG --> SCH
+    end
+
+    WASM["modern-cmdk-search-wasm<br/>Rust / wasm-pack · Trigram index + scorer<br/>Sub-1ms on 100K items"]
+
+    App --> React
+    App -.-> Future
+    React -->|"useSyncExternalStore<br/>useTransition / useOptimistic"| core
+    core -.->|"Optional drop-in replacement"| WASM
 ```
 
 ---
@@ -304,7 +281,7 @@ interface FrecencyStorage extends Disposable {
 }
 ```
 
-Ships with `MemoryFrecencyStorage` (in-memory, no persistence). IndexedDB storage is provided via a separate adapter.
+Ships with `MemoryFrecencyStorage` (in-memory, no persistence) and `IdbFrecencyStorage` (IndexedDB persistence via `idb-keyval`, which is lazy-loaded on first use so non-persisting consumers never pay for it).
 
 ### WASM Search Engine
 
@@ -417,6 +394,7 @@ All components consume the machine via React context using `use(CommandContext)`
 | `Command.Shortcut` | Keyboard shortcut display (platform-aware) | -- |
 | `Command.Page` | Nested page for hierarchical navigation | `id` |
 | `Command.AsyncItems` | Suspense-powered async data loading | `load` |
+| `Command.Activity` | React Activity API state preservation (falls back to conditional rendering) | `mode` |
 
 All components:
 - Have `"use client"` directives
@@ -545,16 +523,16 @@ CSS custom properties (`@property`) are registered for `--command-list-height` a
 
 | Metric | Target | Enforcement |
 |---|---|---|
-| Core bundle (minified + gzipped) | ≤ 3 KB | `size-limit` in CI |
-| React adapter bundle (minified + gzipped) | ≤ 5 KB | `size-limit` in CI |
-| WASM search (minified + gzipped) | ≤ 50 KB | `size-limit` in CI |
+| Core bundle (minified + gzipped) | ≤ 6.5 kB | `size-limit` in CI |
+| React adapter bundle (minified + gzipped; react/react-dom/radix-ui externalized) | ≤ 12 kB | `size-limit` in CI |
+| WASM search (minified + gzipped) | ≤ 50 KB | Target only (package unpublished, not in `size-limit`) |
 | Search latency (10K items, TS scorer) | < 16 ms | Vitest bench |
 | Search latency (100K items, WASM scorer) | < 1 ms | Vitest bench |
 | Time to first render | < 50 ms | Playwright performance trace |
 | State update cycle (send -> re-render) | < 4 ms | Vitest bench |
 | Filter 10K items (incremental) | < 2 ms | Vitest bench |
 | Memory per 10K items | < 5 MB | Playwright heap snapshot |
-| Coverage threshold | 80% statements, branches, functions, lines | Vitest coverage in CI |
+| Coverage threshold | 80% statements/lines, 75% functions, 70% branches | `pnpm test:coverage` (Vitest V8) |
 
 Bundle sizes are enforced on every push via the `size` CI job. Benchmarks run in a dedicated CI workflow with `pnpm bench:ci`.
 
@@ -572,7 +550,7 @@ React Context triggers re-renders in all consumers when any value changes. The m
 
 1. **Testability** -- The core can be tested with Vitest in a Node.js environment, no DOM simulation needed. Tests run in milliseconds, not seconds.
 2. **Portability** -- A Svelte, Vue, or Solid adapter can wrap the same core. The state machine logic is written once.
-3. **Bundle efficiency** -- Users who only need the core (e.g., for a CLI tool or a non-React app) get a 3 KB package with zero dependencies.
+3. **Bundle efficiency** -- Users who only need the core (e.g., for a CLI tool or a non-React app) get a ~6.3 KB (gzipped) bundle whose only runtime dependency, `idb-keyval`, is lazy-loaded and tree-shaken away unless IndexedDB frecency persistence is used.
 4. **Separation of concerns** -- Framework quirks (React's batching, Svelte's reactivity) are isolated in the adapter layer.
 
 ### Why `Date.now()` for timestamps?
@@ -623,7 +601,7 @@ Building a production-quality dialog from scratch would add significant bundle s
 
 ### Why Vite 8 for the playground?
 
-The interactive playground uses **Vite 8.1.0** with `@vitejs/plugin-react` 6.0.3. Key benefits:
+The interactive playground uses **Vite 8.2.2** with `@vitejs/plugin-react` 6.1.0. Key benefits:
 
 - **ES2026 build target** -- No downleveling of Iterator Helpers, Set methods, or `using` syntax.
 - **Native CSS nesting** -- Vite 8 passes through CSS nesting, `@layer`, and `@starting-style` without transformation.
@@ -648,7 +626,7 @@ type ItemId = string & { readonly __brand: unique symbol };
 type GroupId = string & { readonly __brand: unique symbol };
 ```
 
-This prevents accidentally passing a `GroupId` where an `ItemId` is expected. The runtime cost is zero -- brands are erased by the compiler. TypeScript 7.0.1-rc's improved `unique symbol` inference makes this pattern ergonomic.
+This prevents accidentally passing a `GroupId` where an `ItemId` is expected. The runtime cost is zero -- brands are erased by the compiler. TypeScript 7's improved `unique symbol` inference makes this pattern ergonomic.
 
 ### Why a scoped `sideEffects` array?
 
@@ -664,6 +642,8 @@ packages/modern-cmdk/src/core/
   types.ts               -- Branded types, interfaces, defaults
   machine.ts             -- State machine (createCommandMachine)
   registry.ts            -- Item/group registry (Map + Set)
+  telemetry.ts           -- Telemetry middleware hooks
+  es2026.d.ts            -- Ambient declarations for ES2026 features
   search/
     types.ts             -- SearchEngine, SearchResult, ScorerFn
     index.ts             -- Search engine factory (incremental filtering)
@@ -673,6 +653,7 @@ packages/modern-cmdk/src/core/
     index.ts             -- FrecencyEngine (Date.now, Disposable)
     storage.ts           -- FrecencyStorage interface
     memory-storage.ts    -- In-memory storage implementation
+    idb-storage.ts       -- IndexedDB storage (idb-keyval, lazy-loaded)
   keyboard/
     parser.ts            -- Shortcut string parser (RegExp.escape)
     matcher.ts           -- KeyboardEvent matcher
@@ -680,15 +661,18 @@ packages/modern-cmdk/src/core/
   utils/
     event-emitter.ts     -- TypedEmitter (WeakRef, Iterator Helpers)
     scheduler.ts         -- rAF/microtask batching (Promise.withResolvers)
+    set-ops.ts           -- Cross-browser Set operation helpers
+    group-by.ts          -- mapGroupBy / objectGroupBy helpers
+    string-wellformed.ts -- ensureWellFormed()
 
 packages/modern-cmdk/src/react/
   index.ts               -- Public API exports
-  command.ts             -- <Command> root component
+  command.tsx            -- <Command> root component
   context.ts             -- React context definitions
-  dialog.ts              -- <Command.Dialog> (Radix)
-  input.ts               -- <Command.Input>
+  dialog.tsx             -- <Command.Dialog> (Radix)
+  input.tsx              -- <Command.Input>
   list.tsx               -- <Command.List> (virtualization, ResizeObserver)
-  item.ts                -- <Command.Item> (register/unregister lifecycle)
+  item.tsx               -- <Command.Item> (register/unregister lifecycle)
   group.tsx              -- <Command.Group>
   empty.tsx              -- <Command.Empty>
   loading.tsx            -- <Command.Loading>
@@ -697,21 +681,32 @@ packages/modern-cmdk/src/react/
   badge.tsx              -- <Command.Badge>
   shortcut.tsx           -- <Command.Shortcut> (platform-aware)
   page.tsx               -- <Command.Page>
+  activity.tsx           -- <Command.Activity> (Activity API)
   async-items.tsx        -- <Command.AsyncItems> (Suspense)
+  error-boundary.tsx     -- <CommandErrorBoundary>
   primitives.ts          -- Shared primitive utilities
   styles.css             -- GPU-composited animations
   hooks/
     use-command.ts       -- useCommand hook
+    use-command-setup.ts -- Machine creation + wiring for <Command>
     use-command-state.ts -- useCommandState hook
     use-register.ts      -- useRegisterItem, useRegisterGroup
     use-virtualizer.ts   -- useVirtualizer hook
+    use-keyboard.ts      -- createKeydownHandler
+    use-devtools.ts      -- useCommandDevtools hook
+
+packages/modern-cmdk/src/codemod/
+  cli.ts                 -- Codemod CLI runner (bin: modern-cmdk)
+  transforms/            -- import-rewrite, data-attrs, forward-ref, should-filter
 
 packages/command-search-wasm/
   src/
     index.ts             -- TypeScript entry point
-    wasm-engine.ts       -- WASM engine wrapper
+    wasm-engine.ts       -- Main-thread WASM engine wrapper
+    worker-engine.ts     -- Web Worker engine wrapper
+    worker.ts            -- Worker entry
   crate/
-    Cargo.toml           -- Rust crate configuration
+    Cargo.toml           -- Rust crate configuration (edition 2024)
     src/
       lib.rs             -- WASM entry point
       trigram.rs          -- Trigram index implementation

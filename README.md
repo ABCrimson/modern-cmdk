@@ -12,7 +12,7 @@
   <a href="https://bundlephobia.com/package/modern-cmdk"><img alt="core size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27&label=core"/></a>
   <a href="https://bundlephobia.com/package/modern-cmdk/react"><img alt="react size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk/react?style=flat-square&color=dc2626&labelColor=0a0e27&label=react"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
-  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.0.1--rc-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.0.2-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-19.3.0--canary-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
 </p>
@@ -42,7 +42,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
 | **Bundle** | ~6 KB | Core ~6.3 KB, React ~10.2 KB |
-| **TypeScript** | 4.x/5.x | 7.0.1-rc, isolated declarations, branded types |
+| **TypeScript** | 4.x/5.x | 7.0.2, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Telemetry** | None | Pluggable telemetry middleware |
 | **DevTools** | None | Built-in devtools hook for browser inspection |
@@ -54,7 +54,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 
 ## Features
 
-- **Framework-agnostic core** -- Pure TypeScript state machine. Zero dependencies. No DOM. No React. Portable to any runtime.
+- **Framework-agnostic core** -- Pure TypeScript state machine. No DOM. No React. Portable to any runtime. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
 - **React 19 adapter** -- `useSyncExternalStore`, `useTransition`, `useOptimistic`, `useId`, `use()` for Suspense. React Compiler compatible.
 - **Automatic virtualization** -- Variable-height virtual scrolling at configurable threshold. 100K+ items with `content-visibility: auto`.
 - **Fuzzy search** -- Built-in TS scorer with incremental filtering. Optional WASM engine for sub-1ms on 100K items with graceful TS fallback.
@@ -75,6 +75,9 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 ```bash
 pnpm add modern-cmdk
 ```
+
+> [!NOTE]
+> `modern-cmdk` is ESM-only. Development requires Node.js >= 26.4.0; the optional WASM search engine (`modern-cmdk-search-wasm`) is experimental and not yet published to npm.
 
 Or scaffold a new project:
 
@@ -128,51 +131,46 @@ function CommandPalette() {
 | [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | ~10.2 KB |
 | [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items _(experimental, not yet published)_ | <= 50 KB |
 | [`modern-cmdk (codemods)`](./packages/modern-cmdk/src/codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
-| [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding -- 3 templates (basic, dialog, full) | CLI |
-| [`vscode-modern-cmdk`](./packages/vscode-modern-cmdk) | VS Code snippets -- 10 snippets for fast development | Extension |
+| [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding -- 3 templates (react-basic, react-dialog, react-full) | CLI |
+| [`vscode-modern-cmdk`](./packages/vscode-modern-cmdk) | VS Code snippets -- 15 snippets for fast development | Extension |
 
 ---
 
 ## Architecture
 
-```
-+---------------------------------------------------------------+
-|                       Your Application                         |
-+---------------+---------------------------+-------------------+
-                |                           |
-+---------------v--------------+  +---------v---------+
-|  modern-cmdk/react  |  |  Future: Svelte   |
-|                              |  |  / Vue / Solid    |
-|  Command.Dialog              |  |  / Vanilla        |
-|  Command.Input               |  +-------------------+
-|  Command.List                |
-|  Command.Item                |
-|  CommandErrorBoundary        |
-|  useCommandDevtools()        |
-+---------------+--------------+
-                | useSyncExternalStore
-                | useTransition
-+---------------v----------------------------------------------+
-|              modern-cmdk (core)                      |
-|                                                              |
-|  +-------------+ +-------------+ +------------------+        |
-|  | State       | | Search      | | Frecency         |        |
-|  | Machine     | | Engine      | | Engine           |        |
-|  | (Pure TS)   | | (Pluggable) | | (Time Decay)     |        |
-|  +------+------+ +------+------+ +---------+--------+        |
-|  +------v----------------v------------------v---------+       |
-|  |     Command Registry & Event Emitter               |       |
-|  +------+---------------------------------+-----------+       |
-|  +------v-----------------------+ +-------v-----------+       |
-|  | Keyboard Shortcut Registry   | | Scheduler          |      |
-|  +------------------------------+ +--------------------+      |
-+-------------------+------------------------------------------+
-                    | Optional
-+-------------------v-------------------+
-|  modern-cmdk-search-wasm     |
-|  Rust trigram index + scorer          |
-|  Graceful TS fallback on failure      |
-+---------------------------------------+
+```mermaid
+flowchart TB
+    App["Your Application"]
+
+    subgraph react ["modern-cmdk/react"]
+        direction LR
+        C1["Command.Dialog · Input · List · Item"]
+        C2["CommandErrorBoundary · useCommandDevtools()"]
+    end
+
+    Future["Future: Svelte / Vue / Solid / Vanilla adapters"]
+
+    subgraph core ["modern-cmdk (core)"]
+        direction TB
+        SM["State Machine<br/>(Pure TS)"]
+        SE["Search Engine<br/>(Pluggable)"]
+        FE["Frecency Engine<br/>(Time Decay)"]
+        REG["Command Registry & Event Emitter"]
+        KB["Keyboard Shortcut Registry"]
+        SCH["Scheduler"]
+        SM --> REG
+        SE --> REG
+        FE --> REG
+        REG --> KB
+        REG --> SCH
+    end
+
+    WASM["modern-cmdk-search-wasm<br/>Rust trigram index + scorer<br/>Graceful TS fallback on failure"]
+
+    App --> react
+    App -.-> Future
+    react -->|"useSyncExternalStore<br/>useTransition"| core
+    core -.->|"Optional"| WASM
 ```
 
 ---
@@ -355,10 +353,10 @@ pnpm install && pnpm build && pnpm test
 |---|---|
 | `pnpm build` | Build all packages in parallel |
 | `pnpm test` | Unit tests (Vitest 5, happy-dom) |
-| `pnpm test:e2e` | E2E tests (Playwright 1.62, 3 browsers, 3 OS) |
+| `pnpm test:e2e` | E2E tests (Playwright 1.63 -- Chromium, Firefox, WebKit locally; Chromium in CI) |
 | `pnpm bench` | Benchmarks (Vitest bench mode) |
-| `pnpm lint` | Lint (Biome 2.5.1) |
-| `pnpm typecheck` | Type-check (TypeScript 7.0.1-rc) |
+| `pnpm lint` | Lint (Biome 2.5.10) |
+| `pnpm typecheck` | Type-check (TypeScript 7.0.2) |
 | `pnpm size` | Bundle size budgets |
 | `pnpm docs:dev` | Docs dev server (VitePress 2.0) |
 
@@ -370,17 +368,17 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 
 | Tool | Version | Purpose |
 |---|---|---|
-| TypeScript | 7.0.1-rc | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
+| TypeScript | 7.0.2 | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
 | React | 19.3.0-canary | `use()`, `useOptimistic`, `ref` as prop, Activity API |
-| Vite | 8.1.0 | Playground dev server, HMR, build tooling |
-| Node.js | >= 26.4.0 | ES2026: Iterator Helpers, Explicit Resource Management |
-| Vitest | 5.0.0-beta.5 | Unit tests, benchmarks, V8 coverage |
-| Playwright | 1.62.0-alpha | Cross-browser E2E (Chromium, Firefox, WebKit) |
-| Biome | 2.5.1 | Lint + format (no ESLint, no Prettier) |
-| tsdown | 0.22.3 | ESM builds, isolated declarations |
-| pnpm | 11.9.0 | Workspace protocol, lockfile v10 |
-| VitePress | 2.0.0-alpha.17 | Documentation, Shiki twoslash |
-| Radix UI | 1.6.0 | Accessible dialog primitives |
+| Vite | 8.2.2 | Playground dev server, HMR, build tooling |
+| Node.js | >= 26.4.0 (`.nvmrc`: 26.8.1) | ES2026: Iterator Helpers, Explicit Resource Management |
+| Vitest | 5.0.0-rc.2 | Unit tests, benchmarks, V8 coverage |
+| Playwright | 1.63.0-alpha | Cross-browser E2E (Chromium, Firefox, WebKit) |
+| Biome | 2.5.10 | Lint + format (no ESLint, no Prettier) |
+| tsdown | 0.23.0-rc.0 | ESM builds, isolated declarations |
+| pnpm | 12.0.0 | Workspace protocol, lockfile v9 |
+| VitePress | 2.0.0-alpha.19 | Documentation, Shiki twoslash |
+| Radix UI | 1.6.7 | Accessible dialog primitives |
 | Rust + wasm-pack | Latest | WASM fuzzy search engine |
 
 ---

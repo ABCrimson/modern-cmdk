@@ -4,7 +4,7 @@
 
 - **React** >= 19.0.0
 - **Node.js** >= 26.4.0 (for development)
-- **TypeScript** >= 7.0.1-rc (recommended)
+- **TypeScript** >= 7.0.2 (recommended)
 
 ## Install
 

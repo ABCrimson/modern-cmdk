@@ -33,9 +33,9 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 26.4.0 | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
-| pnpm | >= 11.9.0 | Workspace protocol, `pnpm-workspace.yaml` |
-| TypeScript | 7.0.1-rc | Installed via devDependencies -- do not install globally |
+| Node.js | >= 26.4.0 (`.nvmrc`: 26.8.1) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
+| pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
+| TypeScript | 7.0.2 | Installed via devDependencies -- do not install globally |
 | Rust + wasm-pack | Latest stable | Only needed if working on `command-search-wasm` |
 | Git | >= 2.40 | For Lefthook pre-commit/pre-push hooks |
 
@@ -43,7 +43,7 @@ Verify your setup:
 
 ```bash
 node --version    # v26.4.0 or higher
-pnpm --version    # 11.9.0 or higher
+pnpm --version    # 12.0.0 or higher
 ```
 
 ---
@@ -81,7 +81,7 @@ modern-cmdk/
   biome.json                      Biome linter + formatter config
   lefthook.yml                    Git hooks (pre-commit, pre-push)
   vitest.config.ts                Unit/integration test config
-  playwright.config.ts            E2E test config (4 browsers)
+  playwright.config.ts            E2E test config (Chromium/Firefox/WebKit locally; Chromium in CI)
   |
   packages/
     modern-cmdk/                   The published package: core + React adapter + codemod CLI
@@ -161,9 +161,10 @@ modern-cmdk/
     vscode-modern-cmdk/           VS Code snippets extension (publisher: crimson-dev)
   |
   apps/
-    docs/                         VitePress 2.0.0-alpha.17 documentation site
+    docs/                         VitePress 2.0.0-alpha.19 documentation site
       package.json
       index.md
+      benchmarks.md
       .vitepress/
         config.ts
         theme/
@@ -171,26 +172,27 @@ modern-cmdk/
           styles/
             vars.css              OKLCH color variables
             custom.css
-      guide/
-        getting-started.md
-        installation.md
-        basic-usage.md
-        migration-from-cmdk.md
-      api/
-        command.md
-      examples/
-        basic.md
+      guide/                      15 guides (getting-started, installation, basic-usage,
+                                  migration-from-cmdk, wasm-search, frecency, shortcuts,
+                                  virtualization, ssr, theming, accessibility, async-items,
+                                  controlled-dialog, typescript-integration, architecture)
+      api/                        command.md, command-react.md, command-search-wasm.md
+      architecture/               overview.md
+      examples/                   8 examples (basic, dialog, vanilla, frecency, shortcuts,
+                                  async-search, theming, virtualized)
+      recipes/                    5 recipes (file-picker, emoji-picker, ai-chat-commands,
+                                  nested-commands, spotlight-search)
     |
     playground/                   React 19 interactive demo
       package.json
       vite.config.ts
   |
   tests/
-    unit/
-      search.test.ts
-      keyboard.test.ts
-      registry.test.ts
-      frecency.test.ts
+    unit/                         23 test files: machine, machine-integration, registry,
+                                  search, search-incremental, keyboard, frecency, frecency-idb,
+                                  scheduler, event-emitter, types, command, activity, async,
+                                  virtualization, memory-leak, stress, exports-validation,
+                                  cmdk-comparison, cmdk-performance-accuracy, codemod-* (4)
     e2e/
       basic.spec.ts
       keyboard.spec.ts
@@ -198,11 +200,16 @@ modern-cmdk/
       virtualization.spec.ts
   |
   benchmarks/
+    baseline.json                 Committed CI baseline numbers
     search.bench.ts
+    frecency.bench.ts
     filter-10k.bench.ts
     filter-100k.bench.ts
+    wasm-search.bench.ts          Excluded from `vitest bench` (browser-target WASM)
     standalone/
       ci-bench.ts
+      compare-baseline.ts
+      setup.ts
   |
   .changeset/
     config.json                   Changesets config (public access, GitHub changelog)
@@ -224,7 +231,7 @@ modern-cmdk/
 | `pnpm test` | Run unit tests (Vitest, happy-dom) |
 | `pnpm test:watch` | Run unit tests in watch mode |
 | `pnpm test:coverage` | Run tests with V8 coverage report |
-| `pnpm test:e2e` | Run E2E tests (Playwright 1.62, 3 browsers) |
+| `pnpm test:e2e` | Run E2E tests (Playwright 1.63 -- Chromium/Firefox/WebKit locally, Chromium in CI) |
 | `pnpm bench` | Run benchmarks (Vitest bench mode) |
 | `pnpm bench:ci` | Run CI benchmarks (standalone, no Vitest) |
 | `pnpm lint` | Check lint rules (Biome) |
@@ -245,7 +252,7 @@ modern-cmdk/
 pnpm --filter modern-cmdk run dev
 pnpm --filter modern-cmdk/react run dev
 
-# Run the playground (Vite 8.1.0)
+# Run the playground (Vite 8.2.2)
 pnpm --filter playground run dev
 # Opens at http://localhost:5173
 
@@ -257,7 +264,7 @@ pnpm --filter modern-cmdk-search-wasm run build:wasm
 
 ## Code Style
 
-This project uses **Biome 2.5.1** for both linting and formatting. There is no ESLint or Prettier.
+This project uses **Biome 2.5.10** for both linting and formatting. There is no ESLint or Prettier.
 
 ### Formatter settings
 
@@ -301,7 +308,7 @@ All imports use the `.js` extension suffix (required by `verbatimModuleSyntax`).
 
 ## TypeScript Guidelines
 
-This project uses **TypeScript 7.0.1-rc** with strict configuration.
+This project uses **TypeScript 7.0.2** with strict configuration.
 
 ### Required tsconfig flags
 
@@ -309,8 +316,8 @@ These are set in `tsconfig.base.json` and must not be overridden:
 
 | Flag | Purpose |
 |---|---|
-| `target: "ES2026"` | Emit modern syntax, no downleveling |
-| `module: "ES2025"` | ESM module system |
+| `target: "ESNext"` | Emit modern syntax, no downleveling |
+| `module: "ESNext"` + `moduleResolution: "bundler"` | ESM module system, bundler-style resolution |
 | `strict: true` | All strict checks enabled |
 | `exactOptionalPropertyTypes: true` | `undefined` must be explicit in optional props |
 | `noUncheckedIndexedAccess: true` | Array/object index access returns `T \| undefined` |
@@ -369,7 +376,7 @@ Use native ES2026 features that are supported in target browsers. Features not y
 ### Unit Tests
 
 **Config:** `vitest.config.ts`
-**Environment:** happy-dom 20.10.6
+**Environment:** happy-dom 20.11.10
 **Files:** `packages/*/src/**/*.test.ts`, `tests/unit/**/*.test.{ts,tsx}`
 
 ```bash
@@ -386,13 +393,13 @@ pnpm test:coverage
 pnpm vitest run tests/unit/search.test.ts
 ```
 
-**Coverage thresholds** (enforced in CI):
+**Coverage thresholds** (enforced when running `pnpm test:coverage`; the CI test matrix runs `vitest run` without coverage):
 
 | Metric | Threshold |
 |---|---|
 | Statements | 80% |
-| Branches | 80% |
-| Functions | 80% |
+| Branches | 70% |
+| Functions | 75% |
 | Lines | 80% |
 
 Coverage is collected with V8 provider. Excluded from coverage: test files, bench files, index re-export files.
@@ -438,7 +445,7 @@ These tests render React components with `happy-dom` and assert DOM state, ARIA 
 ### E2E Tests
 
 **Config:** `playwright.config.ts`
-**Browsers:** Chromium, Firefox, WebKit, Edge
+**Browsers:** Chromium, Firefox, WebKit locally; Chromium only in CI
 **Test files:** `tests/e2e/**/*.spec.ts`
 
 ```bash
@@ -458,9 +465,9 @@ pnpm playwright test --project=chromium
 E2E tests run against the playground app (`apps/playground`). The web server starts automatically via the `webServer` config.
 
 The CI runs E2E tests with:
-- `--retries 2` for flake resilience
-- `--workers 1` for deterministic execution
-- Artifact upload on failure (Playwright trace + screenshots)
+- 2 retries for flake resilience
+- 2 workers
+- Artifact upload on failure (Playwright report + traces)
 
 ### Benchmarks
 
@@ -499,8 +506,8 @@ Benchmark targets:
 
 | Package | Size Limit |
 |---|---|
-| `modern-cmdk` | 3 KB (minified + gzipped) |
-| `modern-cmdk/react` | 5 KB (minified + gzipped) |
+| `modern-cmdk` (core) | 6.5 kB (minified + gzipped) |
+| `modern-cmdk/react` | 12 kB (minified + gzipped; `react`, `react-dom`, and `radix-ui` are externalized) |
 
 These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job.
 
@@ -552,7 +559,7 @@ fix(react): prevent stale activeId after unmount
 perf(core): use Set.difference for bulk item removal
 docs(architecture): add search pipeline diagram
 test(core): add frecency decay edge cases
-chore: bump Biome to 2.5.1
+chore: bump Biome to 2.5.10
 ```
 
 ### Pull request process
@@ -576,10 +583,11 @@ chore: bump Biome to 2.5.1
 5. **CI checks** -- The CI pipeline runs:
    - Lint (`biome check .`)
    - Type-check (`tsc --noEmit`)
-   - Unit tests with coverage (4 shards)
-   - E2E tests (Chromium, Firefox, WebKit, Edge)
+   - Unit tests (3 OS x 4 shards)
+   - E2E tests (Chromium)
    - Bundle size check (`size-limit`)
-   - Benchmarks (`bench:ci`)
+   - Benchmarks (`bench:ci` + `bench:compare`)
+   - Security audit (`pnpm audit`)
 
 6. **Review** -- All PRs require at least one approval. The CI must pass.
 
@@ -632,11 +640,11 @@ Compound components read new state from context, render updated UI
 
 | I want to... | Start here |
 |---|---|
-| Understand the state model | `packages/command/src/types.ts` |
-| See how events are processed | `packages/command/src/machine.ts` |
-| Understand search scoring | `packages/command/src/search/default-scorer.ts` |
-| See how React connects to the core | `packages/command-react/src/context.ts` |
-| Understand the animation system | `packages/command-react/src/styles.css` |
+| Understand the state model | `packages/modern-cmdk/src/core/types.ts` |
+| See how events are processed | `packages/modern-cmdk/src/core/machine.ts` |
+| Understand search scoring | `packages/modern-cmdk/src/core/search/default-scorer.ts` |
+| See how React connects to the core | `packages/modern-cmdk/src/react/context.ts` |
+| Understand the animation system | `packages/modern-cmdk/src/react/styles.css` |
 | Run the interactive demo | `pnpm --filter playground run dev` |
 
 ---
@@ -665,8 +673,10 @@ The changeset is saved as a markdown file in `.changeset/`. Commit it with your 
 When changesets are merged to `main`, the release workflow:
 
 1. Runs `changeset version` to update `package.json` versions and generate `CHANGELOG.md` entries
-2. Creates a "Version Packages" PR with the version bumps
-3. When that PR is merged, runs `pnpm build && changeset publish` to publish to npm
+2. Creates a release PR (`chore: release packages`) with the version bumps
+3. When that PR is merged, builds the packages and runs `changeset publish` to publish to npm
+
+Publishing authenticates via **npm OIDC Trusted Publishing** -- the workflow's `id-token: write` permission supplies a short-lived token, so no long-lived `NPM_TOKEN` secret exists. Never push git tags manually; tag pushes can trigger publishing.
 
 ### Configuration
 
@@ -722,7 +732,7 @@ import { CommandState } from './types.js';
 Make sure you have the correct Biome version. It is installed as a devDependency -- do not install it globally:
 
 ```bash
-pnpm biome --version  # Should output 2.5.1
+pnpm biome --version  # Should output 2.5.10
 ```
 
 If hooks are not running, reinstall Lefthook:
@@ -759,7 +769,7 @@ pnpm typecheck
 
 ### Vite 8 HMR not working in the playground
 
-Vite 8.1.0 requires `strictPort: true` in development. If port 5173 is already in use, the server will fail to start rather than silently picking another port. Kill any other process on port 5173 or change the port in `apps/playground/vite.config.ts`.
+The playground's `vite.config.ts` sets `strictPort: true`. If port 5173 is already in use, the server fails to start rather than silently picking another port. Kill any other process on port 5173 or change the port in `apps/playground/vite.config.ts`.
 
 ### WASM build fails
 
