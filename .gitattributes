@@ -1,0 +1,6 @@
+# Normalize all text files to LF in the repo AND the working tree (Windows included)
+# so Biome's lineEnding: "lf" formatter check passes on every platform.
+* text=auto eol=lf
+*.wasm binary
+*.png binary
+*.ico binary

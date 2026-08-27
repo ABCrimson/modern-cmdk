@@ -15,6 +15,8 @@ export default defineConfig({
   define: {
     __DEV__: 'process.env.NODE_ENV !== "production"',
   },
-  external: ['modern-cmdk'],
+  deps: {
+    neverBundle: ['modern-cmdk'],
+  },
   platform: 'browser',
 });

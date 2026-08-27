@@ -6,8 +6,8 @@ export default defineConfig({
   // and ESNext syntax (incl. `using`) are handled natively, so no transform block needed.
   resolve: {
     alias: {
-      'modern-cmdk/react': resolve(__dirname, 'packages/modern-cmdk/src/react/index.ts'),
-      'modern-cmdk': resolve(__dirname, 'packages/modern-cmdk/src/core/index.ts'),
+      'modern-cmdk/react': resolve(import.meta.dirname, 'packages/modern-cmdk/src/react/index.ts'),
+      'modern-cmdk': resolve(import.meta.dirname, 'packages/modern-cmdk/src/core/index.ts'),
     },
   },
   test: {

@@ -2,12 +2,23 @@ packages:
   - 'packages/*'
   - 'apps/*'
 overrides:
-  react: 19.3.0-canary-68631c04-20260626
-  react-dom: 19.3.0-canary-68631c04-20260626
+  react: 19.3.0-canary-a1124489-20260826
+  react-dom: 19.3.0-canary-a1124489-20260826
+  # Security floor for transitives flagged by Dependabot (2026-08-27):
+  postcss: 8.5.26
+  tmp: 0.2.7
+  'picomatch@2': 2.3.2
+  '@babel/core@7': 7.29.7
 allowBuilds:
   esbuild: true
   lefthook: true
 minimumReleaseAgeExclude:
-  - '@playwright/test@1.62.0-alpha-2026-06-28'
-  - playwright-core@1.62.0-alpha-2026-06-28
-  - playwright@1.62.0-alpha-2026-06-28
+  - '@playwright/test@1.63.0-alpha-2026-08-27'
+  - playwright-core@1.63.0-alpha-2026-08-27
+  - playwright@1.63.0-alpha-2026-08-27
+  - '@axe-core/playwright@4.13.1-73a9b84.0.sha-73a9b84'
+  - react@19.3.0-canary-a1124489-20260826
+  - react-dom@19.3.0-canary-a1124489-20260826
+  - '@types/node@26.4.0'
+  - happy-dom@20.11.10
+  - scheduler@0.28.0-canary-a1124489-20260826

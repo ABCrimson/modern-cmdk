@@ -9,7 +9,7 @@ description = "WASM-accelerated fuzzy search engine for modern-cmdk"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-# wasm-bindgen 0.2.126 emits bulk-memory / reference-types / sign-ext instructions;
+# wasm-bindgen 0.2.127 emits bulk-memory / reference-types / sign-ext instructions;
 # enable those features so wasm-opt validates and optimizes the modern output.
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = [
@@ -23,10 +23,10 @@ wasm-opt = [
 ]
 
 [dependencies]
-wasm-bindgen = "0.2.126"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-serde-wasm-bindgen = "0.6"
+wasm-bindgen = "0.2.127"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+serde-wasm-bindgen = "0.6.5"
 
 [profile.release]
 opt-level = "s"

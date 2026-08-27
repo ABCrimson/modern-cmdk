@@ -8,14 +8,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@js-temporal/polyfill": "^0.5.1",
+    "@js-temporal/polyfill": "0.5.1",
     "modern-cmdk": "workspace:*",
-    "react": "19.3.0-canary-68631c04-20260626",
-    "react-dom": "19.3.0-canary-68631c04-20260626"
+    "react": "19.3.0-canary-a1124489-20260826",
+    "react-dom": "19.3.0-canary-a1124489-20260826"
   },
   "devDependencies": {
-    "vite": "8.1.0",
-    "@vitejs/plugin-react": "6.0.3",
-    "typescript": "7.0.1-rc"
+    "vite": "8.2.2",
+    "@vitejs/plugin-react": "6.1.0",
+    "typescript": "7.0.2"
   }
 }
