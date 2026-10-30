@@ -1,11 +1,11 @@
-# Lefthook 2.1.9 — parallel execution, skip conditions, zero npm deps
+# Lefthook 2.2.2 — parallel execution, skip conditions, zero npm deps
 pre-commit:
   parallel: true
-  commands:
-    lint:
+  jobs:
+    - name: lint
       glob: "*.{ts,tsx,js,jsx,json,css}"
       run: pnpm exec biome check --staged --no-errors-on-unmatched {staged_files}
-    typecheck:
+    - name: typecheck
       glob: "*.{ts,tsx}"
       run: pnpm --filter 'modern-cmdk' exec tsc --noEmit
       skip:
@@ -14,10 +14,10 @@ pre-commit:
 
 pre-push:
   parallel: true
-  commands:
-    test:
+  jobs:
+    - name: test
       run: pnpm exec vitest run --reporter=dot
-    size:
+    - name: size
       # Only check size if packages changed — skip full rebuild on docs-only pushes
       glob: "packages/*/src/**/*.{ts,tsx}"
       run: pnpm --filter './packages/*' run build && pnpm exec size-limit

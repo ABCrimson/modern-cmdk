@@ -1,7 +1,7 @@
 import type { CommandItem } from 'modern-cmdk';
 import { createSearchEngine, itemId } from 'modern-cmdk';
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
-import { describe, test } from 'vitest';
+import { beforeAll, describe, test } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Item generation
@@ -49,13 +49,14 @@ const items1K = generateItems(1_000);
 const items10K = generateItems(10_000);
 
 // ---------------------------------------------------------------------------
-// Pre-initialize a shared WASM engine (async, resolved before benches run)
+// Initialize a shared WASM engine once, before any benchmark in this file runs
+// (describe callbacks stay synchronous; async setup belongs in a hook)
 // ---------------------------------------------------------------------------
 
 let wasmEngine: Awaited<ReturnType<typeof createWasmSearchEngine>>;
 
-const wasmReady = createWasmSearchEngine().then((engine) => {
-  wasmEngine = engine;
+beforeAll(async () => {
+  wasmEngine = await createWasmSearchEngine();
 });
 
 // Vitest 5 — `bench` is a fixture factory; .run() executes/measures the task.
@@ -64,9 +65,7 @@ const wasmReady = createWasmSearchEngine().then((engine) => {
 // 1. WASM index build time at each scale
 // ---------------------------------------------------------------------------
 
-describe('WASM Index Build', async () => {
-  await wasmReady;
-
+describe('WASM Index Build', () => {
   test('index 100 items', async ({ bench }) => {
     await bench('index 100 items', () => {
       wasmEngine.clear();
@@ -93,9 +92,7 @@ describe('WASM Index Build', async () => {
 // 2. WASM search vs default JS scorer — 1K items
 // ---------------------------------------------------------------------------
 
-describe('WASM vs JS Search — 1K Items', async () => {
-  await wasmReady;
-
+describe('WASM vs JS Search — 1K Items', () => {
   test('JS scorer — full pipeline', async ({ bench }) => {
     await bench('JS scorer — full pipeline', () => {
       using engine = createSearchEngine();
@@ -137,9 +134,7 @@ describe('WASM vs JS Search — 1K Items', async () => {
 // 3. WASM vs JS Search — 10K Items
 // ---------------------------------------------------------------------------
 
-describe('WASM vs JS Search — 10K Items', async () => {
-  await wasmReady;
-
+describe('WASM vs JS Search — 10K Items', () => {
   test('JS scorer — full pipeline', async ({ bench }) => {
     await bench('JS scorer — full pipeline', () => {
       using engine = createSearchEngine();
@@ -183,9 +178,7 @@ describe('WASM vs JS Search — 10K Items', async () => {
 // 4. WASM trigram search with various query lengths
 // ---------------------------------------------------------------------------
 
-describe('WASM Trigram Query Lengths — 10K Items', async () => {
-  await wasmReady;
-
+describe('WASM Trigram Query Lengths — 10K Items', () => {
   const queries = {
     '2-char query': 'ap',
     '5-char query': 'apple',
@@ -215,9 +208,7 @@ describe('WASM Trigram Query Lengths — 10K Items', async () => {
 // 5. WASM clear + re-index cycle time
 // ---------------------------------------------------------------------------
 
-describe('WASM Clear + Re-index Cycle', async () => {
-  await wasmReady;
-
+describe('WASM Clear + Re-index Cycle', () => {
   test('clear + re-index 100 items', async ({ bench }) => {
     await bench('clear + re-index 100 items', () => {
       wasmEngine.clear();

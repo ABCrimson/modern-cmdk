@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.10/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -44,10 +44,37 @@
       }
     },
     "domains": {
+      "react": "recommended",
       "test": "all"
     }
   },
   "overrides": [
+    {
+      "includes": ["benchmarks/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "useExpect": "off"
+          },
+          "style": {
+            "useConsistentTestIt": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["tests/e2e/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useConsistentTestIt": {
+              "level": "warn",
+              "options": { "function": "test", "withinDescribe": "test" }
+            }
+          }
+        }
+      }
+    },
     {
       "includes": [
         "benchmarks/**",
@@ -119,6 +146,12 @@
       "bracketSameLine": false
     },
     "globals": []
+  },
+  "markdown": {
+    "formatter": { "enabled": false }
+  },
+  "yaml": {
+    "formatter": { "enabled": false }
   },
   "css": {
     "formatter": {

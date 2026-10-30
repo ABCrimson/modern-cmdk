@@ -7,8 +7,22 @@ overrides:
 allowBuilds:
   esbuild: true
   lefthook: true
-# Exact versions published less than the default minimumReleaseAge (1440 minutes) before the
-# 2026-10-30 lockfile refresh; pnpm 12.17.0 refuses them otherwise. Entries age out of need after a day.
+# Supply-chain policy (pnpm 12.17.0). minimumReleaseAge is in minutes (1440 = 1 day, the built-in
+# default, written out so the policy is visible); trustPolicy: no-downgrade fails the install for a
+# version whose publish-trust evidence (provenance, trusted publisher) is weaker than an earlier
+# release's. Explicit minimumReleaseAge makes minimumReleaseAgeStrict default to true (pnpm 12 changelog).
+minimumReleaseAge: 1440
+trustPolicy: no-downgrade
+# Exact versions published (per the npm registry, checked 2026-10-30) without provenance or a
+# trusted publisher after an earlier release of the same package had one:
+#   lefthook@2.2.2 - manual publish by a maintainer on 2026-10-13; 2.2.1 and 2.2.0 came from GitHub Actions
+#   semver@5.7.2, semver@6.3.1 - 2023-07-10 backport patches; 7.5.4 (2023-07-07) had provenance
+trustPolicyExclude:
+  - lefthook@2.2.2
+  - semver@5.7.2
+  - semver@6.3.1
+# Exact versions published less than minimumReleaseAge before the 2026-10-30 lockfile refresh;
+# pnpm 12.17.0 refuses them otherwise. Entries age out of need after a day.
 minimumReleaseAgeExclude:
   - '@pnpm/exe.android-arm64@12.17.0'
   - '@pnpm/exe.android-x64@12.17.0'

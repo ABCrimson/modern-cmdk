@@ -1,7 +1,7 @@
 // benchmarks/standalone/compare-baseline.ts
 // Regression comparison script — reads baseline.json, runs benchmarks 3x, averages, compares.
 // Exit codes: 0 = pass, 1 = warning (>5% regression), 2 = failure (>15% regression)
-// Requires: tinybench 6.0.0, built packages (pnpm build), Node 25.8.0+
+// Requires: tinybench 6.2.2, built packages (pnpm build), Node >=26.4.0 (package.json engines)
 
 import './setup.js';
 import { readFile } from 'node:fs/promises';
@@ -46,13 +46,6 @@ interface ComparisonRow {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function median(sorted: readonly number[]): number {
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2
-    : (sorted[mid] as number);
-}
 
 function padRight(str: string, len: number): string {
   return str.length >= len ? str : str + ' '.repeat(len - str.length);
@@ -126,15 +119,16 @@ async function main(): Promise<void> {
 
     const results = await bench.run();
 
-    // Collect median from each task — Iterator Helpers pipeline
+    // Collect median from each task — Iterator Helpers pipeline.
+    // tinybench 6 keeps statistics under result.latency (ms) once state === 'completed'.
     results.values().forEach((task) => {
-      if (task.result) {
-        const samples = (task.result.samples ?? []).toSorted((a, b) => a - b);
-        const med = samples.length > 0 ? median(samples) : (task.result.mean ?? 0);
-        const existing = taskMedians.get(task.name) ?? [];
-        existing.push(med);
-        taskMedians.set(task.name, existing);
+      const { result } = task;
+      if (result.state !== 'completed') {
+        throw new Error(`${task.name}: benchmark did not complete (${result.state})`);
       }
+      const existing = taskMedians.get(task.name) ?? [];
+      existing.push(result.latency.p50);
+      taskMedians.set(task.name, existing);
     });
   }
 
