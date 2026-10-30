@@ -570,7 +570,7 @@ React Context triggers re-renders in all consumers when any value changes. The m
 
 1. **Testability** -- The core can be tested with Vitest in a Node.js environment, no DOM simulation needed. Tests run in milliseconds, not seconds.
 2. **Portability** -- A Svelte, Vue, or Solid adapter can wrap the same core. The state machine logic is written once.
-3. **Bundle efficiency** -- Users who only need the core (e.g., for a CLI tool or a non-React app) get a ~6.3 KB (gzipped) bundle whose only runtime dependency, `idb-keyval`, is lazy-loaded and tree-shaken away unless IndexedDB frecency persistence is used.
+3. **Bundle efficiency** -- Users who only need the core (e.g., for a CLI tool or a non-React app) get a ~6.4 KB (gzipped) bundle whose only runtime dependency, `idb-keyval`, is lazy-loaded and tree-shaken away unless IndexedDB frecency persistence is used.
 4. **Separation of concerns** -- Framework quirks (React's batching, Svelte's reactivity) are isolated in the adapter layer.
 
 ### Why `Date.now()` for timestamps?
@@ -621,7 +621,7 @@ Building a production-quality dialog from scratch would add significant bundle s
 
 ### Why Vite 8 for the playground?
 
-The interactive playground uses **Vite 8.2.2** with `@vitejs/plugin-react` 6.1.0. Key benefits:
+The interactive playground uses **Vite 8.3.5** with `@vitejs/plugin-react` 6.1.2. Key benefits:
 
 - **ES2026 build target** -- No downleveling of Iterator Helpers, Set methods, or `using` syntax.
 - **Native CSS nesting** -- Vite 8 passes through CSS nesting, `@layer`, and `@starting-style` without transformation.

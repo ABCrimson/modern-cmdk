@@ -5,7 +5,7 @@
 | | Version | Notes |
 |---|---|---|
 | **Node.js** | >= 26.4.0 | Only for building/developing. The published package runs anywhere ES2026 does. |
-| **TypeScript** | >= 7.0.2 | Recommended. Types are emitted with `isolatedDeclarations`. |
+| **TypeScript** | >= 7.0 | Recommended. Types are emitted with `isolatedDeclarations`. |
 
 ## Peer dependencies
 

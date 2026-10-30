@@ -437,7 +437,7 @@ Loads items from an async source using React 19 `use()` hook with Suspense integ
 
 ## `<Command.Activity>`
 
-Wraps content in React 19.3.0-canary Activity API for state preservation. When `mode="hidden"`, the component tree is preserved in memory without rendering. Falls back to conditional rendering if the Activity API is unavailable.
+Wraps content in React experimental Activity API for state preservation. When `mode="hidden"`, the component tree is preserved in memory without rendering. Falls back to conditional rendering if the Activity API is unavailable.
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
