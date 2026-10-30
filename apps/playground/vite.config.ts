@@ -1,8 +1,8 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-// Vite 8.1.0 config
-// Environment API is stable; Rolldown + Oxc power the bundler/minifier, CSS features auto-detected
+// Vite 8.3 config: Rolldown bundles, Oxc transforms and minifies JS,
+// Lightning CSS minifies CSS (all defaults, so no minifier options below).
 export default defineConfig({
   plugins: [react()],
 
@@ -20,29 +20,27 @@ export default defineConfig({
 
   build: {
     target: 'esnext',
-    // Vite 8 minifies with Oxc by default; pin esbuild explicitly for stable, fast output
-    minify: 'esbuild',
-    cssMinify: 'esbuild',
     // Modern CSS features (nesting, @layer, @starting-style) — no transform needed
     cssTarget: 'esnext',
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        // Vite 8 requires function form for manualChunks
-        manualChunks(id: string) {
-          if (id.includes('react-dom') || id.includes('react')) {
-            return 'react';
-          }
+        // Rolldown's `codeSplitting.groups` replaces the deprecated `manualChunks`.
+        // The pattern anchors on the package directory (pnpm nests packages under
+        // node_modules/.pnpm/<id>/node_modules/<name>) so only the React runtime
+        // lands in the vendor chunk, not workspace files such as modern-cmdk/dist/react.
+        codeSplitting: {
+          groups: [{ name: 'react', test: /node_modules[\\/](?:react|react-dom|scheduler)[\\/]/ }],
         },
       },
     },
   },
 
   css: {
-    // Vite 8 native CSS features — no PostCSS needed for nesting, @layer
+    // Source maps for CSS in dev (experimental in Vite)
     devSourcemap: true,
   },
 
-  // Vite 8 optimizeDeps — pre-bundle workspace packages for dev speed
+  // Pre-bundle the React runtime on dev-server start instead of on first import
   optimizeDeps: {
     include: ['react', 'react-dom'],
   },

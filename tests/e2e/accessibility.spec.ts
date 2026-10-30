@@ -1,13 +1,16 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-// Playwright 1.62 — locator-first assertions, @axe-core/playwright 4.12.2
+// Locator-first assertions with @axe-core/playwright (AxeBuilder)
 test.describe('Accessibility — WCAG 2.1 AA', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     // Wait for hydration — items must be visible
     await expect(page.getByRole('combobox')).toBeVisible();
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
+    // The demo container fades in on mount; axe computes colour contrast from the
+    // rendered colours, so wait until the entry animation has finished (opacity 1)
+    await expect(page.locator('.demo-container')).toHaveCSS('opacity', '1');
   });
 
   // ---------- axe-core Audit ----------
@@ -85,10 +88,8 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     await expect(input).toBeVisible();
 
     // When items exist, aria-expanded should be true
-    const optionCount = await page.getByRole('option').count();
-    if (optionCount > 0) {
-      await expect(input).toHaveAttribute('aria-expanded', 'true');
-    }
+    await expect(page.getByRole('option').first()).toBeVisible();
+    await expect(input).toHaveAttribute('aria-expanded', 'true');
 
     // Filter to no results
     await input.pressSequentially('zzzznonexistent', { delay: 50 });
@@ -236,14 +237,14 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
   // ---------- Disabled Items ----------
 
   test('should mark disabled items with aria-disabled="true"', async ({ page }) => {
-    const disabledItems = page.locator('[data-command-item][data-disabled]');
-    const count = await disabledItems.count();
+    // The core excludes disabled items from the filtered list, so the basic demo's
+    // disabled "Pear" is never rendered as an option
+    await expect(page.getByRole('option', { name: /Pear/ })).toHaveCount(0);
 
-    if (count > 0) {
-      for (let i = 0; i < count; i++) {
-        await expect(disabledItems.nth(i)).toHaveAttribute('aria-disabled', 'true');
-      }
-    }
+    // Any disabled item that does render must expose aria-disabled="true"
+    await expect(
+      page.locator('[data-command-item][data-disabled]:not([aria-disabled="true"])'),
+    ).toHaveCount(0);
   });
 
   test('disabled items should not become active via keyboard', async ({ page }) => {
@@ -255,13 +256,7 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
     // Navigate through all items and verify no disabled item becomes active
     for (let i = 0; i < totalCount + 1; i++) {
-      const activeItem = page.locator('[data-command-item][data-active]');
-      const activeCount = await activeItem.count();
-
-      if (activeCount > 0) {
-        const hasDisabled = await activeItem.getAttribute('data-disabled');
-        expect(hasDisabled).toBeNull();
-      }
+      await expect(page.locator('[data-command-item][data-active][data-disabled]')).toHaveCount(0);
 
       await input.press('ArrowDown');
     }
@@ -285,26 +280,24 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     const groups = page.locator('[data-command-group]');
     const groupCount = await groups.count();
 
+    expect(groupCount).toBeGreaterThan(0);
     for (let i = 0; i < groupCount; i++) {
       const group = groups.nth(i);
       await expect(group).toHaveAttribute('role', 'group');
 
-      // If group has a heading, aria-labelledby should point to it
+      // Every group in the basic demo has a heading; aria-labelledby should point to it
       const heading = group.locator('[data-command-group-heading]');
-      const hasHeading = (await heading.count()) > 0;
+      await expect(heading).toHaveCount(1);
+      const headingId = await heading.getAttribute('id');
+      expect(headingId).toBeTruthy();
+      await expect(group).toHaveAttribute('aria-labelledby', headingId as string);
 
-      if (hasHeading) {
-        const headingId = await heading.getAttribute('id');
-        expect(headingId).toBeTruthy();
-        await expect(group).toHaveAttribute('aria-labelledby', headingId as string);
-
-        // Heading should be aria-hidden (since it's referenced by aria-labelledby)
-        await expect(heading).toHaveAttribute('aria-hidden', /(true|)/);
-      }
+      // Heading should be aria-hidden (since it's referenced by aria-labelledby)
+      await expect(heading).toHaveAttribute('aria-hidden', /(true|)/);
     }
   });
 
-  // ---------- ARIA Snapshot Testing (Playwright 1.62) ----------
+  // ---------- ARIA Snapshot Testing ----------
 
   test('should match ARIA snapshot for combobox structure', async ({ page }) => {
     const root = page.locator('[data-command-root]');

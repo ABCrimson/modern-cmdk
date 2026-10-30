@@ -123,7 +123,7 @@ export function App(): React.ReactNode {
           The definitive command palette engine for the modern web.
         </p>
         <div className="playground-meta">
-          <span className="playground-version">v1.1.1</span>
+          <span className="playground-version">v1.2.2</span>
           <span className="playground-version">React 19</span>
           <span className="playground-version">ES2026</span>
           <ThemeToggle />
@@ -151,7 +151,7 @@ export function App(): React.ReactNode {
       </main>
 
       <footer className="playground-footer">
-        <span className="footer-text">Built with React 19, TypeScript 6, Vite 8, ES2026</span>
+        <span className="footer-text">Built with React 19, TypeScript 7, Vite 8, ES2026</span>
         <div className="footer-links">
           <a href="https://command.crimson.dev" target="_blank" rel="noopener noreferrer">
             Docs

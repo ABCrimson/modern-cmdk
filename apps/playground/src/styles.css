@@ -7,7 +7,18 @@
 
 /* ─── Layer Order ─── */
 
-@layer reset, tokens, layout, components, animations, accessibility;
+/* The library's layers come first so every playground layer overrides them, whichever
+   order the bundler places the imported library CSS in */
+@layer command.base,
+  command.layout,
+  command.animation,
+  command.a11y,
+  reset,
+  tokens,
+  layout,
+  components,
+  animations,
+  accessibility;
 
 /* ─── OKLCH Color Tokens ─── */
 
@@ -439,10 +450,6 @@
       0 0 0 1px oklch(1 0 0 / 0.03);
     contain: layout style;
 
-    &.command-palette--tall [data-command-list] {
-      max-block-size: 500px;
-    }
-
     & [data-command-input] {
       padding: 0.875rem 1rem;
       font-size: 0.9375rem;
@@ -459,6 +466,11 @@
     & [data-command-list] {
       max-block-size: 340px;
       padding: var(--space-sm);
+    }
+
+    /* After the base list rule: this selector is more specific, so it stays last */
+    &.command-palette--tall [data-command-list] {
+      max-block-size: 500px;
     }
 
     & [data-command-item] {
@@ -505,6 +517,8 @@
 
     & [data-command-shortcut] {
       color: var(--text-muted);
+      /* The library badge defaults to opacity 0.5, which drops contrast below WCAG AA 4.5:1 */
+      opacity: 1;
       font-family: "JetBrains Mono", ui-monospace, monospace;
       font-size: 0.6875rem;
     }

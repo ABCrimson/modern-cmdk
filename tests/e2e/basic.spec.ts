@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-// Playwright 1.62 — locator-first assertions throughout
+// Locator-first assertions throughout
 test.describe('Basic Command Palette', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    // Playwright 1.62 — wait for hydration using locator-first pattern
+    // Wait for hydration using locator-first pattern
     await expect(page.locator('[data-command-root]')).toBeVisible();
   });
 
@@ -165,36 +165,24 @@ test.describe('Basic Command Palette', () => {
 
   test('should render groups with heading and correct roles', async ({ page }) => {
     const groups = page.locator('[data-command-group]');
-    const groupCount = await groups.count();
+    expect(await groups.count()).toBeGreaterThan(0);
 
-    if (groupCount > 0) {
-      const firstGroup = groups.first();
-      await expect(firstGroup).toHaveAttribute('role', 'group');
+    const firstGroup = groups.first();
+    await expect(firstGroup).toHaveAttribute('role', 'group');
 
-      // Check if group has a heading
-      const heading = firstGroup.locator('[data-command-group-heading]');
-      const hasHeading = (await heading.count()) > 0;
-
-      if (hasHeading) {
-        const headingId = await heading.getAttribute('id');
-        expect(headingId).toBeTruthy();
-        await expect(firstGroup).toHaveAttribute('aria-labelledby', headingId as string);
-      }
-    }
+    // The basic demo's groups all have headings
+    const heading = firstGroup.locator('[data-command-group-heading]');
+    await expect(heading).toHaveCount(1);
+    const headingId = await heading.getAttribute('id');
+    expect(headingId).toBeTruthy();
+    await expect(firstGroup).toHaveAttribute('aria-labelledby', headingId as string);
   });
 
   // ---------- Page Navigation ----------
 
-  test('should support page navigation if pages are configured', async ({ page }) => {
-    const pages = page.locator('[data-command-page]');
-    const pageCount = await pages.count();
-
-    if (pageCount > 0) {
-      const activePage = pages.first();
-      const pageId = await activePage.getAttribute('data-command-page-id');
-      expect(pageId).toBeTruthy();
-      await expect(activePage).toBeVisible();
-    }
+  test('should not render a page container when no pages are configured', async ({ page }) => {
+    // The basic demo declares no Command.Page, so no page container is rendered
+    await expect(page.locator('[data-command-page]')).toHaveCount(0);
   });
 
   // ---------- Dialog Mode ----------
@@ -205,28 +193,23 @@ test.describe('Basic Command Palette', () => {
     // Dialog should initially be closed
     const dialog = page.locator('[data-command-dialog]');
 
-    // Trigger open — look for a trigger button or use keyboard shortcut
-    const trigger = page.locator('[data-command-trigger], button:has-text("Open")');
-    const hasTrigger = (await trigger.count()) > 0;
+    // Trigger open with the dialog demo's trigger button
+    await page.locator('[data-command-trigger]').click();
 
-    if (hasTrigger) {
-      await trigger.first().click();
+    // Dialog should become visible
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute('data-state', 'open');
 
-      // Dialog should become visible
-      await expect(dialog).toBeVisible();
-      await expect(dialog).toHaveAttribute('data-state', 'open');
+    // Overlay should also be visible
+    const overlay = page.locator('[data-command-overlay]');
+    await expect(overlay).toBeVisible();
+    await expect(overlay).toHaveAttribute('data-state', 'open');
 
-      // Overlay should also be visible
-      const overlay = page.locator('[data-command-overlay]');
-      await expect(overlay).toBeVisible();
-      await expect(overlay).toHaveAttribute('data-state', 'open');
+    // Close with Escape
+    await page.keyboard.press('Escape');
 
-      // Close with Escape
-      await page.keyboard.press('Escape');
-
-      // Dialog should close (may animate out)
-      await expect(dialog).toBeHidden({ timeout: 5_000 });
-    }
+    // Dialog should close (may animate out)
+    await expect(dialog).toBeHidden({ timeout: 5_000 });
   });
 
   test('should open dialog with Ctrl+K keyboard shortcut', async ({ page }) => {
@@ -236,15 +219,12 @@ test.describe('Basic Command Palette', () => {
     await page.keyboard.press('Control+k');
 
     const dialog = page.locator('[data-command-dialog]');
-    const isVisible = await dialog.isVisible().catch(() => false);
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute('data-state', 'open');
 
-    if (isVisible) {
-      await expect(dialog).toHaveAttribute('data-state', 'open');
-
-      // Input inside dialog should be focused
-      const input = page.getByRole('combobox');
-      await expect(input).toBeFocused();
-    }
+    // Input inside dialog should be focused
+    const input = page.getByRole('combobox');
+    await expect(input).toBeFocused();
   });
 
   // ---------- Cross-Browser Consistency ----------
