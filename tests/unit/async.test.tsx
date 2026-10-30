@@ -1,6 +1,6 @@
 // tests/unit/async.test.tsx
 // Command.AsyncItems tests — React 19 use() + Suspense with happy-dom
-// Vitest 5.0.0-beta.5, React 19.3.0-canary, TypeScript 7.0.1-rc, ES2026
+// Vitest + React 19 (experimental build) + TypeScript, ES2026
 
 import type { CommandItem as CommandItemType } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
@@ -102,6 +102,33 @@ function createTestItems(count: number): readonly CommandItemType[] {
 // Tests
 // ---------------------------------------------------------------------------
 
+/** Module-level so React keeps one component identity across re-renders. */
+function AsyncApp({
+  itemsPromise,
+}: {
+  readonly itemsPromise: Promise<readonly CommandItemType[]>;
+}): ReactNode {
+  return (
+    <Command>
+      <Command.Input />
+      <Command.List>
+        <Command.AsyncItems
+          items={itemsPromise}
+          fallback={<div data-testid="fallback">Loading...</div>}
+        >
+          {(items: readonly CommandItemType[]): ReactNode[] =>
+            items.map((item) => (
+              <Command.Item key={item.id} value={item.value} forceId={item.id}>
+                {item.value}
+              </Command.Item>
+            ))
+          }
+        </Command.AsyncItems>
+      </Command.List>
+    </Command>
+  );
+}
+
 describe('Command.AsyncItems — Suspense + use()', () => {
   it('should render fallback while promise is pending', async () => {
     const { promise } = Promise.withResolvers<readonly CommandItemType[]>();
@@ -126,7 +153,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
       </Command>,
     );
 
-    // Vitest 4.1 — soft assertions for multi-check DOM state
+    // Vitest — soft assertions for multi-check DOM state
     const fallback = container.querySelector('[data-testid="fallback"]');
     expect.soft(fallback).not.toBeNull();
     expect.soft(fallback?.textContent).toBe('Loading async items...');
@@ -298,32 +325,6 @@ describe('Command.AsyncItems — Suspense + use()', () => {
 
     const { promise: promise1, resolve: resolve1 } =
       Promise.withResolvers<readonly CommandItemType[]>();
-
-    function AsyncApp({
-      itemsPromise,
-    }: {
-      readonly itemsPromise: Promise<readonly CommandItemType[]>;
-    }): ReactNode {
-      return (
-        <Command>
-          <Command.Input />
-          <Command.List>
-            <Command.AsyncItems
-              items={itemsPromise}
-              fallback={<div data-testid="fallback">Loading...</div>}
-            >
-              {(items: readonly CommandItemType[]): ReactNode[] =>
-                items.map((item) => (
-                  <Command.Item key={item.id} value={item.value} forceId={item.id}>
-                    {item.value}
-                  </Command.Item>
-                ))
-              }
-            </Command.AsyncItems>
-          </Command.List>
-        </Command>
-      );
-    }
 
     // Render with first promise
     await renderAsync(<AsyncApp itemsPromise={promise1} />);

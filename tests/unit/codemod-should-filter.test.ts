@@ -3,7 +3,7 @@ import jscodeshift from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
 import transform from '../../packages/modern-cmdk/src/codemod/transforms/should-filter.js';
 
-// Vitest 4.1 — vi.hoisted() not needed here since helpers are pure functions
+// Vitest — vi.hoisted() not needed here since helpers are pure functions
 function createApi(parser: string = 'tsx'): API {
   return {
     jscodeshift: jscodeshift.withParser(parser),
@@ -23,7 +23,7 @@ describe('codemod: should-filter', () => {
     const input = `const el = <Command shouldFilter={true} />;`;
     const output = run(input);
 
-    // Vitest 4.1 — soft assertions to check all conditions
+    // Vitest — soft assertions to check all conditions
     expect.soft(output).not.toContain('shouldFilter');
     // The attribute should be removed entirely since true is the default
     expect.soft(output).not.toContain('filter');

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 describe('package exports', () => {
   it('core package exports all public API', async () => {
     const core = await import('modern-cmdk');
-    // Vitest 4.1 — use expect.soft() for non-fatal assertions so all exports are checked
+    // Vitest — use expect.soft() for non-fatal assertions so all exports are checked
     expect.soft(core.createCommandMachine).toBeTypeOf('function');
     expect.soft(core.createSearchEngine).toBeTypeOf('function');
     expect.soft(core.itemId).toBeTypeOf('function');
@@ -15,7 +15,7 @@ describe('package exports', () => {
 
   it('react package exports all components and hooks', async () => {
     const react = await import('modern-cmdk/react');
-    // Vitest 4.1 — soft assertions to report all missing exports at once
+    // Vitest — soft assertions to report all missing exports at once
     expect.soft(react.Command).toBeDefined();
     expect.soft(react.useCommand).toBeTypeOf('function');
     expect.soft(react.useCommandState).toBeTypeOf('function');

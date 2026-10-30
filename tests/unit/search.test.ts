@@ -10,7 +10,7 @@ describe('scoreItem', () => {
   it('should return score 1 for empty query', () => {
     const result = scoreItem('', makeItem('Apple'));
     expect(result).not.toBeNull();
-    // Vitest 4.1 — soft assertions for multi-property result checks
+    // Vitest — soft assertions for multi-property result checks
     expect.soft(result?.score).toBe(1);
     expect.soft(result?.matches).toEqual([]);
   });
@@ -59,7 +59,7 @@ describe('scoreItem', () => {
   it('should provide match ranges', () => {
     const result = scoreItem('app', makeItem('Apple'));
     expect(result).not.toBeNull();
-    // Vitest 4.1 — soft assertions to check all range properties
+    // Vitest — soft assertions to check all range properties
     expect.soft(result?.matches.length).toBeGreaterThan(0);
     expect.soft(result?.matches[0]?.[0]).toBe(0); // Start at 0
     expect.soft(result?.matches[0]?.[1]).toBe(3); // End at 3
@@ -81,18 +81,18 @@ describe('scoreItem', () => {
     const contiguous = scoreItem('app', makeItem('Application'));
     const scattered = scoreItem('aon', makeItem('Application'));
 
-    if (contiguous && scattered) {
-      expect(contiguous.score).toBeGreaterThan(scattered.score);
-    }
+    expect(contiguous).not.toBeNull();
+    expect(scattered).not.toBeNull();
+    expect(contiguous?.score).toBeGreaterThan(scattered?.score ?? Number.POSITIVE_INFINITY);
   });
 
   it('should prefer earlier matches', () => {
     const early = scoreItem('test', makeItem('Test Application'));
     const late = scoreItem('test', makeItem('Application Test'));
 
-    if (early && late) {
-      expect(early.score).toBeGreaterThanOrEqual(late.score);
-    }
+    expect(early).not.toBeNull();
+    expect(late).not.toBeNull();
+    expect(early?.score).toBeGreaterThanOrEqual(late?.score ?? Number.POSITIVE_INFINITY);
   });
 });
 

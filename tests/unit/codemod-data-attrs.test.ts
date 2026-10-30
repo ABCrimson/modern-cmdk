@@ -43,7 +43,7 @@ describe('codemod: data-attrs', () => {
         const input = `const el = <${tag} ${testCase.attr}="" />;`;
         const output = run(input);
 
-        // Vitest 4.1 — soft assertions to check both conditions
+        // Vitest — soft assertions to check both conditions
         expect.soft(output).toContain(testCase.expected);
         expect.soft(output).not.toContain(testCase.attr);
       });

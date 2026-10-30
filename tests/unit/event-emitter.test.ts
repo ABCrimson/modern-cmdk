@@ -76,8 +76,8 @@ describe('TypedEmitter (0.0.3)', () => {
 
   it('should handle emit with no listeners', () => {
     using emitter = new TypedEmitter<TestEvents>();
-    // Should not throw
-    emitter.emit('message', 'no-listeners');
+    // Emitting without subscribers must be a no-op, not an error
+    expect(() => emitter.emit('message', 'no-listeners')).not.toThrow();
   });
 
   it('should correctly report has() for events with listeners', () => {

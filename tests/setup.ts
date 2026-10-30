@@ -1,7 +1,10 @@
 // tests/setup.ts
-// Vitest 4.1 global setup — polyfills ES2026 APIs not yet in the test runtime
+// Vitest 5 setup file — act() environment, fake-indexeddb, and the one ES2026 polyfill
+// the supported runtimes still lack (Math.sumPrecise: absent on Node 26.13, native on 27).
 
-// React 19 act() environment — suppresses "not configured to support act()" warnings
+// React act() environment — suppresses "not configured to support act()" warnings.
+// The tests drive react-dom/client + act() directly (no @testing-library/react), so
+// nothing else sets this flag.
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 import 'fake-indexeddb/auto';
@@ -20,13 +23,5 @@ if (typeof Math.sumPrecise !== 'function') {
       sum = t;
     }
     return sum;
-  };
-}
-
-// Polyfill RegExp.escape if not natively available (ES2026)
-if (typeof RegExp.escape !== 'function') {
-  // @ts-expect-error — polyfill assignment
-  RegExp.escape = function regExpEscape(str: string): string {
-    return str.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
   };
 }

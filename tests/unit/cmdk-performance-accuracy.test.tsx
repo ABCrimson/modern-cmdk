@@ -1,6 +1,6 @@
 // tests/unit/cmdk-performance-accuracy.test.tsx
 // Head-to-head: modern-cmdk vs cmdk — Performance & Search Accuracy
-// Vitest 4.1 — ES2026 — React 19
+// Vitest — ES2026 — React 19
 
 // ── cmdk (the original) ──
 import { Command as CmdkCommand, defaultFilter as cmdkDefaultFilter } from 'cmdk';
