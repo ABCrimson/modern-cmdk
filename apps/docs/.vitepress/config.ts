@@ -1,5 +1,6 @@
 // import { transformerTwoslash } from '@shikijs/twoslash';
-// Disabled: twoslash/@typescript/vfs not yet compatible with TypeScript 7
+// Disabled: twoslash 0.3.9 (peer typescript ^5.5.0 || ^6.0.0) needs the TypeScript JS compiler API,
+// and the installed typescript 7.1 entry point (lib/version.cjs) no longer exposes it
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
@@ -32,19 +33,11 @@ export default defineConfig({
     ['meta', { name: 'twitter:image', content: 'https://command.crimson.dev/og-image.png' }],
   ],
 
-  // Twoslash disabled until @typescript/vfs supports TypeScript 7
+  // Twoslash stays disabled until a twoslash release supports TypeScript 7 (see the import note above)
   // markdown: {
   //   codeTransformers: [
   //     transformerTwoslash({ ... }),
   //   ],
-  // },
-
-  // View Transitions API for page navigation — VitePress 2.0 feature
-  // appearance: {
-  //   transition: {
-  //     enabled: true,
-  //     viewTransition: true,
-  //   },
   // },
 
   sitemap: { hostname: 'https://command.crimson.dev' },

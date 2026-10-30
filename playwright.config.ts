@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const isCI = !!process.env.CI;
+const baseURL = 'http://localhost:5173';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -14,7 +15,7 @@ export default defineConfig({
     timeout: isCI ? 30_000 : 5_000,
   },
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL,
     trace: 'retain-on-failure',
     actionTimeout: isCI ? 30_000 : 10_000,
   },
@@ -29,7 +30,8 @@ export default defineConfig({
       ],
   webServer: {
     command: 'pnpm --filter playground run dev',
-    port: 5173,
+    // Ready once the dev server answers with a 2xx/3xx/400-403 status
+    url: baseURL,
     timeout: 120_000,
     reuseExistingServer: !isCI,
   },

@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-// Playwright 1.62 — locator-first assertions throughout
+// Locator-first assertions throughout
 test.describe('Keyboard Navigation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    // Playwright 1.62 — wait for hydration using locator-first pattern
+    // Wait for hydration using locator-first pattern
     await expect(page.locator('[data-command-root]')).toBeVisible();
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
   });
@@ -23,13 +23,10 @@ test.describe('Keyboard Navigation', () => {
     await input.press('ArrowDown');
 
     const secondItem = page.locator('[data-command-item]').nth(1);
-    const itemCount = await page.locator('[data-command-item]').count();
-
-    if (itemCount > 1) {
-      await expect(secondItem).toHaveAttribute('data-active', '');
-      // First item should no longer be active
-      await expect(firstItem).not.toHaveAttribute('data-active', '');
-    }
+    // The basic demo has more than one item, so the second one exists
+    await expect(secondItem).toHaveAttribute('data-active', '');
+    // First item should no longer be active
+    await expect(firstItem).not.toHaveAttribute('data-active', '');
 
     // Only one item should be active at a time
     const activeItems = page.locator('[data-command-item][data-active]');
@@ -212,20 +209,15 @@ test.describe('Keyboard Navigation', () => {
     await page.goto('/dialog');
 
     // Open the dialog first
-    const trigger = page.locator('[data-command-trigger], button:has-text("Open")');
-    const hasTrigger = (await trigger.count()) > 0;
+    await page.locator('[data-command-trigger]').click();
+    const dialog = page.locator('[data-command-dialog]');
+    await expect(dialog).toBeVisible();
 
-    if (hasTrigger) {
-      await trigger.first().click();
-      const dialog = page.locator('[data-command-dialog]');
-      await expect(dialog).toBeVisible();
+    // Press Escape
+    await page.keyboard.press('Escape');
 
-      // Press Escape
-      await page.keyboard.press('Escape');
-
-      // Dialog should close
-      await expect(dialog).toBeHidden({ timeout: 5_000 });
-    }
+    // Dialog should close
+    await expect(dialog).toBeHidden({ timeout: 5_000 });
   });
 
   test('Escape on inline palette should update state', async ({ page }) => {
@@ -325,24 +317,17 @@ test.describe('Keyboard Navigation', () => {
     await page.keyboard.press('Control+k');
 
     const dialog = page.locator('[data-command-dialog]');
-    const isVisible = await dialog.isVisible().catch(() => false);
+    await expect(dialog).toBeVisible();
 
-    if (isVisible) {
-      // Press Ctrl+K again to close (or Escape)
-      await page.keyboard.press('Escape');
-      await expect(dialog).toBeHidden({ timeout: 5_000 });
-    }
+    // Close with Escape
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden({ timeout: 5_000 });
   });
 
   test('should handle item keyboard shortcuts (aria-keyshortcuts)', async ({ page }) => {
-    // Check if any items have keyboard shortcuts defined
+    // The basic demo defines shortcuts on some items (e.g. Mod+N)
     const itemsWithShortcuts = page.locator('[data-command-item][aria-keyshortcuts]');
-    const count = await itemsWithShortcuts.count();
-
-    if (count > 0) {
-      const shortcut = await itemsWithShortcuts.first().getAttribute('aria-keyshortcuts');
-      expect(shortcut).toBeTruthy();
-    }
+    await expect(itemsWithShortcuts.first()).toHaveAttribute('aria-keyshortcuts', /\S/);
   });
 
   // ---------- Disabled Item Behavior ----------
@@ -351,23 +336,18 @@ test.describe('Keyboard Navigation', () => {
     const input = page.getByRole('combobox');
     await input.focus();
 
-    const disabledItems = page.locator('[data-command-item][data-disabled]');
-    const disabledCount = await disabledItems.count();
+    // The core excludes disabled items from the filtered list, so the basic demo's
+    // disabled "Pear" is never rendered as an option
+    await expect(page.getByRole('option', { name: /Pear/ })).toHaveCount(0);
 
-    if (disabledCount > 0) {
-      const items = page.locator('[data-command-item]');
-      const totalCount = await items.count();
+    const totalCount = await page.locator('[data-command-item]').count();
 
-      // Navigate through all items
-      for (let i = 0; i < totalCount; i++) {
-        const activeItem = page.locator('[data-command-item][data-active]');
-        const isDisabled = await activeItem.getAttribute('data-disabled');
+    // Navigate through all items
+    for (let i = 0; i < totalCount; i++) {
+      // Active item should never be a disabled item (disabled items are filtered out)
+      await expect(page.locator('[data-command-item][data-active][data-disabled]')).toHaveCount(0);
 
-        // Active item should never be a disabled item (disabled items are filtered out)
-        expect(isDisabled).toBeNull();
-
-        await input.press('ArrowDown');
-      }
+      await input.press('ArrowDown');
     }
   });
 
