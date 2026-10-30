@@ -165,7 +165,7 @@ The Dialog component uses the unified `radix-ui` package instead of individual `
 
 ```diff
 - "@radix-ui/react-dialog": "^1.1.2"
-+ "radix-ui": "1.6.7"
++ "radix-ui": "1.8.2-rc.1791984254107"
 ```
 
 You do not need to install Radix separately unless you use it directly.

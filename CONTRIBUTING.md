@@ -33,10 +33,10 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 26.4.0 (`.nvmrc`: 26.8.1) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
+| Node.js | >= 26.4.0 (`.nvmrc`: 27.0.0-alpha.0.0.0) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
 | pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
-| TypeScript | 7.0.2 | Installed via devDependencies -- do not install globally |
-| Rust + wasm-pack | Latest stable | Only needed if working on `command-search-wasm` |
+| TypeScript | 7.1.0-dev.20261030.1 | Installed via devDependencies -- do not install globally |
+| Rust + wasm-pack | Pinned nightly (`rust-toolchain.toml`) + wasm-pack 0.15.1 | Only needed if working on `command-search-wasm` |
 | Git | >= 2.40 | For Lefthook pre-commit/pre-push hooks |
 
 Verify your setup:
@@ -162,7 +162,7 @@ modern-cmdk/
     vscode-modern-cmdk/           VS Code snippets extension (publisher: crimson-dev)
   |
   apps/
-    docs/                         VitePress 2.0.0-alpha.19 documentation site
+    docs/                         VitePress 2.0.0-alpha.21 documentation site
       package.json
       index.md
       benchmarks.md
@@ -235,7 +235,7 @@ modern-cmdk/
 | `pnpm test` | Run unit tests (Vitest, happy-dom) |
 | `pnpm test:watch` | Run unit tests in watch mode |
 | `pnpm test:coverage` | Run tests with V8 coverage report |
-| `pnpm test:e2e` | Run E2E tests (Playwright 1.63 -- Chromium/Firefox/WebKit locally, Chromium in CI) |
+| `pnpm test:e2e` | Run E2E tests (Playwright 1.65 -- Chromium/Firefox/WebKit locally, Chromium in CI) |
 | `pnpm bench` | Run benchmarks (Vitest bench mode) |
 | `pnpm bench:ci` | Run CI benchmarks (standalone, no Vitest) |
 | `pnpm lint` | Check lint rules (Biome) |
@@ -256,7 +256,7 @@ modern-cmdk/
 pnpm --filter modern-cmdk run dev
 pnpm --filter modern-cmdk/react run dev
 
-# Run the playground (Vite 8.2.2)
+# Run the playground (Vite 8.3.5)
 pnpm --filter playground run dev
 # Opens at http://localhost:5173
 
@@ -268,7 +268,7 @@ pnpm --filter modern-cmdk-search-wasm run build:wasm
 
 ## Code Style
 
-This project uses **Biome 2.5.10** for both linting and formatting. There is no ESLint or Prettier.
+This project uses **Biome 2.6.4** for both linting and formatting. There is no ESLint or Prettier.
 
 ### Formatter settings
 
@@ -342,7 +342,7 @@ All imports use the `.js` extension suffix (required by `verbatimModuleSyntax`).
 
 ## TypeScript Guidelines
 
-This project uses **TypeScript 7.0.2** with strict configuration.
+This project uses **TypeScript 7.1.0-dev.20261030.1** with strict configuration.
 
 ### Required tsconfig flags
 
@@ -410,7 +410,7 @@ Use native ES2026 features that are supported in target browsers. Features not y
 ### Unit Tests
 
 **Config:** `vitest.config.ts`
-**Environment:** happy-dom 20.11.10
+**Environment:** happy-dom 21.0.4
 **Files:** `packages/*/src/**/*.test.ts`, `tests/unit/**/*.test.{ts,tsx}`
 
 ```bash
@@ -593,7 +593,7 @@ fix(react): prevent stale activeId after unmount
 perf(core): use Set.difference for bulk item removal
 docs(architecture): add search pipeline diagram
 test(core): add frecency decay edge cases
-chore: bump Biome to 2.5.10
+chore: bump Biome to 2.6.4
 ```
 
 ### Pull request process
@@ -618,7 +618,7 @@ chore: bump Biome to 2.5.10
 5. **CI checks** -- The CI pipeline runs:
    - Lint (`biome check .`)
    - Type-check (`tsc --noEmit`)
-   - Unit tests (3 OS x 4 shards)
+   - Unit tests (3 OS x 4 shards, on Node 26 and the `.nvmrc` Node)
    - E2E tests (Chromium)
    - Bundle size check (`size-limit`)
    - Benchmarks (`bench:ci` + `bench:compare`)
@@ -737,7 +737,7 @@ Management (`using`), `Promise.withResolvers` and `RegExp.escape` natively -- no
 Node.js 26.4.0+ ships all of them. If you hit one of these errors, your Node.js is too old:
 
 ```bash
-node --version  # Must be >= 26.4.0; .nvmrc pins 26.8.1
+node --version  # Must be >= 26.4.0; .nvmrc pins 27.0.0-alpha.0.0.0
 ```
 
 > [!NOTE]
@@ -775,7 +775,7 @@ import { CommandState } from './types.js';
 Make sure you have the correct Biome version. It is installed as a devDependency -- do not install it globally:
 
 ```bash
-pnpm biome --version  # Should output 2.5.10
+pnpm biome --version  # Should output 2.6.4
 ```
 
 If hooks are not running, reinstall Lefthook:

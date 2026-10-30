@@ -53,14 +53,14 @@ my-command-palette/
     main.tsx         # Entry point
   index.html
   package.json       # Dependencies pre-configured
-  tsconfig.json      # TypeScript 6 strict mode
+  tsconfig.json      # TypeScript 7 strict mode
   vite.config.ts     # Vite + React plugin
 ```
 
 All dependencies are pinned to compatible versions:
 
 - [`modern-cmdk`](https://www.npmjs.com/package/modern-cmdk) -- core engine + React 19 adapter
-- React 19, TypeScript 6, Vite 8
+- React 19, TypeScript 7, Vite 8
 - Ready to `npm install && npm run dev`
 
 ## Requirements
