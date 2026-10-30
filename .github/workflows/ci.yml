@@ -13,42 +13,44 @@ permissions:
   contents: read
   actions: read
 
-env:
-  NODE_VERSION: '26.4.0'
-
 jobs:
   lint:
     name: Lint & Typecheck
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version-file: .nvmrc
+          cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm biome check .
       - run: pnpm --filter 'modern-cmdk' exec tsc --noEmit
 
   test:
-    name: Test (${{ matrix.os }}, shard ${{ matrix.shard }}/4)
+    name: Test (${{ matrix.os }}, Node ${{ matrix.node }}, shard ${{ matrix.shard }}/4)
     needs: lint
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-26.04, macos-latest, windows-latest]
+        # Linux/Windows: newest GA labels. macOS: `xcode-27` is the newest image
+        # (macOS 27, public preview, no SLA); `macos-26` is the GA fallback.
+        os: [ubuntu-26.04, xcode-27, windows-2025-vs2026]
+        # `26` = the engines floor line (>=26.4.0); the second entry is the
+        # pre-release pinned in .nvmrc (a matrix cannot read the file — keep in sync).
+        node: ['26', '27.0.0-alpha.0.0.0']
         shard: [1, 2, 3, 4]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version: ${{ matrix.node }}
+          cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
       - run: pnpm vitest run --shard=${{ matrix.shard }}/4
@@ -60,18 +62,18 @@ jobs:
     timeout-minutes: 15
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version-file: .nvmrc
+          cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       # Build sequentially — playground depends on modern-cmdk dist (styles.css, exports)
       - run: pnpm -r --filter '!docs' --filter '!modern-cmdk-monorepo' run build
       - run: pnpm playwright install --with-deps chromium
       - run: pnpm playwright test
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-report
@@ -85,12 +87,12 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version-file: .nvmrc
+          cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
       - id: size
@@ -101,7 +103,7 @@ jobs:
             cat size-report.json
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: size-report
           path: size-report.json
@@ -113,12 +115,12 @@ jobs:
     timeout-minutes: 5
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version-file: .nvmrc
+          cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm audit --audit-level=high || echo "::warning::Security audit found issues"
 
@@ -128,17 +130,17 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version-file: .nvmrc
+          cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
       - run: pnpm bench:ci
       - run: pnpm bench:compare
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: benchmark-results
@@ -168,7 +170,7 @@ jobs:
           echo "| Job | Status | Result |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-----|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Lint & Typecheck | $(status_icon "${{ needs.lint.result }}") | \`${{ needs.lint.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Tests (3 OS x 4 shards) | $(status_icon "${{ needs.test.result }}") | \`${{ needs.test.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tests (3 OS x 2 Node x 4 shards) | $(status_icon "${{ needs.test.result }}") | \`${{ needs.test.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| E2E (Chromium) | $(status_icon "${{ needs.e2e.result }}") | \`${{ needs.e2e.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Bundle Size | $(status_icon "${{ needs.size.result }}") | \`${{ needs.size.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Benchmarks | $(status_icon "${{ needs.bench.result }}") | \`${{ needs.bench.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
