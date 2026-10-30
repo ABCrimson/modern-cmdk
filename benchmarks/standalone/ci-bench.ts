@@ -1,4 +1,4 @@
-// Standalone tinybench 6.0.0 script for CI regression tracking
+// Standalone tinybench 6.2.2 script for CI regression tracking
 // ES2026: using/Symbol.dispose, Iterator Helpers
 import './setup.js';
 import { Bench } from 'tinybench';
@@ -44,11 +44,18 @@ async function run(): Promise<void> {
   });
 
   const results = await bench.run();
-  // ES2026 Iterator Helpers — use .values().forEach() for result iteration
+  // ES2026 Iterator Helpers — use .values().forEach() for result iteration.
+  // tinybench 6 keeps statistics under result.latency (ms) once state === 'completed'.
   results.values().forEach((task) => {
-    if (task.result) {
-      const median = task.result.latency?.p50 ?? task.result.mean ?? 0;
-      console.log(`${task.name}: ${median.toFixed(3)} ms (median)`);
+    const { result } = task;
+    if (result.state === 'completed') {
+      const { p50, rme, samplesCount } = result.latency;
+      console.log(
+        `${task.name}: ${p50.toFixed(3)} ms (median, ±${rme.toFixed(2)}% rme, ${samplesCount} samples)`,
+      );
+    } else {
+      console.error(`${task.name}: did not complete (${result.state})`);
+      process.exitCode = 1;
     }
   });
 }
