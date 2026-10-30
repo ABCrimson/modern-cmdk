@@ -2,34 +2,27 @@
 name = "command-search-wasm"
 version = "0.9.0"
 edition = "2024"
-rust-version = "1.85"
-authors = ["Crimson Dev"]
+authors = ["Albert Badalov"]
 description = "WASM-accelerated fuzzy search engine for modern-cmdk"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-# wasm-bindgen 0.2.127 emits bulk-memory / reference-types / sign-ext instructions;
-# enable those features so wasm-opt validates and optimizes the modern output.
+# wasm-pack 0.15.1 runs its bundled Binaryen version_130 as `wasm-opt <in> -o <out> <these args>`.
+# No --enable-* flag is needed: strip = "debuginfo" below keeps the target_features section, so wasm-bindgen 0.2.130 and
+# wasm-opt detect the features rustc used (with strip = true they cannot, and wasm-opt rejects memory.fill without
+# --enable-bulk-memory-opt). -Oz gave the smallest output of -O3/-O4/-Os/-Oz.
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = [
-  "-O4",
-  "--enable-bulk-memory",
-  "--enable-reference-types",
-  "--enable-nontrapping-float-to-int",
-  "--enable-sign-ext",
-  "--enable-mutable-globals",
-  "--enable-multivalue",
-]
+wasm-opt = ["-Oz"]
 
 [dependencies]
-wasm-bindgen = "0.2.127"
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
-serde-wasm-bindgen = "0.6.5"
+wasm-bindgen = "=0.2.130"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+serde-wasm-bindgen = "=0.6.5"
 
 [profile.release]
 opt-level = "s"
 lto = true
-strip = true
+strip = "debuginfo"
 codegen-units = 1
