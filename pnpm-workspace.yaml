@@ -2,23 +2,54 @@ packages:
   - 'packages/*'
   - 'apps/*'
 overrides:
-  react: 19.3.0-canary-a1124489-20260826
-  react-dom: 19.3.0-canary-a1124489-20260826
-  # Security floor for transitives flagged by Dependabot (2026-08-27):
-  postcss: 8.5.26
-  tmp: 0.2.7
-  'picomatch@2': 2.3.2
-  '@babel/core@7': 7.29.7
+  react: 0.0.0-experimental-a703ca64-20261030
+  react-dom: 0.0.0-experimental-a703ca64-20261030
 allowBuilds:
   esbuild: true
   lefthook: true
+# Exact versions published less than the default minimumReleaseAge (1440 minutes) before the
+# 2026-10-30 lockfile refresh; pnpm 12.17.0 refuses them otherwise. Entries age out of need after a day.
 minimumReleaseAgeExclude:
-  - '@playwright/test@1.63.0-alpha-2026-08-27'
-  - playwright-core@1.63.0-alpha-2026-08-27
-  - playwright@1.63.0-alpha-2026-08-27
-  - '@axe-core/playwright@4.13.1-73a9b84.0.sha-73a9b84'
-  - react@19.3.0-canary-a1124489-20260826
-  - react-dom@19.3.0-canary-a1124489-20260826
-  - '@types/node@26.4.0'
-  - happy-dom@20.11.10
-  - scheduler@0.28.0-canary-a1124489-20260826
+  - '@pnpm/exe.android-arm64@12.17.0'
+  - '@pnpm/exe.android-x64@12.17.0'
+  - '@pnpm/exe.darwin-arm64@12.17.0'
+  - '@pnpm/exe.darwin-x64@12.17.0'
+  - '@pnpm/exe.freebsd-x64@12.17.0'
+  - '@pnpm/exe.linux-arm64-musl@12.17.0'
+  - '@pnpm/exe.linux-arm64@12.17.0'
+  - '@pnpm/exe.linux-ppc64@12.17.0'
+  - '@pnpm/exe.linux-riscv64@12.17.0'
+  - '@pnpm/exe.linux-s390x@12.17.0'
+  - '@pnpm/exe.linux-x64-musl@12.17.0'
+  - '@pnpm/exe.linux-x64@12.17.0'
+  - '@pnpm/exe.win32-arm64@12.17.0'
+  - '@pnpm/exe.win32-x64@12.17.0'
+  - pnpm@12.17.0
+  - '@axe-core/playwright@4.14.1-e9cf392.0.sha-e9cf392'
+  - '@playwright/test@1.65.0-alpha-2026-10-30'
+  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261030.1'
+  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261030.1'
+  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261030.1'
+  - '@typescript/typescript-linux-arm@7.1.0-dev.20261030.1'
+  - '@typescript/typescript-linux-x64@7.1.0-dev.20261030.1'
+  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261030.1'
+  - '@typescript/typescript-win32-x64@7.1.0-dev.20261030.1'
+  - '@vue/compiler-core@3.6.0-rc.14'
+  - '@vue/compiler-dom@3.6.0-rc.14'
+  - '@vue/compiler-sfc@3.6.0-rc.14'
+  - '@vue/compiler-ssr@3.6.0-rc.14'
+  - '@vue/compiler-vapor@3.6.0-rc.14'
+  - '@vue/reactivity@3.6.0-rc.14'
+  - '@vue/runtime-core@3.6.0-rc.14'
+  - '@vue/runtime-dom@3.6.0-rc.14'
+  - '@vue/runtime-vapor@3.6.0-rc.14'
+  - '@vue/server-renderer@3.6.0-rc.14'
+  - '@vue/shared@3.6.0-rc.14'
+  - fake-indexeddb@6.2.7
+  - playwright-core@1.65.0-alpha-2026-10-30
+  - playwright@1.65.0-alpha-2026-10-30
+  - react-dom@0.0.0-experimental-a703ca64-20261030
+  - react@0.0.0-experimental-a703ca64-20261030
+  - scheduler@0.0.0-experimental-a703ca64-20261030
+  - typescript@7.1.0-dev.20261030.1
+  - vue@3.6.0-rc.14
