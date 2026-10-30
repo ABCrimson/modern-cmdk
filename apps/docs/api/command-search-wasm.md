@@ -232,7 +232,7 @@ Via the React adapter:
 | 100K items | ~60ms | < 3ms | < 3ms |
 
 ::: details WASM Binary Size
-The compiled WASM binary is approximately 45KB gzipped. It is loaded asynchronously and does not block initial page load.
+The compiled WASM binary is approximately 51 KB gzipped. It is loaded asynchronously and does not block initial page load.
 :::
 
 ## Features

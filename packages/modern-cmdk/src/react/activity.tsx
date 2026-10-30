@@ -1,7 +1,7 @@
 'use client';
 
 // packages/command-react/src/activity.tsx
-// <CommandActivity> — React 19.3.0-canary Activity API for state preservation
+// <CommandActivity> — React's <Activity> API (stable since React 19.2) for state preservation
 // Wraps palette contents in <Activity mode="hidden"> when dialog closes
 // Preserves scroll position, input state, selection without remount
 // Graceful degradation: falls back to normal unmount if Activity unavailable
@@ -26,14 +26,14 @@ interface ActivityComponentProps {
   readonly children: ReactNode;
 }
 
-// Check if React.Activity (unstable) is available in this canary build
+// Feature-detect React.Activity: the peer range starts at React 19.0, which predates it
 const ActivityComponent: ComponentType<ActivityComponentProps> | null =
   'Activity' in React
     ? ((React as Record<string, unknown>).Activity as ComponentType<ActivityComponentProps>)
     : null;
 
 /**
- * Wraps content in React 19.3.0-canary Activity API.
+ * Wraps content in React's <Activity> API (React 19.2+).
  * When mode="hidden", the component tree is preserved in memory but not rendered.
  * Falls back to conditional rendering if Activity is unavailable.
  */
