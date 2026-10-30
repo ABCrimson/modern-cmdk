@@ -67,7 +67,7 @@
   "devDependencies": {
     "globby": "16.2.4",
     "jscodeshift": "17.4.0",
-    "radix-ui": "1.6.7",
+    "radix-ui": "1.8.2-rc.1791984254107",
     "@types/jscodeshift": "17.3.0"
   },
   "keywords": [
