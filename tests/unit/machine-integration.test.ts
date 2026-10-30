@@ -196,7 +196,7 @@ describe('Machine Integration (0.0.9)', () => {
     });
 
     machine.send({ type: 'ITEM_SELECT', id: itemId('disabled') });
-    // Vitest 4.1 — use vi.waitFor() instead of raw setTimeout for async assertions
+    // Vitest — use vi.waitFor() instead of raw setTimeout for async assertions
     await vi.waitFor(() => {
       expect(onSelect).not.toHaveBeenCalled();
     });

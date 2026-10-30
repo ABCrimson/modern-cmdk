@@ -147,7 +147,7 @@ describe('CommandMachine', () => {
     using machine = createCommandMachine({ items });
 
     machine.send({ type: 'ITEM_SELECT', id: items[0]?.id });
-    // Vitest 4.1 — use vi.waitFor() instead of raw setTimeout
+    // Vitest — use vi.waitFor() instead of raw setTimeout
     await vi.waitFor(() => {
       expect(onSelect).not.toHaveBeenCalled();
     });

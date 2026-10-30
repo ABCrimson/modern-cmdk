@@ -2,8 +2,9 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  // Vitest 5 transpiles with oxc (not esbuild) by default — JSX automatic runtime
-  // and ESNext syntax (incl. `using`) are handled natively, so no transform block needed.
+  // Vitest 5.1 on Vite 8 (Rolldown) transpiles with oxc (target node22), not esbuild —
+  // JSX automatic runtime and ESNext syntax (incl. `using`) are handled natively,
+  // so no transform block is needed.
   resolve: {
     alias: {
       'modern-cmdk/react': resolve(import.meta.dirname, 'packages/modern-cmdk/src/react/index.ts'),

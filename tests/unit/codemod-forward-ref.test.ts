@@ -27,7 +27,7 @@ describe('codemod: forward-ref', () => {
     ].join('\n');
     const output = run(input);
 
-    // Vitest 4.1 — soft assertions: check all output properties
+    // Vitest — soft assertions: check all output properties
     expect.soft(output).not.toContain('forwardRef');
     expect.soft(output).toContain('ref');
     expect.soft(output).toContain('className');
@@ -88,7 +88,7 @@ describe('codemod: forward-ref', () => {
     ].join('\n');
     const output = run(input);
 
-    // Vitest 4.1 — soft assertions for multi-check validation
+    // Vitest — soft assertions for multi-check validation
     expect.soft(output).not.toContain('forwardRef');
     expect.soft(output).toContain('useState');
     expect.soft(output).toMatch(/from\s+['"]react['"]/);

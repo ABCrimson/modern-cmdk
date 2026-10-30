@@ -119,7 +119,7 @@ describe('Type Foundation (0.0.2)', () => {
   describe('Default values with satisfies', () => {
     it('DEFAULT_FRECENCY_DECAY should satisfy Required<FrecencyDecayConfig>', () => {
       expectTypeOf(DEFAULT_FRECENCY_DECAY).toMatchTypeOf<Required<FrecencyDecayConfig>>();
-      // Vitest 4.1 — soft assertions to report all mismatched defaults at once
+      // Vitest — soft assertions to report all mismatched defaults at once
       expect.soft(DEFAULT_FRECENCY_DECAY.hourWeight).toBe(4.0);
       expect.soft(DEFAULT_FRECENCY_DECAY.dayWeight).toBe(2.0);
       expect.soft(DEFAULT_FRECENCY_DECAY.weekWeight).toBe(1.5);

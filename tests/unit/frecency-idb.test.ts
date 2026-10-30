@@ -8,7 +8,7 @@ function uniqueDb(): string {
   return `test-db-${++dbCounter}-${Date.now()}`;
 }
 
-// Vitest 5 — each test uses a unique DB name (uniqueDb), so the default within-file
+// Each test uses a unique DB name (uniqueDb), so the default within-file
 // sequential execution is all these IDB tests need (no shared cross-test state).
 describe('IdbFrecencyStorage', () => {
   describe('load', () => {
@@ -96,7 +96,7 @@ describe('IdbFrecencyStorage', () => {
       const loadedA = await storage.load('app-one');
       const loadedB = await storage.load('app-two');
 
-      // Vitest 4.1 — soft assertions to report all isolation failures at once
+      // Vitest — soft assertions to report all isolation failures at once
       expect.soft(loadedA.records.size).toBe(1);
       expect.soft(loadedA.records.has(itemId('item-a'))).toBe(true);
       expect.soft(loadedA.records.has(itemId('item-b'))).toBe(false);

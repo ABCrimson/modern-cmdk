@@ -1,7 +1,11 @@
 import { CommandActivity } from 'modern-cmdk/react';
+import * as React from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+/** Whether the installed React ships the (experimental) Activity component. */
+const activityAvailable: boolean = 'Activity' in React;
 
 let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -28,10 +32,10 @@ describe('CommandActivity (0.2.5)', () => {
       </CommandActivity>,
     );
 
-    // Vitest 4.1 — vi.waitFor() for async DOM assertions
+    // Vitest — vi.waitFor() for async DOM assertions
     await vi.waitFor(() => {
       const child = container.querySelector('[data-testid="child"]');
-      // Vitest 4.1 — soft assertions for multi-property checks
+      // Vitest — soft assertions for multi-property checks
       expect.soft(child).not.toBeNull();
       expect.soft(child?.textContent).toBe('Hello');
     });
@@ -46,14 +50,12 @@ describe('CommandActivity (0.2.5)', () => {
 
     await vi.waitFor(() => {
       const child = container.querySelector('[data-testid="child"]');
-      // Activity API is available in React 19.3.0-canary — hidden children
-      // remain in DOM with display:none for state preservation
-      if (child) {
-        expect(getComputedStyle(child).display).toBe('none');
-      } else {
-        // Fallback: if Activity API unavailable, children are unmounted
-        expect(child).toBeNull();
-      }
+      // With React's Activity API (experimental builds) hidden children remain in
+      // the DOM with display:none for state preservation; without it
+      // CommandActivity falls back to unmounting them. Both outcomes are asserted
+      // unconditionally against the display the installed React should produce.
+      const display = child === null ? null : getComputedStyle(child).display;
+      expect(display).toBe(activityAvailable ? 'none' : null);
     });
   });
 

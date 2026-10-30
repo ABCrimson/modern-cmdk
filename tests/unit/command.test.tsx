@@ -1,6 +1,6 @@
 // tests/unit/command.test.tsx
 // React adapter compound component tests — Vitest + happy-dom
-// React 19.3.0-canary, TypeScript 7.0.1-rc, ES2026
+// React 19 (experimental build), TypeScript, ES2026
 
 import { groupId, itemId } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
@@ -99,7 +99,7 @@ describe('Command — React Compound Components', () => {
 
       const input = container.querySelector('input') as HTMLInputElement;
       expect(input).not.toBeNull();
-      // Vitest 4.1 — soft assertions to report all missing ARIA attributes at once
+      // Vitest — soft assertions to report all missing ARIA attributes at once
       expect.soft(input.getAttribute('role')).toBe('combobox');
       expect.soft(input.getAttribute('placeholder')).toBe('Type here...');
       expect.soft(input.getAttribute('data-command-input')).toBe('');
@@ -136,7 +136,7 @@ describe('Command — React Compound Components', () => {
 
       const item = container.querySelector('[data-command-item]');
       expect(item).not.toBeNull();
-      // Vitest 4.1 — soft assertions for all item attributes
+      // Vitest — soft assertions for all item attributes
       expect.soft(item?.getAttribute('role')).toBe('option');
       expect.soft(item?.getAttribute('data-value')).toBe('my-item');
       expect.soft(item?.textContent).toBe('My Item');
@@ -157,7 +157,7 @@ describe('Command — React Compound Components', () => {
       );
 
       const input = container.querySelector('input') as HTMLInputElement;
-      // Vitest 4.1 — soft assertions for ARIA state
+      // Vitest — soft assertions for ARIA state
       expect.soft(input.getAttribute('aria-expanded')).toBe('true');
       expect.soft(input.getAttribute('aria-autocomplete')).toBe('list');
     });
@@ -219,7 +219,7 @@ describe('Command — React Compound Components', () => {
       const firstItem = container.querySelector('#first') as Element;
       const secondItem = container.querySelector('#second') as Element;
 
-      // Vitest 4.1 — soft assertions for data-active state
+      // Vitest — soft assertions for data-active state
       expect.soft(firstItem.hasAttribute('data-active')).toBe(true);
       expect.soft(firstItem.getAttribute('aria-selected')).toBe('true');
       expect.soft(secondItem.hasAttribute('data-active')).toBe(false);
@@ -638,7 +638,7 @@ describe('Command — React Compound Components', () => {
 
       const loading = container.querySelector('[data-command-loading]');
       expect(loading).not.toBeNull();
-      // Vitest 4.1 — soft assertions for loading state attributes
+      // Vitest — soft assertions for loading state attributes
       expect.soft(loading?.textContent).toBe('Loading items...');
       // React renders boolean aria-busy as "true" string
       expect.soft(loading?.hasAttribute('aria-busy')).toBe(true);

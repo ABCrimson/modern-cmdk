@@ -31,7 +31,7 @@ describe('parseShortcut', () => {
   for (const testCase of parseTestCases.simple ?? []) {
     it(`should parse simple key "${testCase.shortcut}"`, () => {
       const result = parseShortcut(testCase.shortcut);
-      // Vitest 4.1 — soft assertions for multi-property checks
+      // Vitest — soft assertions for multi-property checks
       expect.soft(result.key).toBe(testCase.expected.key);
       expect.soft(result.meta).toBe(testCase.expected.meta);
       expect.soft(result.ctrl).toBe(testCase.expected.ctrl);
@@ -52,8 +52,8 @@ describe('parseShortcut', () => {
     it(`should parse modifier in "${testCase.shortcut}"`, () => {
       const result = parseShortcut(testCase.shortcut);
       expect(result.key).toBe(testCase.expected.key);
-      if (testCase.expected.shift) expect(result.shift).toBe(true);
-      if (testCase.expected.alt) expect(result.alt).toBe(true);
+      expect(result.shift).toBe(testCase.expected.shift === true);
+      expect(result.alt).toBe(testCase.expected.alt === true);
     });
   }
 

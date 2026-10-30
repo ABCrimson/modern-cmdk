@@ -48,15 +48,18 @@ describe('Scheduler (0.0.3)', () => {
     expect(fn).toHaveBeenCalledOnce();
   });
 
-  it('should clean up on dispose', () => {
+  it('should clean up on dispose', async () => {
     const scheduler = createScheduler();
     const fn = vi.fn();
 
     scheduler.schedule(fn);
     scheduler[Symbol.dispose]();
 
-    // After dispose, the scheduled function should not run
-    // (it was in pending but cleared on dispose)
+    // After dispose, the scheduled function must never run: pending updates are
+    // cleared and the rAF/microtask is cancelled. Give both a chance to fire.
+    await new Promise<void>((resolve) => setTimeout(resolve, 20));
+    scheduler.flush();
+    expect(fn).not.toHaveBeenCalled();
   });
 
   it('should support the Disposable interface', () => {
@@ -90,10 +93,10 @@ describe('Scheduler (0.0.3)', () => {
     expect(counter).toBe(50);
   });
 
-  it('should handle flush with no pending updates', async () => {
+  it('should handle flush with no pending updates', () => {
     using scheduler = createScheduler();
-    // Should not throw
-    await scheduler.flush();
+    // Flushing an empty queue must complete without throwing
+    expect(() => scheduler.flush()).not.toThrow();
   });
 
   it('should execute updates in FIFO order', async () => {
