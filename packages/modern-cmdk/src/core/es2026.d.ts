@@ -1,5 +1,7 @@
-// ES2026+ ambient type declarations for features not yet in TypeScript's lib
-// These supplement the ESNext lib and will be removable once TS ships them natively
+// Ambient declarations for web APIs that TypeScript's bundled lib files still lack.
+// Array.fromAsync (lib.es2026.array) and the Scheduler / globalThis.scheduler pair
+// (lib.dom) now ship in TypeScript 7.1's lib; only Navigator.scheduling.isInputPending
+// (the Chromium-only isInputPending() API) is missing from lib.dom.
 
 interface SchedulingIsInputPending {
   isInputPending?(): boolean;
@@ -8,23 +10,3 @@ interface SchedulingIsInputPending {
 interface Navigator {
   scheduling?: SchedulingIsInputPending;
 }
-
-interface ArrayConstructor {
-  fromAsync<T>(asyncIterable: AsyncIterable<T> | Iterable<T | Promise<T>>): Promise<T[]>;
-  fromAsync<T, U>(
-    asyncIterable: AsyncIterable<T> | Iterable<T>,
-    mapFn: (value: Awaited<T>, index: number) => U,
-    thisArg?: unknown,
-  ): Promise<Awaited<U>[]>;
-}
-
-/** Prioritized Task Scheduling API — globalThis.scheduler */
-interface TaskScheduler {
-  yield(): Promise<void>;
-  postTask<T>(
-    callback: () => T | PromiseLike<T>,
-    options?: { priority?: 'user-blocking' | 'user-visible' | 'background'; delay?: number },
-  ): Promise<T>;
-}
-
-declare var scheduler: TaskScheduler | undefined;

@@ -1,14 +1,11 @@
 import { defineConfig } from 'tsdown';
 
+// Defaults relied on (tsdown 0.23 types): format 'esm', platform 'node', outDir 'dist',
+// clean true, treeshake true.
 export default defineConfig({
   entry: ['src/index.ts'],
-  format: ['esm'],
-  dts: { isolatedDeclarations: true },
+  dts: { generator: 'oxc' },
   sourcemap: true,
-  clean: true,
-  outDir: 'dist',
   target: 'esnext',
-  treeshake: true,
   minify: false,
-  platform: 'node',
 });

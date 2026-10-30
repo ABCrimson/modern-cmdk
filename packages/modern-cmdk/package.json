@@ -37,8 +37,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown --config tsdown.config.ts && node -e \"const fs=require('fs');fs.cpSync('src/react/styles.css','dist/react/styles.css')\"",
-    "dev": "tsdown src/core/index.ts src/react/index.ts --format esm --dts --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit"
   },
   "sideEffects": [
