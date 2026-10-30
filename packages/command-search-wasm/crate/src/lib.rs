@@ -1,6 +1,8 @@
 use wasm_bindgen::prelude::*;
 
 mod trigram;
+// Edit-distance helpers are not wired into the trigram search path yet; only their tests use them.
+#[cfg(test)]
 mod scorer;
 
 #[wasm_bindgen]
@@ -18,7 +20,9 @@ impl WasmSearchEngine {
     }
 
     pub fn index_items(&mut self, items: &str) -> Result<(), JsValue> {
-        self.index.build_from_json(items).map_err(|e| JsValue::from_str(&e))
+        self.index
+            .build_from_json(items)
+            .map_err(|e| JsValue::from_str(&e))
     }
 
     pub fn search(&self, query: &str, max_results: usize) -> Result<JsValue, JsValue> {
@@ -28,5 +32,11 @@ impl WasmSearchEngine {
 
     pub fn clear(&mut self) {
         self.index.clear();
+    }
+}
+
+impl Default for WasmSearchEngine {
+    fn default() -> Self {
+        Self::new()
     }
 }

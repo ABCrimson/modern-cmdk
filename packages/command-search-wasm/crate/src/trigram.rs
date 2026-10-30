@@ -76,7 +76,11 @@ impl TrigramIndex {
             }
         }
 
-        results.sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_unstable_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         results.truncate(max_results);
         results
     }
@@ -205,7 +209,7 @@ mod tests {
         index.build_from_json(json).unwrap();
 
         let results = index.search("apple", 10);
-        assert!(results.len() >= 1);
+        assert!(!results.is_empty());
         // Results should be sorted by score descending
         for i in 1..results.len() {
             assert!(results[i - 1].score >= results[i].score);

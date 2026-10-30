@@ -1,0 +1,6 @@
+# Pinned to the nightly of 2026-10-30 (rustc 1.101.0-nightly, 92b5b8c87) so builds and lints are reproducible.
+[toolchain]
+channel = "nightly-2026-10-30"
+targets = ["wasm32-unknown-unknown"]
+components = ["rustfmt", "clippy"]
+profile = "minimal"

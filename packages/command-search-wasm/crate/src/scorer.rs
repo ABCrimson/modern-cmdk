@@ -23,10 +23,12 @@ pub fn levenshtein_distance(a: &str, b: &str) -> usize {
     for j in 1..=b_len {
         curr[0] = j;
         for i in 1..=a_len {
-            let cost = if a_chars[i - 1] == b_chars[j - 1] { 0 } else { 1 };
-            curr[i] = (prev[i] + 1)
-                .min(curr[i - 1] + 1)
-                .min(prev[i - 1] + cost);
+            let cost = if a_chars[i - 1] == b_chars[j - 1] {
+                0
+            } else {
+                1
+            };
+            curr[i] = (prev[i] + 1).min(curr[i - 1] + 1).min(prev[i - 1] + cost);
         }
         std::mem::swap(&mut prev, &mut curr);
     }
