@@ -3,7 +3,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ESNext", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
+    "lib": ["ESNext", "DOM"],
     "jsx": "react-jsx",
     "strict": true,
     "exactOptionalPropertyTypes": true,
