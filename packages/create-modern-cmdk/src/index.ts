@@ -83,14 +83,17 @@ async function main(): Promise<void> {
       preview: 'vite preview',
     },
     dependencies: {
-      'modern-cmdk': '^1.1.5',
-      react: '^19.2.0',
-      'react-dom': '^19.2.0',
+      'modern-cmdk': '^1.2.2',
+      'radix-ui': '^1.8.1',
+      react: '^19.3.1',
+      'react-dom': '^19.3.1',
     },
     devDependencies: {
-      '@vitejs/plugin-react': '^6.0.0',
-      typescript: '^6.0.0',
-      vite: '^8.0.0',
+      '@types/react': '^19.3.0',
+      '@types/react-dom': '^19.3.0',
+      '@vitejs/plugin-react': '^6.1.2',
+      typescript: '^7.0.2',
+      vite: '^8.3.5',
     },
   };
 
@@ -104,7 +107,6 @@ async function main(): Promise<void> {
       jsx: 'react-jsx',
       strict: true,
       noEmit: true,
-      isolatedDeclarations: true,
       erasableSyntaxOnly: true,
       verbatimModuleSyntax: true,
       skipLibCheck: true,
