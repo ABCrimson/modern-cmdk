@@ -707,7 +707,7 @@ The changeset is saved as a markdown file in `.changeset/`. Commit it with your 
 
 When changesets are merged to `main`, the release workflow:
 
-1. Runs `changeset version` to update `package.json` versions and generate `CHANGELOG.md` entries
+1. Runs `pnpm version-packages` (`changeset version`, then `pnpm install --lockfile-only`) to update `package.json` versions, generate `CHANGELOG.md` entries and refresh `pnpm-lock.yaml`
 2. Creates a release PR (`chore: release packages`) with the version bumps
 3. When that PR is merged, builds the packages and runs `changeset publish` to publish to npm
 
