@@ -25,7 +25,7 @@ trustPolicyExclude:
   - lefthook@2.2.2
   - semver@5.7.2
   - semver@6.3.1
-# Exact versions published less than minimumReleaseAge before the 2026-10-30 lockfile refresh;
+# Exact versions published less than minimumReleaseAge before the 2026-10-30 and 2026-10-31 lockfile refreshes;
 # pnpm 12.17.0 refuses them otherwise. Entries age out of need after a day.
 minimumReleaseAgeExclude:
   - '@pnpm/exe.android-arm64@12.17.0'
@@ -44,14 +44,14 @@ minimumReleaseAgeExclude:
   - '@pnpm/exe.win32-x64@12.17.0'
   - pnpm@12.17.0
   - '@axe-core/playwright@4.14.1-e9cf392.0.sha-e9cf392'
-  - '@playwright/test@1.65.0-alpha-2026-10-30'
-  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261030.1'
-  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261030.1'
-  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261030.1'
-  - '@typescript/typescript-linux-arm@7.1.0-dev.20261030.1'
-  - '@typescript/typescript-linux-x64@7.1.0-dev.20261030.1'
-  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261030.1'
-  - '@typescript/typescript-win32-x64@7.1.0-dev.20261030.1'
+  - '@playwright/test@1.65.0-alpha-2026-10-31'
+  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261031.1'
+  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261031.1'
+  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261031.1'
+  - '@typescript/typescript-linux-arm@7.1.0-dev.20261031.1'
+  - '@typescript/typescript-linux-x64@7.1.0-dev.20261031.1'
+  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261031.1'
+  - '@typescript/typescript-win32-x64@7.1.0-dev.20261031.1'
   - '@vue/compiler-core@3.6.0-rc.14'
   - '@vue/compiler-dom@3.6.0-rc.14'
   - '@vue/compiler-sfc@3.6.0-rc.14'
@@ -64,10 +64,10 @@ minimumReleaseAgeExclude:
   - '@vue/server-renderer@3.6.0-rc.14'
   - '@vue/shared@3.6.0-rc.14'
   - fake-indexeddb@6.2.7
-  - playwright-core@1.65.0-alpha-2026-10-30
-  - playwright@1.65.0-alpha-2026-10-30
+  - playwright-core@1.65.0-alpha-2026-10-31
+  - playwright@1.65.0-alpha-2026-10-31
   - react-dom@0.0.0-experimental-a703ca64-20261030
   - react@0.0.0-experimental-a703ca64-20261030
   - scheduler@0.0.0-experimental-a703ca64-20261030
-  - typescript@7.1.0-dev.20261030.1
+  - typescript@7.1.0-dev.20261031.1
   - vue@3.6.0-rc.14
