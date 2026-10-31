@@ -298,7 +298,7 @@ importers:
   packages/command-search-wasm:
     dependencies:
       modern-cmdk:
-        specifier: workspace:>=1.2.2
+        specifier: workspace:*
         version: link:../modern-cmdk
 
   packages/create-modern-cmdk:

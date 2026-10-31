@@ -69,7 +69,8 @@ jobs:
       - name: Create or update the release PR
         uses: changesets/action/version@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
-          script: pnpm changeset version
+          # The lockfile records workspace specifiers that `changeset version` rewrites, so refresh it in the same step.
+          script: pnpm changeset version && pnpm install --lockfile-only
           commit-message: "chore: release packages"
           pr-title: "chore: release packages"
 
