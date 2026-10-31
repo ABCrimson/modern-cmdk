@@ -68,7 +68,7 @@ body:
         modern-cmdk: 1.2.2
         modern-cmdk/react: 1.2.2
         React: 0.0.0-experimental-a703ca64-20261030
-        TypeScript: 7.1.0-dev.20261030.1
+        TypeScript: 7.1.0-dev.20261031.1
         Vite: 8.3.5
     validations:
       required: false
