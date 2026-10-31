@@ -60,7 +60,7 @@ Raw filter throughput across 15 scenarios (100 / 1K / 10K items x 5 query types)
 |---------|------|-------|----------|
 | modern-cmdk (core) | 6.37 KB | 6.5 KB | 0.13 KB |
 | modern-cmdk/react | 9.79 KB | 12 KB | 2.21 KB |
-| modern-cmdk-search-wasm (JS) | 1.4 KB | 2.0 KB | target only -- unpublished, not in `size-limit` |
+| modern-cmdk-search-wasm (JS) | ~1.95 KB | 2.0 KB | target only -- unpublished, not in `size-limit` |
 
 > `modern-cmdk/react` is measured as the adapter's **own** emitted code. React, React DOM, and `radix-ui` are externalized peer dependencies the consumer already ships, so they're excluded from the budget — keeping it meaningful and stable across peer version bumps.
 

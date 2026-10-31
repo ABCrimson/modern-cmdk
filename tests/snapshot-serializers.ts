@@ -1,5 +1,5 @@
 // tests/snapshot-serializers.ts
-// Vitest 4.1 snapshot serializers for project-specific types
+// Vitest snapshot serializers for project-specific types
 
 import type { SnapshotSerializer } from 'vitest';
 

@@ -33,7 +33,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 26.4.0 (`.nvmrc`: 27.0.0-alpha.0.0.0) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
+| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly202610304e48b9b06b) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
 | pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
 | TypeScript | 7.1.0-dev.20261030.1 | Installed via devDependencies -- do not install globally |
 | Rust + wasm-pack | Pinned nightly (`rust-toolchain.toml`) + wasm-pack 0.15.1 | Only needed if working on `command-search-wasm` |
@@ -95,7 +95,7 @@ modern-cmdk/
           machine.ts              State machine factory (createCommandMachine)
           registry.ts             Item/group registry
           telemetry.ts            Telemetry middleware hooks
-          es2026.d.ts             Ambient declarations for ES2026 features
+          es2026.d.ts             Ambient declaration for Navigator.scheduling.isInputPending (absent from lib.dom)
           search/                 Search engine subsystem
             types.ts              SearchEngine, SearchResult, ScorerFn
             index.ts              Engine factory (incremental filtering)
@@ -737,7 +737,7 @@ Management (`using`), `Promise.withResolvers` and `RegExp.escape` natively -- no
 Node.js 26.4.0+ ships all of them. If you hit one of these errors, your Node.js is too old:
 
 ```bash
-node --version  # Must be >= 26.4.0; .nvmrc pins 27.0.0-alpha.0.0.0
+node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly202610304e48b9b06b
 ```
 
 > [!NOTE]

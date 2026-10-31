@@ -5,14 +5,14 @@ export default defineConfig([
   {
     entry: { 'core/index': 'src/core/index.ts' },
     format: 'esm',
-    dts: { generator: 'oxc' },
+    dts: true,
   },
   // React entry — 'use client' banner for RSC bundler compatibility;
   // styles.css is copied to dist/react/styles.css (package.json ./styles.css export)
   {
     entry: { 'react/index': 'src/react/index.ts' },
     format: 'esm',
-    dts: { generator: 'oxc' },
+    dts: true,
     copy: [{ from: 'src/react/styles.css', to: 'dist/react' }],
     banner: {
       js: "'use client';",
@@ -28,7 +28,7 @@ export default defineConfig([
       'transforms/should-filter': 'src/codemod/transforms/should-filter.ts',
     },
     format: 'esm',
-    dts: { generator: 'oxc' },
+    dts: true,
     outDir: 'dist/codemod',
   },
 ]);

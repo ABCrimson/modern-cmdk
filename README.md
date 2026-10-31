@@ -129,7 +129,7 @@ function CommandPalette() {
 |---|---|---|
 | [`modern-cmdk`](./packages/modern-cmdk) | Framework-agnostic core -- state machine, search, frecency, keyboard | ~6.4 KB |
 | [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | ~9.8 KB |
-| [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items _(experimental, not yet published)_ | <= 50 KB |
+| [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items _(experimental, not yet published)_ | ~52 KB |
 | [`modern-cmdk (codemods)`](./packages/modern-cmdk/src/codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
 | [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding -- 3 templates (react-basic, react-dialog, react-full) | CLI |
 | [`vscode-modern-cmdk`](./packages/vscode-modern-cmdk) | VS Code snippets -- 15 snippets for fast development | Extension |
@@ -371,7 +371,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 | TypeScript | 7.1.0-dev.20261030.1 | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
 | React | 0.0.0-experimental-a703ca64-20261030 | `use()`, `useOptimistic`, `ref` as prop, Activity API |
 | Vite | 8.3.5 | Playground dev server, HMR, build tooling |
-| Node.js | >= 26.4.0 (`.nvmrc`: 27.0.0-alpha.0.0.0) | ES2026: Iterator Helpers, Explicit Resource Management |
+| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly202610304e48b9b06b) | ES2026: Iterator Helpers, Explicit Resource Management |
 | Vitest | 5.1.0-beta.1 | Unit tests, benchmarks, V8 coverage |
 | Playwright | 1.65.0-alpha-2026-10-30 | Cross-browser E2E (Chromium, Firefox, WebKit) |
 | Biome | 2.6.4 | Lint + format (no ESLint, no Prettier) |
