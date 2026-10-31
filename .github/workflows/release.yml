@@ -7,39 +7,116 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  pull-requests: write
-  id-token: write
+# Reset permissions; each job declares only what it needs.
+permissions: {}
 
+# changesets/action v2.1.2 split into sub-actions, following the trusted-publishing
+# setup in its README and https://changesets.dev/guide/automating: select-mode decides
+# whether to version or publish; version opens/updates the release PR; pack builds the
+# tarballs without any write permission; publish uploads those tarballs and is the only
+# job holding id-token: write.
+#
+# Publish via npm OIDC Trusted Publishing — no long-lived token. An empty NPM_TOKEN /
+# NODE_AUTH_TOKEN would make npm/pnpm try an empty token and skip the OIDC fallback, so
+# they are intentionally omitted. The version and publish sub-actions push commits and
+# tags through the GitHub API with their default `github-token` (github.token); a
+# GITHUB_TOKEN env var is ignored. publish's `push-git-tags` and
+# `create-github-releases` default to true, so per-package tags and GitHub releases are
+# created after a publish.
+#
+# Per the changesets guide, git credentials are not persisted on disk and the jobs that
+# version, pack or publish do not restore the pnpm cache (cache poisoning).
 jobs:
-  release:
+  select-mode:
     runs-on: ubuntu-26.04
-    timeout-minutes: 15
+    timeout-minutes: 10
+    permissions:
+      contents: read # actions/checkout
+    outputs:
+      mode: ${{ steps.select-mode.outputs.mode }}
+      publish-plan-artifact-id: ${{ steps.select-mode.outputs.publish-plan-artifact-id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
+      - name: Select Changesets mode
+        id: select-mode
+        uses: changesets/action/select-mode@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
 
-      # Publish via npm OIDC Trusted Publishing — no long-lived token.
-      # An empty NPM_TOKEN / NODE_AUTH_TOKEN would make npm/pnpm try an empty
-      # token and skip the OIDC fallback, so they are intentionally omitted
-      # (changesets/action v2 no longer reads NPM_TOKEN or writes an .npmrc for it).
-      # id-token: write (permissions, above) supplies the short-lived OIDC token.
-      #
-      # changesets/action v2 pushes release commits and tags through the GitHub API
-      # with its default `github-token` (github.token); a GITHUB_TOKEN env var is
-      # ignored. `push-git-tags` and `create-github-releases` default to true, so
-      # per-package tags and GitHub releases are created after a publish.
-      - name: Create Release PR or Publish
-        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+  version:
+    if: needs.select-mode.outputs.mode == 'version'
+    needs: select-mode
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # commit version changes (changesets/action/version)
+      pull-requests: write # create/update the release PR (changesets/action/version)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          publish-script: pnpm changeset publish
-          version-script: pnpm changeset version
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Create or update the release PR
+        uses: changesets/action/version@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          script: pnpm changeset version
           commit-message: "chore: release packages"
           pr-title: "chore: release packages"
+
+  pack:
+    if: needs.select-mode.outputs.mode == 'publish'
+    needs: select-mode
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read # actions/checkout
+    outputs:
+      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
+      - name: Pack packages
+        id: pack
+        uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
+
+  publish:
+    needs: pack
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # push tags and create GitHub releases (changesets/action/publish)
+      id-token: write # npm trusted publishing (changesets/action/publish)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # No `script`: with a pack-dir artifact the sub-action runs `changeset publish
+      # --from-pack-dir <dir>` itself (a custom script would bypass the packed tarballs).
+      - name: Publish packages
+        uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}

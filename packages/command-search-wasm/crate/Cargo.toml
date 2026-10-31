@@ -4,6 +4,8 @@ version = "0.9.0"
 edition = "2024"
 authors = ["Albert Badalov"]
 description = "WASM-accelerated fuzzy search engine for modern-cmdk"
+license = "MIT"
+repository = "https://github.com/ABCrimson/modern-cmdk"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
