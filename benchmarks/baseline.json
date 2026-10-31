@@ -1,14 +1,13 @@
 {
-  "$schema": "https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/baseline-schema.json",
-  "version": "0.9.0",
-  "date": "2026-10-30",
-  "commit": "fc1655c",
+  "version": "1.2.2",
+  "date": "2026-10-31",
+  "commit": "09a44e8",
   "environment": {
     "runner": "ubuntu-26.04",
     "runnerImageVersion": "20261025.179.1",
-    "node": "27.0.0-alpha.0.0.0",
+    "node": "28.0.0-nightly202610304e48b9b06b",
     "cpu": "not logged by the run",
-    "source": "GitHub Actions run 41145341235 on chore/peak-modern-bump-2026-10-30 (head fc1655c)"
+    "source": "GitHub Actions run 41168320386 on main (head 09a44e8)"
   },
   "regressionThresholds": {
     "warning": 0.05,
@@ -17,10 +16,10 @@
   "benchmarks": {
     "search": {
       "ts-scorer-10k": {
-        "median_ms": 4.112,
+        "median_ms": 4.378,
         "p99_ms": 14.5,
         "target_ms": 16,
-        "source": "CI run 41145341235 (job 124369129260, Benchmarks), pnpm bench:compare Current column = mean of 3 run medians; p99_ms and target_ms carried over from the 2026-03-07 baseline"
+        "source": "CI run 41168320386 (job 124440675907, Benchmarks) on main at 09a44e8, Node 28.0.0-nightly202610304e48b9b06b; pnpm bench:compare Current column = mean of 3 run medians; p99_ms and target_ms carried over from the 2026-03-07 baseline"
       },
       "ts-scorer-100k": {
         "median_ms": 85,
@@ -71,16 +70,16 @@
     },
     "stateUpdate": {
       "navigate": {
-        "median_ms": 0.041,
+        "median_ms": 0.042,
         "p99_ms": 0.1,
         "target_ms": 1,
-        "source": "CI run 41145341235 (job 124369129260, Benchmarks), pnpm bench:compare Current column = mean of 3 run medians; p99_ms and target_ms carried over from the 2026-03-07 baseline"
+        "source": "CI run 41168320386 (job 124440675907, Benchmarks) on main at 09a44e8, Node 28.0.0-nightly202610304e48b9b06b; pnpm bench:compare Current column = mean of 3 run medians; p99_ms and target_ms carried over from the 2026-03-07 baseline"
       },
       "searchChange": {
-        "median_ms": 0.461,
+        "median_ms": 0.432,
         "p99_ms": 3.5,
         "target_ms": 4,
-        "source": "CI run 41145341235 (job 124369129260, Benchmarks), pnpm bench:compare Current column = mean of 3 run medians; p99_ms and target_ms carried over from the 2026-03-07 baseline"
+        "source": "CI run 41168320386 (job 124440675907, Benchmarks) on main at 09a44e8, Node 28.0.0-nightly202610304e48b9b06b; pnpm bench:compare Current column = mean of 3 run medians; p99_ms and target_ms carried over from the 2026-03-07 baseline"
       }
     },
     "bundleSize": {

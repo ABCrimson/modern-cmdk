@@ -137,7 +137,17 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
       - run: pnpm bench:ci
-      - run: pnpm bench:compare
+      - name: Compare against baseline
+        # compare-baseline.ts exits 1 for a regression above 5% (a warning by the
+        # documented contract) and 2 above 15% (a failure); only exit 2 fails the job.
+        run: |
+          code=0
+          pnpm bench:compare || code=$?
+          if [ "$code" -eq 1 ]; then
+            echo "::warning title=Benchmark regression above 5%::See the comparison table in this step; a regression above 15% fails the job."
+            exit 0
+          fi
+          exit "$code"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
