@@ -1,5 +1,11 @@
 # modern-cmdk
 
+## 1.2.3
+
+### Patch Changes
+
+- [#42](https://github.com/ABCrimson/modern-cmdk/pull/42) [`541a5d7`](https://github.com/ABCrimson/modern-cmdk/commit/541a5d7e961ff36bcc5aa68329f0dd6f5e617368) Thanks [@ABCrimson](https://github.com/ABCrimson)! - Republish built with the current toolchain (TypeScript 7.1, tsdown 0.23.4 with oxc declaration emit). The `core` and `react` entry points are runtime- and type-identical to the previous build apart from comments; the bundled codemod CLI (`dist/codemod/cli.mjs`) picks up newer versions of its bundled dependencies (glob matching and file-walking helpers).
+
 ## 1.2.2
 
 ### Patch Changes
