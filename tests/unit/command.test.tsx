@@ -1,6 +1,6 @@
 // tests/unit/command.test.tsx
 // React adapter compound component tests — Vitest + happy-dom
-// React 19 (experimental build), TypeScript, ES2026
+// React (experimental channel build), TypeScript, ES2026
 
 import { groupId, itemId } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';

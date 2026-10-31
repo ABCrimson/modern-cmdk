@@ -236,15 +236,10 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
   // ---------- Disabled Items ----------
 
-  test('should mark disabled items with aria-disabled="true"', async ({ page }) => {
+  test('should exclude disabled items from the rendered list', async ({ page }) => {
     // The core excludes disabled items from the filtered list, so the basic demo's
     // disabled "Pear" is never rendered as an option
     await expect(page.getByRole('option', { name: /Pear/ })).toHaveCount(0);
-
-    // Any disabled item that does render must expose aria-disabled="true"
-    await expect(
-      page.locator('[data-command-item][data-disabled]:not([aria-disabled="true"])'),
-    ).toHaveCount(0);
   });
 
   test('disabled items should not become active via keyboard', async ({ page }) => {

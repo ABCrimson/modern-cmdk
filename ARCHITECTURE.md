@@ -545,7 +545,7 @@ CSS custom properties (`@property`) are registered for `--command-list-height` a
 |---|---|---|
 | Core bundle (minified + gzipped) | ≤ 6.5 kB | `size-limit` in CI |
 | React adapter bundle (minified + gzipped; react/react-dom/radix-ui externalized) | ≤ 12 kB | `size-limit` in CI |
-| WASM search (minified + gzipped) | ≤ 50 KB | Target only (package unpublished, not in `size-limit`) |
+| WASM search (minified + gzipped) | ~52 kB (about 113 kB raw) | Target only (package unpublished, not in `size-limit`) |
 | Search latency (10K items, TS scorer) | < 16 ms | Vitest bench |
 | Search latency (100K items, WASM scorer) | < 1 ms | Vitest bench |
 | Time to first render | < 50 ms | Playwright performance trace |
@@ -663,7 +663,7 @@ packages/modern-cmdk/src/core/
   machine.ts             -- State machine (createCommandMachine)
   registry.ts            -- Item/group registry (Map + Set)
   telemetry.ts           -- Telemetry middleware hooks
-  es2026.d.ts            -- Ambient declarations for ES2026 features
+  es2026.d.ts            -- Ambient declaration for Navigator.scheduling.isInputPending (absent from lib.dom)
   search/
     types.ts             -- SearchEngine, SearchResult, ScorerFn
     index.ts             -- Search engine factory (incremental filtering)

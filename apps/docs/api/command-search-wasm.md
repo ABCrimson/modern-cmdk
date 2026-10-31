@@ -76,7 +76,7 @@ async function search() {
   ]);
 
   const results = engine.search('applcation', []);
-  // Typo-tolerant: matches "Application Settings"
+  // Trigram overlap tolerates the dropped letter: matches "Application Settings" (score 0.75)
 }
 // WASM memory freed automatically
 ```
@@ -232,12 +232,12 @@ Via the React adapter:
 | 100K items | ~60ms | < 3ms | < 3ms |
 
 ::: details WASM Binary Size
-The compiled WASM binary is approximately 51 KB gzipped. It is loaded asynchronously and does not block initial page load.
+The compiled WASM binary is about 52 kB gzipped (about 113 kB raw). It is loaded asynchronously and does not block initial page load.
 :::
 
 ## Features
 
-- **Fuzzy matching** -- Typo tolerance via Levenshtein distance (up to 2 edits for short queries, up to 3 for longer)
+- **Fuzzy matching** -- trigram-overlap scoring (exact > prefix > substring > fuzzy) that tolerates small typos such as a dropped letter; there is no explicit edit-distance pass yet
 - **Trigram index** -- Pre-built index on item registration for O(1) candidate lookup
 - **Match positions** -- Returns `[start, end]` ranges for highlighting via `<Command.Highlight>`
 - **Graceful fallback** -- Automatically degrades to the TypeScript engine when WASM cannot load (`isWasm: false`)

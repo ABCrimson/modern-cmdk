@@ -4,7 +4,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-/** Whether the installed React ships the (experimental) Activity component. */
+/** Whether the installed React exports Activity (stable since 19.2; the >=19.0 peer floor predates it). */
 const activityAvailable: boolean = 'Activity' in React;
 
 let container: HTMLDivElement;
@@ -50,7 +50,7 @@ describe('CommandActivity (0.2.5)', () => {
 
     await vi.waitFor(() => {
       const child = container.querySelector('[data-testid="child"]');
-      // With React's Activity API (experimental builds) hidden children remain in
+      // With React's Activity API (19.2+) hidden children remain in
       // the DOM with display:none for state preservation; without it
       // CommandActivity falls back to unmounting them. Both outcomes are asserted
       // unconditionally against the display the installed React should produce.

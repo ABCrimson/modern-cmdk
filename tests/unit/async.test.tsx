@@ -1,6 +1,6 @@
 // tests/unit/async.test.tsx
 // Command.AsyncItems tests — React 19 use() + Suspense with happy-dom
-// Vitest + React 19 (experimental build) + TypeScript, ES2026
+// Vitest + React (experimental channel build) + TypeScript, ES2026
 
 import type { CommandItem as CommandItemType } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
