@@ -13,7 +13,7 @@
   <a href="https://bundlephobia.com/package/modern-cmdk/react"><img alt="react size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk/react?style=flat-square&color=dc2626&labelColor=0a0e27&label=react"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
   <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.1.0--dev.20261031.1-dc2626?style=flat-square&labelColor=0a0e27"/></a>
-  <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-experimental--a703ca64-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-experimental--e84e1492-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
 </p>
 
@@ -369,7 +369,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 | Tool | Version | Purpose |
 |---|---|---|
 | TypeScript | 7.1.0-dev.20261031.1 | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
-| React | 0.0.0-experimental-a703ca64-20261030 | `use()`, `useOptimistic`, `ref` as prop, Activity API |
+| React | 0.0.0-experimental-e84e1492-20261031 | `use()`, `useOptimistic`, `ref` as prop, Activity API |
 | Vite | 8.3.5 | Playground dev server, HMR, build tooling |
 | Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly202610304e48b9b06b) | ES2026: Iterator Helpers, Explicit Resource Management |
 | Vitest | 5.1.0-beta.1 | Unit tests, benchmarks, V8 coverage |

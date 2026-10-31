@@ -67,7 +67,7 @@ body:
         OS: macOS 15.2
         modern-cmdk: 1.2.2
         modern-cmdk/react: 1.2.2
-        React: 0.0.0-experimental-a703ca64-20261030
+        React: 0.0.0-experimental-e84e1492-20261031
         TypeScript: 7.1.0-dev.20261031.1
         Vite: 8.3.5
     validations:

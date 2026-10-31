@@ -10,8 +10,8 @@
   "dependencies": {
     "@js-temporal/polyfill": "0.5.1",
     "modern-cmdk": "workspace:*",
-    "react": "0.0.0-experimental-a703ca64-20261030",
-    "react-dom": "0.0.0-experimental-a703ca64-20261030"
+    "react": "0.0.0-experimental-e84e1492-20261031",
+    "react-dom": "0.0.0-experimental-e84e1492-20261031"
   },
   "devDependencies": {
     "vite": "8.3.5",
