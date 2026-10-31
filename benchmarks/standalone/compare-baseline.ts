@@ -226,6 +226,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((_err) => {
+main().catch((err: unknown) => {
+  console.error(err);
   process.exit(2);
 });

@@ -8,15 +8,19 @@ allowBuilds:
   esbuild: true
   lefthook: true
 # Supply-chain policy (pnpm 12.17.0). minimumReleaseAge is in minutes (1440 = 1 day, the built-in
-# default, written out so the policy is visible); trustPolicy: no-downgrade fails the install for a
-# version whose publish-trust evidence (provenance, trusted publisher) is weaker than an earlier
-# release's. Explicit minimumReleaseAge makes minimumReleaseAgeStrict default to true (pnpm 12 changelog).
+# default, written out so the policy is visible). minimumReleaseAgeStrict: true fails resolution when
+# no version in the requested range meets minimumReleaseAge instead of falling back to a younger one
+# (pnpm.io/settings: it defaults to true only when minimumReleaseAge is set explicitly; written out
+# here too). trustPolicy: no-downgrade fails the install for a version whose publish-trust evidence
+# (provenance, trusted publisher) is weaker than an earlier release's.
 minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade
 # Exact versions published (per the npm registry, checked 2026-10-30) without provenance or a
 # trusted publisher after an earlier release of the same package had one:
 #   lefthook@2.2.2 - manual publish by a maintainer on 2026-10-13; 2.2.1 and 2.2.0 came from GitHub Actions
-#   semver@5.7.2, semver@6.3.1 - 2023-07-10 backport patches; 7.5.4 (2023-07-07) had provenance
+#   semver@5.7.2, semver@6.3.1 - 2023-07-10 backport patches; 7.5.4 (2023-07-07) had provenance.
+#   pnpm-lock.yaml resolves semver@5.7.2 via jscodeshift > @babel/register > make-dir@2.1.0.
 trustPolicyExclude:
   - lefthook@2.2.2
   - semver@5.7.2

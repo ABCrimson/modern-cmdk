@@ -1,11 +1,14 @@
 {
   "$schema": "https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/baseline-schema.json",
   "version": "0.9.0",
-  "date": "2026-03-07",
+  "date": "2026-10-30",
+  "commit": "fc1655c",
   "environment": {
-    "node": "25.8.0",
-    "os": "ubuntu-24.04",
-    "typescript": "6.0.1-rc"
+    "runner": "ubuntu-26.04",
+    "runnerImageVersion": "20261025.179.1",
+    "node": "27.0.0-alpha.0.0.0",
+    "cpu": "not logged by the run",
+    "source": "GitHub Actions run 41145341235 on chore/peak-modern-bump-2026-10-30 (head fc1655c)"
   },
   "regressionThresholds": {
     "warning": 0.05,
@@ -14,60 +17,70 @@
   "benchmarks": {
     "search": {
       "ts-scorer-10k": {
-        "median_ms": 8.2,
+        "median_ms": 4.112,
         "p99_ms": 14.5,
-        "target_ms": 16
+        "target_ms": 16,
+        "source": "CI run 41145341235 (job 124369129260, Benchmarks), pnpm bench:compare Current column = mean of 3 run medians; p99_ms and target_ms carried over from the 2026-03-07 baseline"
       },
       "ts-scorer-100k": {
-        "median_ms": 85.0,
-        "p99_ms": 120.0,
-        "target_ms": 200
+        "median_ms": 85,
+        "p99_ms": 120,
+        "target_ms": 200,
+        "source": "2026-03-07 baseline (Node 25.8.0, ubuntu-24.04); not measured by bench:compare or bench:ci, so not refreshed"
       },
       "wasm-scorer-100k": {
         "median_ms": 0.8,
         "p99_ms": 1.2,
-        "target_ms": 1
+        "target_ms": 1,
+        "source": "2026-03-07 baseline (Node 25.8.0, ubuntu-24.04); not measured by bench:compare or bench:ci, so not refreshed"
       }
     },
     "filter": {
       "incremental-10k": {
         "median_ms": 1.2,
         "p99_ms": 1.8,
-        "target_ms": 2
+        "target_ms": 2,
+        "source": "2026-03-07 baseline (Node 25.8.0, ubuntu-24.04); not measured by bench:compare or bench:ci, so not refreshed"
       },
       "incremental-100k": {
-        "median_ms": 12.0,
-        "p99_ms": 18.0,
-        "target_ms": 25
+        "median_ms": 12,
+        "p99_ms": 18,
+        "target_ms": 25,
+        "source": "2026-03-07 baseline (Node 25.8.0, ubuntu-24.04); not measured by bench:compare or bench:ci, so not refreshed"
       }
     },
     "frecency": {
       "computeBonus-single": {
         "median_ms": 0.028,
         "p99_ms": 0.05,
-        "target_ms": 0.5
+        "target_ms": 0.5,
+        "source": "2026-03-07 baseline (Node 25.8.0, ubuntu-24.04); not measured by bench:compare or bench:ci, so not refreshed"
       },
       "getAllBonuses-10k": {
         "median_ms": 3.5,
-        "p99_ms": 5.0,
-        "target_ms": 10
+        "p99_ms": 5,
+        "target_ms": 10,
+        "source": "2026-03-07 baseline (Node 25.8.0, ubuntu-24.04); not measured by bench:compare or bench:ci, so not refreshed"
       },
       "recordSelection-1k": {
         "median_ms": 0.8,
         "p99_ms": 1.2,
-        "target_ms": 5
+        "target_ms": 5,
+        "source": "2026-03-07 baseline (Node 25.8.0, ubuntu-24.04); not measured by bench:compare or bench:ci, so not refreshed"
       }
     },
     "stateUpdate": {
       "navigate": {
-        "median_ms": 0.05,
+        "median_ms": 0.041,
         "p99_ms": 0.1,
-        "target_ms": 1
+        "target_ms": 1,
+        "source": "CI run 41145341235 (job 124369129260, Benchmarks), pnpm bench:compare Current column = mean of 3 run medians; p99_ms and target_ms carried over from the 2026-03-07 baseline"
       },
       "searchChange": {
-        "median_ms": 2.0,
+        "median_ms": 0.461,
         "p99_ms": 3.5,
-        "target_ms": 4
+        "target_ms": 4,
+        "source": "CI run 41145341235 (job 124369129260, Benchmarks), pnpm bench:compare Current column = mean of 3 run medians; p99_ms and target_ms carried over from the 2026-03-07 baseline"
       }
     },
     "bundleSize": {
@@ -76,9 +89,10 @@
       "wasm_js_gzip_kb": 1.5,
       "limits": {
         "core_kb": 3.5,
-        "react_kb": 5.0,
-        "wasm_js_kb": 2.0
-      }
+        "react_kb": 5,
+        "wasm_js_kb": 2
+      },
+      "source": "2026-03-07 baseline (Node 25.8.0, ubuntu-24.04); not measured by bench:compare or bench:ci (size-limit is the bundle gate), so not refreshed"
     }
   }
 }
