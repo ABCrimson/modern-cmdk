@@ -171,8 +171,8 @@ importers:
   .:
     devDependencies:
       '@axe-core/playwright':
-        specifier: 4.14.1-e9cf392.0.sha-e9cf392
-        version: 4.14.1-e9cf392.0.sha-e9cf392(playwright-core@1.65.0-alpha-2026-10-31)
+        specifier: 4.14.1-794589b.0.sha-794589b
+        version: 4.14.1-794589b.0.sha-794589b(playwright-core@1.65.0-alpha-2026-10-31)
       '@biomejs/biome':
         specifier: 2.6.4
         version: 2.6.4
@@ -342,8 +342,8 @@ importers:
 
 packages:
 
-  '@axe-core/playwright@4.14.1-e9cf392.0.sha-e9cf392':
-    resolution: {integrity: sha512-wDmNz72iNuIbL2DKcNYML7A6OWLOe9EoOIKf7rg+ms54gigndZjCf5/kJ6+OdhOP9eJSuE6gdtCy41WM2k8P0g==}
+  '@axe-core/playwright@4.14.1-794589b.0.sha-794589b':
+    resolution: {integrity: sha512-iIituv+KHB2Zhp3j9YjgvU5nivvXxGGTP5gc5JA6Yy3z6ms5K+eGyh+KL76qaVlILO9JGr+mmnIQrwgffZFuNQ==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
       playwright-core: '>= 1.0.0'
@@ -3422,7 +3422,7 @@ packages:
 
 snapshots:
 
-  '@axe-core/playwright@4.14.1-e9cf392.0.sha-e9cf392(playwright-core@1.65.0-alpha-2026-10-31)':
+  '@axe-core/playwright@4.14.1-794589b.0.sha-794589b(playwright-core@1.65.0-alpha-2026-10-31)':
     dependencies:
       axe-core: 4.14.0
       playwright-core: 1.65.0-alpha-2026-10-31
