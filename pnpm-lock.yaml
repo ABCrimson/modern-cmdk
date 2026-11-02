@@ -172,7 +172,7 @@ importers:
     devDependencies:
       '@axe-core/playwright':
         specifier: 4.14.1-e9cf392.0.sha-e9cf392
-        version: 4.14.1-e9cf392.0.sha-e9cf392(playwright-core@1.65.0-alpha-2026-10-31)
+        version: 4.14.1-e9cf392.0.sha-e9cf392(playwright-core@1.65.0-alpha-1792021904000)
       '@biomejs/biome':
         specifier: 2.6.4
         version: 2.6.4
@@ -186,8 +186,8 @@ importers:
         specifier: 0.5.1
         version: 0.5.1
       '@playwright/test':
-        specifier: 1.65.0-alpha-2026-10-31
-        version: 1.65.0-alpha-2026-10-31
+        specifier: 1.65.0-alpha-1792021904000
+        version: 1.65.0-alpha-1792021904000(esbuild@0.28.2)
       '@size-limit/preset-small-lib':
         specifier: 14.3.0
         version: 14.3.0(size-limit@14.3.0)
@@ -912,8 +912,8 @@ packages:
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
 
-  '@playwright/test@1.65.0-alpha-2026-10-31':
-    resolution: {integrity: sha512-/sUjIMIVCVgOEi58joAJ1OVsIc0ZAve7YbgaSn3stKL4YfHLRelGrjRGO/IVKSfD+80bvaczx9RRK4VVqSxfLA==}
+  '@playwright/test@1.65.0-alpha-1792021904000':
+    resolution: {integrity: sha512-yhosa2T6P2ld4aM83iqoNuQFcCJzU0UyAmC4PKVbzNyjoOOp26oypSL9BWo/LpZF0aaD807i3I6nq8tjWJvrqA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -2899,15 +2899,20 @@ packages:
     resolution: {integrity: sha512-/E57AYkoeQ25qkxMj5PBOVgF8Kiu/h7cYS30Z5+R7WaiCCBfLq58ZI/dSeaEKb9WVJV5n/03QwrN3IeWIFllvw==}
     engines: {node: '>=6'}
 
-  playwright-core@1.65.0-alpha-2026-10-31:
-    resolution: {integrity: sha512-StJTyWiRAhQKxJFMBCZ44VSqBb36X7+v6KqC3nMwjlDwky2yq4+tiNxzbu8l6G+AVMwghnQbzukDJcUxQObQoQ==}
+  playwright-core@1.65.0-alpha-1792021904000:
+    resolution: {integrity: sha512-A9WUQ1J+WrEAiQQv+QL5JGRAOdzWV8m1R068FucyvAit1s5obIzc5FZXyQjlchkklrOCvJQXAWfkD2FqLgzIOw==}
     engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.65.0-alpha-2026-10-31:
-    resolution: {integrity: sha512-pNWGpykx/vPnBJVaaPng83FmdndiQN/EUdsbdw1DIsF2GlqkcE/riSn8mdSmdIT3WHow1oJJ6x6qZdit9p25Pg==}
+  playwright@1.65.0-alpha-1792021904000:
+    resolution: {integrity: sha512-1yvDTN5Cg2hvwM9kPifj5ebXZkvoRMPqRAimQHOAJEqBurr9GGlk1fCTCdgCzR6XC4iZGOLBFZiN8fdeCREdRQ==}
     engines: {node: '>=20'}
     hasBin: true
+    peerDependencies:
+      esbuild: '>=0.21.5'
+    peerDependenciesMeta:
+      esbuild:
+        optional: true
 
   postcss@8.5.32:
     resolution: {integrity: sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==}
@@ -3422,10 +3427,10 @@ packages:
 
 snapshots:
 
-  '@axe-core/playwright@4.14.1-e9cf392.0.sha-e9cf392(playwright-core@1.65.0-alpha-2026-10-31)':
+  '@axe-core/playwright@4.14.1-e9cf392.0.sha-e9cf392(playwright-core@1.65.0-alpha-1792021904000)':
     dependencies:
       axe-core: 4.14.0
-      playwright-core: 1.65.0-alpha-2026-10-31
+      playwright-core: 1.65.0-alpha-1792021904000
 
   '@babel/code-frame@7.29.7':
     dependencies:
@@ -4000,9 +4005,11 @@ snapshots:
 
   '@oxc-project/types@0.156.0': {}
 
-  '@playwright/test@1.65.0-alpha-2026-10-31':
+  '@playwright/test@1.65.0-alpha-1792021904000(esbuild@0.28.2)':
     dependencies:
-      playwright: 1.65.0-alpha-2026-10-31
+      playwright: 1.65.0-alpha-1792021904000(esbuild@0.28.2)
+    transitivePeerDependencies:
+      - esbuild
 
   '@pnpm/deps.graph-sequencer@1100.0.1': {}
 
@@ -5917,11 +5924,13 @@ snapshots:
     dependencies:
       find-up: 3.0.0
 
-  playwright-core@1.65.0-alpha-2026-10-31: {}
+  playwright-core@1.65.0-alpha-1792021904000: {}
 
-  playwright@1.65.0-alpha-2026-10-31:
+  playwright@1.65.0-alpha-1792021904000(esbuild@0.28.2):
     dependencies:
-      playwright-core: 1.65.0-alpha-2026-10-31
+      playwright-core: 1.65.0-alpha-1792021904000
+    optionalDependencies:
+      esbuild: 0.28.2
 
   postcss@8.5.32:
     dependencies:
