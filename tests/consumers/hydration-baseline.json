@@ -2,6 +2,6 @@
   "next-turbopack": 0,
   "next-webpack": 0,
   "vite": 0,
-  "measuredWith": "modern-cmdk@1.2.3 (npm pack modern-cmdk@1.2.3); next 16.5.0-canary.40, vite 8.3.5, @vitejs/plugin-react 6.2.1, react 0.0.0-experimental-e84e1492-20261031, chromium via @playwright/test 1.66.0-alpha-2026-11-04, Node v28.0.0-nightly20261104d36e9ba1f8 on win32",
+  "measuredWith": "modern-cmdk@1.2.3 workspace pack at c32af46 with the react/dialog subpath and the package.json export (pnpm pack of packages/modern-cmdk); next 16.5.0-canary.40, vite 8.3.5, @vitejs/plugin-react 6.2.1, react 0.0.0-experimental-e84e1492-20261031, chromium via @playwright/test 1.66.0-alpha-2026-11-04, Node v28.0.0-nightly20261104d36e9ba1f8 on win32",
   "date": "2026-11-04"
 }

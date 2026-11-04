@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Vite 8 SSR consumer of the packed modern-cmdk tarball; built and driven by scripts/consumer-smoke.ts. The harness adds dependencies['modern-cmdk'] = file:<tarball>.",
   "scripts": {
-    "build": "vite build --outDir dist/client && vite build --ssr src/entry-server.tsx --outDir dist/server"
+    "build": "vite build --outDir dist/client && vite build --ssr src/entry-server.tsx --outDir dist/server",
+    "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
     "radix-ui": "1.8.2-rc.1791984254107",

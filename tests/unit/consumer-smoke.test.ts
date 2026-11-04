@@ -8,6 +8,7 @@ import {
   compareToBaseline,
   countCoreCopies,
   countHydrationMessages,
+  isInstalledPackageJsonPath,
   parseCli,
   VARIANTS,
 } from '../../scripts/consumer-smoke.ts';
@@ -149,5 +150,32 @@ describe('parseCli()', () => {
     ]) {
       expect(usageExit(argv), argv.join(' ')).toBe(2);
     }
+  });
+});
+
+describe('isInstalledPackageJsonPath()', () => {
+  it('accepts a posix and a windows path to the installed manifest', () => {
+    expect(isInstalledPackageJsonPath('/tmp/app/node_modules/modern-cmdk/package.json\n')).toBe(
+      true,
+    );
+    expect(
+      isInstalledPackageJsonPath(
+        'C:\\t\\app\\node_modules\\.pnpm\\modern-cmdk@file+x\\node_modules\\modern-cmdk\\package.json\r\n',
+      ),
+    ).toBe(true);
+  });
+
+  it('reads the last non-empty line, so a warning above the path does not matter', () => {
+    expect(isInstalledPackageJsonPath('warn\n/a/node_modules/modern-cmdk/package.json\n\n')).toBe(
+      true,
+    );
+  });
+
+  it('rejects empty output, other packages and the root manifest of the app', () => {
+    expect(isInstalledPackageJsonPath('')).toBe(false);
+    expect(isInstalledPackageJsonPath('/a/node_modules/other/package.json')).toBe(false);
+    expect(isInstalledPackageJsonPath('/a/node_modules/xmodern-cmdk/package.json')).toBe(false);
+    expect(isInstalledPackageJsonPath('/a/package.json')).toBe(false);
+    expect(isInstalledPackageJsonPath('Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: nope')).toBe(false);
   });
 });
