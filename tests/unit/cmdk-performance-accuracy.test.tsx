@@ -276,8 +276,10 @@ describe('5. React Render Performance', () => {
     root = createRoot(container);
   });
 
-  afterEach(() => {
-    root.unmount();
+  afterEach(async () => {
+    await act(async () => {
+      root.unmount();
+    });
     container.remove();
   });
 
@@ -316,7 +318,9 @@ describe('5. React Render Performance', () => {
       );
 
       // Unmount and remount for fair comparison
-      root.unmount();
+      await act(async () => {
+        root.unmount();
+      });
       container.remove();
       container = document.createElement('div');
       document.body.appendChild(container);
