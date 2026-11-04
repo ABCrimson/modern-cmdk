@@ -4,6 +4,13 @@
   "type": "module",
   "description": "Scaffold a new modern-cmdk project",
   "license": "MIT",
+  "homepage": "https://github.com/ABCrimson/modern-cmdk/tree/main/packages/create-modern-cmdk#readme",
+  "bugs": {
+    "url": "https://github.com/ABCrimson/modern-cmdk/issues"
+  },
+  "engines": {
+    "node": ">=26.4.0"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -13,9 +20,6 @@
   "files": [
     "dist"
   ],
-  "engines": {
-    "node": ">=26.4.0"
-  },
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit"
@@ -25,6 +29,14 @@
     "tsdown": "0.23.5",
     "typescript": "7.1.0-dev.20261104.1"
   },
+  "keywords": [
+    "create",
+    "scaffold",
+    "modern-cmdk",
+    "command-palette",
+    "react",
+    "vite"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/ABCrimson/modern-cmdk.git",
