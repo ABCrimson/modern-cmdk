@@ -242,6 +242,7 @@ async function main(): Promise<number> {
       baseline_ms: entry.median_ms,
       current_ms: stats.median_ms,
       ...classify({
+        key: name,
         baseline_ms: entry.median_ms,
         current_ms: stats.median_ms,
         target_ms: entry.target_ms,
