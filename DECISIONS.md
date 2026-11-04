@@ -68,3 +68,33 @@ The owner's standing instruction for this run is "continue where you left off an
 - **AGENTS.md.** An untracked byte-identical copy of CLAUDE.md appeared in the checkout on 2026-11-01 (a Codex CLI run reads AGENTS.md). Left untracked; the 1.3 docs step decides whether CLAUDE.md becomes an `@AGENTS.md` import so the instructions have one home.
 - **Dependabot and the experimental React pin.** Dependabot PR #48 (2026-11-02) proposed react and react-dom 0.0.0-experimental-e84e1492-20261031 → 0.14.10, a 2020 release that sorts above every `0.0.0-experimental-*` build. `.github/dependabot.yml` ignores react, react-dom and scheduler for every update type; the peak-modern sweep owns those pins. #48, #49 and #50 are closed as superseded by the sweep PR.
 - **Formatter.** Biome 2.6.4 `files.includes` gains `!DECISIONS.md` so no tool rewrites this file; appends are LF-only.
+
+### G-04 · 2026-11-04 · Drift adoption: peak-modern sweep PR #51 (squash 005cf50)
+
+Registry read 2026-11-03/04 UTC by `dep-freshness.mjs` plus a hand sweep of `.nvmrc` and `rust-toolchain.toml` (both now read by the hook). Every pin exact; each bump's call sites and doc lines re-checked (PR body of #51 lists them).
+
+| Package | Was | Adopted | Note |
+|---|---|---|---|
+| vitest, @vitest/coverage-v8 | 5.1.0-beta.1 | **5.1.0** | stable of 2026-11-02; release notes list features only, `vitest.config.ts` unchanged |
+| @playwright/test (+ playwright, playwright-core) | 1.65.0-alpha-2026-10-31 | **1.66.0-alpha-2026-11-04** | `next`; no 1.66 notes published yet, 1.65 breaking changes checked against tests/e2e, none hit |
+| typescript (3 manifests) | 7.1.0-dev.20261031.1 | **7.1.0-dev.20261103.1** | `next`; 0 new diagnostics |
+| tsdown (2 manifests) | 0.23.4 | **0.23.5** | no deprecated option in either config |
+| tinybench | 6.2.2 | **6.2.3** | comments in benchmarks/standalone updated |
+| @vitejs/plugin-react | 6.1.2 | **6.2.1** | adds refreshInclude/refreshExclude, unused; create template range `^6.2.1` |
+| shiki, @shikijs/twoslash | 4.5.0 | **4.6.0** | fixes only; twoslash stays disabled (census: dead, D window) |
+| pnpm/action-setup (12 uses) | v6.1.0 | **v6.1.1** | SHA `73e4699…`, annotated tag dereferenced |
+| github/codeql-action (3 uses) | v4.39.1 | **v4.39.2** | SHA `1fc58d0…` |
+| Node (.nvmrc, matrix, 6 doc lines) | 28.0.0-nightly202610304e48b9b06b | **28.0.0-nightly2026110370074c6f98** | nightly of 2026-11-03; win-x64 zip SHA256-verified before staging; `benchmarks/baseline.json` keeps the measured nightly (history) |
+| Rust toolchain | nightly-2026-10-30 | **nightly-2026-11-04** | rustc 1.101.0-nightly 708c94ef0; wasm-pack 0.15.1 is still newest; `cargo update --dry-run --locked` 0 changes |
+
+Policy: `minimumReleaseAgeExclude` pruned to 12 entries (2026-11-04 05:50 UTC); `pnpm install --frozen-lockfile` prints "Lockfile passes supply-chain policies (544 entries)". Dependabot now ignores react, react-dom and scheduler for every update type (#48 auto-closed by that change; #49 and #50 closed as superseded, both proposed builds OLDER than main's pins). Gates on the PR head: biome 202 files clean; typecheck 0; build; 416 tests; size core 6.37 / 6.5 kB, react 9.79 / 12 kB (gzip); e2e 97 passed; bench 10K filter 2.177 ms median; cargo fmt, clippy `-D warnings`, 20 tests; wasm-pack build 14.4 s; CI 41 jobs success. Hook on main afterwards: 78 pins, 3 not exact (the react, react-dom, radix-ui peer ranges, held by this branch's `.peak-modern-holds.json`), 3 held (engines floor). Status: adopted (LD-01).
+
+### G-05 · 2026-11-04 · RA-01 landed (#52, e55cce7) and Phase 0 bookkeeping
+
+- `useCommandDevtools` no longer throws `ReferenceError: __DEV__ is not defined` in published builds: one `isDev` in `packages/modern-cmdk/src/core/utils/env.ts` (bare `process.env.NODE_ENV` inside try/catch, bundler-replaceable, production-safe unbundled); the search-engine leak detector uses it and stays off without a `window`. Test-first evidence: `tests/dist/devtools.test.tsx` against the OLD dist failed 2/2 with the ReferenceError at dist/react/index.mjs:2059, then passed 2/2; `tests/e2e/basic.spec.ts` asserts the devtools map in the Vite dev build (old build: all 21 basic tests fail because the error takes the page down). `.gitignore` gains `!/tests/dist/`. Changeset `dev-gate-devtools` (patch) is in Version PR #43 (head a36b10e). Gates on e55cce7: biome 205 files; 418 tests / 25 files; size core 6.35 kB, react 9.76 kB; e2e 98 passed; dist `__DEV__` count 0, literal `process.env.NODE_ENV` present. Status: CLOSED for RA-01, RA-68, RC-14, RA-33, CE-38, ARCH-45, P35.
+- Process: #52 was merged without a rebase onto #51 (each PR green on its own base; main CI on e55cce7 green). Rule going forward (LD-04 spirit): when main moved, rebase and re-run checks before merging.
+- A stale local Vite dev server (pid 40244, started 2026-10-30 13:36 from the main checkout) held port 5173 and would have served stale pages to any local `pnpm test:e2e`; both workers ran on a temporary port; killed 2026-11-04. Re-arm: kill zombie dev servers at session start.
+- F23 approval log: Version PR #43 heads 7f2749f (runs 41782089196, 41782089230, 41782089277) and a36b10e (41782397915, 41782397977, 41782397945) approved by API on 2026-11-04; github-actions[bot] stays gated until #43 merges (D31).
+- CodeQL alert 1 (js/missing-origin-check, worker.ts:61) dismissed as a false positive on 2026-11-03: the listener runs in a DedicatedWorkerGlobalScope, where only the constructing thread can post and `event.origin` is empty. 0 open alerts (1.3.0 RDG-26 closed early).
+- New rows for 1.3.0 test hygiene: `basic.spec.ts` "should maintain consistent item count across renders" counts options right after `page.goto` without waiting (failed 2 of 3 local runs without retries); stale `packages/command-react/...` header paths remain in sibling hook files (D window, with CE-21 to CE-25).
+- `pnpm dedupe --check` passes (nothing to dedupe); `pnpm peers check` lists only pre-release-versus-range mismatches that follow from LD-01 (playwright-core alpha vs `>= 1.0.0`, typescript dev vs `~7.0.0`, react experimental vs modern-cmdk's own peer `>=19.0.0 <21.0.0`). No 1.x action; D23 reconsiders the peer floor at 2.0.
