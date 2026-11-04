@@ -80,6 +80,18 @@ describe('codemod CLI: help and usage', () => {
     expect(c.err()).toBe('');
   });
 
+  it('--help names the Node floor in exactly one line (D14: a documented fact, not an engines field)', async () => {
+    const c = capture();
+    expect(await run(['--help'], c.io, deps)).toBe(0);
+    const lines = c
+      .out()
+      .split('\n')
+      .filter((l) => l.includes('Node >= 26.4.0'));
+    expect(lines).toEqual([
+      "Node >= 26.4.0 (the floor modern-cmdk's toolchain and create-modern-cmdk declare; modern-cmdk itself declares no engines)",
+    ]);
+  });
+
   it('no arguments writes usage to stderr and resolves 0 (strict: 2)', async () => {
     const c = capture();
     expect(await run([], c.io, deps)).toBe(0);

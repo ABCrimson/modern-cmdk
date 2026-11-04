@@ -72,6 +72,9 @@ function usageText(stream: NodeJS.WritableStream): string {
     `  ${opt('--concurrency=N')}Files processed at once (default 8)`,
     `  ${opt('-h, --help')}Show this help`,
     '',
+    // A documented fact, not an engines field: modern-cmdk declares none (D14), so the bin cannot refuse an older Node.
+    "Node >= 26.4.0 (the floor modern-cmdk's toolchain and create-modern-cmdk declare; modern-cmdk itself declares no engines)",
+    '',
   ].join('\n');
 }
 
