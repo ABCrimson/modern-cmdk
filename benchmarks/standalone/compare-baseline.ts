@@ -7,7 +7,8 @@
 // is reported, not compared, because run-to-run noise at that scale exceeds the thresholds; every
 // other median is compared with the baseline.
 // Exit codes: 0 = pass, 1 = warning (>5% regression), 2 = failure (>15% regression, or above target_ms)
-// or harness error (missing dist or tinybench, task that did not complete, measured key with no baseline entry).
+// or harness error (missing dist or tinybench, task that did not complete, measured key with no baseline
+// entry, a below-floor baseline entry without a target_ms).
 // When the baseline's CPU or Node differs from this machine, one line says so before the table and the
 // results JSON carries `comparedTo`; the exit codes do not change.
 // Runs under Node's native type stripping, no loader: `node benchmarks/standalone/compare-baseline.ts`.

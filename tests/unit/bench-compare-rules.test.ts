@@ -67,4 +67,10 @@ describe('bench:compare classify()', () => {
     expect(r.status).toBe('FAIL');
     expect(r.reason).toBe('compared');
   });
+
+  it('(i) a baseline below the floor without a target_ms is a harness error, not a silent pass', () => {
+    expect(() => classify({ baseline_ms: 0.00075166, current_ms: 0.0009, thresholds })).toThrow(
+      /no target_ms/,
+    );
+  });
 });

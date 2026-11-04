@@ -2,8 +2,9 @@
 // The verdict rules of `pnpm bench:compare`, kept pure so tests/unit/bench-compare-rules.test.ts can
 // pin them. Order: (1) a current median above the entry's target_ms (the absolute contract the
 // README publishes) is FAIL; (2) a baseline median below thresholds.floor_ms is reported, not compared,
-// because run-to-run noise at that scale exceeds the relative thresholds; (3) otherwise the relative
-// delta against the baseline decides: above `failure` FAIL, above `warning` WARN, else PASS.
+// because run-to-run noise at that scale exceeds the relative thresholds, and it must carry a target_ms,
+// the only check left for it (a below-floor entry without one is a harness error); (3) otherwise the
+// relative delta against the baseline decides: above `failure` FAIL, above `warning` WARN, else PASS.
 // Imported by compare-baseline.ts under Node's native type stripping, hence the `.ts` extension.
 
 export interface Thresholds {
@@ -40,6 +41,11 @@ export function classify(input: ClassifyInput): Classification {
     return { status: 'FAIL', delta_pct, reason: 'above target' };
   }
   if (baseline_ms < (thresholds.floor_ms ?? 0)) {
+    if (target_ms === undefined) {
+      throw new Error(
+        `baseline median ${baseline_ms} ms is below floor_ms but has no target_ms: nothing would check it`,
+      );
+    }
     return { status: 'PASS', delta_pct, reason: 'below floor' };
   }
   if (delta_pct > thresholds.failure) return { status: 'FAIL', delta_pct, reason: 'compared' };
