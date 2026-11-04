@@ -30,7 +30,7 @@ function EmojiPicker({ onSelect }: { onSelect: (emoji: string) => void }) {
 }
 ```
 
-Virtualization activates automatically when the item count exceeds the threshold (default: 100). With 5000+ emojis, only visible items render.
+Virtualization activates automatically when more than 100 items match (a fixed threshold). With 5000+ emojis, only visible items render.
 
 ## With WASM Search
 

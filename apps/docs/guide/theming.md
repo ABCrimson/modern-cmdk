@@ -1,8 +1,12 @@
 # Theming
 
-`modern-cmdk` uses OKLCH color space, CSS custom properties, and `data-*` attribute selectors for a fully customizable theming system.
+`modern-cmdk/styles.css` is themed through `--command-*` custom properties declared on `[data-command-root]` and through `data-*` attribute selectors. The OKLCH tokens below (`--color-hue`, `--color-*`, `--ease-*`, `--transition-*`) belong to this documentation site's theme (`apps/docs/.vitepress/theme/styles/vars.css`). They are an example to copy into your own stylesheet.
 
 ## OKLCH Design Tokens
+
+::: info
+These tokens belong to this documentation site's theme, not to the library. `modern-cmdk/styles.css` does not read `--color-hue` or any `--color-*`, `--ease-*` or `--transition-*` token. Its own tokens are the `--command-*` custom properties declared on `[data-command-root]`.
+:::
 
 All colors use the [OKLCH color space](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch) for perceptually uniform lightness. This means dark mode is achieved by inverting lightness values while preserving chroma and hue.
 
@@ -74,9 +78,42 @@ Change `--color-hue` to shift the entire color palette:
 
 ```css
 :root {
-  /* List height — set automatically via ResizeObserver */
+  /* List height — set automatically on Command.List via ResizeObserver */
   --command-list-height: 0px;
+}
+```
 
+### Library Tokens
+
+These are the custom properties `modern-cmdk/styles.css` declares on `[data-command-root]`, with their defaults. Override them on `[data-command-root]` in unlayered CSS loaded after `modern-cmdk/styles.css`, or on a more specific unlayered selector. That block sits outside every `@layer`, so a normal (non-`!important`) value set inside a layer (Tailwind's `@layer base` or `@layer components` included) loses whatever its selector, and a value set on `:root` is shadowed.
+
+| Property | Default |
+|---|---|
+| `--command-spring-easing` | `linear(...)` |
+| `--command-spring-easing-bouncy` | `linear(...)` |
+| `--command-easing-exit` | `cubic-bezier(0.4, 0, 1, 1)` |
+| `--command-duration-enter` | `200ms` |
+| `--command-duration-enter-scale` | `250ms` |
+| `--command-duration-exit` | `150ms` |
+| `--command-duration-item` | `120ms` |
+| `--command-duration-list` | `200ms` |
+| `--command-duration-page` | `200ms` |
+| `--command-duration-loading` | `1.5s` |
+| `--command-scale-from` | `0.96` |
+| `--command-translate-from` | `8px` |
+| `--command-overlay-blur` | `4px` |
+| `--command-dialog-radius` | `12px` |
+| `--command-dialog-max-width` | `640px` |
+| `--command-dialog-max-height` | `480px` |
+| `--command-item-height` | `44px` |
+| `--command-fade-edge-size` | `16px` |
+| `--command-highlight-color` | `oklch(0.85 0.15 90 / 0.3)` |
+| `--command-muted-color` | `light-dark(oklch(0.45 0.015 260), oklch(0.75 0.015 260))` |
+
+### Docs-site motion tokens (example)
+
+```css
+:root {
   /* Transitions */
   --ease-out-expo:    cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-expo: cubic-bezier(0.87, 0, 0.13, 1);
@@ -125,7 +162,7 @@ Dark mode is achieved by flipping OKLCH lightness values. Since OKLCH is percept
 ```
 
 ::: tip
-You only need to change one variable — `--color-hue` — to create an entirely different color theme. The lightness and chroma values are designed to work with any hue.
+In this site's theme, one variable (`--color-hue`) shifts the whole palette. The lightness and chroma values are designed to work with any hue. To get the same effect with `modern-cmdk/styles.css`, define your own `--color-*` tokens and map them onto the `--command-*` properties on `[data-command-root]`.
 :::
 
 ## `data-*` Attribute Selectors

@@ -4,7 +4,7 @@
 
 ## Automatic Activation
 
-Virtualization is opt-out, not opt-in. When your filtered results exceed the threshold (default: 100), `<Command.List>` automatically switches to virtual scrolling:
+Virtualization is opt-out, not opt-in. When more than 100 items match (a fixed threshold; it switches off again at 50 or fewer), `<Command.List>` automatically switches to virtual scrolling:
 
 ```tsx
 'use client';
