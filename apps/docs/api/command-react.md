@@ -261,7 +261,7 @@ Extends `ComponentPropsWithRef<'div'>`. Data attribute: `data-command-empty`. AR
 
 ## `<Command.Loading>`
 
-Renders when async items are loading or `useTransition` is pending.
+Renders when the `loading` prop is `true`. Without the prop it renders only while the optimistic active-item transition is pending (`isPending`); `state.loading` is never set to `true` by the machine today, so async item loading does not show it on its own, and a search never sets `isPending`. Pass `loading` explicitly (for example `loading` inside a Suspense fallback) to show it.
 
 ```tsx
 <Command.Loading loading={isSearching}>Searching...</Command.Loading>
@@ -486,15 +486,15 @@ function ResultCount() {
 
 ### `useCommand(machine)`
 
-Low-level hook that binds a `CommandMachine` to React via `useSyncExternalStore`, `useTransition`, and `useOptimistic`. `<Command>` uses it internally; reach for it only when building a custom root.
+Low-level hook that binds a `CommandMachine` to React via `useSyncExternalStore` and `useOptimistic`, with a transition around the optimistic active-item setter only. `<Command>` uses it internally; reach for it only when building a custom root.
 
 Returns `UseCommandReturn`:
 
 | Field | Type | Description |
 |---|---|---|
 | `state` | `CommandState` | Current state snapshot |
-| `isPending` | `boolean` | `true` while a search transition is in flight |
-| `updateSearch` | `(query: string) => void` | Dispatch a search update inside a transition |
+| `isPending` | `boolean` | `true` while the optimistic active-item transition is pending; never reflects a search |
+| `updateSearch` | `(query: string) => void` | Send a `SEARCH_CHANGE` event to the machine; it is applied on the machine's scheduler tick, not inside a transition |
 | `setOptimisticActiveId` | `(id: ItemId \| null) => void` | Optimistically highlight an item |
 | `filteredIdSet` | `ReadonlySet<ItemId>` | O(1) membership set for filtered items |
 | `id` | `CommandRootId` | Stable SSR-safe root ID (from `useId`) |

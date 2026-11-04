@@ -3,7 +3,7 @@ layout: home
 hero:
   name: "modern-cmdk"
   text: Headless Command Palette Engine
-  tagline: Framework-agnostic core with React 19 adapter. ES2026. GPU-composited. Accessible.
+  tagline: Framework-agnostic core with React 19 adapter. Accessible.
   actions:
     - theme: brand
       text: Get Started
@@ -18,9 +18,9 @@ features:
   - title: Framework Agnostic
     details: Pure TypeScript state machine core — no framework, no DOM. React 19 adapter included.
   - title: Blazing Fast
-    details: Sub-1ms search on 100K items with optional WASM-accelerated fuzzy matching.
+    details: Fuzzy search with a built-in TypeScript scorer and a pluggable `SearchEngine` interface.
   - title: Fully Accessible
     details: WAI-ARIA combobox pattern, live regions, forced-colors, prefers-contrast support.
-  - title: GPU Composited
-    details: "@starting-style animations, spring linear() easing, scroll-timeline. Zero layout thrash."
+  - title: Modern CSS Animations
+    details: "@starting-style enter/exit animations and spring linear() easing, with prefers-reduced-motion respected."
 ---

@@ -5,7 +5,7 @@ description: Frecency-boosted search with IndexedDB persistence across browser s
 
 # Frecency
 
-Demonstrates frecency-boosted search ranking. Items you use frequently and recently are promoted to the top of results, similar to Raycast, Alfred, and Spotlight.
+Demonstrates frecency-boosted search ranking. Items you use frequently and recently get a bonus added to their match score for non-empty queries, which changes the ranked result order the machine uses for the default active item and keyboard navigation.
 
 ## Basic Frecency
 
@@ -58,7 +58,7 @@ export function FrecencyExample() {
 }
 ```
 
-Select "Settings" a few times, then clear the search. "Settings" will appear higher in the list because its frecency score is boosted by repeated recent usage.
+Select "Settings" a few times, then type a query that matches it (for example `s`). Its frecency bonus is added to its match score, so it moves up the machine's ranked results (`state.filteredIds`): that order picks the default active item and the arrow-key order. The rendered (non-virtualized) list keeps the JSX order of the `<Command.Item>` elements, so the item does not move on screen. With an empty search frecency is not applied, and `state.filteredIds` is registration order.
 
 ## IndexedDB Persistence
 
@@ -135,6 +135,7 @@ Frecency works at the core state machine level, independent of React:
 
 ```typescript
 import { createCommandMachine, itemId } from 'modern-cmdk';
+import type { CommandState } from 'modern-cmdk';
 import { IdbFrecencyStorage } from 'modern-cmdk';
 
 async function demo() {
@@ -152,12 +153,23 @@ async function demo() {
     },
   });
 
-  // Select an item -- recorded with Date.now()
+  // Select an item -- recorded with Date.now() when the event runs
   machine.send({ type: 'ITEM_SELECT', id: itemId('settings') });
 
-  // Future empty searches rank "Settings" higher
-  machine.send({ type: 'SEARCH_CHANGE', query: '' });
-  const state = machine.getState();
-  // state.filteredIds[0] === 'settings' (boosted by frecency)
+  // Frecency adds its bonus only for a non-empty query; an empty query keeps
+  // registration order.
+  machine.send({ type: 'SEARCH_CHANGE', query: 'set' });
+
+  // send() is batched: both events run on the machine's next scheduler tick
+  // (requestAnimationFrame in browsers). Wait for that tick before the `using`
+  // scope ends, because disposing the machine drops events that have not run.
+  const state = await new Promise<CommandState>((resolve) => {
+    const sub = machine.subscribeState((next) => {
+      if (next.search !== 'set') return;
+      sub[Symbol.dispose]();
+      resolve(next);
+    });
+  });
+  return state.filteredIds; // the ranked order for 'set'
 }
 ```

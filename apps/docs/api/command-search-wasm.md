@@ -5,12 +5,12 @@ description: API reference for the Rust/WASM fuzzy search engine with Web Worker
 
 # modern-cmdk-search-wasm
 
-Rust-based trigram fuzzy search engine compiled to WebAssembly. Provides sub-1ms search on 100K items with typo tolerance.
+Rust-based trigram fuzzy search engine compiled to WebAssembly. Provides typo-tolerant trigram search. No speed figure is published for it: no benchmark of the WASM engine runs in CI.
 
 ## Installation
 
 ::: warning Experimental -- not yet published
-`modern-cmdk-search-wasm` is not published to npm yet. Build it from source with `wasm-pack` (see the [package directory](https://github.com/ABCrimson/modern-cmdk/tree/main/packages/command-search-wasm)). The commands below will work once it ships.
+`modern-cmdk-search-wasm` is a private workspace package (version 0.9.0) and is not published to npm. Build it from source with `wasm-pack` (see the [package directory](https://github.com/ABCrimson/modern-cmdk/tree/main/packages/command-search-wasm)). The install commands below do not work until it is published. It does not work yet: the factories never call the wasm-bindgen init function, so `createWasmSearchEngine()` always returns the TypeScript fallback (`isWasm: false`) and `createWorkerSearchEngine()` never receives the worker's `ready` message. The examples below show the intended API, not today's behaviour.
 :::
 
 ::: code-group
@@ -25,7 +25,7 @@ npm install modern-cmdk-search-wasm
 
 ## `createWasmSearchEngine()`
 
-Creates a WASM search engine that runs on the main thread. Suitable for datasets up to ~50K items.
+Creates a WASM search engine that runs on the main thread.
 
 ```typescript
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
@@ -76,7 +76,7 @@ async function search() {
   ]);
 
   const results = engine.search('applcation', []);
-  // Trigram overlap tolerates the dropped letter: matches "Application Settings" (score 0.75)
+  // Intended: trigram overlap tolerates the dropped letter and matches "Application Settings". Today the fallback engine runs and returns no results for an empty items array
 }
 // WASM memory freed automatically
 ```
@@ -85,7 +85,7 @@ async function search() {
 
 ## `createWorkerSearchEngine(options?)`
 
-Creates a WASM search engine that runs in a dedicated Web Worker. Keeps the main thread free for UI rendering. Best for datasets over 50K items.
+Creates a WASM search engine that runs in a dedicated Web Worker, so search work runs off the main thread.
 
 ```typescript
 import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
@@ -216,20 +216,11 @@ Via the React adapter:
 
 ```tsx
 <Command search={wasmEngine}>
-  {/* All items indexed and searched via WASM */}
+  {/* Intended: items indexed and searched via WASM; today the TypeScript fallback runs */}
 </Command>
 ```
 
 ---
-
-## Performance Comparison
-
-| Dataset Size | TypeScript Scorer | WASM (main thread) | WASM (worker) |
-|---|---|---|---|
-| 1K items | < 1ms | < 0.1ms | < 0.2ms |
-| 10K items | ~5ms | < 1ms | < 1ms |
-| 50K items | ~25ms | < 2ms | < 2ms |
-| 100K items | ~60ms | < 3ms | < 3ms |
 
 ::: details WASM Binary Size
 The compiled WASM binary is about 52 kB gzipped (about 113 kB raw). It is loaded asynchronously and does not block initial page load.
