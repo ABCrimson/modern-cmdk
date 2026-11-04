@@ -33,7 +33,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly2026110370074c6f98) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
+| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261104d36e9ba1f8) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
 | pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
 | TypeScript | 7.1.0-dev.20261104.1 | Installed via devDependencies -- do not install globally |
 | Rust + wasm-pack | Pinned nightly (`rust-toolchain.toml`) + wasm-pack 0.15.1 | Only needed if working on `command-search-wasm` |
@@ -746,7 +746,7 @@ Management (`Symbol.dispose` / `using`) and `Promise.withResolvers` natively -- 
 Node.js 26.4.0+ ships all of them. If you hit one of these errors, your Node.js is too old:
 
 ```bash
-node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly2026110370074c6f98
+node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly20261104d36e9ba1f8
 ```
 
 > [!NOTE]
