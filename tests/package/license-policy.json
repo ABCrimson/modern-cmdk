@@ -1,0 +1,93 @@
+{
+  "allowed": [
+    "MIT",
+    "ISC",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "0BSD",
+    "BlueOak-1.0.0",
+    "CC0-1.0",
+    "Unlicense"
+  ],
+  "exceptions": [
+    {
+      "package": "axe-core",
+      "license": "MPL-2.0",
+      "ships": false,
+      "reason": "Accessibility engine used only by the Playwright axe tests; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "@axe-core/playwright",
+      "license": "MPL-2.0",
+      "ships": false,
+      "reason": "Test-only axe adapter for Playwright; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "lightningcss",
+      "license": "MPL-2.0",
+      "ships": false,
+      "reason": "Build-time CSS transformer pulled in by the tooling (vite); not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "lightningcss-*",
+      "license": "MPL-2.0",
+      "ships": false,
+      "reason": "Platform binaries of lightningcss, optional dependencies of the build tooling only; the set differs per OS, hence the prefix pattern. Not shipped (checked 2026-11-04)."
+    },
+    {
+      "package": "caniuse-lite",
+      "license": "CC-BY-4.0",
+      "ships": false,
+      "reason": "Browser-support data read by build/docs tooling; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "@vscode/vsce-sign",
+      "license": "Unknown",
+      "ships": false,
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "@vscode/vsce-sign-*",
+      "license": "Unknown",
+      "ships": false,
+      "reason": "Platform binaries of @vscode/vsce-sign; Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "binaryextensions",
+      "license": "Artistic-2.0",
+      "ships": false,
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "editions",
+      "license": "Artistic-2.0",
+      "ships": false,
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "istextorbinary",
+      "license": "Artistic-2.0",
+      "ships": false,
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "textextensions",
+      "license": "Artistic-2.0",
+      "ships": false,
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "version-range",
+      "license": "Artistic-2.0",
+      "ships": false,
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "elkjs",
+      "license": "EPL-2.0 OR GPL-3.0-or-later",
+      "ships": false,
+      "reason": "Dependency of mermaid 12.3.0 in apps/docs, used only by the docs site; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    }
+  ]
+}
