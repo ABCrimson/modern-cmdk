@@ -1,6 +1,6 @@
-/* Custom overrides — @starting-style, scroll-driven animations */
+/* Custom overrides — hero gradient rule, inert view-transition rules, font features, motion and contrast preferences */
 
-/* Animated gradient hero — GPU-composited via @property */
+/* Animated gradient hero — animates the registered @property --gradient-angle (repaints each frame) */
 .hero-gradient {
   background: conic-gradient(
     from var(--gradient-angle),
@@ -19,7 +19,7 @@
   }
 }
 
-/* Smooth page transitions via View Transitions API */
+/* View-transition styling: inert, nothing calls document.startViewTransition (ledger DAE-75) */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 200ms;

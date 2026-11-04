@@ -231,7 +231,7 @@ Custom scoring function. Return `null` for no match, or a `SearchResult` with sc
 
 ### `FrecencyEngine`
 
-Frequency x recency ranking with time-based exponential decay. Items used recently and frequently are boosted in search results.
+Frequency x recency ranking with bucketed recency weights (hour, day, week, month, older). Items used recently and frequently get a bonus that is added to their match score for non-empty queries; an empty query keeps registry order.
 
 ```ts
 import { FrecencyEngine, MemoryFrecencyStorage } from 'modern-cmdk';
@@ -291,7 +291,7 @@ interface FrecencyStorage extends Disposable {
 
 ### `KeyboardShortcutRegistry`
 
-Built-in keyboard shortcut management with cross-platform `Mod` key, conflict detection, and `RegExp.escape` parsing.
+Built-in keyboard shortcut management with cross-platform `Mod` key, and conflict detection.
 
 ```ts
 import { KeyboardShortcutRegistry, itemId } from 'modern-cmdk';
@@ -404,7 +404,7 @@ Internal registry for items and groups. Access via `machine.getRegistry()`.
 
 ### `TypedEmitter`
 
-Type-safe event emitter with `WeakRef`-based GC-safe listeners.
+Type-safe event emitter holding strong references to listeners; `on()` returns a `Disposable` that removes the listener.
 
 ```ts
 import { TypedEmitter } from 'modern-cmdk';

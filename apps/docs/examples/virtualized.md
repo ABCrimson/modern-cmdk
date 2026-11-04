@@ -98,7 +98,7 @@ Add these styles for additional rendering optimization:
 
 ## Combining with WASM Search
 
-For the best experience with 10K+ items, pair virtualization with the WASM search engine:
+The WASM search engine is an unpublished, build-from-source package (see [modern-cmdk-search-wasm](/api/command-search-wasm)). To pair it with virtualization:
 
 ```tsx
 'use client';

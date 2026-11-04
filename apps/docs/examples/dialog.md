@@ -5,7 +5,7 @@ description: Command palette dialog with Cmd+K trigger, @starting-style animatio
 
 # Dialog
 
-A complete command palette dialog triggered by `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux), with GPU-composited `@starting-style` enter/exit animations.
+A complete command palette dialog triggered by `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux), with `@starting-style` enter/exit animations.
 
 ```tsx
 'use client';

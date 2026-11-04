@@ -1,11 +1,11 @@
 ---
 title: Async Search Example
-description: Async data loading with Command.Loading, Command.Empty, and useTransition for a smooth search experience.
+description: Async data loading with Command.Loading, Command.Empty, and React Suspense.
 ---
 
 # Async Search
 
-Demonstrates async data loading from an API, debounced input, loading states, and error handling using React 19 Suspense and `useTransition`.
+Demonstrates async data loading from an API, loading states, and error handling using React 19 Suspense.
 
 ## Basic Async Search
 
@@ -50,7 +50,7 @@ function SearchResults() {
   return (
     <Command.AsyncItems
       items={searchAPI(query)}
-      fallback={<Command.Loading>Searching...</Command.Loading>}
+      fallback={<Command.Loading loading>Searching...</Command.Loading>}
     >
       {(results) => (
         <>
@@ -62,7 +62,7 @@ function SearchResults() {
                 <Command.Item
                   key={item.id}
                   value={item.value}
-                  keywords={item.keywords}
+                  keywords={item.keywords ?? []}
                   onSelect={() => console.log('Selected:', item.id)}
                 >
                   <span>{item.value}</span>
@@ -85,7 +85,7 @@ export function AsyncSearchExample() {
       <Command.Input placeholder="Search anything..." />
       <Command.List>
         <Command.Empty>No results found.</Command.Empty>
-        <Suspense fallback={<Command.Loading>Searching...</Command.Loading>}>
+        <Suspense fallback={<Command.Loading loading>Searching...</Command.Loading>}>
           <SearchResults />
         </Suspense>
       </Command.List>
@@ -131,7 +131,7 @@ export function ResilientSearchExample() {
       <Command.List>
         <Command.Empty>No results.</Command.Empty>
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <Suspense fallback={<Command.Loading>Searching...</Command.Loading>}>
+          <Suspense fallback={<Command.Loading loading>Searching...</Command.Loading>}>
             <SearchResults />
           </Suspense>
         </ErrorBoundary>
@@ -148,7 +148,7 @@ Load items from multiple sources with independent Suspense boundaries:
 ```tsx
 <Command.List>
   <Command.Group heading="Recent">
-    <Suspense fallback={<Command.Loading>Loading recent...</Command.Loading>}>
+    <Suspense fallback={<Command.Loading loading>Loading recent...</Command.Loading>}>
       <Command.AsyncItems items={fetchRecent()}>
         {(items) => items.map((item) => (
           <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
@@ -158,7 +158,7 @@ Load items from multiple sources with independent Suspense boundaries:
   </Command.Group>
 
   <Command.Group heading="All Commands">
-    <Suspense fallback={<Command.Loading>Loading commands...</Command.Loading>}>
+    <Suspense fallback={<Command.Loading loading>Loading commands...</Command.Loading>}>
       <Command.AsyncItems items={fetchAllCommands()}>
         {(items) => items.map((item) => (
           <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
