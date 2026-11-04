@@ -2,17 +2,24 @@
 // G4: the lockfile licence audit. evaluate(report, policy) is pure; the report is the shape of
 // `pnpm licenses list --json` (licence string -> packages), the policy is tests/package/license-policy.json.
 
+import { spawnSync } from 'node:child_process';
+import { hash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   census,
   evaluate,
   LICENSES_ARGS,
+  type LicenseFileDeclaration,
   type LicensePolicy,
+  type LicensePolicyInput,
   type LicenseReport,
+  resolveLicenseFiles,
 } from '../../scripts/check-licenses.ts';
 
 function pkg(name: string, version: string, license: string): LicenseReport[string][number] {
-  return { name, versions: [version], license };
+  return { name, versions: [version], paths: [`/nm/${name}@${version}`], license };
 }
 
 const policy: LicensePolicy = {
@@ -34,7 +41,9 @@ describe('check-licenses evaluate', () => {
   });
 
   it('reports a missing licence as package@version', () => {
-    const report: LicenseReport = { '': [{ name: 'blank', versions: ['0.1.0'], license: '' }] };
+    const report: LicenseReport = {
+      '': [{ name: 'blank', versions: ['0.1.0'], paths: ['/nm/blank'], license: '' }],
+    };
     const violations = evaluate(report, policy);
     expect(violations).toHaveLength(1);
     expect(violations[0]).toContain('blank@0.1.0');
@@ -50,7 +59,14 @@ describe('check-licenses evaluate', () => {
 
   it('names every version of a multi-version package', () => {
     const report: LicenseReport = {
-      GPL: [{ name: 'twice', versions: ['1.0.0', '2.0.0'], license: 'GPL' }],
+      GPL: [
+        {
+          name: 'twice',
+          versions: ['1.0.0', '2.0.0'],
+          paths: ['/nm/t1', '/nm/t2'],
+          license: 'GPL',
+        },
+      ],
     };
     const violations = evaluate(report, policy);
     expect(violations.join('\n')).toContain('twice@1.0.0');
@@ -223,4 +239,292 @@ describe('check-licenses census', () => {
       ['ISC', 1],
     ]);
   });
+});
+
+// W4-03: a package with no licence field is resolved from its licence file by a declared, hash-pinned entry.
+const KHROMA_TEXT = Buffer.from('The MIT License (MIT)\n\nCopyright (c) test\n');
+const KHROMA_SHA = hash('sha256', KHROMA_TEXT, 'hex');
+const KHROMA_DIR = '/nm/khroma';
+const KHROMA_FILE = join(KHROMA_DIR, 'license');
+
+const declaration: LicenseFileDeclaration = {
+  package: 'khroma',
+  version: '2.1.0',
+  license: 'MIT',
+  file: 'license',
+  sha256: KHROMA_SHA,
+  reason: 'manifest has no license field; MIT text in a lowercase file',
+};
+
+function withDeclarations(...licenseFiles: unknown[]): LicensePolicyInput {
+  return { allowed: policy.allowed, exceptions: [], licenseFiles };
+}
+
+/** A fake reader: a Map from path to bytes; any other path throws ENOENT. */
+function readerOf(files: ReadonlyMap<string, Buffer>): (path: string) => Buffer {
+  return (path: string): Buffer => {
+    const bytes = files.get(path);
+    if (bytes === undefined) {
+      throw Object.assign(new Error(`ENOENT: no such file, open '${path}'`), { code: 'ENOENT' });
+    }
+    return bytes;
+  };
+}
+
+const khromaPackage: LicenseReport[string][number] = {
+  name: 'khroma',
+  versions: ['2.1.0'],
+  paths: [KHROMA_DIR],
+  license: 'Unknown',
+};
+const unknownReport = (): LicenseReport => ({
+  Unknown: [khromaPackage, pkg('other', '1.0.0', 'Unknown')],
+});
+
+describe('check-licenses resolveLicenseFiles', () => {
+  const good = readerOf(new Map([[KHROMA_FILE, KHROMA_TEXT]]));
+
+  it('moves an Unknown package to the declared licence when the file hashes to the pin', () => {
+    const report: LicenseReport = { Unknown: [khromaPackage] };
+    const before = structuredClone(report);
+    const resolved = resolveLicenseFiles(report, withDeclarations(declaration), good);
+    expect(resolved.violations).toEqual([]);
+    expect(resolved.report.MIT?.map((p) => `${p.name}@${p.versions.join()}`)).toEqual([
+      'khroma@2.1.0',
+    ]);
+    expect(resolved.report.MIT?.[0]?.paths).toEqual([KHROMA_DIR]);
+    expect(resolved.report.Unknown).toBeUndefined();
+    expect(census(resolved.report)).toEqual([['MIT', 1]]);
+    expect(evaluate(resolved.report, withDeclarations(declaration))).toEqual([]);
+    expect(report).toEqual(before);
+  });
+
+  it('keeps the other Unknown packages in the Unknown bucket', () => {
+    const resolved = resolveLicenseFiles(unknownReport(), withDeclarations(declaration), good);
+    expect(resolved.report.Unknown?.map((p) => p.name)).toEqual(['other']);
+    expect(resolved.report.MIT?.map((p) => p.name)).toEqual(['khroma']);
+  });
+
+  it('adds the version to an existing entry of the declared licence', () => {
+    const report: LicenseReport = {
+      Unknown: [khromaPackage],
+      MIT: [pkg('left-pad', '1.0.0', 'MIT')],
+    };
+    const resolved = resolveLicenseFiles(report, withDeclarations(declaration), good);
+    expect(resolved.report.MIT?.map((p) => p.name)).toEqual(['left-pad', 'khroma']);
+  });
+
+  it('splits only the declared version out of a multi-version Unknown entry', () => {
+    const report: LicenseReport = {
+      Unknown: [
+        {
+          name: 'khroma',
+          versions: ['1.0.0', '2.1.0'],
+          paths: ['/nm/khroma1', KHROMA_DIR],
+          license: 'Unknown',
+        },
+      ],
+    };
+    const resolved = resolveLicenseFiles(report, withDeclarations(declaration), good);
+    expect(resolved.violations).toEqual([]);
+    expect(resolved.report.Unknown?.[0]?.versions).toEqual(['1.0.0']);
+    expect(resolved.report.Unknown?.[0]?.paths).toEqual(['/nm/khroma1']);
+    expect(resolved.report.MIT?.[0]?.versions).toEqual(['2.1.0']);
+    expect(resolved.report.MIT?.[0]?.paths).toEqual([KHROMA_DIR]);
+  });
+
+  it('hashes every path of a single-version entry installed under two peer sets', () => {
+    const p1 = '/nm/khroma_peerA';
+    const p2 = '/nm/khroma_peerB';
+    const report: LicenseReport = {
+      Unknown: [{ name: 'khroma', versions: ['2.1.0'], paths: [p1, p2], license: 'Unknown' }],
+    };
+    const reader = readerOf(
+      new Map([
+        [join(p1, 'license'), KHROMA_TEXT],
+        [join(p2, 'license'), KHROMA_TEXT],
+      ]),
+    );
+    const resolved = resolveLicenseFiles(report, withDeclarations(declaration), reader);
+    expect(resolved.violations).toEqual([]);
+    expect(resolved.report.MIT?.[0]?.paths).toEqual([p1, p2]);
+    expect(resolved.report.Unknown).toBeUndefined();
+  });
+
+  it('reports the second path when its bytes are wrong and keeps the version Unknown', () => {
+    const p1 = '/nm/khroma_peerA';
+    const p2 = '/nm/khroma_peerB';
+    const wrong = Buffer.from('tampered');
+    const report: LicenseReport = {
+      Unknown: [{ name: 'khroma', versions: ['2.1.0'], paths: [p1, p2], license: 'Unknown' }],
+    };
+    const reader = readerOf(
+      new Map([
+        [join(p1, 'license'), KHROMA_TEXT],
+        [join(p2, 'license'), wrong],
+      ]),
+    );
+    const resolved = resolveLicenseFiles(report, withDeclarations(declaration), reader);
+    expect(resolved.violations).toHaveLength(1);
+    expect(resolved.violations[0]).toContain(hash('sha256', wrong, 'hex'));
+    expect(resolved.report.Unknown?.[0]?.name).toBe('khroma');
+    expect(resolved.report.MIT).toBeUndefined();
+  });
+
+  it('refuses to guess when a multi-version entry has a different number of paths', () => {
+    const calls: string[] = [];
+    const report: LicenseReport = {
+      Unknown: [
+        {
+          name: 'khroma',
+          versions: ['1.0.0', '2.1.0'],
+          paths: ['/nm/a1', '/nm/a2', '/nm/b'],
+          license: 'Unknown',
+        },
+      ],
+    };
+    const resolved = resolveLicenseFiles(report, withDeclarations(declaration), (path: string) => {
+      calls.push(path);
+      return KHROMA_TEXT;
+    });
+    expect(resolved.violations).toEqual([
+      'khroma@2.1.0: the report lists 3 paths for 2 versions; cannot tell which path holds 2.1.0',
+    ]);
+    expect(resolved.report).toEqual(report);
+    expect(calls).toEqual([]);
+  });
+
+  it('reports wrong bytes with both digests and leaves the version Unknown', () => {
+    const wrong = Buffer.from('tampered');
+    const wrongSha = hash('sha256', wrong, 'hex');
+    const resolved = resolveLicenseFiles(
+      unknownReport(),
+      withDeclarations(declaration),
+      readerOf(new Map([[KHROMA_FILE, wrong]])),
+    );
+    expect(resolved.violations).toHaveLength(1);
+    expect(resolved.violations[0]).toContain('khroma@2.1.0');
+    expect(resolved.violations[0]).toContain('license');
+    expect(resolved.violations[0]).toContain(wrongSha);
+    expect(resolved.violations[0]).toContain(KHROMA_SHA);
+    expect(evaluate(resolved.report, withDeclarations(declaration)).join('\n')).toContain(
+      'khroma@2.1.0: unknown or missing licence',
+    );
+  });
+
+  it('reports a reader error with its message and leaves the version Unknown', () => {
+    const resolved = resolveLicenseFiles(
+      unknownReport(),
+      withDeclarations(declaration),
+      readerOf(new Map()),
+    );
+    expect(resolved.violations).toHaveLength(1);
+    expect(resolved.violations[0]).toContain('khroma@2.1.0');
+    expect(resolved.violations[0]).toContain('ENOENT');
+    expect(resolved.report.Unknown?.map((p) => p.name)).toContain('khroma');
+    expect(evaluate(resolved.report, withDeclarations(declaration)).join('\n')).toContain(
+      'khroma@2.1.0',
+    );
+  });
+
+  it.each([
+    ['a string', 'boom'],
+    ['a plain object', { code: 'ENOENT' }],
+    ['null', null],
+  ])(
+    'reports a reader that throws %s as a violation, never a silent pass or a crash',
+    (_name, thrown) => {
+      const resolved = resolveLicenseFiles(unknownReport(), withDeclarations(declaration), () => {
+        throw thrown;
+      });
+      expect(resolved.violations).toHaveLength(1);
+      expect(resolved.violations[0]).toContain('khroma@2.1.0');
+      expect(resolved.report.MIT).toBeUndefined();
+      expect(resolved.report.Unknown?.map((p) => p.name)).toContain('khroma');
+      expect(evaluate(resolved.report, withDeclarations(declaration)).join('\n')).toContain(
+        'khroma@2.1.0: unknown or missing licence',
+      );
+    },
+  );
+
+  it('reports a declaration for a package@version absent from the report as stale', () => {
+    const report: LicenseReport = { MIT: [pkg('khroma', '3.0.0', 'MIT')] };
+    const resolved = resolveLicenseFiles(report, withDeclarations(declaration), good);
+    expect(resolved.violations).toEqual([
+      'stale licence-file declaration: khroma@2.1.0 is not in the report; remove it',
+    ]);
+  });
+
+  it('accepts a report that already lists the version under the declared licence', () => {
+    const report: LicenseReport = { MIT: [{ ...khromaPackage, license: 'MIT' }] };
+    const resolved = resolveLicenseFiles(
+      report,
+      withDeclarations(declaration),
+      readerOf(new Map()),
+    );
+    expect(resolved.violations).toEqual([]);
+    expect(resolved.report).toEqual(report);
+  });
+
+  it('reports a report licence that disagrees with the declaration', () => {
+    const report: LicenseReport = { ISC: [{ ...khromaPackage, license: 'ISC' }] };
+    const resolved = resolveLicenseFiles(report, withDeclarations(declaration), good);
+    expect(resolved.violations).toHaveLength(1);
+    expect(resolved.violations[0]).toContain('khroma@2.1.0');
+    expect(resolved.violations[0]).toContain('ISC');
+    expect(resolved.violations[0]).toContain('MIT');
+  });
+
+  it.each([
+    ['missing sha256', { ...declaration, sha256: undefined }],
+    ['uppercase sha256', { ...declaration, sha256: KHROMA_SHA.toUpperCase() }],
+    ['63-char sha256', { ...declaration, sha256: KHROMA_SHA.slice(1) }],
+    ['wildcard version', { ...declaration, version: '*' }],
+    ['range version', { ...declaration, version: '^2.1.0' }],
+    ['file with a slash', { ...declaration, file: '../license' }],
+    ['file with a backslash', { ...declaration, file: '..\\license' }],
+    ['empty reason', { ...declaration, reason: '  ' }],
+    ['not an object', 'khroma'],
+  ])('flags a malformed declaration (%s) and resolves nothing', (_name, bad) => {
+    const report: LicenseReport = { Unknown: [khromaPackage] };
+    const resolved = resolveLicenseFiles(report, withDeclarations(bad), good);
+    expect(resolved.violations).toHaveLength(1);
+    expect(resolved.violations[0]).toContain('licence-file declaration #0');
+    expect(resolved.violations[0]).toContain('malformed');
+    expect(resolved.report).toEqual(report);
+  });
+
+  it('treats an absent licenseFiles section as no declarations', () => {
+    const report: LicenseReport = { Unknown: [khromaPackage] };
+    const resolved = resolveLicenseFiles(report, { allowed: [], exceptions: [] }, good);
+    expect(resolved).toEqual({ report, violations: [] });
+  });
+});
+
+describe('check-licenses real policy', () => {
+  const policyPath = join(import.meta.dirname, '..', 'package', 'license-policy.json');
+  const real = JSON.parse(readFileSync(policyPath, 'utf8')) as LicensePolicyInput;
+
+  it('keeps its 13 exceptions and declares khroma 2.1.0 by file hash', () => {
+    expect(real.exceptions).toHaveLength(13);
+    expect(real.licenseFiles).toHaveLength(1);
+    const [entry] = real.licenseFiles ?? [];
+    expect(entry).toMatchObject({
+      package: 'khroma',
+      version: '2.1.0',
+      license: 'MIT',
+      file: 'license',
+    });
+    // the declaration is well-formed: a report that already says MIT yields no violation
+    const probe: LicenseReport = { MIT: [pkg('khroma', '2.1.0', 'MIT')] };
+    expect(resolveLicenseFiles(probe, real, readerOf(new Map())).violations).toEqual([]);
+  });
+
+  it('passes the real audit: node scripts/check-licenses.ts exits 0 with khroma under MIT or Unknown', () => {
+    const script = join(import.meta.dirname, '..', '..', 'scripts', 'check-licenses.ts');
+    const run = spawnSync(process.execPath, [script], { encoding: 'utf8' });
+    expect(run.stderr).toBe('');
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain('licence audit: ok');
+  }, 120_000);
 });
