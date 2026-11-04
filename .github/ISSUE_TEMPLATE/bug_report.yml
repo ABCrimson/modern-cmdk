@@ -62,7 +62,7 @@ body:
       description: Node, browser, OS, and package versions.
       render: shell
       placeholder: |
-        Node: v28.0.0-nightly2026110370074c6f98
+        Node: v28.0.0-nightly20261104d36e9ba1f8
         Browser: Chrome 130
         OS: macOS 15.2
         modern-cmdk: 1.2.2

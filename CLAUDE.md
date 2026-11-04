@@ -1,6 +1,6 @@
 # modern-cmdk
 
-pnpm monorepo (workspaces: `packages/*`, `apps/*`). Node 28 nightly 28.0.0-nightly2026110370074c6f98 (see `.nvmrc`; engines floor >= 26.4.0), pnpm >= 12.0.0.
+pnpm monorepo (workspaces: `packages/*`, `apps/*`). Node 28 nightly 28.0.0-nightly20261104d36e9ba1f8 (see `.nvmrc`; engines floor >= 26.4.0), pnpm >= 12.0.0.
 
 ## Commands
 

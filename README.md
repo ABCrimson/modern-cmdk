@@ -372,7 +372,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 | TypeScript | 7.1.0-dev.20261104.1 | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
 | React | 0.0.0-experimental-e84e1492-20261031 | `use()`, `useOptimistic`, `ref` as prop, Activity API |
 | Vite | 8.3.5 | Playground dev server, HMR, build tooling |
-| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly2026110370074c6f98) | ES2025 Iterator helpers, Explicit Resource Management |
+| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261104d36e9ba1f8) | ES2025 Iterator helpers, Explicit Resource Management |
 | Vitest | 5.1.0 | Unit tests, benchmarks, V8 coverage |
 | Playwright | 1.66.0-alpha-2026-11-04 | E2E (Chromium; Firefox and WebKit opt-in via `E2E_ENGINES=all`) |
 | Biome | 2.6.4 | Lint + format (no ESLint, no Prettier) |
