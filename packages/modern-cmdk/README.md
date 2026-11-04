@@ -9,7 +9,8 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/modern-cmdk"><img alt="npm version" src="https://img.shields.io/npm/v/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
-  <a href="https://bundlephobia.com/package/modern-cmdk"><img alt="bundle size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27&label=core"/></a>
+  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/package.json"><img alt="core size budget" src="https://img.shields.io/badge/core-%3C%206.5%20kB%20gzip-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/package.json"><img alt="react size budget" src="https://img.shields.io/badge/react-%3C%2012%20kB%20gzip-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
   <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-19-dc2626?style=flat-square&labelColor=0a0e27"/></a>
@@ -117,19 +118,19 @@ npm create modern-cmdk@latest my-palette -- --template=react-basic
 
 ## Why modern-cmdk?
 
-A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**. Framework-agnostic core. Zero compromise on performance, accessibility, or developer experience.
+A ground-up rewrite of `cmdk` for **React 19** and **TypeScript 7**, written in modern ECMAScript. Framework-agnostic core. Zero compromise on performance, accessibility, or developer experience.
 
 | | cmdk | modern-cmdk |
 |---|---|---|
 | **Architecture** | React-only, tightly coupled | Framework-agnostic core + thin adapters |
 | **React** | 18 / 19 | 19 (`use()`, `useOptimistic`, `useId`, `ref` as prop) |
-| **Search** | Fuzzy (`command-score`) | Fuzzy scoring with match ranges, plus an optional WASM engine you build from source |
+| **Search** | Fuzzy (`command-score`) | Fuzzy scoring with match ranges; an experimental WASM engine (unpublished, does not work yet) |
 | **Ranking** | Static order | Frecency: frequency x bucketed recency weights |
 | **Virtualization** | None | Automatic variable-height, `content-visibility: auto` |
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
-| **Bundle** | ~6 KB | Core ~6.4 KB, React ~9.8 KB |
+| **Bundle** | not compared | Core ~6.4 kB, React ~9.8 kB gzip (budgets: < 6.5 kB, < 12 kB) |
 | **TypeScript** | 4.x/5.x | 7, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Error handling** | None | `CommandErrorBoundary` with fallback UI |
@@ -141,8 +142,8 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 
 - **Framework-agnostic core** -- Pure TypeScript state machine. No React. No hard DOM dependency; DOM APIs are feature-detected and SSR-safe. Portable to any runtime. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
 - **React 19 adapter** -- a `Command` root with 14 compound sub-components (`Command.Input` through `Command.Activity`). `useSyncExternalStore`, `useTransition`, `useOptimistic`, `use()` for Suspense. React Compiler compatible.
-- **Automatic virtualization** -- Variable-height virtual scrolling kicks in at a configurable threshold (`virtualizeThreshold`, default 100). Off-screen items use `content-visibility: auto`.
-- **Fuzzy search** -- Built-in TypeScript scorer with incremental filtering. Optional Rust/WASM engine, built from source, with a TS fallback _(experimental, private, not published to npm)_.
+- **Automatic virtualization** -- Variable-height virtual scrolling turns on when more than 100 items match and off again at 50 or fewer (fixed thresholds; force it with `<Command.List virtualize>`). Off-screen items use `content-visibility: auto`. The `virtualizeThreshold` option is accepted but not read yet.
+- **Fuzzy search** -- Built-in TypeScript scorer with incremental filtering. Experimental Rust/WASM engine _(private, not published to npm)_; it does not work yet and always falls back to the TS scorer.
 - **Frecency ranking** -- Frequency x recency, weighted by hour/day/week/month buckets. Pluggable persistence (memory or IndexedDB).
 - **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, and conflict detection. Cross-browser helper functions for grouping and set operations.
 - **Full accessibility** -- WAI-ARIA combobox pattern, `aria-live` announcements, `forced-colors`, `prefers-contrast`, `prefers-reduced-motion`.
@@ -161,10 +162,10 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
   <Command.Input />      {/* Search input */}
   <Command.List>         {/* Scrollable list with auto-virtualization */}
     <Command.Empty />    {/* Shown when filteredCount === 0 */}
-    <Command.Loading />  {/* Shown when loading */}
+    <Command.Loading />  {/* renders when the `loading` prop is true (or while the active-item transition is pending) */}
     <Command.Group>      {/* Labeled group of items */}
       <Command.Item>     {/* Selectable item */}
-        <Command.Highlight />   {/* Fuzzy match highlighting */}
+        <Command.Highlight text={label} ranges={ranges} />   {/* Fuzzy match highlighting */}
         <Command.Badge />       {/* Status badge */}
         <Command.Shortcut />    {/* Keyboard shortcut display */}
       </Command.Item>
@@ -218,7 +219,7 @@ machine.subscribe(() => {
 | Core bundle (gzipped) | <= 6.5 KB | ~6.4 KB |
 | React bundle (gzipped) | <= 12 KB | ~9.8 KB |
 
-Timings are single-run medians from `benchmarks/baseline.json`, measured on a shared GitHub Actions
+Timings are medians from `benchmarks/baseline.json`: one CI run of the standalone harness, three runs of 1,000 iterations averaged, measured on a shared GitHub Actions
 runner (noise is +/-20-40 %). CI compares new runs against that baseline with 5 % warning / 15 % failure
 thresholds as a coarse tripwire, not a precise regression gate; the `NAVIGATE` baseline sits below the 0.01 ms noise floor and is reported, not compared, and a median above its target fails. There is no published WASM benchmark.
 
