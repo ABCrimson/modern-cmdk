@@ -106,3 +106,7 @@ What: every CONFIRMED row of the 2026-10-30/31 deep dive (988 pass-1 rows confir
 Honesty note: the main checkout's HEAD moved from 6bde302 to e55cce7 (plus ledger commits) while the first workflow was reading it, so batches after the move saw the newer tree; the second workflow re-checked every row in a changed file, and `verified_at` is e55cce7 for all rows. Rule: a verification run gets its own worktree at a fixed SHA.
 
 Committed as `docs/ledger/findings.json` (one row per line; 989,366 B) with `docs/ledger/README.md` (schema, provenance, maintenance); Biome excludes the data file (`files.includes`). Status: LOCKED as the input of LD-06 and of roadmap section 3 step 1.
+
+### G-07 · 2026-11-04 · Honesty correction to G-06
+
+G-06 quoted "30 of 339 high rows are FIXED (8.8 %)" from memory of an earlier tally; the measured count on `docs/ledger/findings.json` (`findings.filter(r => r.severity === 'high')`) is 36 of 339 FIXED (10.6 %). Kill criterion K (25 %) is still not fired. Law 3: measured numbers beat remembered numbers; this row supersedes that sentence.
