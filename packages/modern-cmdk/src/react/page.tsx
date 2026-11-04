@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/page.tsx
+// packages/modern-cmdk/src/react/page.tsx
 // <Command.Page> — page stack management, View Transitions API
 // React 19: use() for context
 // Isolated declarations: explicit return types on all exports

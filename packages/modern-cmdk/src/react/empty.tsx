@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/empty.tsx
+// packages/modern-cmdk/src/react/empty.tsx
 // <Command.Empty> — role="status", aria-live="polite"
 // Portals into a container outside the listbox for valid ARIA structure
 // React 19: use() for context, ref as prop

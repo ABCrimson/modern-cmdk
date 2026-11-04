@@ -1,4 +1,4 @@
-// packages/command/src/keyboard/index.ts
+// packages/modern-cmdk/src/core/keyboard/index.ts
 // Keyboard shortcut registry — `using` for listener cleanup
 
 import type { ItemId } from '../types.js';

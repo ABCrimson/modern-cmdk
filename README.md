@@ -56,7 +56,7 @@ A ground-up rewrite of `cmdk` for **React 19** and **TypeScript 7**, written in 
 
 - **Framework-agnostic core** -- Pure TypeScript state machine. No React. No hard DOM dependency; DOM APIs are feature-detected and SSR-safe. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
 - **React 19 adapter** -- `useSyncExternalStore`, `useTransition`, `useOptimistic`, `useId`, `use()` for Suspense. React Compiler compatible.
-- **Automatic virtualization** -- Variable-height virtual scrolling at configurable threshold. 100K+ items with `content-visibility: auto`.
+- **Automatic virtualization** -- Variable-height virtual scrolling above a configurable threshold (`virtualizeThreshold`, default 100); off-screen items use `content-visibility: auto`.
 - **Fuzzy search** -- Built-in TS scorer with incremental filtering. Experimental Rust/WASM engine (`modern-cmdk-search-wasm`, unpublished and not benchmarked here).
 - **Frecency ranking** -- Frequency x recency with bucketed recency weights (hour/day/week/month/older) and pluggable persistence (memory, IndexedDB).
 - **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, conflict detection.
@@ -354,7 +354,7 @@ pnpm install && pnpm build && pnpm test
 |---|---|
 | `pnpm build` | Build all packages in parallel |
 | `pnpm test` | Unit tests (Vitest 5, happy-dom) |
-| `pnpm test:e2e` | E2E tests (Playwright 1.66 -- Chromium, Firefox, WebKit locally; Chromium in CI) |
+| `pnpm test:e2e` | E2E tests (Playwright 1.66 -- Chromium; Firefox and WebKit opt-in via `E2E_ENGINES=all`) |
 | `pnpm bench` | Benchmarks (Vitest bench mode) |
 | `pnpm lint` | Lint (Biome 2.6.4) |
 | `pnpm typecheck` | Type-check (TypeScript 7.1.0-dev.20261104.1) |
@@ -374,7 +374,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 | Vite | 8.3.5 | Playground dev server, HMR, build tooling |
 | Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly2026110370074c6f98) | ES2025 Iterator helpers, Explicit Resource Management |
 | Vitest | 5.1.0 | Unit tests, benchmarks, V8 coverage |
-| Playwright | 1.66.0-alpha-2026-11-04 | Cross-browser E2E (Chromium, Firefox, WebKit) |
+| Playwright | 1.66.0-alpha-2026-11-04 | E2E (Chromium; Firefox and WebKit opt-in via `E2E_ENGINES=all`) |
 | Biome | 2.6.4 | Lint + format (no ESLint, no Prettier) |
 | tsdown | 0.23.5 | ESM builds, isolated declarations |
 | pnpm | 12.17.0 | Workspace protocol, lockfile v9 |

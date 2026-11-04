@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/group.tsx
+// packages/modern-cmdk/src/react/group.tsx
 // <Command.Group> — role="group" + aria-labelledby with useId() heading ID
 // React 19: use() for context, ref as prop
 // Isolated declarations: explicit return types on all exports

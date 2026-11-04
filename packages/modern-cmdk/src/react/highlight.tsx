@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/highlight.tsx
+// packages/modern-cmdk/src/react/highlight.tsx
 // <Command.Highlight> — renders search query match highlighting
 // Isolated declarations: explicit return types on all exports
 
@@ -10,7 +10,7 @@ import { useMemo } from 'react';
 export interface CommandHighlightProps {
   /** The full text to display */
   readonly text: string;
-  /** Match ranges from search scorer — [start, end] tuples */
+  /** Match ranges from the search scorer — half-open [start, end) tuples, end exclusive */
   readonly ranges: ReadonlyArray<readonly [start: number, end: number]>;
   /** Custom className for highlighted segments */
   readonly highlightClassName?: string;

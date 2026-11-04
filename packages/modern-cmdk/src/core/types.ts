@@ -1,4 +1,4 @@
-// packages/command/src/types.ts
+// packages/modern-cmdk/src/core/types.ts
 // TypeScript 7.1 — ESNext target — all modern type features
 // Branded ids, item/group/state/option types and the default frecency and machine options
 

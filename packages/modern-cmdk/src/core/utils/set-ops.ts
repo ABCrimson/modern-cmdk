@@ -1,4 +1,4 @@
-// packages/command/src/core/utils/set-ops.ts
+// packages/modern-cmdk/src/core/utils/set-ops.ts
 // Cross-browser polyfills for ES2025 Set methods
 // Explicit return types required by isolatedDeclarations
 

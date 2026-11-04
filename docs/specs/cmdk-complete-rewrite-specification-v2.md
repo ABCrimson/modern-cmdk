@@ -7,7 +7,7 @@
 > **Replaces:** `cmdk@1.1.1` (pacocoursey)
 > **Spec Revision:** v2.0.0 — Full version audit + granular 0.0.1→1.0.0 roadmap
 >
-> **Note (2026-11-04):** This is a historical document. The docs site lives at https://abcrimson.github.io/modern-cmdk/; the `command.crimson.dev` host named in the text below is dead.
+> **Note (2026-11-04):** This is a historical document. The docs site lives at https://abcrimson.github.io/modern-cmdk/; the `command.crimson.dev` host and the `crimson-dev/command` GitHub repository named in the text below are dead (the code lives at https://github.com/ABCrimson/modern-cmdk).
 
 ---
 

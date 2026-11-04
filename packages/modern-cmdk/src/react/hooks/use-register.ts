@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/hooks/use-register.ts
+// packages/modern-cmdk/src/react/hooks/use-register.ts
 // Item/group registration — useLayoutEffect for registration before paint
 // Isolated declarations: explicit return types on all exports
 // Branded types: ItemId / GroupId from core

@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/activity.tsx
+// packages/modern-cmdk/src/react/activity.tsx
 // <CommandActivity> — React's <Activity> API (stable since React 19.2) for state preservation
 // Wraps palette contents in <Activity mode="hidden"> when dialog closes
 // Preserves scroll position, input state, selection without remount

@@ -39,7 +39,7 @@ graph TB
 
 ### Layer 1: Core Engine (`modern-cmdk`)
 
-Pure TypeScript state machine with zero DOM dependencies. Manages:
+Pure TypeScript state machine with no hard DOM dependency (DOM APIs are feature-detected and SSR-safe). Manages:
 
 - **Item registry** -- Registration, deregistration, grouping
 - **Search and filtering** -- Pluggable `SearchEngine` interface

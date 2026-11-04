@@ -1,4 +1,4 @@
-// packages/command/src/keyboard/matcher.ts
+// packages/modern-cmdk/src/core/keyboard/matcher.ts
 // KeyboardEvent → Shortcut matcher — conflict detection via mapGroupBy helper
 
 import { mapGroupBy } from '../utils/group-by.js';

@@ -5,7 +5,7 @@ description: Complete API reference for the framework-agnostic core engine — s
 
 # modern-cmdk (Core)
 
-Framework-agnostic headless command palette engine. Pure TypeScript, zero DOM dependencies, portable to any runtime. All classes implement `Disposable` for `using`/`await using` cleanup.
+Framework-agnostic headless command palette engine. Pure TypeScript with no hard DOM dependency (DOM APIs are feature-detected and SSR-safe), portable to any runtime. All classes implement `Disposable` for `using`/`await using` cleanup.
 
 ## Installation
 

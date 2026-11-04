@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/context.ts
+// packages/modern-cmdk/src/react/context.ts
 // React context definitions — use() for consuming in Suspense boundaries
 // Split into stable + state contexts to prevent unnecessary re-renders
 // Branded types for IDs, isolated declarations with explicit return types

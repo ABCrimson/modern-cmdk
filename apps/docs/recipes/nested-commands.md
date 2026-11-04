@@ -7,7 +7,7 @@ Page navigation is driven by the state machine's `PAGE_PUSH` / `PAGE_POP` events
 ```tsx
 'use client';
 
-import { use, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
 
 function PageLink({ page, children }: { page: string; children: React.ReactNode }) {
@@ -24,6 +24,18 @@ function PageLink({ page, children }: { page: string; children: React.ReactNode 
 
 function NestedPalette() {
   const [open, setOpen] = useState(false);
+
+  // Nothing opens the dialog for you: toggle it from a Mod+K listener (Cmd+K / Ctrl+K).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((o) => !o);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   return (
     <Command.Dialog open={open} onOpenChange={setOpen}>

@@ -437,9 +437,9 @@ All components consume the machine via React context using `use(CommandContext)`
 | `Command.Empty` | Rendered when `filteredCount === 0` | -- |
 | `Command.Loading` | Rendered when its `loading` prop is `true`; when the prop is omitted, rendered while `state.loading` is true or the optimistic active-item transition is pending (`loading={false}` hides it in all cases) | `loading` |
 | `Command.Separator` | Visual divider | -- |
-| `Command.Highlight` | Fuzzy match character highlighting | -- |
+| `Command.Highlight` | Fuzzy match character highlighting | `text`, `ranges` |
 | `Command.Badge` | Status badge on items | -- |
-| `Command.Shortcut` | Keyboard shortcut display (platform-aware) | -- |
+| `Command.Shortcut` | Keyboard shortcut display (platform-aware) | `shortcut` |
 | `Command.Page` | Nested page for hierarchical navigation | `id` |
 | `Command.AsyncItems` | Suspense-powered async data loading | `items` (a `Promise<readonly CommandItem[]>`), `fallback`, `children` (render fn) |
 | `Command.Activity` | React Activity API state preservation (falls back to conditional rendering) | `mode` |
@@ -525,9 +525,9 @@ Item active:
   -> content-visibility: auto skips off-screen item rendering
 ```
 
-The spring easings are `linear()` approximations of a critically-damped spring (stiffness 100, damping 15) -- real spring physics with zero JavaScript.
+The spring easings are `linear()` stop lists: `--command-spring-easing` rises to 1 without overshoot (critically damped), and `--command-spring-easing-bouncy` peaks at 1.033 before settling, which is the slight overshoot above -- spring-like motion with zero JavaScript.
 
-`@starting-style` (CSS Nesting level) enables entry animations without JavaScript -- the browser interpolates from the starting style to the final style on first render.
+`@starting-style` (CSS Transitions Level 2) enables entry animations without JavaScript -- the browser interpolates from the starting style to the final style on first render.
 
 `display` and `overlay` transitions use `allow-discrete` for animating to/from `display: none`.
 
@@ -567,7 +567,7 @@ All items (and virtualized items) use `content-visibility: auto` with `contain-i
 }
 ```
 
-The browser skips rendering off-screen items entirely. Combined with the auto-virtualization threshold, this provides smooth scrolling even with 100K+ items.
+The browser skips rendering off-screen items entirely. Combined with the auto-virtualization threshold, rendering cost tracks the visible rows rather than the item count.
 
 ### Accessibility Media Queries
 
@@ -577,7 +577,7 @@ The browser skips rendering off-screen items entirely. Combined with the auto-vi
 | `prefers-contrast: more` | Thicker outlines (3px) on active/focused items |
 | `forced-colors: active` | Uses system `Highlight`/`HighlightText` colors, disables `forced-color-adjust` |
 
-CSS custom properties (`@property`) are registered for `--command-list-height` and `--command-count` with proper syntax and initial values, enabling animatable custom properties.
+Five custom properties are registered with `@property` (`--command-list-height`, `--command-count`, `--command-overlay-opacity`, `--command-dialog-scale`, `--command-dialog-translate`), each with a syntax and an initial value so that it animates.
 
 ---
 

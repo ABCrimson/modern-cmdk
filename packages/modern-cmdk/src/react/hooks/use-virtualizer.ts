@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/hooks/use-virtualizer.ts
+// packages/modern-cmdk/src/react/hooks/use-virtualizer.ts
 // Virtualization hook — ResizeObserver + requestIdleCallback for measurement
 // GPU-composited transforms via translateY, content-visibility: auto for off-screen items
 // Isolated declarations: explicit return types on all exports

@@ -54,7 +54,7 @@ export function CommandPalette() {
 
 ## Tree-Shaking
 
-Only the components you import are included in the client bundle. The core engine (`modern-cmdk`) has zero DOM dependencies and can run in any JavaScript environment.
+Only the components you import are included in the client bundle. The core engine (`modern-cmdk`) has no hard DOM dependency (DOM APIs are feature-detected) and can run in any JavaScript environment.
 
 ## Streaming SSR
 

@@ -1,4 +1,4 @@
-// packages/command/src/keyboard/parser.ts
+// packages/modern-cmdk/src/core/keyboard/parser.ts
 // Shortcut string parser ("Mod+K")
 
 import { ensureWellFormed } from '../utils/string-wellformed.js';

@@ -1,4 +1,4 @@
-// packages/command/src/search/types.ts
+// packages/modern-cmdk/src/core/search/types.ts
 // SearchResult, ScorerFn and SearchEngine types
 
 import type { CommandItem, ItemId } from '../types.js';
@@ -7,7 +7,7 @@ import type { CommandItem, ItemId } from '../types.js';
 export interface SearchResult {
   readonly id: ItemId;
   readonly score: number;
-  /** Character ranges that matched (for highlighting) — [start, end] tuples */
+  /** Character ranges that matched (for highlighting) — half-open [start, end) tuples, end exclusive */
   readonly matches: ReadonlyArray<readonly [start: number, end: number]>;
 }
 

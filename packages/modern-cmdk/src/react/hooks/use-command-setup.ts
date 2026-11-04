@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/hooks/use-command-setup.ts
+// packages/modern-cmdk/src/react/hooks/use-command-setup.ts
 // Shared setup hook — deduplicates machine init, context creation, keyboard handler,
 // and disposal between <Command> and <Command.Dialog>
 // Isolated declarations: explicit return types on all exports

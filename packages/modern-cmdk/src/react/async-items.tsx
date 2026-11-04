@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/async-items.tsx
+// packages/modern-cmdk/src/react/async-items.tsx
 // <Command.AsyncItems> — use() hook for resolving async item sources with Suspense
 // React 19: use() for both context and promise resolution
 // Isolated declarations: explicit return types on all exports

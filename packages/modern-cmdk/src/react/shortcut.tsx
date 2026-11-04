@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/shortcut.tsx
+// packages/modern-cmdk/src/react/shortcut.tsx
 // <Command.Shortcut> — renders platform-appropriate key labels
 // React 19: ref as prop (no forwardRef)
 // Isolated declarations: explicit return types on all exports

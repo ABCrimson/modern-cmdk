@@ -1,4 +1,4 @@
-// packages/command/src/core/utils/group-by.ts
+// packages/modern-cmdk/src/core/utils/group-by.ts
 // Cross-browser polyfills for Map.groupBy and Object.groupBy (ES2024+)
 // Explicit return types required by isolatedDeclarations
 
