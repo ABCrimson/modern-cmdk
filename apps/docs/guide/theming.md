@@ -85,7 +85,7 @@ Change `--color-hue` to shift the entire color palette:
 
 ### Library Tokens
 
-These are the custom properties `modern-cmdk/styles.css` declares on `[data-command-root]`, with their defaults. Override them on `[data-command-root]` in unlayered CSS loaded after `modern-cmdk/styles.css`, or on a more specific unlayered selector. That block sits outside every `@layer`, so a normal (non-`!important`) value set inside a layer (Tailwind's `@layer base` or `@layer components` included) loses whatever its selector, and a value set on `:root` is shadowed.
+These are the custom properties `modern-cmdk/styles.css` declares on `[data-command-root]`, with their defaults. Override them on `[data-command-root]` in unlayered CSS loaded after `modern-cmdk/styles.css`, or on a more specific unlayered selector. That block sits outside every `@layer`, so a normal (non-`!important`) value set inside a layer (Tailwind's `@layer base` or `@layer components` included) loses whatever its selector, and a value set on `:root` is shadowed. Until 1.8.0 the dialog and overlay tokens (`--command-spring-easing`, `--command-spring-easing-bouncy`, `--command-easing-exit`, `--command-duration-enter`, `--command-duration-enter-scale`, `--command-duration-exit`, `--command-scale-from`, `--command-translate-from`, `--command-overlay-blur`, `--command-dialog-radius`, `--command-dialog-max-width`, `--command-dialog-max-height`) are the exception: the rules that read them sit on `[data-command-overlay]`, `[data-command-dialog]` and `[data-command-dialog-content]`, outside the root, so neither the defaults below nor an override on `[data-command-root]` reaches them, and you set them on those elements (all twelve of them, because one unset token voids the whole `transition`, `backdrop-filter` or size declaration that reads it; for example `[data-command-overlay], [data-command-dialog] { --command-spring-easing: ease-out; --command-spring-easing-bouncy: ease-out; --command-easing-exit: cubic-bezier(0.4, 0, 1, 1); --command-duration-enter: 200ms; --command-duration-enter-scale: 250ms; --command-duration-exit: 150ms; --command-scale-from: 0.96; --command-translate-from: 8px; --command-overlay-blur: 4px; --command-dialog-radius: 12px; --command-dialog-max-width: 640px; --command-dialog-max-height: 480px; }`) or on `:root`, which the portalled dialog inherits because no library declaration shadows it there.
 
 | Property | Default |
 |---|---|
@@ -353,7 +353,7 @@ Use it for bouncy, natural-feeling transitions:
 
 ## Dialog Animations
 
-Dialog enter/exit animations use CSS `@starting-style` and `transition-behavior: allow-discrete` for zero-JavaScript animation:
+Dialog enter and exit animations use CSS `@starting-style` and `transition-behavior: allow-discrete`. Until 1.8.0 the tokens these rules read are not defined outside `[data-command-root]`, so the transitions only run once you set them on `[data-command-dialog]` and `[data-command-overlay]` or on `:root` (see Library Tokens above):
 
 ```css
 /* Enter */

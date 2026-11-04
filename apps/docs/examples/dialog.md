@@ -5,7 +5,7 @@ description: Command palette dialog with Cmd+K trigger, @starting-style animatio
 
 # Dialog
 
-A complete command palette dialog triggered by `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux), with `@starting-style` enter/exit animations.
+A complete command palette dialog triggered by `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux), with `@starting-style` enter/exit animations (until the dialog-token fix ships in 1.8.0, set the animation tokens on `[data-command-dialog]` and `[data-command-overlay]`; see [Theming](/guide/theming#dialog-animations)).
 
 ```tsx
 'use client';
@@ -82,7 +82,7 @@ export function DialogExample() {
 
 ## Animation CSS
 
-The dialog uses `@starting-style` for zero-JavaScript enter animations and `transition-behavior: allow-discrete` for exit animations:
+The dialog uses `@starting-style` for its enter animation and `transition-behavior: allow-discrete` for its exit animation; until 1.8.0 the tokens it reads must be set outside `[data-command-root]` (see [Theming](/guide/theming#dialog-animations)):
 
 ```css
 /* Enter -- spring easing via linear() */

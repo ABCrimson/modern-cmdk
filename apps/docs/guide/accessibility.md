@@ -8,7 +8,7 @@ The command palette follows the ARIA combobox with listbox popup pattern:
 
 ```html
 <!-- Rendered HTML structure -->
-<div data-command-root>
+<div data-command-root role="search" aria-label="Command palette">
   <input
     role="combobox"
     aria-expanded="true"
@@ -54,10 +54,22 @@ The command palette follows the ARIA combobox with listbox popup pattern:
 </div>
 ```
 
+### Announcing the result count
+
+`Command.List` renders a visually hidden `aria-live="polite"` region (`role="status"`, `data-command-aria-live`) that announces the filtered count. Its `announceResults` prop is `(count: number) => string`, optional; unset, the text is `"<count> result(s) available."` in English. Pass it to localize or reword the announcement:
+
+```tsx
+<Command.List announceResults={(count) => `${count} resultados`}>
+  {/* ... */}
+</Command.List>
+```
+
 ### Key ARIA Attributes
 
 | Attribute | Element | Purpose |
 |---|---|---|
+| `role="search"` | Root | Marks the palette as a search landmark |
+| `aria-label` | Root | The `label` prop, default `"Command palette"` |
 | `role="combobox"` | Input | Identifies the input as a combobox control |
 | `aria-expanded` | Input | Whether the listbox popup is visible |
 | `aria-controls` | Input | Points to the listbox element ID |
@@ -260,15 +272,13 @@ When `<Command.Dialog>` opens:
 
 ## Visible Focus Indicators
 
-The active item has a visible focus indicator styled via `[data-command-item][data-active]`. This is GPU-composited for smooth transitions:
+The active item has a visible focus indicator styled via `[data-command-item][data-active]`:
 
 ```css
 [data-command-item][data-active] {
   background: var(--color-primary-subtle);
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
-  /* GPU layer promotion */
-  transform: translate3d(0, 0, 0);
 }
 
 [data-command-item]:focus-visible {

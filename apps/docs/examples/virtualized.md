@@ -64,7 +64,7 @@ Tune the virtualizer for your specific use case:
 |---|---|---|---|
 | `estimateSize` | `number` | `44` | Estimated item height (px) before measurement |
 | `overscan` | `number` | `8` | Extra items rendered beyond the viewport |
-| `virtualize` | `boolean` | `true` (auto) | Set to `false` to disable |
+| `virtualize` | `boolean` | unset (auto) | Unset: virtualizes above 100 filtered items and stops again at 50 or fewer. `true` forces it on; `false` disables it |
 
 ## Opting Out
 
