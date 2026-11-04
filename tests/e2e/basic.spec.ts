@@ -267,6 +267,19 @@ test.describe('Basic Command Palette', () => {
     await expect(input).toBeFocused();
   });
 
+  test('should register the palette on the devtools registry in a dev build', async ({ page }) => {
+    // The playground runs `vite dev` against the built package, so this exercises the
+    // NODE_ENV-gated devtools bridge exactly as a consumer's dev server does.
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const registry = (globalThis as Record<string, unknown>).__CRIMSON_COMMAND_DEVTOOLS__;
+          return registry instanceof Map ? [...registry.keys()] : null;
+        }),
+      )
+      .toEqual(['basic']);
+  });
+
   test('should not have JavaScript errors in console', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => {

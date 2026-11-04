@@ -5,8 +5,14 @@
 // React 19: useId, useCallback, ref as prop
 // ES2026: Iterator Helpers (.map on Set)
 
-import { Command } from 'modern-cmdk/react';
+import { Command, useCommandDevtools } from 'modern-cmdk/react';
 import { useCallback, useId } from 'react';
+
+/** Registers this palette on `globalThis.__CRIMSON_COMMAND_DEVTOOLS__` (dev builds only). */
+function DevtoolsBridge(): null {
+  useCommandDevtools('basic');
+  return null;
+}
 
 export function BasicDemo(): React.ReactNode {
   const headingId = useId();
@@ -25,6 +31,7 @@ export function BasicDemo(): React.ReactNode {
       </p>
 
       <Command className="command-palette" label="Basic command palette">
+        <DevtoolsBridge />
         <Command.Input placeholder="Type a command or search..." />
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>

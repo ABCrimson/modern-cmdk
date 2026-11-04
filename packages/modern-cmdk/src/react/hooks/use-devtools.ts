@@ -1,13 +1,12 @@
 'use client';
 
-// packages/command-react/src/hooks/use-devtools.ts
-// Development-only devtools bridge — tree-shaken in production
+// packages/modern-cmdk/src/react/hooks/use-devtools.ts
+// Development-only devtools bridge — gated on NODE_ENV, inert in production builds
 // Isolated declarations: explicit return types on all exports
 
 import { use, useEffect, useRef } from 'react';
+import { isDev } from '../../core/utils/env.js';
 import { CommandStableContext, CommandStateContext } from '../context.js';
-
-declare const __DEV__: boolean;
 
 interface DevtoolsState {
   readonly registeredItems: number;
@@ -28,13 +27,15 @@ type DevtoolsRegistry = Map<string, DevtoolsState>;
 
 /**
  * Exposes command palette internals to browser devtools.
- * Only active in development — completely tree-shaken in production builds.
+ * Development only: the effect is gated on `process.env.NODE_ENV` and returns early in
+ * production builds (the hook itself still ships). Call it from a component rendered inside
+ * `<Command>`: outside one there is no machine to inspect and the hook does nothing.
  *
  * @example
  * ```tsx
- * function MyPalette() {
+ * function DevtoolsBridge() {
  *   useCommandDevtools('main');
- *   return <Command>...</Command>;
+ *   return null;
  * }
  * ```
  */
@@ -45,8 +46,8 @@ export function useCommandDevtools(label: string = 'default'): void {
 
   useEffect(() => {
     // Guard inside effect body — hooks are always called (Rules of Hooks compliant)
-    // __DEV__ is a compile-time constant: bundler DCE removes the entire effect in production
-    if (!__DEV__) return;
+    // isDev is false where the bundler folds NODE_ENV to "production", so the effect exits at once
+    if (!isDev) return;
     if (!stable || !stateCtx) return;
 
     const update = (): void => {
@@ -63,7 +64,6 @@ export function useCommandDevtools(label: string = 'default'): void {
       } satisfies DevtoolsState;
       stateRef.current = devState;
 
-      // Use Map.groupBy-style registry via global singleton
       const globals = globalThis as Record<string, unknown>;
       if (!globals[DEVTOOLS_KEY]) {
         globals[DEVTOOLS_KEY] = new Map<string, DevtoolsState>();

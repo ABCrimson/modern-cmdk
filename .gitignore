@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# tests/dist holds source tests for the built package, not build output
+!/tests/dist/
 coverage/
 *.wasm
 .vitepress/dist/

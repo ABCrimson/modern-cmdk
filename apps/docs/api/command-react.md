@@ -523,7 +523,7 @@ Returns `{ virtualItems, totalSize, scrollToIndex, measureElement }`.
 
 ### `useCommandDevtools(label?)`
 
-Exposes palette internals (registered/filtered item counts, query, active ID, page stack, open/loading state) on a global registry (`__CRIMSON_COMMAND_DEVTOOLS__`) for inspection from the browser console. Development-only — the entire effect is tree-shaken from production builds.
+Exposes palette internals (registered/filtered item counts, query, active ID, page stack, open/loading state) on a global registry (`__CRIMSON_COMMAND_DEVTOOLS__`) for inspection from the browser console. Development-only — the effect is gated on `process.env.NODE_ENV` and inert in production builds. Call it from a component rendered inside `<Command>`.
 
 ### `createKeydownHandler(machine, getState)`
 
