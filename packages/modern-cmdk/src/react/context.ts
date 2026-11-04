@@ -15,6 +15,7 @@ export type CommandRootId = string & { readonly __brand: 'CommandRootId' };
 export interface CommandContextValue {
   readonly machine: CommandMachine;
   readonly state: CommandState;
+  /** True while an optimistic active-item transition is in flight (search updates never set it). */
   readonly isPending: boolean;
   readonly updateSearch: (query: string) => void;
   readonly setOptimisticActiveId: (id: ItemId | null) => void;
@@ -44,6 +45,7 @@ export interface CommandStableContextValue {
 /** State context — values that change on every search/navigation */
 export interface CommandStateContextValue {
   readonly state: CommandState;
+  /** True while an optimistic active-item transition is in flight (search updates never set it). */
   readonly isPending: boolean;
   readonly filteredIdSet: ReadonlySet<ItemId>;
   /** IDs currently visible in virtual viewport + overscan. null = not virtualizing (render all filtered). */
