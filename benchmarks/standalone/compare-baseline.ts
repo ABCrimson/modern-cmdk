@@ -1,7 +1,7 @@
 // benchmarks/standalone/compare-baseline.ts
 // Regression comparison script — reads baseline.json, runs benchmarks 3x, averages, compares.
 // Exit codes: 0 = pass, 1 = warning (>5% regression), 2 = failure (>15% regression)
-// Requires: tinybench 6.2.2, built packages (pnpm build), Node >=26.4.0 (package.json engines)
+// Requires: tinybench 6.2.3, built packages (pnpm build), Node >=26.4.0 (package.json engines)
 
 import './setup.js';
 import { readFile } from 'node:fs/promises';

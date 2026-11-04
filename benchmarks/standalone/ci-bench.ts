@@ -1,4 +1,4 @@
-// Standalone tinybench 6.2.2 script for CI regression tracking
+// Standalone tinybench 6.2.3 script for CI regression tracking
 // ES2026: using/Symbol.dispose, Iterator Helpers
 import './setup.js';
 import { Bench } from 'tinybench';

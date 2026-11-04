@@ -3,8 +3,9 @@
     {
       "kind": "node",
       "name": "node",
+      "field": "engines",
       "pin": ">=26.4.0",
-      "reason": "engines.node is the consumer compatibility floor of the published packages (modern-cmdk, create-modern-cmdk) and the monorepo root; a library cannot require an exact or pre-release Node. The dev toolchain pin is .nvmrc 28.0.0-nightly202610304e48b9b06b (Node 28 nightly), and CI tests both the floor (26.4.0) and 28.0.0-nightly202610304e48b9b06b.",
+      "reason": "engines.node is the consumer compatibility floor of the published packages (modern-cmdk, create-modern-cmdk) and the monorepo root; a library cannot require an exact or pre-release Node. The dev toolchain pin is .nvmrc 28.0.0-nightly2026110370074c6f98 (Node 28 nightly), and CI tests both the floor (26.4.0) and 28.0.0-nightly2026110370074c6f98.",
       "evidence": "orchestrator decision 2 (2026-10-30); engines.node in package.json, packages/modern-cmdk/package.json, packages/create-modern-cmdk/package.json"
     }
   ]

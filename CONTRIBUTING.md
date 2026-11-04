@@ -33,9 +33,9 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly202610304e48b9b06b) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
+| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly2026110370074c6f98) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
 | pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
-| TypeScript | 7.1.0-dev.20261031.1 | Installed via devDependencies -- do not install globally |
+| TypeScript | 7.1.0-dev.20261103.1 | Installed via devDependencies -- do not install globally |
 | Rust + wasm-pack | Pinned nightly (`rust-toolchain.toml`) + wasm-pack 0.15.1 | Only needed if working on `command-search-wasm` |
 | Git | >= 2.40 | For Lefthook pre-commit/pre-push hooks |
 
@@ -235,7 +235,7 @@ modern-cmdk/
 | `pnpm test` | Run unit tests (Vitest, happy-dom) |
 | `pnpm test:watch` | Run unit tests in watch mode |
 | `pnpm test:coverage` | Run tests with V8 coverage report |
-| `pnpm test:e2e` | Run E2E tests (Playwright 1.65 -- Chromium/Firefox/WebKit locally, Chromium in CI) |
+| `pnpm test:e2e` | Run E2E tests (Playwright 1.66 -- Chromium/Firefox/WebKit locally, Chromium in CI) |
 | `pnpm bench` | Run benchmarks (Vitest bench mode) |
 | `pnpm bench:ci` | Run CI benchmarks (standalone, no Vitest) |
 | `pnpm lint` | Check lint rules (Biome) |
@@ -342,7 +342,7 @@ All imports use the `.js` extension suffix (required by `verbatimModuleSyntax`).
 
 ## TypeScript Guidelines
 
-This project uses **TypeScript 7.1.0-dev.20261031.1** with strict configuration.
+This project uses **TypeScript 7.1.0-dev.20261103.1** with strict configuration.
 
 ### Required tsconfig flags
 
@@ -737,7 +737,7 @@ Management (`using`), `Promise.withResolvers` and `RegExp.escape` natively -- no
 Node.js 26.4.0+ ships all of them. If you hit one of these errors, your Node.js is too old:
 
 ```bash
-node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly202610304e48b9b06b
+node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly2026110370074c6f98
 ```
 
 > [!NOTE]

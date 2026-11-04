@@ -621,7 +621,7 @@ Building a production-quality dialog from scratch would add significant bundle s
 
 ### Why Vite 8 for the playground?
 
-The interactive playground uses **Vite 8.3.5** with `@vitejs/plugin-react` 6.1.2. Key benefits:
+The interactive playground uses **Vite 8.3.5** with `@vitejs/plugin-react` 6.2.1. Key benefits:
 
 - **ES2026 build target** -- No downleveling of Iterator Helpers, Set methods, or `using` syntax.
 - **Native CSS nesting** -- Vite 8 passes through CSS nesting, `@layer`, and `@starting-style` without transformation.
