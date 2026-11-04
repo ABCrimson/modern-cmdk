@@ -585,8 +585,13 @@ Five custom properties are registered with `@property` (`--command-list-height`,
 
 | Metric | Target | Enforcement |
 |---|---|---|
-| Core bundle (minified + gzipped) | ≤ 6.5 kB | **Enforced**: `size-limit` (`pnpm size`, CI "Bundle Size" job) on `packages/modern-cmdk/dist/core/index.mjs` |
-| React adapter bundle (minified + gzipped; react/react-dom/radix-ui externalized) | ≤ 12 kB | **Enforced**: `size-limit` on `packages/modern-cmdk/dist/react/index.mjs` |
+| Core bundle | ≤ 6.5 kB | **Enforced**: `size-limit` (`pnpm size`, CI "Bundle Size" job), `packages/modern-cmdk/dist/core/index.mjs`, gzip. Measured 6355 B |
+| React adapter only | ≤ 5.5 kB | **Enforced**: `dist/react/index.mjs`, gzip, with `modern-cmdk`, `react`, `react-dom`, `react/jsx-runtime` and `radix-ui` ignored (the core is not counted). Measured 5403 B |
+| Core + React adapter | ≤ 9.9 kB | **Enforced**: `dist/react/index.mjs`, gzip, `modern-cmdk` not ignored, so the one core is counted once. Measured 9830 B (1.3 inlined the core in the adapter: 6355 B + 9844 B = 16199 B) |
+| `modern-cmdk/react/dialog` only | ≤ 1.5 kB | **Enforced**: `dist/react/dialog.mjs`, gzip, same ignore list. Measured 1425 B |
+| `CommandSeparator` only | ≤ 5 kB | **Enforced**: `import { CommandSeparator }` from `dist/react/index.mjs`, gzip, same ignore list. Measured 4767 B; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (the compound), so this entry is a regression tripwire and not a tree-shaking claim |
+| `modern-cmdk/styles.css` | ≤ 4 kB | **Enforced**: `dist/react/styles.css`, gzip. Measured 3932 B |
+| Codemod bin | ≤ 3.4 MB | **Enforced**: `dist/codemod/cli.mjs`, installed size (no compression). Measured 3318819 B; the transforms are not in it |
 | WASM binary (gzipped) | no budget; about 52 kB measured (113,495 bytes raw) | Not enforced (package private, not in `size-limit`) |
 | Search latency (10K items, TS scorer) | < 16 ms | Tripwire on the named task `search:ts-scorer-10k`: `pnpm bench:compare` against `benchmarks/baseline.json` warns above a 5% regression and fails the CI bench job above 15% or when the median exceeds the 16 ms `target_ms` (see below). |
 | Search latency (100K items, WASM engine) | none (unmeasured) | Target (not enforced); no figure has been measured |
@@ -600,7 +605,7 @@ A row marked "Target (not enforced)" has no check in CI or in the test suites: i
 
 **What `ci.yml` does with benchmarks.** The `bench` job (needs `build`, downloads the `dist` artifact) runs `pnpm bench:compare`, which measures the three named operations (`search:ts-scorer-10k`, `stateUpdate:navigate`, `stateUpdate:searchChange`) three times each and compares the medians with `benchmarks/baseline.json`. Exit code 1 (a regression above 5%) is turned into a warning annotation and the job continues; exit code 2 (a regression above 15%, a median above its `target_ms`, or a harness error) fails the job. A baseline median below `regressionThresholds.floor_ms` (0.01 ms; today only `stateUpdate:navigate`, 0.75 microseconds) is reported, not compared, because runner noise at that scale exceeds the thresholds. If the baseline was recorded on a different CPU or Node version the table says so, and the thresholds are a tripwire, not a verdict. The job then runs `pnpm bench --run` (the Vitest bench files, which print timings but assert nothing), type-checks `benchmarks/tsconfig.json`, and uploads `benchmarks/results/` as the `benchmark-results` artifact. There is no separate benchmark workflow.
 
-Bundle sizes are checked on every CI run by the `size` job, which uploads `size-report.json`.
+Bundle sizes are checked on every CI run by the `size` job, which uploads `size-report.json`. The measured figures above are the committed record [`benchmarks/size-history/1.4.0.json`](benchmarks/size-history/1.4.0.json) (size-limit 14.3.0, measured at `9827e1f`); every entry and its limit is in `size-limit` in the root `package.json`, whose paths point at `packages/modern-cmdk/dist`.
 
 ---
 
@@ -627,7 +632,7 @@ React Context triggers re-renders in all consumers when any value changes. The m
 
 ### Which language features does the source use, and from which edition?
 
-The compile target is `ESNext` with the `ESNext` and `DOM` libs (`tsconfig.base.json`), and development needs Node.js 26.4.0 or newer (`engines`). What `packages/*/src` actually uses:
+The compile target is `ESNext` with the `ESNext` and `DOM` libs (`tsconfig.base.json`), and `modern-cmdk` declares no `engines` (consumers' runtimes are not restricted by the library), while developing this repository needs the root `engines` (Node.js 26.4.0 or newer) and the Node version in `.nvmrc`. What `packages/*/src` actually uses:
 
 - **Iterator Helpers** (ES2025: `.values().map()`, `.filter()`, `.toArray()`, `.find()`, `.entries().filter()`) -- native, used in the registry, search engine, machine and keyboard code to pipe Map/Set/array iterators without intermediate arrays.
 - **`using` / `await using` / `Symbol.dispose`** (Explicit Resource Management, ESNext) -- every stateful class implements `Disposable`, so cleanup can be `using machine = createCommandMachine(...)`. `FrecencyEngine` also implements `AsyncDisposable`.
@@ -656,7 +661,7 @@ Without `Disposable`, cleanup relies on convention. With it, the language gives 
 
 ### Why Radix UI for the React adapter dialog?
 
-The `Command.Dialog` component wraps Radix UI's Dialog primitive (the `radix-ui` package) for:
+The `Command.Dialog` component wraps Radix UI's Dialog primitive (the `radix-ui` package) and is also exported as `CommandDialog` from the `modern-cmdk/react/dialog` subpath. `Command.Dialog` is a member of the `Command` compound, so any `modern-cmdk/react` import loads `radix-ui`: it is a required peer dependency (`>=1.4.0 <2.0.0`) through 1.x and becomes optional again in 2.0, when the barrel drops `Command.Dialog`. It is used for:
 - Portal rendering (escapes z-index stacking contexts)
 - Focus trapping and restoration
 - Scroll locking
@@ -692,11 +697,15 @@ export type GroupId = string & { readonly [__groupIdBrand]: never };
 
 This prevents accidentally passing a `GroupId` where an `ItemId` is expected. The runtime cost is zero -- brands are erased by the compiler. `itemId()` and `groupId()` create them from plain strings (and replace lone surrogates).
 
-### Tree-shaking and the scoped `sideEffects` array
+### Build output and the scoped `sideEffects` array
 
-`packages/modern-cmdk/package.json` declares `"sideEffects": ["./dist/react/styles.css", "./dist/react/index.mjs"]`. Listing only the React entry and its stylesheet tells bundlers (Vite, webpack, Rollup) that every other module -- the framework-agnostic core -- is side-effect-free, so an export nobody uses can be dropped, while the listed entries are preserved so `import "modern-cmdk/styles.css"` is never dropped.
+`packages/modern-cmdk/tsdown.config.ts` holds three tsdown configs. The core (`dist/core/index.mjs`, with declarations). The React adapter: two entries, `modern-cmdk/react` and `modern-cmdk/react/dialog`, in one config so shared code is emitted once as a chunk in `dist/react`; the core is external (the adapter imports it as `modern-cmdk` through `deps.neverBundle`, so a bundle holds one core), `radix-ui` stays external, every output carries a `'use client'` banner, and `styles.css` is copied to `dist/react`. The codemod (`dist/codemod`): the CLI and its transforms, bundled, without declarations.
+
+`packages/modern-cmdk/package.json` declares `"sideEffects": ["./dist/react/styles.css"]`. That tells bundlers (Vite, webpack, Rollup) that every JavaScript module is side-effect-free, so an export nobody uses can be dropped, while `import "modern-cmdk/styles.css"` is never dropped. The React entry is deliberately not listed.
 
 What that does and does not buy: it removes **unused exports**, not subsystems the machine itself uses. `createCommandMachine` imports and constructs the `CommandRegistry`, `KeyboardShortcutRegistry`, `FrecencyEngine`, `TypedEmitter` and scheduler, so a consumer who imports only `createCommandMachine` still ships all of them, and with them the parser, the matcher's `detectConflicts`, the `mapGroupBy` helper and every set helper the registry calls. Bundling `dist/core/index.mjs` with esbuild 0.28.2 from a single `createCommandMachine` import (checked 2026-11-04) drops the exports the machine never reaches: `IdbFrecencyStorage` (and with it the `idb-keyval` import), `createTelemetryMiddleware`, `formatShortcut`, `findMatchingShortcut`, `scoreItem` (the engine calls the internal `scoreItemPreLowered`), `scoreItemAsync` / `batchScoreItems`, `itemId`, `groupId` and `DEFAULT_MACHINE_OPTIONS`. `parseShortcut` ships whenever `createCommandMachine` or `KeyboardShortcutRegistry` is imported, and `TypedEmitter` whenever `createCommandMachine` is; importing `CommandRegistry` alone pulls in neither. `objectGroupBy` is not in `dist/core/index.mjs` at all: it is not exported, so the package build already removes it. The set helpers in `utils/set-ops.ts` are not exported from `modern-cmdk`; they ship whenever `CommandRegistry` is bundled, which `createCommandMachine` always does.
+
+The `modern-cmdk/react` side gets nothing from `sideEffects`: `Command` is built with `Object.assign(CommandRoot, { ..., Dialog: CommandDialog, ... })`, so importing any export, even `CommandSeparator` alone, keeps `CommandDialog`, `CommandRoot` and the `radix-ui` import (4767 B gzip against 5403 B for the whole adapter, `benchmarks/size-history/1.4.0.json`). Dropping that cost is the 2.0 change (D33).
 
 ---
 

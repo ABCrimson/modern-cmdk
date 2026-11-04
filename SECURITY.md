@@ -39,7 +39,7 @@ This policy covers:
 ## Dependencies
 
 - The core package (`modern-cmdk`) has a **single runtime dependency**: `idb-keyval`, lazy-loaded and used only by the optional IndexedDB frecency storage adapter.
-- The React adapter depends on `react`, `react-dom`, and `radix-ui` as optional peer dependencies.
+- The React adapter depends on `react` and `react-dom` as optional peer dependencies and on `radix-ui` as a required peer dependency (range `>=1.4.0 <2.0.0`) through 1.x.
 - We use Dependabot for automated dependency updates and monitor advisories via GitHub's security alerts.
 
 ## Security Updates
