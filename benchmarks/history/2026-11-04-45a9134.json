@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "commit": "45a91340dacbac9c7d6302d4fe2d91e92b6a1079",
+  "date": "2026-11-04T10:14:37.482Z",
+  "environment": {
+    "os": "linux 7.0.0-1017-azure",
+    "runner": "ubuntu26",
+    "runnerImageVersion": "20261026.180.1",
+    "node": "v28.0.0-nightly2026110370074c6f98",
+    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "cpuCount": 4
+  },
+  "runs": 3,
+  "tasks": {
+    "search:ts-scorer-10k": {
+      "median_ms": 3.4617943333335766,
+      "p99_ms": 7.033569930000618,
+      "samples": 3000,
+      "rme": 1.1388382185432795
+    },
+    "stateUpdate:navigate": {
+      "median_ms": 0.0007516666666257757,
+      "p99_ms": 0.007763973334679877,
+      "samples": 3000,
+      "rme": 11.42839256037042
+    },
+    "stateUpdate:searchChange": {
+      "median_ms": 0.36762283333367424,
+      "p99_ms": 0.6053649666667504,
+      "samples": 3000,
+      "rme": 1.561085328832443
+    }
+  }
+}
