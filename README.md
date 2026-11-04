@@ -9,39 +9,39 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/modern-cmdk"><img alt="npm version" src="https://img.shields.io/npm/v/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
-  <a href="https://bundlephobia.com/package/modern-cmdk"><img alt="core size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27&label=core"/></a>
-  <a href="https://bundlephobia.com/package/modern-cmdk/react"><img alt="react size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk/react?style=flat-square&color=dc2626&labelColor=0a0e27&label=react"/></a>
+  <a href="./package.json"><img alt="core size budget" src="https://img.shields.io/badge/core-%3C%206.5%20kB%20gzip-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="./package.json"><img alt="react size budget" src="https://img.shields.io/badge/react-%3C%2012%20kB%20gzip-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
-  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.1.0--dev.20261103.1-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.1.0--dev.20261104.1-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-experimental--e84e1492-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
 </p>
 
 <p align="center">
-  <a href="https://command.crimson.dev">Documentation</a> &middot;
-  <a href="https://command.crimson.dev/guide/getting-started">Getting Started</a> &middot;
-  <a href="https://command.crimson.dev/api/command">API Reference</a> &middot;
-  <a href="https://command.crimson.dev/examples/basic">Examples</a> &middot;
-  <a href="https://github.com/ABCrimson/modern-cmdk/wiki">Wiki</a>
+  <a href="https://abcrimson.github.io/modern-cmdk/">Documentation</a> &middot;
+  <a href="https://abcrimson.github.io/modern-cmdk/guide/getting-started.html">Getting Started</a> &middot;
+  <a href="https://abcrimson.github.io/modern-cmdk/api/command.html">API Reference</a> &middot;
+  <a href="https://abcrimson.github.io/modern-cmdk/examples/basic.html">Examples</a> &middot;
+  <a href="https://abcrimson.github.io/modern-cmdk/">Docs site</a>
 </p>
 
 ---
 
 ## Why modern-cmdk?
 
-A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**. Framework-agnostic core. Zero compromise on performance, accessibility, or developer experience.
+A ground-up rewrite of `cmdk` for **React 19** and **TypeScript 7**, written in modern ECMAScript. Framework-agnostic core. Zero compromise on performance, accessibility, or developer experience.
 
 | | cmdk | modern-cmdk |
 |---|---|---|
 | **Architecture** | React-only, tightly coupled | Framework-agnostic core + thin adapters |
-| **React** | 18 | 19 (`use()`, `useOptimistic`, `useId`, `ref` as prop) |
-| **Search** | Basic substring | Fuzzy scoring + optional WASM (sub-1ms on 100K items) |
-| **Ranking** | Static order | Frecency with time-based exponential decay |
+| **React** | 18 / 19 | 19 (`use()`, `useOptimistic`, `useId`, `ref` as prop) |
+| **Search** | Fuzzy (`command-score`) by default; replaceable via the `filter` prop | Fuzzy scoring, pluggable engine; experimental WASM engine (unpublished) |
+| **Ranking** | Static order | Frecency with bucketed recency weights (hour/day/week/month/older) |
 | **Virtualization** | None | Automatic variable-height, `content-visibility: auto` |
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
-| **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
+| **Keyboard** | Arrow, Home/End and vim (Ctrl+N/J/P/K) bindings; no shortcut registry | Arrow and Home/End navigation (no vim bindings), plus a shortcut registry with `Mod` key and conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
-| **Bundle** | ~6 KB | Core ~6.4 KB, React ~9.8 KB |
+| **Bundle** | not compared | Core ~6.4 kB, React ~9.8 kB gzip (budgets: < 6.5 kB, < 12 kB) |
 | **TypeScript** | 4.x/5.x | 7.1.0-dev.20261104.1, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Telemetry** | None | Pluggable telemetry middleware |
@@ -54,18 +54,18 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 
 ## Features
 
-- **Framework-agnostic core** -- Pure TypeScript state machine. No DOM. No React. Portable to any runtime. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
+- **Framework-agnostic core** -- Pure TypeScript state machine. No React. No hard DOM dependency; DOM APIs are feature-detected and SSR-safe. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
 - **React 19 adapter** -- `useSyncExternalStore`, `useTransition`, `useOptimistic`, `useId`, `use()` for Suspense. React Compiler compatible.
 - **Automatic virtualization** -- Variable-height virtual scrolling at configurable threshold. 100K+ items with `content-visibility: auto`.
-- **Fuzzy search** -- Built-in TS scorer with incremental filtering. Optional WASM engine for sub-1ms on 100K items with graceful TS fallback.
-- **Frecency ranking** -- Frequency x recency with time-based exponential decay and pluggable persistence (memory, IndexedDB).
-- **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, `RegExp.escape` parsing, conflict detection.
-- **Full accessibility** -- WAI-ARIA combobox, `aria-live`, `aria-roledescription`, `forced-colors`, `prefers-contrast`, `prefers-reduced-motion`.
+- **Fuzzy search** -- Built-in TS scorer with incremental filtering. Experimental Rust/WASM engine (`modern-cmdk-search-wasm`, unpublished and not benchmarked here).
+- **Frecency ranking** -- Frequency x recency with bucketed recency weights (hour/day/week/month/older) and pluggable persistence (memory, IndexedDB).
+- **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, conflict detection.
+- **Full accessibility** -- WAI-ARIA combobox, `aria-live`, `forced-colors`, `prefers-contrast`, `prefers-reduced-motion`.
 - **GPU-composited animations** -- `@starting-style` entry, `scroll-timeline` progress, spring `linear()` easing, all customizable via CSS custom properties.
 - **Error boundary** -- `CommandErrorBoundary` with static or render-function fallback.
 - **DevTools** -- `useCommandDevtools()` exposes machine state via `CustomEvent` for browser inspection.
 - **Telemetry middleware** -- Pluggable hooks for palette open/close, search, and item selection analytics.
-- **ES2026 throughout** -- Iterator Helpers, `using`/`await using`, `Promise.withResolvers`, `RegExp.escape`. Cross-browser helpers for Set operations, grouping, and time calculations.
+- **Modern ECMAScript** -- ES2025 Iterator helpers, `using`/`await using` (`Symbol.dispose` / `Symbol.asyncDispose`), `toSorted`, plus cross-browser helpers for grouping.
 - **ESM-only** -- Zero CommonJS. Tree-shakeable -- the framework-agnostic core is side-effect-free; only the React entry and `styles.css` are flagged in `sideEffects`. Isolated declarations.
 
 ---
@@ -74,6 +74,12 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 
 ```bash
 pnpm add modern-cmdk
+```
+
+React is an **optional** peer dependency — use the core engine standalone in any framework, or pair it with the React adapter. `modern-cmdk/react` imports `react`, `react-dom` and `radix-ui`, which are optional peers that npm and pnpm do not install for you, so add them yourself (the Quick Start below needs all three):
+
+```bash
+pnpm add modern-cmdk react react-dom radix-ui
 ```
 
 > [!NOTE]
@@ -89,33 +95,48 @@ npm create modern-cmdk
 'use client';
 
 import { Command } from 'modern-cmdk/react';
+import 'modern-cmdk/styles.css';
+import { useEffect, useState } from 'react';
 
 function CommandPalette() {
+  const [open, setOpen] = useState(false);
+
+  // Nothing opens the dialog for you: toggle it from a Mod+K listener (Cmd+K / Ctrl+K).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((o) => !o);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   return (
-    <Command.Dialog>
+    <Command.Dialog open={open} onOpenChange={setOpen} label="Command Menu">
       <Command.Input placeholder="Type a command..." />
       <Command.List>
         <Command.Empty>No results found.</Command.Empty>
 
         <Command.Group heading="Actions">
-          <Command.Item value="copy" onSelect={() => copyToClipboard()}>
-            <Command.Highlight>Copy to Clipboard</Command.Highlight>
-            <Command.Shortcut>Mod+C</Command.Shortcut>
+          <Command.Item value="copy" onSelect={() => setOpen(false)}>
+            Copy to Clipboard
+            <Command.Shortcut shortcut="Mod+C" />
           </Command.Item>
-          <Command.Item value="paste" onSelect={() => paste()}>
-            <Command.Highlight>Paste</Command.Highlight>
-            <Command.Shortcut>Mod+V</Command.Shortcut>
+          <Command.Item value="paste" onSelect={() => setOpen(false)}>
+            Paste
+            <Command.Shortcut shortcut="Mod+V" />
           </Command.Item>
         </Command.Group>
 
         <Command.Group heading="Navigation">
-          <Command.Item value="settings" onSelect={() => navigate('/settings')}>
+          <Command.Item value="settings" onSelect={() => setOpen(false)}>
             Settings
             <Command.Badge>New</Command.Badge>
           </Command.Item>
         </Command.Group>
       </Command.List>
-      <Command.Loading>Searching...</Command.Loading>
     </Command.Dialog>
   );
 }
@@ -127,9 +148,9 @@ function CommandPalette() {
 
 | Package | Description | Size |
 |---|---|---|
-| [`modern-cmdk`](./packages/modern-cmdk) | Framework-agnostic core -- state machine, search, frecency, keyboard | ~6.4 KB |
-| [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | ~9.8 KB |
-| [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index, sub-1ms on 100K items _(experimental, not yet published)_ | ~52 KB |
+| [`modern-cmdk`](./packages/modern-cmdk) | Framework-agnostic core -- state machine, search, frecency, keyboard | ~6.4 kB gzip |
+| [`modern-cmdk/react`](./packages/modern-cmdk/src/react) | React 19 compound components -- Dialog, List, Item, Group, Input | ~9.8 kB gzip |
+| [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search -- trigram index _(experimental, not yet published)_ | -- |
 | [`modern-cmdk (codemods)`](./packages/modern-cmdk/src/codemod) | Migration codemods from cmdk -- 4 transforms | CLI |
 | [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding -- 3 templates (react-basic, react-dialog, react-full) | CLI |
 | [`vscode-modern-cmdk`](./packages/vscode-modern-cmdk) | VS Code snippets -- 15 snippets for fast development | Extension |
@@ -154,7 +175,7 @@ flowchart TB
         direction TB
         SM["State Machine<br/>(Pure TS)"]
         SE["Search Engine<br/>(Pluggable)"]
-        FE["Frecency Engine<br/>(Time Decay)"]
+        FE["Frecency Engine<br/>(Recency Buckets)"]
         REG["Command Registry & Event Emitter"]
         KB["Keyboard Shortcut Registry"]
         SCH["Scheduler"]
@@ -227,42 +248,19 @@ const unsubscribe = machine.subscribe(() => {
 
 ## Performance
 
-### Head-to-Head vs cmdk
+Numbers come from `benchmarks/baseline.json` and its committed history file `benchmarks/history/2026-11-04-45a9134.json`: one CI run of the 1.2.3 tree (commit `45a9134`, 2026-11-04, 3 runs averaged) on a GitHub-hosted Linux runner, Node v28.0.0-nightly2026110370074c6f98, AMD EPYC 7763 64-Core Processor (4 vCPUs). Runner noise is +/-20-40 %, so treat them as orders of magnitude, not guarantees.
 
-Raw filter throughput measured across 15 scenarios (100 / 1K / 10K items x 5 query types):
+| Benchmark | Target | Median | p99 |
+|---|---|---|---|
+| Search 10K items (TS scorer) | < 16 ms | 3.46 ms | 7.03 ms |
+| State update: `SEARCH_CHANGE` | < 4 ms | 0.37 ms | 0.61 ms |
+| State update: `NAVIGATE` | < 1 ms | 0.00075 ms | 0.0078 ms |
 
-| Dataset | Query | cmdk | modern-cmdk | Result |
-|---|---|---|---|---|
-| 100 items | `"app"` | 0.091 ms | 0.058 ms | **1.6x faster** |
-| 100 items | `"banana"` | 0.055 ms | 0.035 ms | **1.6x faster** |
-| 100 items | `"open settings"` | 0.075 ms | 0.024 ms | **3.1x faster** |
-| 100 items | `"dshbrd"` | 0.048 ms | 0.075 ms | cmdk 1.6x |
-| 100 items | `"xyznotfound"` | 0.027 ms | 0.020 ms | **1.3x faster** |
-| 1K items | `"app"` | 0.450 ms | 0.421 ms | **1.1x faster** |
-| 1K items | `"banana"` | 1.150 ms | 0.193 ms | **5.9x faster** |
-| 1K items | `"open settings"` | 0.455 ms | 0.215 ms | **2.1x faster** |
-| 1K items | `"dshbrd"` | 0.292 ms | 0.211 ms | **1.4x faster** |
-| 1K items | `"xyznotfound"` | 0.211 ms | 0.162 ms | **1.3x faster** |
-| 10K items | `"app"` | 3.198 ms | 1.938 ms | **1.7x faster** |
-| 10K items | `"banana"` | 2.853 ms | 1.770 ms | **1.6x faster** |
-| 10K items | `"open settings"` | 4.254 ms | 1.355 ms | **3.1x faster** |
-| 10K items | `"dshbrd"` | 2.342 ms | 1.986 ms | **1.2x faster** |
-| 10K items | `"xyznotfound"` | 1.743 ms | 1.672 ms | **1.0x faster** |
+Bundle size (gzip, from `pnpm size`): core 6353 B against a 6.5 kB budget, React adapter 9842 B against 12 kB.
 
-**modern-cmdk wins 14 of 15 benchmarks**, up to **5.9x faster** at scale. Search accuracy: precision >= 80%, specificity >= 90%, top result correctness verified.
+The WASM engine is unpublished and no gate builds or measures it, so no WASM figures are published. There is no head-to-head table against cmdk because none of its numbers are in the committed benchmark history.
 
-### Absolute Performance
-
-| Benchmark | Target | Measured |
-|---|---|---|
-| Search 10K items (TS scorer) | < 16 ms | ~8.2 ms |
-| Search 100K items (WASM) | < 1 ms | ~0.7 ms |
-| Filter 10K (incremental) | < 2 ms | ~1.1 ms |
-| State update cycle | < 4 ms | ~2.3 ms |
-| Core bundle (gzipped) | <= 6.5 KB | ~6.4 KB |
-| React bundle (gzipped) | <= 12 KB | ~9.8 KB |
-
-CI enforces 5% warning / 15% failure regression thresholds with 3-run averaging.
+CI compares only the three benchmarks above (`search:ts-scorer-10k`, `stateUpdate:navigate`, `stateUpdate:searchChange`) against the committed baseline, with a 5 % warning and 15 % failure threshold. Given the runner noise this is a coarse tripwire, not a regression gate; a stable gate is planned for 1.9.
 
 ### Feature Comparison
 
@@ -286,11 +284,14 @@ CI enforces 5% warning / 15% failure regression thresholds with 3-run averaging.
 | Frecency ranking | -- | Yes |
 | Branded type safety | -- | Yes |
 | Disposable pattern (`using`) | -- | Yes |
-| ES2026 Iterator pipeline | -- | Yes |
+| ES2025 Iterator helpers pipeline | -- | Yes |
 | Page navigation stack | -- | Yes |
 | Error boundary | -- | Yes |
+| React 18 support | Yes | -- |
+| Vim bindings (Ctrl+N/J/P/K) | Yes | -- |
+| `disablePointerSelection` prop | Yes | -- |
 
-**11 exclusive features, 10 shared, 0 cmdk-only.**
+**11 exclusive features, 10 shared, 3 cmdk-only.**
 
 ---
 
@@ -324,21 +325,21 @@ npx modern-cmdk forward-ref ./src
 npx modern-cmdk should-filter ./src
 ```
 
-See the [migration guide](https://command.crimson.dev/guide/migration-from-cmdk).
+See the [migration guide](https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html).
 
 ---
 
 ## Documentation
 
-**[command.crimson.dev](https://command.crimson.dev)**
+**[abcrimson.github.io/modern-cmdk](https://abcrimson.github.io/modern-cmdk/)**
 
-**Guides:** [Getting Started](https://command.crimson.dev/guide/getting-started) | [Installation](https://command.crimson.dev/guide/installation) | [Basic Usage](https://command.crimson.dev/guide/basic-usage) | [Async Items](https://command.crimson.dev/guide/async-items) | [WASM Search](https://command.crimson.dev/guide/wasm-search) | [Frecency](https://command.crimson.dev/guide/frecency) | [Shortcuts](https://command.crimson.dev/guide/shortcuts) | [Virtualization](https://command.crimson.dev/guide/virtualization) | [SSR / Next.js](https://command.crimson.dev/guide/ssr) | [TypeScript](https://command.crimson.dev/guide/typescript-integration) | [Theming](https://command.crimson.dev/guide/theming) | [Accessibility](https://command.crimson.dev/guide/accessibility) | [Controlled Dialog](https://command.crimson.dev/guide/controlled-dialog)
+**Guides:** [Getting Started](https://abcrimson.github.io/modern-cmdk/guide/getting-started.html) | [Installation](https://abcrimson.github.io/modern-cmdk/guide/installation.html) | [Basic Usage](https://abcrimson.github.io/modern-cmdk/guide/basic-usage.html) | [Async Items](https://abcrimson.github.io/modern-cmdk/guide/async-items.html) | [WASM Search](https://abcrimson.github.io/modern-cmdk/guide/wasm-search.html) | [Frecency](https://abcrimson.github.io/modern-cmdk/guide/frecency.html) | [Shortcuts](https://abcrimson.github.io/modern-cmdk/guide/shortcuts.html) | [Virtualization](https://abcrimson.github.io/modern-cmdk/guide/virtualization.html) | [SSR / Next.js](https://abcrimson.github.io/modern-cmdk/guide/ssr.html) | [TypeScript](https://abcrimson.github.io/modern-cmdk/guide/typescript-integration.html) | [Theming](https://abcrimson.github.io/modern-cmdk/guide/theming.html) | [Accessibility](https://abcrimson.github.io/modern-cmdk/guide/accessibility.html) | [Controlled Dialog](https://abcrimson.github.io/modern-cmdk/guide/controlled-dialog.html)
 
-**Recipes:** [File Picker](https://command.crimson.dev/recipes/file-picker) | [Emoji Picker](https://command.crimson.dev/recipes/emoji-picker) | [AI Chat Commands](https://command.crimson.dev/recipes/ai-chat-commands) | [Nested Commands](https://command.crimson.dev/recipes/nested-commands) | [Spotlight Search](https://command.crimson.dev/recipes/spotlight-search)
+**Recipes:** [File Picker](https://abcrimson.github.io/modern-cmdk/recipes/file-picker.html) | [Emoji Picker](https://abcrimson.github.io/modern-cmdk/recipes/emoji-picker.html) | [AI Chat Commands](https://abcrimson.github.io/modern-cmdk/recipes/ai-chat-commands.html) | [Nested Commands](https://abcrimson.github.io/modern-cmdk/recipes/nested-commands.html) | [Spotlight Search](https://abcrimson.github.io/modern-cmdk/recipes/spotlight-search.html)
 
-**API:** [Core Engine](https://command.crimson.dev/api/command) | [React Adapter](https://command.crimson.dev/api/command-react) | [WASM Search](https://command.crimson.dev/api/command-search-wasm)
+**API:** [Core Engine](https://abcrimson.github.io/modern-cmdk/api/command.html) | [React Adapter](https://abcrimson.github.io/modern-cmdk/api/command-react.html) | [WASM Search](https://abcrimson.github.io/modern-cmdk/api/command-search-wasm.html)
 
-**[Benchmarks](https://command.crimson.dev/benchmarks)** | **[Architecture](https://command.crimson.dev/architecture/overview)** | **[Migration from cmdk](https://command.crimson.dev/guide/migration-from-cmdk)**
+**[Benchmarks](https://abcrimson.github.io/modern-cmdk/benchmarks.html)** | **[Architecture](https://abcrimson.github.io/modern-cmdk/architecture/overview.html)** | **[Migration from cmdk](https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html)**
 
 ---
 
@@ -371,7 +372,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 | TypeScript | 7.1.0-dev.20261104.1 | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
 | React | 0.0.0-experimental-e84e1492-20261031 | `use()`, `useOptimistic`, `ref` as prop, Activity API |
 | Vite | 8.3.5 | Playground dev server, HMR, build tooling |
-| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly2026110370074c6f98) | ES2026: Iterator Helpers, Explicit Resource Management |
+| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly2026110370074c6f98) | ES2025 Iterator helpers, Explicit Resource Management |
 | Vitest | 5.1.0 | Unit tests, benchmarks, V8 coverage |
 | Playwright | 1.66.0-alpha-2026-11-04 | Cross-browser E2E (Chromium, Firefox, WebKit) |
 | Biome | 2.6.4 | Lint + format (no ESLint, no Prettier) |
