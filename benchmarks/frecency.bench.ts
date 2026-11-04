@@ -13,7 +13,7 @@ function makeRecord(hoursAgo: number, frequency: number): FrecencyRecord {
   return { lastUsed: NOW - msAgo, frequency };
 }
 
-// ES2026 Iterator Helpers — generate frecency records via iterator pipeline
+// ES2025 Iterator Helpers — generate frecency records via iterator pipeline
 function _generateRecords(count: number): Map<ItemId, FrecencyRecord> {
   return new Map(
     Iterator.from({
@@ -78,7 +78,7 @@ describe('computeFrecencyBonus — Pure Function', () => {
 // ---------------------------------------------------------------------------
 
 describe('FrecencyEngine.getBonus — 10K Records', () => {
-  const engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
+  const engine = new FrecencyEngine({ enabled: true, storage: new MemoryFrecencyStorage() });
 
   // Populate engine with 10K records
   const ids: ItemId[] = [];
@@ -116,31 +116,42 @@ describe('FrecencyEngine.getBonus — 10K Records', () => {
 // ---------------------------------------------------------------------------
 
 describe('FrecencyEngine — Record Selection', () => {
-  test('100 selections', async ({ bench }) => {
-    await bench('100 selections', () => {
-      using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
-      for (let i = 0; i < 100; i++) {
-        engine.recordSelection(itemId(`item-${i}`));
+  // A fresh engine per iteration is created in beforeEach and disposed in afterEach (which awaits
+  // the pending save before the storage is cleared), so only the recordSelection loop is timed.
+  let engine: FrecencyEngine | undefined;
+  const ids = Array.from({ length: 10_000 }, (_, i) => itemId(`item-${i}`));
+
+  const recordBench = (count: number, modulo = count) => ({
+    options: {
+      beforeEach() {
+        engine = new FrecencyEngine({ enabled: true, storage: new MemoryFrecencyStorage() });
+      },
+      async afterEach() {
+        await engine?.[Symbol.asyncDispose]();
+        engine = undefined;
+      },
+    },
+    fn: (): void => {
+      if (!engine) throw new Error('engine fixture missing: beforeEach did not run');
+      for (let i = 0; i < count; i++) {
+        engine.recordSelection(ids[i % modulo] as ItemId);
       }
-    }).run();
+    },
+  });
+
+  test('100 selections', async ({ bench }) => {
+    const { options, fn } = recordBench(100);
+    await bench('100 selections', options, fn).run();
   });
 
   test('1K selections', async ({ bench }) => {
-    await bench('1K selections', () => {
-      using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
-      for (let i = 0; i < 1_000; i++) {
-        engine.recordSelection(itemId(`item-${i}`));
-      }
-    }).run();
+    const { options, fn } = recordBench(1_000);
+    await bench('1K selections', options, fn).run();
   });
 
   test('10K selections (rapid typing simulation)', async ({ bench }) => {
-    await bench('10K selections (rapid typing simulation)', () => {
-      using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
-      for (let i = 0; i < 10_000; i++) {
-        engine.recordSelection(itemId(`item-${i % 500}`));
-      }
-    }).run();
+    const { options, fn } = recordBench(10_000, 500);
+    await bench('10K selections (rapid typing simulation)', options, fn).run();
   });
 });
 
@@ -151,7 +162,7 @@ describe('FrecencyEngine — Record Selection', () => {
 describe('FrecencyEngine — Full Pipeline', () => {
   test('create + 100 records + getAllBonuses', async ({ bench }) => {
     await bench('create + 100 records + getAllBonuses', () => {
-      using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
+      using engine = new FrecencyEngine({ enabled: true, storage: new MemoryFrecencyStorage() });
       for (let i = 0; i < 100; i++) {
         engine.recordSelection(itemId(`item-${i}`));
       }
@@ -161,7 +172,7 @@ describe('FrecencyEngine — Full Pipeline', () => {
 
   test('create + 1K records + getAllBonuses', async ({ bench }) => {
     await bench('create + 1K records + getAllBonuses', () => {
-      using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
+      using engine = new FrecencyEngine({ enabled: true, storage: new MemoryFrecencyStorage() });
       for (let i = 0; i < 1_000; i++) {
         engine.recordSelection(itemId(`item-${i}`));
       }

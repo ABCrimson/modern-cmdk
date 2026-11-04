@@ -24,7 +24,7 @@ const WORDS = [
   'watermelon',
 ];
 
-// ES2026 Iterator Helpers — generate benchmark items via iterator pipeline
+// ES2025 Iterator Helpers — generate benchmark items via iterator pipeline
 function generateItems(count: number): CommandItem[] {
   return Iterator.from({
     [Symbol.iterator]: function* () {
@@ -51,14 +51,29 @@ describe('Filter 100K Items (TS scorer)', () => {
     }).run();
   });
 
+  // beforeAll builds the 100K index once per tinybench phase (warmup, then the measured run), so only the four searches are timed.
+  let incrementalEngine: ReturnType<typeof createSearchEngine> | undefined;
+
   test('search engine — incremental', async ({ bench }) => {
-    await bench('search engine — incremental', () => {
-      using engine = createSearchEngine();
-      engine.index(items100K);
-      engine.search('a', items100K).toArray();
-      engine.search('ap', items100K).toArray();
-      engine.search('app', items100K).toArray();
-      engine.search('appl', items100K).toArray();
-    }).run();
+    await bench(
+      'search engine — incremental',
+      {
+        beforeAll() {
+          incrementalEngine = createSearchEngine();
+          incrementalEngine.index(items100K);
+        },
+        afterAll() {
+          incrementalEngine?.[Symbol.dispose]();
+          incrementalEngine = undefined;
+        },
+      },
+      () => {
+        if (!incrementalEngine) throw new Error('engine fixture missing: beforeAll did not run');
+        incrementalEngine.search('a', items100K).toArray();
+        incrementalEngine.search('ap', items100K).toArray();
+        incrementalEngine.search('app', items100K).toArray();
+        incrementalEngine.search('appl', items100K).toArray();
+      },
+    ).run();
   });
 });

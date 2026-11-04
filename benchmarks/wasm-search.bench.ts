@@ -29,7 +29,7 @@ const words = [
   'watermelon',
 ];
 
-// ES2026 Iterator Helpers — generate benchmark items via iterator pipeline
+// ES2025 Iterator Helpers — generate benchmark items via iterator pipeline
 function generateItems(count: number): CommandItem[] {
   return Iterator.from({
     [Symbol.iterator]: function* () {
