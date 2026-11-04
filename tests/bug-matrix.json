@@ -6,8 +6,8 @@
   },
   {
     "id": "DAE-01",
-    "test": null,
-    "status": "pending"
+    "test": "tests/docs/pages.spec.ts::asset requests outside the base returned 404",
+    "status": "gate"
   },
   {
     "id": "DG-71",
@@ -26,8 +26,8 @@
   },
   {
     "id": "DT-02",
-    "test": null,
-    "status": "pending"
+    "test": "tests/docs/pages.spec.ts::asset requests outside the base returned 404",
+    "status": "gate"
   },
   {
     "id": "DT-03",
@@ -41,8 +41,8 @@
   },
   {
     "id": "F3",
-    "test": null,
-    "status": "pending"
+    "test": "tests/docs/pages.spec.ts::asset requests outside the base returned 404",
+    "status": "gate"
   },
   {
     "id": "F4",
@@ -56,13 +56,13 @@
   },
   {
     "id": "P02",
-    "test": null,
-    "status": "pending"
+    "test": "benchmarks/standalone/compare-baseline.ts::await stateChanged.promise;",
+    "status": "gate"
   },
   {
     "id": "P31",
-    "test": null,
-    "status": "pending"
+    "test": "benchmarks/standalone/compare-baseline.ts::NO BASELINE ENTRY for measured key",
+    "status": "gate"
   },
   {
     "id": "RP-06",
@@ -81,18 +81,18 @@
   },
   {
     "id": "RP-26",
-    "test": null,
-    "status": "pending"
+    "test": "benchmarks/standalone/compare-baseline.ts::process.exitCode = await main();",
+    "status": "gate"
   },
   {
     "id": "RP-27",
-    "test": null,
-    "status": "pending"
+    "test": "benchmarks/standalone/compare-baseline.ts::const resultsDir = new URL('../../benchmarks/results/', import.meta.url);",
+    "status": "gate"
   },
   {
     "id": "RP-33",
-    "test": null,
-    "status": "pending"
+    "test": ".github/workflows/ci.yml::      - run: pnpm typecheck",
+    "status": "gate"
   },
   {
     "id": "SEC-08",
@@ -106,8 +106,8 @@
   },
   {
     "id": "T27",
-    "test": null,
-    "status": "pending"
+    "test": "playwright.config.ts::reporter: isCI ? [['github'], ['html', { open: 'never' }]]",
+    "status": "gate"
   },
   {
     "id": "PG-14",
@@ -116,8 +116,8 @@
   },
   {
     "id": "RDG-03",
-    "test": null,
-    "status": "pending"
+    "test": "tests/docs/pages.spec.ts::asset requests outside the base returned 404",
+    "status": "gate"
   },
   {
     "id": "RDG-05",
@@ -126,18 +126,18 @@
   },
   {
     "id": "RDG-17",
-    "test": null,
-    "status": "pending"
+    "test": "playwright.config.ts::reporter: isCI ? [['github'], ['html', { open: 'never' }]]",
+    "status": "gate"
   },
   {
     "id": "RDG-19",
-    "test": null,
-    "status": "pending"
+    "test": "benchmarks/standalone/compare-baseline.ts::const resultsDir = new URL('../../benchmarks/results/', import.meta.url);",
+    "status": "gate"
   },
   {
     "id": "RDG-27",
-    "test": null,
-    "status": "pending"
+    "test": ".github/workflows/ci.yml::      - run: pnpm typecheck",
+    "status": "gate"
   },
   {
     "id": "RDG-33",
@@ -146,28 +146,28 @@
   },
   {
     "id": "TEB-03",
-    "test": null,
-    "status": "pending"
+    "test": "vitest.config.ts::'packages/modern-cmdk/src/core/index.ts',",
+    "status": "gate"
   },
   {
     "id": "TEB-11",
-    "test": null,
-    "status": "pending"
+    "test": "benchmarks/standalone/compare-baseline.ts::process.exitCode = await main();",
+    "status": "gate"
   },
   {
     "id": "TEB-13",
-    "test": null,
-    "status": "pending"
+    "test": "benchmarks/standalone/compare-baseline.ts::const resultsDir = new URL('../../benchmarks/results/', import.meta.url);",
+    "status": "gate"
   },
   {
     "id": "TEB-19",
-    "test": null,
-    "status": "pending"
+    "test": "playwright.config.ts::reporter: isCI ? [['github'], ['html', { open: 'never' }]]",
+    "status": "gate"
   },
   {
     "id": "TEB-20",
-    "test": null,
-    "status": "pending"
+    "test": ".github/workflows/ci.yml::      - run: pnpm exec tsc -p benchmarks/tsconfig.json --noEmit",
+    "status": "gate"
   },
   {
     "id": "TUB-10",
@@ -176,38 +176,38 @@
   },
   {
     "id": "W18",
-    "test": null,
-    "status": "pending"
+    "test": "packages/command-search-wasm/package.json::\"build\": \"node scripts/build.mjs\"",
+    "status": "gate"
   },
   {
     "id": "W19",
-    "test": null,
-    "status": "pending"
+    "test": "packages/command-search-wasm/src/pkg-stub.test.ts::pkg.d.ts stub matches the generated declarations",
+    "status": "covered"
   },
   {
     "id": "W20",
-    "test": null,
-    "status": "pending"
+    "test": "packages/command-search-wasm/tsdown.config.ts::platform: 'neutral',",
+    "status": "gate"
   },
   {
     "id": "RDG-67",
-    "test": null,
-    "status": "pending"
+    "test": ".gitignore::**/.vitepress/cache/",
+    "status": "gate"
   },
   {
     "id": "TEB-37",
-    "test": null,
-    "status": "pending"
+    "test": "benchmarks/standalone/compare-baseline.ts::values.reduce((a, b) => a + b, 0) / values.length;",
+    "status": "gate"
   },
   {
     "id": "TEB-38",
-    "test": null,
-    "status": "pending"
+    "test": "benchmarks/standalone/compare-baseline.ts::afterEach: () => {",
+    "status": "gate"
   },
   {
     "id": "TEB-39",
-    "test": null,
-    "status": "pending"
+    "test": "package.json::tsc -p tests/tsconfig.json --noEmit",
+    "status": "gate"
   },
   {
     "id": "TUB-30",
