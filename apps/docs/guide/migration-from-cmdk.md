@@ -180,7 +180,7 @@ The Dialog component uses the unified `radix-ui` package instead of individual `
 + "radix-ui": "1.8.2-rc.1791984254107"
 ```
 
-You do not need to install Radix separately unless you use it directly.
+Install `radix-ui` (`>=1.4.0 <2.0.0`) alongside `modern-cmdk`: `modern-cmdk/react` imports it, and it is a required peer in 1.x (see [Installation](/guide/installation#peer-dependencies)).
 
 ### 7. `useSyncExternalStore` Shim Removed
 
@@ -284,6 +284,10 @@ function CommandPalette() {
 | `[cmdk-item]` | `[data-command-item]` | Codemod: `data-attrs` |
 | `[cmdk-group]` | `[data-command-group]` | Codemod: `data-attrs` |
 | `[cmdk-group-heading]` | `[data-command-group-heading]` | Manual: not covered by the codemod |
+| `[cmdk-group-items]` | `[data-command-group-items]` | Manual: not covered by the codemod |
+| `[cmdk-dialog]` | `[data-command-dialog]` | Manual: not covered by the codemod; set on the Radix `Dialog.Content` element, which wraps the inner `[data-command-dialog-content]` |
+| `[cmdk-overlay]` | `[data-command-overlay]` | Manual: not covered by the codemod |
+| `[cmdk-list-sizer]` | no equivalent | modern-cmdk does not render this element; the list renders its own inner wrapper, `[data-command-list-inner]`, which is not a rename of it |
 | `[cmdk-list]` | `[data-command-list]` | Codemod: `data-attrs` |
 | `[cmdk-separator]` | `[data-command-separator]` | Codemod: `data-attrs` |
 | `[cmdk-empty]` | `[data-command-empty]` | Codemod: `data-attrs` |

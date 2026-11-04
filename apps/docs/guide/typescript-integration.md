@@ -59,4 +59,13 @@ All packages are built with `isolatedDeclarations: true`, ensuring `.d.ts` files
 
 ## erasableSyntaxOnly
 
-The codebase uses only erasable TypeScript syntax (no enums, no namespaces, no constructor parameter properties). This means any tool that strips types (esbuild, swc, Bun) works correctly.
+The codebase uses only erasable TypeScript syntax (no enums, no namespaces, no constructor parameter properties). This means any tool that strips types works correctly: Node's built-in type stripping first, then esbuild, swc and Bun.
+
+Node runs `.ts` files by stripping the types, with no flag, from v23.6.0 and v22.18.0 (type stripping is stable from v25.2.0 and v24.12.0), per [nodejs.org/api/typescript.html](https://nodejs.org/api/typescript.html), read on 2026-11-04. On the Node pinned in `.nvmrc` (28.0.0-nightly20261104d36e9ba1f8):
+
+```bash
+node -p process.features.typescript
+# strip
+```
+
+`strip` is the default value; it is `false` when Node runs with `--no-strip-types` (nodejs.org/api/process.html). Stripping handles only erasable syntax, which is why this codebase restricts itself to it.
