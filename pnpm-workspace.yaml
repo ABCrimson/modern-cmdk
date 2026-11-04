@@ -25,18 +25,18 @@ trustPolicyExclude:
   - lefthook@2.2.2
   - semver@5.7.2
   - semver@6.3.1
-# Exact versions published less than minimumReleaseAge before the 2026-11-04 lockfile refresh (pruned 2026-11-04 05:50 UTC);
+# Exact versions published less than minimumReleaseAge before the 2026-11-04 lockfile refreshes (pruned 2026-11-04 09:05 UTC);
 # pnpm 12.17.0 refuses them otherwise. Entries age out of need after a day.
 minimumReleaseAgeExclude:
   - '@playwright/test@1.66.0-alpha-2026-11-04'
-  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261103.1'
-  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261103.1'
-  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261103.1'
-  - '@typescript/typescript-linux-arm@7.1.0-dev.20261103.1'
-  - '@typescript/typescript-linux-x64@7.1.0-dev.20261103.1'
-  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261103.1'
-  - '@typescript/typescript-win32-x64@7.1.0-dev.20261103.1'
+  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261104.1'
+  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261104.1'
+  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261104.1'
+  - '@typescript/typescript-linux-arm@7.1.0-dev.20261104.1'
+  - '@typescript/typescript-linux-x64@7.1.0-dev.20261104.1'
+  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261104.1'
+  - '@typescript/typescript-win32-x64@7.1.0-dev.20261104.1'
   - playwright-core@1.66.0-alpha-2026-11-04
   - playwright@1.66.0-alpha-2026-11-04
   - tsdown@0.23.5
-  - typescript@7.1.0-dev.20261103.1
+  - typescript@7.1.0-dev.20261104.1
