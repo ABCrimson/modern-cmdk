@@ -1,6 +1,6 @@
 ---
 title: Architecture Internals
-description: Monorepo-level view of the modern-cmdk architecture — package graph, core subsystems, virtualization internals, and ES2026 feature usage.
+description: Monorepo-level view of the modern-cmdk architecture — package graph, core subsystems, virtualization internals, and ES feature usage.
 ---
 
 # Architecture Internals
@@ -28,18 +28,14 @@ The core is a **pure TypeScript state machine** with zero DOM or framework depen
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Idle
-    Idle --> Searching: SEARCH_CHANGE
-    Searching --> Idle: query cleared
-    Searching --> Searching: query updated
-
-    Idle --> Navigating: ARROW_DOWN / ARROW_UP
-    Searching --> Navigating: ARROW_DOWN / ARROW_UP
-    Navigating --> Idle: SEARCH_CHANGE
-
-    Navigating --> Selected: ENTER
-    Selected --> Idle: item callback fired
+    [*] --> Closed
+    Closed --> Open: OPEN
+    Open --> Closed: CLOSE
+    Closed --> Open: TOGGLE
+    Open --> Closed: TOGGLE
 ```
+
+The machine has no named search or navigation states. It holds one `CommandState` record (read it with `machine.getState()`), and each event updates fields of it: `SEARCH_CHANGE` updates `search`, `filteredIds`, `groupedIds`, `filteredCount` and `activeId`; `NAVIGATE` and `ITEM_ACTIVATE` update `activeId`; `ITEM_SELECT` changes no state field (it calls the item's and the machine's `onSelect`, emits `select` and records the selection in the frecency engine); and `PAGE_PUSH` / `PAGE_POP` update `page` and `pageStack`. Only `open` behaves like a state.
 
 ### Key Subsystems
 
@@ -51,7 +47,7 @@ stateDiagram-v2
 | `search/index.ts` | Search engine factory, pluggable scorer interface |
 | `frecency/index.ts` | Time-based decay buckets (Date.now) |
 | `frecency/idb-storage.ts` | IndexedDB persistence via idb-keyval |
-| `keyboard/parser.ts` | Shortcut string parsing with RegExp.escape |
+| `keyboard/parser.ts` | Shortcut string parsing |
 | `keyboard/matcher.ts` | Event matching + conflict detection via groupBy helper |
 | `utils/scheduler.ts` | Update batching -- `requestAnimationFrame` in browsers, microtask in Node.js |
 | `utils/event-emitter.ts` | Type-safe pub/sub with Disposable cleanup |
@@ -89,7 +85,7 @@ graph TD
 ### React 19 Integration Points
 
 - **`useSyncExternalStore`** — Subscribe to the core state machine without tearing
-- **`useTransition`** — Wrap search updates for concurrent rendering
+- **`useTransition`** — Wraps only the optimistic active-item update; `Command.Input` keeps an urgent draft value and the machine catches up on its scheduler tick, so `isPending` never reflects a search
 - **`useOptimistic`** — Optimistic `activeId` updates for instant navigation feedback
 - **`ref` as prop** — No `forwardRef` needed (React 19 native)
 - **Activity API** — `CommandActivity` for keep-alive state preservation
@@ -113,22 +109,25 @@ sequenceDiagram
     participant Worker as Web Worker
     participant WASM as WASM Module
 
-    Main->>Worker: postMessage({ type: 'INDEX', items })
+    Worker-->>Main: postMessage({ type: 'ready' })
+
+    Main->>Worker: postMessage({ type: 'index', items })
     Worker->>WASM: index_items(serialized)
     WASM-->>Worker: indexed
-    Worker-->>Main: postMessage({ type: 'INDEXED' })
+    Worker-->>Main: postMessage({ type: 'indexed' })
 
-    Main->>Worker: postMessage({ type: 'SEARCH', query })
-    Worker->>WASM: search(query, limit)
+    Main->>Worker: postMessage({ type: 'search', query, maxResults })
+    Worker->>WASM: search(query, maxResults)
     WASM-->>Worker: results[]
-    Worker-->>Main: postMessage({ type: 'RESULTS', results })
+    Worker-->>Main: postMessage({ type: 'results', results })
+    Note over Worker,Main: with a SharedArrayBuffer the reply is { type: 'results-sab' }
 ```
 
 ### Two Execution Modes
 
 | Mode | Function | Thread | Use Case |
 |------|----------|--------|----------|
-| Main thread | `createWasmSearchEngine()` | Main | Simple setup, up to ~50K items |
+| Main thread | `createWasmSearchEngine()` | Main | Simple setup, designed for up to ~50K items (a design target) |
 | Worker thread | `createWorkerSearchEngine()` | Web Worker | Large datasets, non-blocking UI |
 
 Both implement the `SearchEngine` interface from the core package and support `AsyncDisposable` for `await using` cleanup.
@@ -153,14 +152,14 @@ All engines implement `Disposable` or `AsyncDisposable` for automatic cleanup:
 } // engine[Symbol.asyncDispose]() called automatically
 ```
 
-## ES2026 & Cross-Browser Features
+## Language Features & Editions
 
-| Feature | Where Used | Native/Helper |
-|---------|-----------|---------------|
-| Iterator Helpers | Search pipelines, registry operations, frecency bonuses | Native ES2026 |
-| `using` / `await using` | Engine lifecycle, subscription cleanup | Native ES2026 |
-| `Promise.withResolvers` | Worker communication, async engine initialization | Native ES2026 |
-| `RegExp.escape` | Keyboard shortcut parser | Native ES2026 |
+| Feature | Edition | Where Used | Native/Helper |
+|---------|---------|-----------|---------------|
+| Iterator Helpers | ES2025 | Search pipelines, registry operations, frecency bonuses | Native |
+| `Symbol.dispose` / `Symbol.asyncDispose` (`using` / `await using`) | ESNext (TS `lib` `esnext.disposable`) | Engines, storages and the machine implement the protocol, so consumers can write `using` | Native |
+| `Promise.withResolvers` | ES2024 | Worker communication in the unpublished `modern-cmdk-search-wasm` package | Native |
+| `RegExp.escape` | ES2025 | Not used | -- |
 | Set operations | Registry union/intersection/difference for group operations | Helper functions (`set-ops.ts`) |
 | `mapGroupBy` / `objectGroupBy` | Shortcut conflict detection, item grouping | Helper functions (`group-by.ts`) |
 | `Date.now()` | Frecency timestamps, state `lastUpdated` | Native (replaces Temporal) |

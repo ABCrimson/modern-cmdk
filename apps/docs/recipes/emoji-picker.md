@@ -34,7 +34,7 @@ Virtualization activates automatically when the item count exceeds the threshold
 
 ## With WASM Search
 
-For instant search across thousands of emojis:
+The WASM engine does not work yet (see [WASM Search](/guide/wasm-search)), so this sample shows the intended API, not today's behaviour:
 
 ```tsx
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';

@@ -7,7 +7,7 @@ Page navigation is driven by the state machine's `PAGE_PUSH` / `PAGE_POP` events
 ```tsx
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
 
 function PageLink({ page, children }: { page: string; children: React.ReactNode }) {
@@ -23,8 +23,10 @@ function PageLink({ page, children }: { page: string; children: React.ReactNode 
 }
 
 function NestedPalette() {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Command.Dialog>
+    <Command.Dialog open={open} onOpenChange={setOpen}>
       <Command.Input placeholder="What do you need?" />
       <Command.List>
         <PageLink page="projects">Projects</PageLink>

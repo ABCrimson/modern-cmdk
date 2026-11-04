@@ -18,7 +18,7 @@ const wrong: GroupId = myItem; // TS Error!
 
 ## Type-Safe Machine Options
 
-The `createCommandMachine` options use `NoInfer<T>` to prevent accidental type widening:
+The `createCommandMachine` options are fully typed, so callback parameters are inferred:
 
 ```ts
 const machine = createCommandMachine({
@@ -34,7 +34,7 @@ const machine = createCommandMachine({
 
 ## Disposable Pattern
 
-The machine implements `Disposable` for the ES2026 `using` keyword:
+The machine implements `Disposable` for the `using` keyword (ESNext explicit resource management):
 
 ```ts
 {

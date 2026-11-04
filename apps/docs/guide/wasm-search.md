@@ -1,11 +1,13 @@
 # WASM Search
 
-For datasets over 5K items, `modern-cmdk-search-wasm` provides a Rust-based trigram index compiled to WebAssembly. It delivers sub-1ms fuzzy search on 100K items with typo tolerance.
+`modern-cmdk-search-wasm` is designed for large datasets (the intended range starts around 5K items). It provides a Rust-based trigram index compiled to WebAssembly. It does typo-tolerant fuzzy search.
 
 ## Installation
 
 ::: warning Experimental -- not yet published
 `modern-cmdk-search-wasm` is not published to npm yet. Build it from source with `wasm-pack` (see the [package directory](https://github.com/ABCrimson/modern-cmdk/tree/main/packages/command-search-wasm)). The package-manager commands below will work once it ships; until then the built-in TypeScript scorer in `modern-cmdk` is the default.
+
+It does not work yet: the factories never call the wasm-bindgen init function, so `createWasmSearchEngine()` always returns the TypeScript fallback (`isWasm: false`) and `createWorkerSearchEngine()` never receives the worker's `ready` message. The examples below show the intended API, not today's behaviour.
 :::
 
 ::: code-group
@@ -24,7 +26,7 @@ yarn add modern-cmdk-search-wasm
 
 ## Main-Thread Usage
 
-The simplest approach runs the WASM module directly on the main thread. Suitable for datasets up to ~50K items:
+The simplest approach runs the WASM module directly on the main thread. Designed for datasets up to ~50K items (a design target, not a measurement):
 
 ```tsx
 'use client';
@@ -94,7 +96,7 @@ The engine implements `AsyncDisposable`, so `await using` automatically frees WA
 
 ## Web Worker Usage
 
-For the best performance with large datasets (50K+ items), run the WASM module in a dedicated Web Worker to keep the main thread free:
+For large datasets (50K+ items, by design), run the WASM module in a dedicated Web Worker to keep the main thread free:
 
 ```tsx
 'use client';
@@ -225,12 +227,16 @@ Or via the React adapter's `search` prop:
 
 ## Performance Characteristics
 
-| Dataset Size | TypeScript Scorer | WASM Scorer (main thread) | WASM Scorer (worker) |
+::: warning Design targets, not measurements
+No harness measures the WASM engine (`benchmarks/baseline.json` has no wasm entry), so the WASM columns below are design targets, not measured results.
+:::
+
+| Dataset Size | TypeScript Scorer (measured) | WASM Scorer, main thread (target) | WASM Scorer, worker (target) |
 |---|---|---|---|
-| 1K items | < 1ms | < 0.1ms | < 0.2ms |
-| 10K items | ~5ms | < 1ms | < 1ms |
-| 50K items | ~25ms | < 2ms | < 2ms |
-| 100K items | ~60ms | < 3ms | < 3ms |
+| 1K items | not measured | < 0.1 ms | < 0.2 ms |
+| 10K items | 3.46 ms median, 7.03 ms p99 (`benchmarks/history/2026-11-04-45a9134.json`) | < 1 ms | < 1 ms |
+| 50K items | not measured | < 2 ms | < 2 ms |
+| 100K items | not measured | < 3 ms | < 3 ms |
 
 ::: details WASM Binary Size
 The compiled WASM binary is about 52 kB gzipped (about 113 kB raw). It is loaded asynchronously and does not block initial page load.

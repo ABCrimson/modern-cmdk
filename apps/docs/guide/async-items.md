@@ -45,7 +45,7 @@ function AsyncCommandPalette() {
 
 ## Debounced API Search
 
-For real-world usage, you typically want to debounce the search input before making API calls. Combine `<Command.AsyncItems>` with `useTransition` for a smooth experience:
+For real-world usage, you typically want to debounce the search input before making API calls. `<Command.AsyncItems>` suspends while its promise is pending and shows `fallback` meanwhile:
 
 ```tsx
 'use client';

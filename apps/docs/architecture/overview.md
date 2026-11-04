@@ -25,7 +25,7 @@ graph TB
         MACHINE["State Machine\nPure TypeScript"]
         SEARCH["Search Engine\nPluggable scorer"]
         FRECENCY["Frecency Engine\nTime-based decay"]
-        KEYBOARD["Keyboard Registry\nRegExp.escape parser"]
+        KEYBOARD["Keyboard Registry\nShortcut parser"]
     end
 
     REACT --> MACHINE
@@ -44,7 +44,7 @@ Pure TypeScript state machine with zero DOM dependencies. Manages:
 - **Item registry** -- Registration, deregistration, grouping
 - **Search and filtering** -- Pluggable `SearchEngine` interface
 - **Frecency ranking** -- Time-based decay buckets with configurable weights
-- **Keyboard shortcuts** -- `RegExp.escape`-based parser, conflict detection via groupBy helper
+- **Keyboard shortcuts** -- Shortcut string parser, conflict detection via groupBy helper
 - **Navigation** -- Active item tracking, page stack, loop/no-loop
 - **State snapshots** -- Immutable `CommandState` objects for efficient change detection
 
@@ -55,7 +55,7 @@ The core has no side effects beyond subscriber notification. It can be used with
 Compound component API that bridges the core state machine to React 19:
 
 - **`useSyncExternalStore`** -- Subscribes to machine state without tearing
-- **`useTransition`** -- Wraps search updates for non-blocking rendering
+- **`useTransition`** -- Wraps only the optimistic active-item update; `Command.Input` keeps an urgent draft value and the machine catches up on its scheduler tick, so `isPending` never reflects a search
 - **`useOptimistic`** -- Optimistic active item updates for instant visual feedback
 - **`ref` as prop** -- React 19 native ref forwarding (no `forwardRef`)
 - **`"use client"` directive** -- All components are client-only
@@ -63,7 +63,7 @@ Compound component API that bridges the core state machine to React 19:
 
 ### Layer 3: Optional Plugins
 
-- **WASM Search** -- Rust trigram index compiled to WebAssembly for sub-1ms fuzzy search on 100K items
+- **WASM Search** -- Rust trigram index compiled to WebAssembly for fuzzy search over large item sets
 - **Web Worker** -- Runs WASM search off the main thread with `SharedArrayBuffer` zero-copy transfer
 - **Custom storage** -- Pluggable `FrecencyStorage` implementations (memory, IndexedDB, custom)
 
@@ -253,27 +253,29 @@ using machine = createCommandMachine({ search: myEngine });
 To add a custom frecency storage:
 
 ```typescript
-import { type FrecencyStorage } from 'modern-cmdk';
+import type { FrecencyData, FrecencyStorage } from 'modern-cmdk';
 
 class RedisFrecencyStorage implements FrecencyStorage {
-  async load(namespace: string) { /* fetch from Redis */ }
-  async save(namespace: string, data) { /* write to Redis */ }
+  async load(namespace: string): Promise<FrecencyData> {
+    /* fetch from Redis */
+    return { records: new Map() };
+  }
+  async save(namespace: string, data: FrecencyData): Promise<void> { /* write to Redis */ }
   [Symbol.dispose]() { /* close connection */ }
 }
 ```
 
-## ES2026 & Cross-Browser Features
+## Language Features & Editions
 
-| Feature | Where Used | Native/Helper |
-|---|---|---|
-| Iterator Helpers (`.map`, `.filter`, `.toArray`) | Search pipelines, registry operations | Native ES2026 |
-| `using` / `await using` | Machine, engine, and storage lifecycle | Native ES2026 |
-| `RegExp.escape` | Shortcut string parser | Native ES2026 |
-| `Promise.withResolvers()` | Worker request tracking, scheduler flush | Native (ES2024) |
+| Feature | Edition | Where Used | Native/Helper |
+|---|---|---|---|
+| Iterator Helpers (`.map`, `.filter`, `.toArray`) | ES2025 | Search pipelines, registry operations | Native |
+| `Symbol.dispose` / `Symbol.asyncDispose` (`using` / `await using`) | ESNext (TS `lib` `esnext.disposable`) | Machine, engine and storage lifecycle implement the protocol, so consumers can write `using` | Native |
+| `Promise.withResolvers()` | ES2024 | Worker request tracking in the unpublished `modern-cmdk-search-wasm` package | Native |
+| `RegExp.escape` | ES2025 | Not used | -- |
 | `mapGroupBy` / `objectGroupBy` | Shortcut conflict detection, item grouping | Helper functions |
 | `Date.now()` | Frecency timestamps, state `lastUpdated` | Native (replaces Temporal) |
 | Set operations (`setIntersection`, etc.) | Registry bulk operations | Helper functions |
 | `ensureWellFormed` | Branded ID creation | Helper function |
 | Branded types (`ItemId`, `GroupId`) | Type-safe ID handling | TypeScript |
-| `NoInfer<T>` | Callback type inference | TypeScript |
 | `satisfies` | Default configuration validation | TypeScript |

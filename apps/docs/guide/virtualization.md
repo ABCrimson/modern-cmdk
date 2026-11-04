@@ -129,7 +129,7 @@ For maximum performance, apply CSS containment to items:
 
 ::: details Performance Checklist
 
-1. **Use the WASM search engine** for datasets over 5K items. The default TypeScript scorer runs synchronously and can cause input lag at scale. See [WASM Search](/guide/wasm-search).
+1. **Watch search cost at scale.** The default TypeScript scorer runs synchronously and can cause input lag at scale. The WASM search engine is designed for this case but does not work yet; see [WASM Search](/guide/wasm-search).
 
 2. **Keep `estimateSize` accurate.** If your items have consistent heights, an accurate estimate avoids layout shifts during measurement.
 
@@ -168,5 +168,5 @@ Viewport (visible area):
 ```
 
 ::: tip
-The virtualizer integrates with the `useVirtualizer` hook, which you can also use directly for custom list implementations. See the [API Reference](/api/command-react#usevirtualizer).
+The virtualizer integrates with the `useVirtualizer` hook, which you can also use directly for custom list implementations. See the [API Reference](/api/command-react#usevirtualizer-options).
 :::

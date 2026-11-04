@@ -90,8 +90,8 @@ const resultsPromise = fetchResults().then((rows) =>
 
 ::: warning
 `items` must resolve to `CommandItem[]` -- objects with a branded `id` and a `value`. Raw
-API rows will not register. See [Async Items](/guide/async-items) for the debounced,
-transition-driven version.
+API rows will not register. See [Async Items](/guide/async-items) for the debounced
+version.
 :::
 
 ## Static Generation (SSG)

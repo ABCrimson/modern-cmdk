@@ -4,11 +4,13 @@ Build a macOS Spotlight-style global search across your entire app.
 
 ```tsx
 import { Command } from 'modern-cmdk/react';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 
 function SpotlightSearch() {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Command.Dialog>
+    <Command.Dialog open={open} onOpenChange={setOpen}>
       <Command.Input placeholder="Spotlight Search..." />
       <Command.List>
         <Command.Group heading="Actions">
@@ -67,14 +69,14 @@ useEffect(() => {
 
 ## With Frecency + WASM
 
-For the ultimate search experience — items you use frequently appear first, and WASM provides sub-millisecond search:
+Items you use frequently appear first. The WASM engine does not work yet (see [WASM Search](/guide/wasm-search)), so this sample shows the intended API, not today's behaviour:
 
 ```tsx
 import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
 
 const engine = await createWorkerSearchEngine();
 
-<Command.Dialog search={engine} frecency={{ enabled: true }}>
+<Command.Dialog open={open} onOpenChange={setOpen} search={engine} frecency={{ enabled: true }}>
   ...
 </Command.Dialog>
 ```

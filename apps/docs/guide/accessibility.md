@@ -245,7 +245,7 @@ By default, navigation loops — pressing `ArrowDown` on the last item wraps to 
 When `<Command.Dialog>` opens:
 1. Focus is trapped within the dialog via Radix Dialog focus management
 2. Focus moves to `<Command.Input>` automatically
-3. Background content is marked with the `inert` attribute (native browser support)
+3. Background content is hidden from assistive technology with `aria-hidden` on siblings (Radix `hideOthers`)
 4. Pressing `Escape` closes the dialog and returns focus to the previously focused element
 
 ```tsx

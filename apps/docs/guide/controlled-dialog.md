@@ -1,23 +1,10 @@
 # Controlled Dialog
 
-`Command.Dialog` supports both controlled and uncontrolled modes.
-
-## Uncontrolled (Default)
-
-The dialog manages its own open/close state internally:
-
-```tsx
-<Command.Dialog>
-  <Command.Input />
-  <Command.List>...</Command.List>
-</Command.Dialog>
-```
-
-To open it with `Ctrl+K`, add a manual `useEffect` listener that toggles the dialog state (see the Controlled Mode example below).
+`Command.Dialog` opens when its `open` prop becomes `true` and closes when it becomes `false`. Escape and overlay clicks close the dialog and then call `onOpenChange(false)`, so pass your setter (`onOpenChange={setOpen}`) to keep your state in step. Without `open`, nothing opens the dialog.
 
 ## Controlled Mode
 
-Pass `open` and `onOpenChange` to fully control the dialog state:
+Pass `open` and `onOpenChange` to control the dialog state:
 
 ```tsx
 function App() {
@@ -29,7 +16,7 @@ function App() {
       <Command.Dialog open={open} onOpenChange={setOpen}>
         <Command.Input />
         <Command.List>
-          <Command.Item onSelect={() => setOpen(false)}>Close</Command.Item>
+          <Command.Item value="close" onSelect={() => setOpen(false)}>Close</Command.Item>
         </Command.List>
       </Command.Dialog>
     </>
@@ -67,42 +54,17 @@ function CommandPalette() {
 }
 ```
 
-## Preventing Close
-
-Block closing when there's unsaved input:
-
-```tsx
-function CommandPalette() {
-  const [open, setOpen] = useState(false);
-  const [hasUnsaved, setHasUnsaved] = useState(false);
-
-  return (
-    <Command.Dialog
-      open={open}
-      onOpenChange={(isOpen) => {
-        if (!isOpen && hasUnsaved) {
-          if (!confirm('Discard unsaved changes?')) return;
-        }
-        setOpen(isOpen);
-      }}
-    >
-      ...
-    </Command.Dialog>
-  );
-}
-```
-
 ## Multiple Palettes
 
-Use separate `Command` instances — each creates its own state machine:
+Use separate `Command.Dialog` components, each with its own `open` state — each creates its own state machine:
 
 ```tsx
-<Command.Dialog> {/* Main palette */}
+<Command.Dialog open={commandsOpen} onOpenChange={setCommandsOpen}> {/* Main palette */}
   <Command.Input placeholder="Search commands..." />
   ...
 </Command.Dialog>
 
-<Command.Dialog> {/* Settings palette */}
+<Command.Dialog open={settingsOpen} onOpenChange={setSettingsOpen}> {/* Settings palette */}
   <Command.Input placeholder="Search settings..." />
   ...
 </Command.Dialog>

@@ -80,7 +80,7 @@ function PersistentFrecencyPalette() {
 
 ## `await using` Pattern for Storage Cleanup
 
-The `IdbFrecencyStorage` class implements `AsyncDisposable`, so you can use the `await using` pattern (ES2026 Explicit Resource Management) for automatic cleanup:
+The `IdbFrecencyStorage` class implements `AsyncDisposable`, so you can use the `await using` pattern (ESNext explicit resource management) for automatic cleanup:
 
 ```typescript
 import { IdbFrecencyStorage } from 'modern-cmdk';
