@@ -26,7 +26,7 @@ const BUCKET_HOURS = {
 /**
  * Computes a frecency bonus for an item based on usage frequency and recency.
  * Uses hour/day/week/month bucket boundaries with
- * configurable exponential decay weights per time bucket.
+ * configurable step weights per recency bucket (hour/day/week/month/older).
  */
 export function computeFrecencyBonus(
   history: FrecencyRecord,
@@ -43,7 +43,7 @@ export function computeFrecencyBonus(
     olderWeight = 0.5,
   } = config;
 
-  // Exponential decay with pre-computed bucket boundaries
+  // Step weight by recency bucket, with pre-computed bucket boundaries
   const recencyWeight =
     hours < BUCKET_HOURS.hour
       ? hourWeight

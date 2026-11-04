@@ -19,7 +19,7 @@ export class MemoryFrecencyStorage implements FrecencyStorage {
     this.#store.set(namespace, data);
   }
 
-  /** Serialize all stored data — Iterator Helpers pipeline (ES2026) */
+  /** Serialize all stored data — Iterator Helpers pipeline (ES2025) */
   toJSON(): Record<string, { records: Array<[string, FrecencyRecord]> }> {
     return Object.fromEntries(
       this.#store

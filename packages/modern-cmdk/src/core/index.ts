@@ -1,5 +1,5 @@
 // modern-cmdk — Framework-agnostic headless command palette engine
-// ES2026 target — TypeScript 7.1 — ESM-only
+// ESNext target (tsconfig.base.json) — TypeScript 7.1 — ESM-only
 
 export { IdbFrecencyStorage } from './frecency/idb-storage.js';
 export { computeFrecencyBonus, FrecencyEngine } from './frecency/index.js';

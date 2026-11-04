@@ -1,6 +1,6 @@
 // packages/command/src/search/index.ts
-// Search engine factory with pluggable scorer — Iterator Helpers (ES2026) for result pipelines
-// Incremental filtering: query-append optimization using Set.difference for candidate pruning
+// Search engine factory with pluggable scorer — Iterator Helpers (ES2025) for result pipelines
+// Incremental filtering: when the query extends the previous one, only the previous matches are re-scored
 // Performance: pre-cached lowercase at index time, charCode comparison, zero redundant allocation
 
 import type { CommandItem, ItemId } from '../types.js';
@@ -38,7 +38,7 @@ interface IndexedEntry {
  * Creates a search engine with pluggable scorer and incremental filtering.
  * When the query extends the previous one, only prior matches are re-scored.
  * Pre-caches lowercase at index time — zero toLowerCase() calls during search.
- * Uses Iterator Helpers (ES2026) for result pipelines and Set.difference for pruning.
+ * Uses Iterator Helpers (ES2025) for result pipelines.
  */
 export function createSearchEngine(options?: SearchEngineOptions): SearchEngine {
   const customScorer: ScorerFn | undefined = options?.scorer;

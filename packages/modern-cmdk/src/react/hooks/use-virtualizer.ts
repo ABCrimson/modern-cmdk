@@ -3,7 +3,6 @@
 // packages/command-react/src/hooks/use-virtualizer.ts
 // Virtualization hook — ResizeObserver + requestIdleCallback for measurement
 // GPU-composited transforms via translateY, content-visibility: auto for off-screen items
-// ES2026: Iterator Helpers (.map, .filter, .reduce)
 // Isolated declarations: explicit return types on all exports
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

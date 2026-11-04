@@ -24,12 +24,12 @@ const CSS_VAR_MAP: Map<string, string> = new Map<string, string>([
 
 /**
  * Replace all cmdk attribute selectors (bracketed) and CSS vars in a string.
- * Uses ES2026 Set.union to combine both maps into a single pass.
+ * Runs replaceAll for each ATTR_MAP entry (bracketed selectors), then for each CSS_VAR_MAP entry.
  */
 function replaceInString(input: string): string {
   let result = input;
 
-  // ES2026 Iterator Helper: .forEach on map entries
+  // ES2025 Iterator Helper: .forEach on map entries
   ATTR_MAP.entries().forEach(([oldAttr, newAttr]) => {
     result = result.replaceAll(`[${oldAttr}]`, `[${newAttr}]`);
   });
@@ -56,7 +56,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
   let hasChanges = false;
 
   // 1. Rename JSX attributes: <div cmdk-root="" /> -> <div data-command="" />
-  // ES2026 Iterator Helper: .forEach on map entries
+  // ES2025 Iterator Helper: .forEach on map entries
   ATTR_MAP.entries().forEach(([oldAttr, newAttr]) => {
     root
       .find(j.JSXAttribute, {

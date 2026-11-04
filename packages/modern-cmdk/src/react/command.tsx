@@ -3,7 +3,6 @@
 // packages/command-react/src/command.tsx
 // <Command.Root> — compound component root, delegates setup to useCommandSetup
 // Keyboard navigation is attached to document — always active (not dialog-gated)
-// ES2026: satisfies operator, branded types
 // Isolated declarations: explicit return types on all exports
 
 import type { ReactNode } from 'react';

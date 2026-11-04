@@ -2,7 +2,6 @@
 
 // packages/command-react/src/highlight.tsx
 // <Command.Highlight> — renders search query match highlighting
-// ES2026: Iterator Helpers (.map, .flatMap, .toArray) for range processing
 // Isolated declarations: explicit return types on all exports
 
 import type { ReactNode } from 'react';
