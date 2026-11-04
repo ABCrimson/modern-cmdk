@@ -1,5 +1,5 @@
 // tests/unit/bug-matrix.test.ts
-// G17: every FIXED 1.3.0 BUG ledger row maps to a vitest title ("covered") or to a gate line
+// G17: every FIXED BUG ledger row of 1.3.0 and 1.4.0 maps to a vitest title ("covered") or to a gate line
 // ("gate": a CI step, script or config line), except the ids in PENDING_BY_DECISION below.
 // An entry names "path::string"; the file must exist and contain the string, so renaming or
 // deleting the test or gate line breaks the matrix instead of silently orphaning the row.
@@ -8,8 +8,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Closed rows with no mapped check; listed in DECISIONS.md G-22. D46 re-armed DG-71 and DG-72 through
-// the docs-samples gate (scripts/check-doc-samples.ts, TEB-84), so they are no longer listed here.
+// Closed rows with no mapped check. DT-03, DT-04, F6, PG-14, RDG-05 and RDG-33 are listed in DECISIONS.md
+// G-22 (D46), which re-armed DG-71 and DG-72 through the docs-samples gate (scripts/check-doc-samples.ts,
+// TEB-84), so they are no longer listed here. RDG-68 (1.4.0) is named by DECISIONS.md G-32.
 const PENDING_BY_DECISION: readonly string[] = [
   'DT-03',
   'DT-04',
@@ -17,6 +18,8 @@ const PENDING_BY_DECISION: readonly string[] = [
   'PG-14',
   'RDG-05',
   'RDG-33',
+  // 1.4.0: the labels are remote repository state (D53) that nothing in the repository proves.
+  'RDG-68',
 ];
 
 interface MatrixEntry {
@@ -53,9 +56,9 @@ describe('BUG-to-test matrix', () => {
     }
   });
 
-  it('lists every BUG ledger row that 1.3.0 closes', () => {
+  it('lists every BUG ledger row that 1.3.0 and 1.4.0 close', () => {
     const closing = ledger
-      .filter((row) => row.category === 'BUG' && row.release === '1.3.0')
+      .filter((row) => row.category === 'BUG' && ['1.3.0', '1.4.0'].includes(row.release))
       .map((row) => row.id)
       .toSorted();
     expect(matrix.map((entry) => entry.id).toSorted()).toEqual(closing);
