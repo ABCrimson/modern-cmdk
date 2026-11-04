@@ -22,5 +22,5 @@ features:
   - title: Fully Accessible
     details: WAI-ARIA combobox pattern, live regions, forced-colors, prefers-contrast support.
   - title: Modern CSS Animations
-    details: "@starting-style enter/exit animations and spring linear() easing, with prefers-reduced-motion respected."
+    details: "@starting-style enter/exit animations and spring linear() easing (dialog tokens need setting until 1.8.0), with prefers-reduced-motion respected."
 ---

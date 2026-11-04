@@ -19,6 +19,8 @@ npm install modern-cmdk
 ```
 :::
 
+Every `modern-cmdk/react` import needs `react` and `react-dom` (`>=19.0.0 <21.0.0`), optional peers your package manager does not install for you, and `radix-ui` (`>=1.4.0 <2.0.0`), a required peer that pnpm installs automatically while `auto-install-peers` is on (its default); to add all three yourself: `pnpm add react react-dom radix-ui`.
+
 ## `<Command>`
 
 Root component that creates a command palette state machine and provides context to all child components.
@@ -129,7 +131,7 @@ Extends `ComponentPropsWithRef<'div'>`.
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `ref` | `Ref<HTMLDivElement>` | -- | Ref to the scroll container |
-| `virtualize` | `boolean` | `true` (auto) | Enable/disable virtualization. Auto-activates at >100 items |
+| `virtualize` | `boolean` | unset (auto) | Unset: virtualizes above 100 filtered items and stops again at 50 or fewer. `true` forces it on; `false` disables it |
 | `estimateSize` | `number` | `44` | Estimated item height in pixels |
 | `overscan` | `number` | `8` | Items rendered beyond the visible viewport (each direction) |
 
@@ -291,7 +293,13 @@ Extends `ComponentPropsWithRef<'div'>`. Data attribute: `data-command-separator`
 
 ## `<Command.Dialog>`
 
-Full dialog implementation using Radix Dialog with focus trap, overlay, `@starting-style` animations, and controlled open/close state.
+Full dialog implementation using Radix Dialog with focus trap, overlay, `@starting-style` animations, and controlled open/close state. Until the dialog-token fix ships (1.8.0) the enter and exit animations do not run out of the box; see [Theming](/guide/theming#dialog-animations).
+
+The same component is exported as `CommandDialog`, with its `CommandDialogProps` type, from the `modern-cmdk/react/dialog` subpath. `Command.Dialog` on the `modern-cmdk/react` barrel stays in 1.x. Both need `radix-ui` installed:
+
+```tsx
+import { CommandDialog, type CommandDialogProps } from 'modern-cmdk/react/dialog';
+```
 
 ```tsx
 'use client';
