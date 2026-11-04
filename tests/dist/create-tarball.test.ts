@@ -110,7 +110,7 @@ describe('packed create-modern-cmdk', () => {
       homepage?: string;
       bugs?: { url?: string };
       keywords?: string[];
-      repository?: { directory?: string };
+      repository?: { type?: string; url?: string; directory?: string };
       engines?: { node?: string };
     };
     expect(manifest.homepage).toBe(
@@ -120,7 +120,11 @@ describe('packed create-modern-cmdk', () => {
     expect(manifest.keywords).toEqual(
       expect.arrayContaining(['create', 'scaffold', 'modern-cmdk']),
     );
-    expect(manifest.repository?.directory).toBe('packages/create-modern-cmdk');
+    expect(manifest.repository).toEqual({
+      type: 'git',
+      url: 'git+https://github.com/ABCrimson/modern-cmdk.git',
+      directory: 'packages/create-modern-cmdk',
+    });
     expect(manifest.engines?.node).toBe('>=26.4.0');
   });
 });

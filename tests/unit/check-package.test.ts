@@ -3,11 +3,19 @@
 // the in-process tarball reader. The reader is exercised on archives built here byte by byte, so no
 // archiver binary runs (see the host tar rule in the script header).
 
+import { spawnSync } from 'node:child_process';
+import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { diffFileList, listTarEntries, startsWithUseClient } from '../../scripts/check-package.ts';
+import {
+  absolutePackDir,
+  diffFileList,
+  listTarEntries,
+  startsWithUseClient,
+} from '../../scripts/check-package.ts';
 
 const BLOCK = 512;
+const SCRIPT = resolve(import.meta.dirname, '../../scripts/check-package.ts');
 
 interface RawEntry {
   readonly name: string;
@@ -110,5 +118,38 @@ describe('listTarEntries', () => {
       ),
     );
     expect(entries.map((e) => e.name)).toEqual([long, 'package/next.txt']);
+  });
+});
+
+describe('absolutePackDir', () => {
+  it('leaves an unset --pack-dir unset', () => {
+    expect(absolutePackDir(undefined, resolve('/work'))).toBeUndefined();
+  });
+
+  it('resolves a relative --pack-dir against the given cwd', () => {
+    const cwd = resolve('/work/elsewhere');
+    expect(absolutePackDir('relpack', cwd)).toBe(resolve(cwd, 'relpack'));
+    expect(absolutePackDir('relpack', cwd)).toBe(resolve('/work/elsewhere/relpack'));
+  });
+
+  it('leaves an absolute --pack-dir unchanged', () => {
+    const absolute = resolve('/abs/packs');
+    expect(absolutePackDir(absolute, resolve('/work'))).toBe(absolute);
+  });
+});
+
+describe('--tarball that does not exist', () => {
+  it('is a usage error: exit 2 and the path named on stderr', () => {
+    const result = spawnSync(
+      process.execPath,
+      [SCRIPT, '--tarball', 'C:/nope/modern-cmdk-0.0.0.tgz'],
+      {
+        encoding: 'utf8',
+        timeout: 30_000,
+      },
+    );
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('--tarball C:/nope/modern-cmdk-0.0.0.tgz does not exist');
+    expect(result.stderr).toContain('usage: node scripts/check-package.ts');
   });
 });

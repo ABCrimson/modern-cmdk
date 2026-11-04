@@ -4,7 +4,9 @@
 //   node scripts/check-package.ts [--package modern-cmdk|create-modern-cmdk] [--pack-dir <dir>]
 //        [--tarball <tgz>] [--update]
 //
-// Exit codes: 0 = every check passed, 1 = a check failed, 2 = usage error. The default exit codes of
+// Exit codes: 0 = every check passed, 1 = a check failed, 2 = usage error (including a --tarball path
+// that does not exist). A relative --pack-dir is resolved against the current directory once, up front,
+// so pnpm (which runs in the repository root) and the check agree on it. The default exit codes of
 // the shipped CLIs are unaffected: this is a repository tool, not a shipped one.
 //
 // Per package (the default is both):
@@ -130,6 +132,15 @@ export function startsWithUseClient(code: string): boolean {
   return USE_CLIENT.test(code.replace(LEADING_TRIVIA, ''));
 }
 
+/**
+ * The --pack-dir value as an absolute path (undefined stays undefined). `pnpm pack` runs with the
+ * repository root as its cwd while readdir runs in the caller's cwd, so a relative path would name
+ * two different directories.
+ */
+export function absolutePackDir(value: string | undefined, cwd: string): string | undefined {
+  return value === undefined ? undefined : resolve(cwd, value);
+}
+
 function write(stream: NodeJS.WriteStream, text: string): void {
   stream.write(`${text}\n`);
 }
@@ -141,7 +152,7 @@ async function pack(name: PackageName, dir: string): Promise<string> {
   ) as {
     version: string;
   };
-  // One command string: pnpm is a .cmd shim on Windows. `dir` is mkdtemp output or the --pack-dir value, quoted.
+  // One command string: pnpm is a .cmd shim on Windows. `dir` is mkdtemp output or the absolute --pack-dir, quoted.
   execSync(`pnpm --filter ${name} pack --pack-destination "${dir}"`, {
     cwd: ROOT,
     encoding: 'utf8',
@@ -277,10 +288,14 @@ async function main(): Promise<void> {
   if (values.tarball !== undefined && !names.includes('modern-cmdk'))
     usage('--tarball needs modern-cmdk');
   if (values.update === true && !names.includes('modern-cmdk')) usage('--update needs modern-cmdk');
+  if (values.tarball !== undefined && !existsSync(values.tarball))
+    usage(`--tarball ${values.tarball} does not exist`);
   const checked: readonly PackageName[] = values.tarball === undefined ? names : ['modern-cmdk'];
 
   if (/["`$%&|<>^]/.test(values['pack-dir'] ?? '')) usage('--pack-dir holds a shell metacharacter');
-  const packDir = values['pack-dir'] ?? (await mkdtemp(join(tmpdir(), 'check-package-')));
+  const packDir =
+    absolutePackDir(values['pack-dir'], process.cwd()) ??
+    (await mkdtemp(join(tmpdir(), 'check-package-')));
   const failures: string[] = [];
   for (const name of checked) {
     const tarball =
