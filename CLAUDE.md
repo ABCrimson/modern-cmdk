@@ -9,18 +9,22 @@ pnpm install --frozen-lockfile   # install (CI adds --ignore-scripts)
 pnpm build                       # build all workspaces (pnpm -r --workspace-concurrency=4 run build)
 pnpm test                        # vitest run (unit)
 pnpm test:e2e                    # playwright test
+pnpm test:docs                   # playwright render tests for the built docs site (pnpm docs:build first)
 pnpm bench                       # vitest bench
-pnpm bench:ci                    # standalone CI benchmark (benchmarks/standalone/ci-bench.ts)
-pnpm lint / pnpm typecheck       # biome check . / tsc --noEmit per package
+pnpm bench:compare               # standalone harness vs benchmarks/baseline.json (exit 0 pass / 1 warning / 2 failure)
+pnpm lint                        # biome check . --error-on-warnings
+pnpm typecheck                   # tsc --noEmit: modern-cmdk, create-modern-cmdk, tests/, tests/e2e, tests/docs (no pkg/ needed)
 pnpm size                        # build + size-limit
 ```
 
-WASM crate (`packages/command-search-wasm`): the JS build skips itself unless `pkg/` exists. Build the crate first:
+WASM crate (`packages/command-search-wasm`): the JS build skips itself unless `pkg/` exists. Build the crate first (the playground and the wasm package are type-checked only in CI, after their build inputs exist):
 
 ```bash
 cd packages/command-search-wasm
 pnpm build:wasm   # wasm-pack build crate --target web --out-dir ../pkg
 ```
+
+The Rust/WASM gate (fmt, clippy, tests, wasm build) is the `rust-wasm` job in `.github/workflows/ci.yml`.
 
 ## Gotchas / couplings
 

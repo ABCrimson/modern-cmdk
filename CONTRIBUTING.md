@@ -81,7 +81,8 @@ modern-cmdk/
   biome.json                      Biome linter + formatter config
   lefthook.yml                    Git hooks (pre-commit, pre-push)
   vitest.config.ts                Unit/integration test config
-  playwright.config.ts            E2E test config (Chromium/Firefox/WebKit locally; Chromium in CI)
+  playwright.config.ts            E2E test config (Chromium, locally and in CI; Firefox and WebKit opt-in with E2E_ENGINES=all until 1.8.0)
+  playwright.docs.config.ts       Docs render test config (`pnpm test:docs`, tests/docs)
   |
   packages/
     modern-cmdk/                   The published package: core + React adapter + codemod CLI
@@ -107,15 +108,16 @@ modern-cmdk/
             memory-storage.ts     In-memory storage
             idb-storage.ts        IndexedDB storage (idb-keyval)
           keyboard/               Keyboard shortcut subsystem
-            parser.ts             Shortcut parser (RegExp.escape)
+            parser.ts             Shortcut parser
             matcher.ts            Event matcher
             index.ts              KeyboardShortcutRegistry (Disposable)
           utils/                  Cross-browser helpers
-            event-emitter.ts      TypedEmitter (WeakRef, Iterator Helpers)
+            event-emitter.ts      TypedEmitter (strong refs, Disposable subscriptions)
             scheduler.ts          rAF/microtask batching
             set-ops.ts            Set operation helpers
             group-by.ts           Object/Map groupBy helpers
             string-wellformed.ts  ensureWellFormed()
+            env.ts                isDev: the one NODE_ENV check shared by core and React
         react/                    React 19 adapter -- exported as "modern-cmdk/react"
           index.ts                Public exports
           command.tsx             <Command> root
@@ -135,7 +137,7 @@ modern-cmdk/
           activity.tsx            <Command.Activity>
           async-items.tsx         <Command.AsyncItems>
           error-boundary.tsx      <CommandErrorBoundary>
-          primitives.ts           Shared utilities
+          primitives.ts           Dead file, imported by nothing (excluded from tsc and coverage; deleted in the D window)
           styles.css              GPU-composited animations
           hooks/                  use-command, use-command-setup, use-command-state,
                                   use-register, use-virtualizer, use-keyboard, use-devtools
@@ -151,6 +153,11 @@ modern-cmdk/
         wasm-engine.ts            Main-thread WASM engine wrapper
         worker-engine.ts          Web Worker engine wrapper
         worker.ts                 Worker entry
+        env.ts                    isDev flag (same NODE_ENV pattern as core/utils/env.ts)
+        pkg.d.ts                  Ambient stub of the wasm-pack output, so tsc runs without pkg/
+        raw.d.ts                  Types for Vite `?raw` imports (worker-engine.test.ts)
+        pkg-stub.test.ts          Drift guard: pkg.d.ts stays a subset of the generated pkg/ types
+        worker-engine.test.ts     Worker engine tests against a FakeWorker
       crate/
         Cargo.toml                Rust crate config (edition 2024)
         src/
@@ -190,39 +197,43 @@ modern-cmdk/
   |
   tests/
     setup.ts                      Vitest setup (registered via setupFiles)
-    snapshot-serializers.ts       Custom snapshot serializers
-    unit/                         24 test files: machine, machine-integration, registry,
+    unit/                         28 test files: machine, machine-integration, registry,
                                   search, search-incremental, keyboard, frecency, frecency-idb,
                                   scheduler, event-emitter, types, command, activity, async,
                                   virtualization, memory-leak, stress, exports-validation,
-                                  cmdk-comparison, cmdk-performance-accuracy, codemod-* (4)
+                                  cmdk-comparison, cmdk-performance-accuracy, bug-matrix,
+                                  input-typing, create-cli, codemod-* (5)
+    dist/                         Tests against the built packages (cli-smoke, devtools)
+    docs/                         Playwright render tests for the built docs site (pages.spec.ts)
     e2e/
       basic.spec.ts
       keyboard.spec.ts
       accessibility.spec.ts
+      theme.spec.ts
       virtualization.spec.ts
   |
   benchmarks/
     baseline.json                 Committed CI baseline numbers
+    history/                      Committed CI benchmark results, one JSON per date and commit
     search.bench.ts
     frecency.bench.ts
     filter-10k.bench.ts
     filter-100k.bench.ts
     wasm-search.bench.ts          Excluded from `vitest bench` (browser-target WASM)
     standalone/
-      ci-bench.ts
-      compare-baseline.ts
-      setup.ts
+      compare-baseline.ts          The one CI benchmark harness (`pnpm bench:compare`)
   |
   .changeset/
     config.json                   Changesets config (public access, GitHub changelog)
   .github/
     workflows/
-      ci.yml                     Lint + test + e2e + size + bench + security audit
+      ci.yml                     Lint & typecheck, build, tests, React lanes, built-package tests, coverage,
+                                 Rust & WASM, e2e, docs, size, audit, benchmarks; "CI Summary" gates them
       release.yml                Wait for CI, then changeset version / publish; backfill task
       docs.yml                   VitePress deploy
-      benchmarks.yml             Benchmark tracking
       codeql.yml                 CodeQL static analysis
+      lanes.yml                  Scheduled non-blocking lanes (React canary, TypeScript latest/rc, the xcode-27 image, weekly audit)
+      scorecard.yml              OpenSSF Scorecard
 ```
 
 ---
@@ -235,13 +246,14 @@ modern-cmdk/
 | `pnpm test` | Run unit tests (Vitest, happy-dom) |
 | `pnpm test:watch` | Run unit tests in watch mode |
 | `pnpm test:coverage` | Run tests with V8 coverage report |
-| `pnpm test:e2e` | Run E2E tests (Playwright 1.66 -- Chromium/Firefox/WebKit locally, Chromium in CI) |
+| `pnpm test:e2e` | Run E2E tests (Playwright 1.66 -- Chromium; set E2E_ENGINES=all to add Firefox and WebKit) |
+| `pnpm test:docs` | Playwright render tests for the built docs site (run `pnpm docs:build` first) |
 | `pnpm bench` | Run benchmarks (Vitest bench mode) |
-| `pnpm bench:ci` | Run CI benchmarks (standalone, no Vitest) |
+| `pnpm bench:compare` | Standalone benchmark harness: compares medians with `benchmarks/baseline.json` (exit 0 pass, 1 warning, 2 failure or harness error) |
 | `pnpm lint` | Check lint rules (Biome) |
 | `pnpm lint:fix` | Fix lint issues and write changes |
 | `pnpm format` | Format all files (Biome) |
-| `pnpm typecheck` | Type-check with `tsc --noEmit` |
+| `pnpm typecheck` | `tsc --noEmit` for `modern-cmdk` and `create-modern-cmdk`, then `tests/`, `tests/e2e` and `tests/docs`. The playground and `modern-cmdk-search-wasm` are type-checked only in CI, after their build inputs exist |
 | `pnpm size` | Build and check bundle size limits |
 | `pnpm docs:dev` | Start docs dev server (VitePress) |
 | `pnpm docs:build` | Build docs for production |
@@ -254,7 +266,6 @@ modern-cmdk/
 ```bash
 # Watch mode for a specific package
 pnpm --filter modern-cmdk run dev
-pnpm --filter modern-cmdk/react run dev
 
 # Run the playground (Vite 8.3.5)
 pnpm --filter playground run dev
@@ -336,7 +347,7 @@ Biome automatically organizes imports via `assist.actions.source.organizeImports
 3. Relative imports (`./types.js`)
 4. Type imports last (`import type { ... }`)
 
-All imports use the `.js` extension suffix (required by `verbatimModuleSyntax`).
+All relative imports use the `.js` extension suffix. This is a house convention (it is what the emitted ESM resolves), not something `verbatimModuleSyntax` requires.
 
 ---
 
@@ -387,10 +398,11 @@ Use native ES2026 features that are supported in target browsers. Features not y
 
 | Feature | Where Used | Example |
 |---|---|---|
-| Iterator Helpers | Registry, search, emitter | `map.values().filter(fn).toArray()` |
-| `using` / `await using` | Machine, registry, emitter, keyboard | `using machine = createCommandMachine(...)` |
-| `Promise.withResolvers` | Scheduler | `const { promise, resolve } = Promise.withResolvers()` |
-| `RegExp.escape` | Keyboard parser | `RegExp.escape(userInput)` |
+| Iterator Helpers (ES2025) | Machine, registry, search, WASM engines | `items.values().map(fn)`, `.toArray()` |
+| `toSorted` / `toSpliced` (ES2023) | Machine, registry, fuzzy scorer, `<Command.Highlight>` | `results.toSorted((a, b) => b.score - a.score)` |
+| `Symbol.dispose` / `using` | Machine, registry, search engine, keyboard, emitter, scheduler, frecency, WASM engines (consumers write `using` / `await using`) | `[Symbol.dispose]() { ... }` |
+| `??=` lazy import | Frecency IndexedDB adapter | `idbModule ??= import('idb-keyval')` |
+| `Promise.withResolvers` | WASM worker engine (`command-search-wasm`) | `const { promise, resolve } = Promise.withResolvers<void>()` |
 
 ### Cross-browser helpers (use helpers, not native)
 
@@ -427,16 +439,9 @@ pnpm test:coverage
 pnpm vitest run tests/unit/search.test.ts
 ```
 
-**Coverage thresholds** (enforced when running `pnpm test:coverage`; the CI test matrix runs `vitest run` without coverage):
+**Coverage thresholds** live in `coverage-thresholds.json` (currently lines 85, functions 80, branches 76, statements 83). They are enforced by `pnpm test:coverage` and by the CI Coverage job, and `scripts/coverage-ratchet.mjs` refuses to lower any of them relative to `origin/main`. The CI test matrix runs `vitest run` without coverage.
 
-| Metric | Threshold |
-|---|---|
-| Statements | 80% |
-| Branches | 70% |
-| Functions | 75% |
-| Lines | 80% |
-
-Coverage is collected with V8 provider. Excluded from coverage: test files, bench files, index re-export files, `react/primitives.ts`, and the codemod, WASM (`command-search-wasm`), and `create-modern-cmdk` packages.
+Coverage is collected with the V8 provider over `packages/*/src`. Excluded (see `vitest.config.ts`): test and bench files, `*.d.ts`, the three exact-path barrels (`modern-cmdk/src/core/index.ts`, `modern-cmdk/src/react/index.ts`, `command-search-wasm/src/index.ts`), the dead `react/primitives.ts`, and `command-search-wasm/src/wasm-engine.ts` and `worker.ts` (they import the wasm-pack output, which the unit run does not build).
 
 #### Writing unit tests
 
@@ -479,7 +484,7 @@ These tests render React components with `happy-dom` and assert DOM state, ARIA 
 ### E2E Tests
 
 **Config:** `playwright.config.ts`
-**Browsers:** Chromium, Firefox, WebKit locally; Chromium only in CI
+**Browsers:** Chromium, locally and in CI. Firefox and WebKit are opt-in (`E2E_ENGINES=all pnpm test:e2e`) until 1.8.0 (D36, ledger TEB-81)
 **Test files:** `tests/e2e/**/*.spec.ts`
 
 ```bash
@@ -499,7 +504,7 @@ pnpm playwright test --project=chromium
 E2E tests run against the playground app (`apps/playground`). The web server starts automatically via the `webServer` config.
 
 The CI runs E2E tests with:
-- 2 retries for flake resilience
+- 2 retries with `failOnFlakyTests`: a test that passes only on a retry still fails the run
 - 2 workers
 - Artifact upload on failure (Playwright report + traces)
 
@@ -512,18 +517,19 @@ The CI runs E2E tests with:
 # Run benchmarks (Vitest bench mode)
 pnpm bench
 
-# Run CI benchmarks (standalone, no Vitest overhead)
-pnpm bench:ci
+# Compare against benchmarks/baseline.json (exit 0 pass, 1 warning, 2 failure or harness error)
+pnpm bench:compare
 ```
 
-Benchmark targets:
+Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnpm bench:compare` prints each one beside the measured median:
 
-| Benchmark | Target |
-|---|---|
-| Search 10K items (TS scorer) | < 16 ms |
-| Search 100K items (WASM scorer) | < 1 ms |
-| Filter 10K items (incremental) | < 2 ms |
-| State update cycle | < 4 ms |
+| Benchmark (baseline key) | Target | Baseline median (CI runner, benchmarks/history/2026-11-04-45a9134.json) |
+|---|---|---|
+| Search 10K items, TypeScript scorer (`search.ts-scorer-10k`) | < 16 ms | 3.46 ms |
+| Search-change cycle (`stateUpdate.searchChange`) | < 4 ms | 0.37 ms |
+| Navigate cycle (`stateUpdate.navigate`) | < 1 ms | 0.00075 ms |
+
+`pnpm bench` (Vitest bench, the `perf` project) also times incremental filtering (`filter-10k`, `filter-100k`) and frecency, but those suites have no baseline entry and no target; `wasm-search.bench.ts` is excluded from the project until the engine initialises (W01).
 
 ---
 
@@ -616,15 +622,14 @@ chore: bump Biome to 2.6.4
      `packages/*/src/**/*.{ts,tsx}` glob, so docs-only pushes skip the rebuild.
 
 5. **CI checks** -- The CI pipeline runs:
-   - Lint (`biome check .`)
-   - Type-check (`tsc --noEmit`)
-   - Unit tests (3 OS x 4 shards, on Node 26 and the `.nvmrc` Node)
-   - E2E tests (Chromium)
+   - Lint and type-check (`pnpm lint`, `pnpm typecheck`)
+   - Unit tests (3 OS, on Node 26.4.0 and the `.nvmrc` Node), React lanes, built-package tests, coverage with the ratchet
+   - Rust & WASM, E2E tests (Chromium), docs build and render tests
    - Bundle size check (`size-limit`)
-   - Benchmarks (`bench:ci` + `bench:compare`)
+   - Benchmarks (`pnpm bench:compare` against `benchmarks/baseline.json`, then `pnpm bench --run`)
    - Security audit (`pnpm audit`)
 
-6. **Review** -- All PRs require at least one approval. The CI must pass.
+6. **Review** -- The `main` ruleset requires a pull request (0 approvals), the "CI Summary" check must pass, and force-pushes and deletion of `main` are blocked.
 
 7. **Merge** -- Squash merge into `main`. The commit message should follow conventional commits.
 
@@ -713,6 +718,10 @@ When changesets are merged to `main`, the release workflow first waits (`ci-gate
 
 Publishing authenticates via **npm OIDC Trusted Publishing** -- the workflow's `id-token: write` permission supplies a short-lived token, so no long-lived `NPM_TOKEN` secret exists. The publish job runs in the `npm` GitHub environment, which only the `main` branch may deploy to. Never push git tags manually; tag pushes can trigger publishing.
 
+### Release tags
+
+The legacy tags `v1.1.5`, the `v0.x` tags and `vscode-modern-cmdk@1.0.0` are kept as history. Every tag from `modern-cmdk@1.2.3` and `create-modern-cmdk@1.2.2` on is created by the release workflow, never by hand.
+
 The `backfill` task (Actions > Release > Run workflow) is a temporary job meant to create the missing `modern-cmdk@1.2.2` and `create-modern-cmdk@1.2.1` tags and GitHub releases through the GitHub API; like every dispatched task it waits for CI on the dispatched commit first. Creating a release at those old commits needs a token with the Workflows permission, which the workflow's `GITHUB_TOKEN` cannot have, so the job fails with HTTP 403 until it is given such a token. It is deleted once every npm version has a GitHub release.
 
 ### Configuration
@@ -735,7 +744,7 @@ The changeset config (`.changeset/config.json`):
 ### `.toArray is not a function`, `Symbol.dispose` undefined, or other missing ES2026 features
 
 The codebase uses Iterator Helpers (`.map`/`.filter`/`.toArray`), Explicit Resource
-Management (`using`), `Promise.withResolvers` and `RegExp.escape` natively -- no polyfills.
+Management (`Symbol.dispose` / `using`) and `Promise.withResolvers` natively -- no polyfills.
 Node.js 26.4.0+ ships all of them. If you hit one of these errors, your Node.js is too old:
 
 ```bash
@@ -747,18 +756,6 @@ node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly2
 > landed in browsers -- `Set` methods, `Map.groupBy`/`Object.groupBy`, `Promise.try`,
 > `Temporal`, `Math.sumPrecise` -- are routed through the helpers in `core/utils/`
 > instead. See [ES2026 Feature Usage](#es2026-feature-usage).
-
-### `ERR_UNSUPPORTED_DIR_IMPORT` or missing `.js` extension
-
-All imports must use the `.js` extension suffix due to `verbatimModuleSyntax`:
-
-```ts
-// Correct
-import { something } from './module.js';
-
-// Wrong -- will fail at runtime
-import { something } from './module';
-```
 
 ### Biome reports `useImportType` errors
 
