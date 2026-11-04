@@ -1,7 +1,7 @@
 // packages/command/src/frecency/idb-storage.ts
-// IndexedDB-backed frecency persistence — idb-keyval 6.2.2 (lazy-loaded)
+// IndexedDB-backed frecency persistence — idb-keyval (lazy-loaded)
 // Implements both Disposable and AsyncDisposable for await using support
-// ES2026: Iterator Helpers, using/await using
+// ES2025: Iterator Helpers; Explicit Resource Management (using/await using, TS lib esnext.disposable)
 
 import type { UseStore } from 'idb-keyval';
 import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';

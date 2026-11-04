@@ -6,6 +6,8 @@
 > **Target Package:** `@crimson_dev/command`
 > **Replaces:** `cmdk@1.1.1` (pacocoursey)
 > **Spec Revision:** v2.0.0 — Full version audit + granular 0.0.1→1.0.0 roadmap
+>
+> **Note (2026-11-04):** This is a historical document. The docs site lives at https://abcrimson.github.io/modern-cmdk/; the `command.crimson.dev` host named in the text below is dead.
 
 ---
 
@@ -262,7 +264,7 @@ The single source file contains:
 |---|---|---|---|
 | TypeScript | `6.0.1-rc` | [npm](https://www.npmjs.com/package/typescript/v/6.0.1-rc) | Release candidate of TS 6.0 — the last JS-based compiler before Go-native TS 7.0; surfaces deprecation warnings for TS 7.0 breaking changes; `satisfies`, `using`/`await using`, decorator metadata, `const` type params, `NoInfer<T>`, isolated declarations, `erasableSyntaxOnly` |
 | ECMAScript Target | `ES2026` / `ESNext` | — | `Promise.try`, Iterator Helpers (`Iterator.prototype.map/filter/take/drop/flatMap/reduce/toArray/forEach/some/every/find`), `Math.sumPrecise`, Set methods (`union/intersection/difference/symmetricDifference/isSubsetOf/isSupersetOf/isDisjointFrom`), Explicit Resource Management (`using`/`await using`), `Temporal` (Stage 3, shipping in V8/SpiderMonkey), `RegExp.escape`, `Atomics.pause` — all stable or shipping in target runtimes (Node 25.8, Chrome 131+, Firefox 135+) |
-| Node.js (build-only) | `25.8.0` | [npm](https://www.npmjs.com/package/node/v/25.8.0) | Native TS execution via `--experimental-strip-types`, `node:` protocol enforced, built-in `fetch` + `WebSocket`, `navigator.hardwareConcurrency`, `Temporal` global, `using`/`await using` support |
+| Node.js (build-only) | `25.8.0` | [npm](https://www.npmjs.com/package/node/v/25.8.0) | Native TS execution (type stripping needs no flag since Node 23.6; the bench scripts run with plain `node`), `node:` protocol enforced, built-in `fetch` + `WebSocket`, `navigator.hardwareConcurrency`, `Temporal` global, `using`/`await using` support |
 | Module Format | ESM-only | — | `"type": "module"`, no CJS dual-publish |
 
 ### 5.2 Runtime Dependencies (React Adapter)
@@ -777,7 +779,7 @@ export function computeFrecencyBonus(
   const elapsed = now.since(history.lastUsed);
   const hours = elapsed.total('hours');
 
-  // Exponential decay with time buckets
+  // Step weight per recency bucket (hour/day/week/month/older)
   const recencyWeight =
     hours < 1    ? 4.0 :
     hours < 24   ? 2.0 :
@@ -946,7 +948,7 @@ The frecency algorithm combines frequency and recency into a single score using 
 frecencyScore = frequency × recencyWeight(Temporal.Now.instant().since(lastUsed))
 ```
 
-Recency weight decays exponentially: items used in the last hour get a 4× multiplier, last day 2×, last week 1.5×, last month 1×, older 0.5×.
+Recency weight is a step function per recency bucket: items used in the last hour get a 4× multiplier, last day 2×, last week 1.5×, last month 1×, older 0.5×.
 
 **Storage:** Pluggable via `Disposable` interface. Default is in-memory (resets on page reload). Optional `idb-keyval@6.2.2` adapter persists to IndexedDB — survives across sessions. Uses `await using` for transaction cleanup:
 
@@ -2100,7 +2102,7 @@ Handles: import rewriting, data attribute renaming, CSS custom property renaming
 - `packages/command/src/frecency/index.ts` — `FrecencyEngine`
   - `Temporal.Now.instant()` for sub-millisecond time tracking
   - `Temporal.Duration` for recency bucket calculation (hours, days, weeks)
-  - Exponential decay: 4× (1hr), 2× (1day), 1.5× (1wk), 1× (1mo), 0.5× (older)
+  - Step weights per recency bucket: 4× (1hr), 2× (1day), 1.5× (1wk), 1× (1mo), 0.5× (older)
 - `packages/command/src/frecency/storage.ts` — `FrecencyStorage` interface (pluggable)
 - `packages/command/src/frecency/memory-storage.ts` — in-memory default
   - `Map` with `Iterator.prototype.toArray()` for serialization

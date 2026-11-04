@@ -1,10 +1,9 @@
 'use client';
 
-// packages/command-react/src/dialog.tsx
+// packages/modern-cmdk/src/react/dialog.tsx
 // <Command.Dialog> — Radix Dialog.Root + Dialog.Portal + Dialog.Overlay + Dialog.Content
-// @starting-style CSS animations, transition-behavior: allow-discrete, inert on background
+// @starting-style CSS animations, transition-behavior: allow-discrete, background hidden with aria-hidden through Radix hideOthers
 // Focus trap via Radix built-in focus management
-// ES2026: satisfies operator, branded types
 // Isolated declarations: explicit return types on all exports
 
 import { Dialog } from 'radix-ui';

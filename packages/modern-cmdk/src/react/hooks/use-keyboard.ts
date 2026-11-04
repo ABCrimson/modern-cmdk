@@ -1,9 +1,9 @@
 'use client';
 
 // packages/command-react/src/hooks/use-keyboard.ts
-// Keyboard navigation — event handler factory, attached to root element
+// Keyboard navigation — keydown handler factory; Command.Root and Command.Dialog attach it to document
 // Isolated declarations: explicit return types on all exports
-// Uses object lookup (ES2026 style) instead of switch for cleaner dispatch
+// Navigation keys dispatch through an object lookup; action keys (Enter/Backspace/Escape) through a switch
 
 import type { CommandMachine, CommandState } from '../../core/index.js';
 

@@ -18,7 +18,7 @@ interface ShortcutBinding {
 /**
  * Manages keyboard shortcut bindings with global keydown listening.
  * Supports `using` for automatic cleanup of both individual bindings and the
- * global document listener. Detects conflicts via Map.groupBy (ES2026).
+ * global document listener. Detects conflicts with the local mapGroupBy helper (core/utils/group-by.ts).
  */
 export class KeyboardShortcutRegistry implements Disposable {
   #bindings = new Map<string, ShortcutBinding>();

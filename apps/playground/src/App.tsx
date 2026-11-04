@@ -3,9 +3,10 @@
 // apps/playground/src/App.tsx
 // Main app with pathname-based routing for demos
 // React 19: useTransition, useId, ref as prop
-// ES2026: Iterator Helpers
+// ES2025: Iterator Helpers
 
 import { useCallback, useEffect, useId, useState, useTransition } from 'react';
+import modernCmdkPackage from '../../../packages/modern-cmdk/package.json' with { type: 'json' };
 import { AllStatesDemo } from './demos/AllStatesDemo.js';
 import { BasicDemo } from './demos/BasicDemo.js';
 import { DarkModeDemo } from './demos/DarkModeDemo.js';
@@ -39,7 +40,7 @@ const ROUTES: readonly { path: Route; label: string; badge?: string }[] = [
 
 function getRouteFromPathname(): Route {
   const pathname = globalThis.location?.pathname ?? '/';
-  // ES2026: Iterator Helpers — .some() on iterator
+  // ES2025: Iterator Helpers — .some() on iterator
   const isValid = ROUTES.values().some((r) => r.path === pathname);
   return isValid ? (pathname as Route) : '/';
 }
@@ -92,7 +93,7 @@ export function App(): React.ReactNode {
     });
   }, []);
 
-  // ES2026: Iterator Helpers — .map().toArray() on readonly array iterator
+  // ES2025: Iterator Helpers — .map().toArray() on readonly array iterator
   const navItems = ROUTES.values()
     .map((r) => (
       <button
@@ -122,9 +123,9 @@ export function App(): React.ReactNode {
           The definitive command palette engine for the modern web.
         </p>
         <div className="playground-meta">
-          <span className="playground-version">v1.2.2</span>
+          <span className="playground-version">v{modernCmdkPackage.version}</span>
           <span className="playground-version">React 19</span>
-          <span className="playground-version">ES2026</span>
+          <span className="playground-version">ESNext</span>
           <ThemeToggle />
         </div>
         <nav className="playground-nav" aria-label="Demo navigation" id={navId}>
@@ -150,9 +151,13 @@ export function App(): React.ReactNode {
       </main>
 
       <footer className="playground-footer">
-        <span className="footer-text">Built with React 19, TypeScript 7, Vite 8, ES2026</span>
+        <span className="footer-text">Built with React 19, TypeScript 7, Vite 8, ESNext</span>
         <div className="footer-links">
-          <a href="https://command.crimson.dev" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://abcrimson.github.io/modern-cmdk/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Docs
           </a>
           <a

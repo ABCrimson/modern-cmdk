@@ -1,6 +1,6 @@
 // Main-thread wrapper that creates a dedicated Web Worker running the WASM search engine
 // Uses: Promise.withResolvers(), Symbol.dispose / Symbol.asyncDispose (works with `await using`), Iterator Helpers (ES2025), branded ItemId
-// Search always runs in the Web Worker; SharedArrayBuffer only carries the scores when the page is
+// Search runs in the Web Worker when one can be created; SharedArrayBuffer only carries the scores when the page is
 // cross-origin isolated (COOP + COEP), otherwise they are structured-cloned.
 // Falls back to main-thread WASM when the Worker cannot be created or fails before it is ready.
 

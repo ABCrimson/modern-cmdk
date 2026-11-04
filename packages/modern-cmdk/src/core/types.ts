@@ -1,6 +1,6 @@
 // packages/command/src/types.ts
 // TypeScript 7.1 — ESNext target — all modern type features
-// Branded types, const type params, NoInfer<T>, satisfies on values
+// Branded ids, item/group/state/option types and the default frecency and machine options
 
 import { ensureWellFormed } from './utils/string-wellformed.js';
 
@@ -133,7 +133,7 @@ export interface FrecencyStorage extends Disposable {
   save(namespace: string, data: FrecencyData): void | Promise<void>;
 }
 
-/** Frecency exponential decay bucket configuration */
+/** Frecency step-weight configuration per recency bucket (hour/day/week/month/older) */
 export interface FrecencyDecayConfig {
   readonly hourWeight?: number | undefined;
   readonly dayWeight?: number | undefined;
@@ -159,7 +159,7 @@ export const DEFAULT_FRECENCY_DECAY: Required<FrecencyDecayConfig> = {
   olderWeight: 0.5,
 } as const satisfies Required<FrecencyDecayConfig>;
 
-/** Options for creating a command machine — const type param for narrowed option inference */
+/** Options for creating a command machine */
 export interface CommandMachineOptions {
   /** Pre-registered items to populate on creation */
   readonly items?: readonly CommandItem[] | undefined;

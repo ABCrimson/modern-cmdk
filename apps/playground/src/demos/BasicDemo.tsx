@@ -3,7 +3,6 @@
 // apps/playground/src/demos/BasicDemo.tsx
 // Basic inline command palette with ~15 items across 3 groups
 // React 19: useId, useCallback, ref as prop
-// ES2026: Iterator Helpers (.map on Set)
 
 import { Command, useCommandDevtools } from 'modern-cmdk/react';
 import { useCallback, useId } from 'react';

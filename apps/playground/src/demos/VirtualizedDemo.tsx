@@ -3,7 +3,7 @@
 // apps/playground/src/demos/VirtualizedDemo.tsx
 // 10K items for virtualization testing
 // React 19: useId, useCallback, useMemo
-// ES2026: Iterator Helpers for item rendering
+// ES2025: Iterator Helpers for item rendering
 
 import { Command } from 'modern-cmdk/react';
 import { useCallback, useId, useMemo } from 'react';

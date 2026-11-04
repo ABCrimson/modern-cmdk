@@ -713,6 +713,8 @@ describe('package exports', () => {
 
 ### Task H1: Add aria-roledescription to Command.Root
 
+> **Dropped:** aria-roledescription overrides native role announcements.
+
 **Files:**
 - Modify: `packages/command-react/src/command.tsx`
 
@@ -1174,7 +1176,7 @@ Run `pnpm -r exec npm pack --dry-run` and verify all packages include correct fi
 - B1 (benchmark regression)
 - E1-E2 (error boundaries + WASM fallback)
 - G1 (exports validation)
-- H1 (aria-roledescription)
+- H1 (aria-roledescription) — Dropped: aria-roledescription overrides native role announcements
 - I1 (devtools hook)
 - M2 (memory leak test)
 - O1 (telemetry)

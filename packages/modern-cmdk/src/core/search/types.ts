@@ -1,5 +1,5 @@
 // packages/command/src/search/types.ts
-// SearchResult, ScorerFn types — branded types with `satisfies`
+// SearchResult, ScorerFn and SearchEngine types
 
 import type { CommandItem, ItemId } from '../types.js';
 
@@ -20,7 +20,7 @@ export interface SearchEngine extends Disposable {
   index(items: readonly CommandItem[]): void;
   /** Search items by query, return ordered results — uses Iterator pipeline */
   search(query: string, items: readonly CommandItem[]): IteratorObject<SearchResult>;
-  /** Remove items from index — uses Set.difference for efficient bulk removal */
+  /** Remove items from index by id */
   remove(ids: ReadonlySet<ItemId>): void;
   /** Clear the entire index */
   clear(): void;
