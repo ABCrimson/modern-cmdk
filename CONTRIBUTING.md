@@ -35,7 +35,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 |---|---|---|
 | Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly2026110370074c6f98) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
 | pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
-| TypeScript | 7.1.0-dev.20261103.1 | Installed via devDependencies -- do not install globally |
+| TypeScript | 7.1.0-dev.20261104.1 | Installed via devDependencies -- do not install globally |
 | Rust + wasm-pack | Pinned nightly (`rust-toolchain.toml`) + wasm-pack 0.15.1 | Only needed if working on `command-search-wasm` |
 | Git | >= 2.40 | For Lefthook pre-commit/pre-push hooks |
 
@@ -342,7 +342,7 @@ All imports use the `.js` extension suffix (required by `verbatimModuleSyntax`).
 
 ## TypeScript Guidelines
 
-This project uses **TypeScript 7.1.0-dev.20261103.1** with strict configuration.
+This project uses **TypeScript 7.1.0-dev.20261104.1** with strict configuration.
 
 ### Required tsconfig flags
 

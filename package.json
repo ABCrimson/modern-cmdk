@@ -54,7 +54,7 @@
     "tinybench": "6.2.3",
     "tsdown": "0.23.5",
     "tsx": "4.23.15",
-    "typescript": "7.1.0-dev.20261103.1",
+    "typescript": "7.1.0-dev.20261104.1",
     "vitest": "5.1.0"
   },
   "size-limit": [

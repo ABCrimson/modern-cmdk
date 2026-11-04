@@ -42,7 +42,7 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
 | **Bundle** | ~6 KB | Core ~6.4 KB, React ~9.8 KB |
-| **TypeScript** | 4.x/5.x | 7.1.0-dev.20261103.1, isolated declarations, branded types |
+| **TypeScript** | 4.x/5.x | 7.1.0-dev.20261104.1, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Telemetry** | None | Pluggable telemetry middleware |
 | **DevTools** | None | Built-in devtools hook for browser inspection |
@@ -356,7 +356,7 @@ pnpm install && pnpm build && pnpm test
 | `pnpm test:e2e` | E2E tests (Playwright 1.66 -- Chromium, Firefox, WebKit locally; Chromium in CI) |
 | `pnpm bench` | Benchmarks (Vitest bench mode) |
 | `pnpm lint` | Lint (Biome 2.6.4) |
-| `pnpm typecheck` | Type-check (TypeScript 7.1.0-dev.20261103.1) |
+| `pnpm typecheck` | Type-check (TypeScript 7.1.0-dev.20261104.1) |
 | `pnpm size` | Bundle size budgets |
 | `pnpm docs:dev` | Docs dev server (VitePress 2.0) |
 
@@ -368,7 +368,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 
 | Tool | Version | Purpose |
 |---|---|---|
-| TypeScript | 7.1.0-dev.20261103.1 | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
+| TypeScript | 7.1.0-dev.20261104.1 | `isolatedDeclarations`, `erasableSyntaxOnly`, branded types |
 | React | 0.0.0-experimental-e84e1492-20261031 | `use()`, `useOptimistic`, `ref` as prop, Activity API |
 | Vite | 8.3.5 | Playground dev server, HMR, build tooling |
 | Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly2026110370074c6f98) | ES2026: Iterator Helpers, Explicit Resource Management |
