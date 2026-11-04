@@ -7,6 +7,33 @@
       "pin": ">=26.4.0",
       "reason": "engines.node is the consumer compatibility floor of the published packages (modern-cmdk, create-modern-cmdk) and the monorepo root; a library cannot require an exact or pre-release Node. The dev toolchain pin is .nvmrc 28.0.0-nightly2026110370074c6f98 (Node 28 nightly), and CI tests both the floor (26.4.0) and 28.0.0-nightly2026110370074c6f98.",
       "evidence": "orchestrator decision 2 (2026-10-30); engines.node in package.json, packages/modern-cmdk/package.json, packages/create-modern-cmdk/package.json"
+    },
+    {
+      "kind": "npm",
+      "name": "react",
+      "pin": ">=19.0.0 <21.0.0",
+      "file": "packages/modern-cmdk/package.json",
+      "field": "peerDependencies",
+      "reason": "peerDependencies declare the consumer compatibility range of the published library; an exact or pre-release peer would force every consumer onto that build. The dev and test pin is the newest experimental build in the root and playground devDependencies, re-resolved by every sweep.",
+      "evidence": "orchestrator decision 2026-10-31; packages/modern-cmdk/package.json peerDependencies"
+    },
+    {
+      "kind": "npm",
+      "name": "react-dom",
+      "pin": ">=19.0.0 <21.0.0",
+      "file": "packages/modern-cmdk/package.json",
+      "field": "peerDependencies",
+      "reason": "peerDependencies declare the consumer compatibility range of the published library; an exact or pre-release peer would force every consumer onto that build. The dev and test pin is the newest experimental build in the root and playground devDependencies, re-resolved by every sweep.",
+      "evidence": "orchestrator decision 2026-10-31; packages/modern-cmdk/package.json peerDependencies"
+    },
+    {
+      "kind": "npm",
+      "name": "radix-ui",
+      "pin": ">=1.4.0 <2.0.0",
+      "file": "packages/modern-cmdk/package.json",
+      "field": "peerDependencies",
+      "reason": "peerDependencies declare the consumer compatibility range of the published library; an exact or pre-release peer would force every consumer onto that build. The dev and test pin is the newest experimental build in the root and playground devDependencies, re-resolved by every sweep.",
+      "evidence": "orchestrator decision 2026-10-31; packages/modern-cmdk/package.json peerDependencies"
     }
   ]
 }
