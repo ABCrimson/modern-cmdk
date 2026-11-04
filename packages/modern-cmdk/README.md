@@ -11,16 +11,16 @@
   <a href="https://www.npmjs.com/package/modern-cmdk"><img alt="npm version" src="https://img.shields.io/npm/v/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
   <a href="https://bundlephobia.com/package/modern-cmdk"><img alt="bundle size" src="https://img.shields.io/bundlephobia/minzip/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27&label=core"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
-  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.0-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-19-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
 </p>
 
 <p align="center">
-  <a href="https://command.crimson.dev">Documentation</a> &middot;
-  <a href="https://command.crimson.dev/guide/getting-started">Getting Started</a> &middot;
-  <a href="https://command.crimson.dev/api/command">API Reference</a> &middot;
-  <a href="https://command.crimson.dev/examples/basic">Examples</a>
+  <a href="https://abcrimson.github.io/modern-cmdk/">Documentation</a> &middot;
+  <a href="https://abcrimson.github.io/modern-cmdk/guide/getting-started.html">Getting Started</a> &middot;
+  <a href="https://abcrimson.github.io/modern-cmdk/api/command.html">API Reference</a> &middot;
+  <a href="https://abcrimson.github.io/modern-cmdk/examples/basic.html">Examples</a>
 </p>
 
 ---
@@ -33,7 +33,8 @@ npm install modern-cmdk
 
 > [!NOTE]
 > `modern-cmdk` is ESM-only and declares `engines.node >= 26.4.0`. The optional WASM search
-> engine (`modern-cmdk-search-wasm`) is experimental and not yet published to npm.
+> engine (`modern-cmdk-search-wasm`) is a private, unpublished workspace package (0.9.0) that you
+> build from source; it is not on npm.
 
 The package exports three entry points:
 
@@ -43,7 +44,11 @@ import { Command } from 'modern-cmdk/react';               // React 19 component
 import 'modern-cmdk/styles.css';                            // Default styles
 ```
 
-React is an **optional** peer dependency — use the core engine standalone in any framework, or pair it with the React adapter for a batteries-included experience.
+React is an **optional** peer dependency — use the core engine standalone in any framework, or pair it with the React adapter. `modern-cmdk/react` imports `react`, `react-dom` and `radix-ui`, which are optional peers that npm and pnpm do not install for you, so add them yourself (the Quick Start below needs all three):
+
+```bash
+npm install modern-cmdk react react-dom radix-ui
+```
 
 ---
 
@@ -54,42 +59,58 @@ React is an **optional** peer dependency — use the core engine standalone in a
 
 import { Command } from 'modern-cmdk/react';
 import 'modern-cmdk/styles.css';
+import { useEffect, useState } from 'react';
 
 function CommandPalette() {
+  const [open, setOpen] = useState(false);
+
+  // Nothing opens the dialog for you: toggle it from a Mod+K listener (Cmd+K / Ctrl+K).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((o) => !o);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   return (
-    <Command.Dialog>
+    <Command.Dialog open={open} onOpenChange={setOpen} label="Command Menu">
       <Command.Input placeholder="Type a command..." />
       <Command.List>
         <Command.Empty>No results found.</Command.Empty>
 
         <Command.Group heading="Actions">
-          <Command.Item value="copy" onSelect={() => copyToClipboard()}>
-            <Command.Highlight>Copy to Clipboard</Command.Highlight>
-            <Command.Shortcut>Mod+C</Command.Shortcut>
+          <Command.Item value="copy" onSelect={() => setOpen(false)}>
+            Copy to Clipboard
+            <Command.Shortcut shortcut="Mod+C" />
           </Command.Item>
-          <Command.Item value="paste" onSelect={() => paste()}>
-            <Command.Highlight>Paste</Command.Highlight>
-            <Command.Shortcut>Mod+V</Command.Shortcut>
+          <Command.Item value="paste" onSelect={() => setOpen(false)}>
+            Paste
+            <Command.Shortcut shortcut="Mod+V" />
           </Command.Item>
         </Command.Group>
 
         <Command.Group heading="Navigation">
-          <Command.Item value="settings" onSelect={() => navigate('/settings')}>
+          <Command.Item value="settings" onSelect={() => setOpen(false)}>
             Settings
             <Command.Badge>New</Command.Badge>
           </Command.Item>
         </Command.Group>
       </Command.List>
-      <Command.Loading>Searching...</Command.Loading>
     </Command.Dialog>
   );
 }
 ```
 
-Or scaffold a new project instantly:
+`<Command label="Command menu">` takes the same children inline, with no dialog; `<Command.Highlight text={...} ranges={...} />` renders match highlighting from scorer ranges.
+
+Or scaffold a new project:
 
 ```bash
-npm create modern-cmdk
+npm create modern-cmdk@latest my-palette -- --template=react-basic
 ```
 
 ---
@@ -101,15 +122,15 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 | | cmdk | modern-cmdk |
 |---|---|---|
 | **Architecture** | React-only, tightly coupled | Framework-agnostic core + thin adapters |
-| **React** | 18 | 19 (`use()`, `useOptimistic`, `useId`, `ref` as prop) |
-| **Search** | Basic substring | Fuzzy scoring + optional WASM (sub-1ms on 100K items) |
-| **Ranking** | Static order | Frecency with time-based exponential decay |
+| **React** | 18 / 19 | 19 (`use()`, `useOptimistic`, `useId`, `ref` as prop) |
+| **Search** | Fuzzy (`command-score`) | Fuzzy scoring with match ranges, plus an optional WASM engine you build from source |
+| **Ranking** | Static order | Frecency: frequency x bucketed recency weights |
 | **Virtualization** | None | Automatic variable-height, `content-visibility: auto` |
 | **Animations** | CSS transitions | GPU-composited: `@starting-style`, `scroll-timeline`, spring easing |
 | **Keyboard** | External | Built-in registry, `Mod` key, conflict detection |
 | **Accessibility** | Partial ARIA | Full WAI-ARIA combobox, `forced-colors`, `prefers-contrast` |
 | **Bundle** | ~6 KB | Core ~6.4 KB, React ~9.8 KB |
-| **TypeScript** | 4.x/5.x | 7.0, isolated declarations, branded types |
+| **TypeScript** | 4.x/5.x | 7, isolated declarations, branded types |
 | **Cleanup** | Manual | `using`/`await using` (Explicit Resource Management) |
 | **Error handling** | None | `CommandErrorBoundary` with fallback UI |
 | **DevTools** | None | Built-in devtools hook for browser inspection |
@@ -119,11 +140,11 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 ## Features
 
 - **Framework-agnostic core** -- Pure TypeScript state machine. No DOM. No React. Portable to any runtime. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
-- **React 19 adapter** -- 14 compound components. `useSyncExternalStore`, `useTransition`, `useOptimistic`, `use()` for Suspense. React Compiler compatible.
+- **React 19 adapter** -- a `Command` root with 14 compound sub-components (`Command.Input` through `Command.Activity`). `useSyncExternalStore`, `useTransition`, `useOptimistic`, `use()` for Suspense. React Compiler compatible.
 - **Automatic virtualization** -- Variable-height virtual scrolling kicks in at a configurable threshold (`virtualizeThreshold`, default 100). Handles 100K+ items smoothly with `content-visibility: auto`.
-- **Fuzzy search** -- Built-in TypeScript scorer with incremental filtering. Optional Rust/WASM engine for sub-1ms on 100K items with graceful TS fallback _(experimental, not yet published to npm)_.
-- **Frecency ranking** -- Frequency x recency with time-based exponential decay. Pluggable persistence (memory or IndexedDB).
-- **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, conflict detection, and `RegExp.escape` parsing. Cross-browser helper functions for grouping and set operations.
+- **Fuzzy search** -- Built-in TypeScript scorer with incremental filtering. Optional Rust/WASM engine, built from source, with a TS fallback _(experimental, private, not published to npm)_.
+- **Frecency ranking** -- Frequency x recency, weighted by hour/day/week/month buckets. Pluggable persistence (memory or IndexedDB).
+- **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, and conflict detection. Cross-browser helper functions for grouping and set operations.
 - **Full accessibility** -- WAI-ARIA combobox pattern, `aria-live` announcements, `forced-colors`, `prefers-contrast`, `prefers-reduced-motion`.
 - **GPU-composited animations** -- `@starting-style` entry, `scroll-timeline` progress, spring `linear()` easing. All customizable via CSS custom properties.
 - **Error boundary** -- `CommandErrorBoundary` with static or render-function fallback.
@@ -189,16 +210,17 @@ machine.subscribe(() => {
 
 ## Performance
 
-| Benchmark | Target | Measured |
+| Benchmark | Target | Measured (CI runner) |
 |---|---|---|
-| Search 10K items (TS scorer) | < 16 ms | ~8.2 ms |
-| Search 100K items (WASM) | < 1 ms | ~0.7 ms |
-| Filter 10K (incremental) | < 2 ms | ~1.1 ms |
-| State update cycle | < 4 ms | ~2.3 ms |
+| Search 10K items (TS scorer) | < 16 ms | ~3.5 ms median |
+| State update: `SEARCH_CHANGE` | < 4 ms | ~0.37 ms median |
+| State update: `NAVIGATE` | < 1 ms | ~0.001 ms median |
 | Core bundle (gzipped) | <= 6.5 KB | ~6.4 KB |
 | React bundle (gzipped) | <= 12 KB | ~9.8 KB |
 
-CI enforces 5% warning / 15% failure regression thresholds with 3-run averaging.
+Timings are single-run medians from `benchmarks/baseline.json`, measured on a shared GitHub Actions
+runner (noise is +/-20-40 %). CI compares new runs against that baseline with 5 % warning / 15 % failure
+thresholds as a coarse tripwire, not a precise regression gate. There is no published WASM benchmark.
 
 ---
 
@@ -216,8 +238,15 @@ All animations and dimensions are customizable via CSS custom properties:
   --command-dialog-max-width: 640px;
   --command-item-height: 44px;
   --command-highlight-color: oklch(0.85 0.15 90 / 0.3);
+  --command-muted-color: light-dark(oklch(0.45 0.015 260), oklch(0.75 0.015 260));
 }
 ```
+
+`--command-muted-color` colours secondary text (group headings, shortcuts, the empty state, the
+placeholder). Its default uses `light-dark()`, which follows the used `color-scheme`: set
+`color-scheme` on `:root` or a parent (for example `color-scheme: dark` on a dark theme), or override
+`--command-muted-color`. A dark-themed page that sets no `color-scheme` gets the light value on its dark
+surface (about 2.4:1 contrast).
 
 All styles use `@layer command` for zero-specificity conflicts and CSS logical properties for full RTL support.
 
@@ -225,28 +254,53 @@ All styles use `@layer command` for zero-specificity conflicts and CSS logical p
 
 ## Migration from cmdk
 
-Automated codemods handle the most common migration patterns:
+Four codemods ship as the `modern-cmdk` bin. Pass a transform name and a glob (quote the glob so your
+shell does not expand it):
 
 ```bash
-npx modern-cmdk import-rewrite ./src
-npx modern-cmdk data-attrs ./src
-npx modern-cmdk forward-ref ./src
-npx modern-cmdk should-filter ./src
+npx modern-cmdk --help
+npx modern-cmdk import-rewrite "./src/**/*.tsx" --dry-run
+npx modern-cmdk import-rewrite "./src/**/*.tsx"
 ```
 
-See the [full migration guide](https://command.crimson.dev/guide/migration-from-cmdk).
+| Transform | What it does |
+|---|---|
+| `import-rewrite` | Rewrites `cmdk` imports to `modern-cmdk/react` |
+| `data-attrs` | Converts `[cmdk-*]` selectors to `[data-command-*]` |
+| `forward-ref` | Removes `React.forwardRef` wrappers (React 19) |
+| `should-filter` | Converts the `shouldFilter` prop to `filter` |
+
+Options: `--dry-run` lists the files that would change and writes nothing; `--concurrency=N` sets how
+many files are processed at once (default 8); `--strict` is described below.
+
+A run prints one `changed <file>` line per rewritten file and a summary. With `--dry-run` the lines read
+`would change <file>` and the summary ends in `(dry run, nothing written)`:
+
+```text
+would change src/a.tsx
+1 changed, 0 unchanged, 0 errors (dry run, nothing written)
+```
+
+Exit codes in 1.x are unchanged by default: `0` for `--help`, missing arguments and per-file errors, and
+`1` for an unknown transform, a glob that matches no files, or an uncaught error. An unknown option is
+warned about on stderr and ignored when the transform and glob are present. A malformed known option
+(`--concurrency` with no value, `--dry-run=yes`) is a usage error that writes nothing and exits `0`.
+With `--strict`, every usage error (including an unknown option, an unknown transform and a malformed
+option) exits `2`, and any file error exits `1`.
+
+See the [full migration guide](https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html).
 
 ---
 
 ## Documentation
 
-**[command.crimson.dev](https://command.crimson.dev)**
+**[abcrimson.github.io/modern-cmdk](https://abcrimson.github.io/modern-cmdk/)**
 
-**Guides:** [Getting Started](https://command.crimson.dev/guide/getting-started) | [Installation](https://command.crimson.dev/guide/installation) | [Basic Usage](https://command.crimson.dev/guide/basic-usage) | [Async Items](https://command.crimson.dev/guide/async-items) | [WASM Search](https://command.crimson.dev/guide/wasm-search) | [Frecency](https://command.crimson.dev/guide/frecency) | [Shortcuts](https://command.crimson.dev/guide/shortcuts) | [Virtualization](https://command.crimson.dev/guide/virtualization) | [SSR / Next.js](https://command.crimson.dev/guide/ssr) | [Theming](https://command.crimson.dev/guide/theming) | [Accessibility](https://command.crimson.dev/guide/accessibility)
+**Guides:** [Getting Started](https://abcrimson.github.io/modern-cmdk/guide/getting-started.html) | [Installation](https://abcrimson.github.io/modern-cmdk/guide/installation.html) | [Basic Usage](https://abcrimson.github.io/modern-cmdk/guide/basic-usage.html) | [Async Items](https://abcrimson.github.io/modern-cmdk/guide/async-items.html) | [WASM Search](https://abcrimson.github.io/modern-cmdk/guide/wasm-search.html) | [Frecency](https://abcrimson.github.io/modern-cmdk/guide/frecency.html) | [Shortcuts](https://abcrimson.github.io/modern-cmdk/guide/shortcuts.html) | [Virtualization](https://abcrimson.github.io/modern-cmdk/guide/virtualization.html) | [SSR / Next.js](https://abcrimson.github.io/modern-cmdk/guide/ssr.html) | [Theming](https://abcrimson.github.io/modern-cmdk/guide/theming.html) | [Accessibility](https://abcrimson.github.io/modern-cmdk/guide/accessibility.html)
 
-**Recipes:** [File Picker](https://command.crimson.dev/recipes/file-picker) | [Emoji Picker](https://command.crimson.dev/recipes/emoji-picker) | [AI Chat Commands](https://command.crimson.dev/recipes/ai-chat-commands) | [Nested Commands](https://command.crimson.dev/recipes/nested-commands) | [Spotlight Search](https://command.crimson.dev/recipes/spotlight-search)
+**Recipes:** [File Picker](https://abcrimson.github.io/modern-cmdk/recipes/file-picker.html) | [Emoji Picker](https://abcrimson.github.io/modern-cmdk/recipes/emoji-picker.html) | [AI Chat Commands](https://abcrimson.github.io/modern-cmdk/recipes/ai-chat-commands.html) | [Nested Commands](https://abcrimson.github.io/modern-cmdk/recipes/nested-commands.html) | [Spotlight Search](https://abcrimson.github.io/modern-cmdk/recipes/spotlight-search.html)
 
-**API:** [Core Engine](https://command.crimson.dev/api/command) | [React Adapter](https://command.crimson.dev/api/command-react) | [WASM Search](https://command.crimson.dev/api/command-search-wasm)
+**API:** [Core Engine](https://abcrimson.github.io/modern-cmdk/api/command.html) | [React Adapter](https://abcrimson.github.io/modern-cmdk/api/command-react.html) | [WASM Search](https://abcrimson.github.io/modern-cmdk/api/command-search-wasm.html)
 
 ---
 
@@ -254,9 +308,9 @@ See the [full migration guide](https://command.crimson.dev/guide/migration-from-
 
 | Package | Description |
 |---|---|
-| [`create-modern-cmdk`](https://www.npmjs.com/package/create-modern-cmdk) | `npm create modern-cmdk` -- scaffold a new project |
-| `modern-cmdk-search-wasm` _(experimental, not yet published)_ | Rust/WASM fuzzy search -- sub-1ms on 100K items |
-| [`vscode-modern-cmdk`](https://marketplace.visualstudio.com/items?itemName=crimson-dev.vscode-modern-cmdk) | VS Code snippets extension |
+| [`create-modern-cmdk`](https://www.npmjs.com/package/create-modern-cmdk) | `npm create modern-cmdk@latest <name>` -- scaffold a new project |
+| `modern-cmdk-search-wasm` _(private 0.9.0, not published; build from source)_ | Experimental Rust/WASM fuzzy search |
+| `vscode-modern-cmdk` _(not yet published)_ | VS Code snippets extension |
 
 ---
 

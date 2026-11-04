@@ -2,7 +2,7 @@
   "name": "vscode-modern-cmdk",
   "displayName": "Modern CMDK",
   "version": "1.0.0",
-  "description": "Snippets and IntelliSense for modern-cmdk",
+  "description": "Snippets for modern-cmdk",
   "publisher": "crimson-dev",
   "license": "MIT",
   "engines": {

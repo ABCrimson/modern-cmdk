@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27" alt="license" /></a>
+  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license" /></a>
 </p>
 
 ---
@@ -36,19 +36,13 @@ A VS Code extension that provides snippets for building command palettes with `m
 
 ## Install
 
-### From VS Code Marketplace
-
-Search for **Modern CMDK** in the Extensions panel, or:
-
-```
-ext install crimson-dev.vscode-modern-cmdk
-```
+The extension is not yet published to the VS Code Marketplace; install it from source.
 
 ### From source
 
 ```bash
 cd packages/vscode-modern-cmdk
-npx vsce package
+npx @vscode/vsce@4.1.0 package
 code --install-extension vscode-modern-cmdk-1.0.0.vsix
 ```
 
@@ -77,7 +71,7 @@ function CommandDialog() {
 ## Links
 
 - [modern-cmdk on npm](https://www.npmjs.com/package/modern-cmdk)
-- [Documentation](https://command.crimson.dev)
+- [Documentation](https://abcrimson.github.io/modern-cmdk/)
 - [GitHub](https://github.com/ABCrimson/modern-cmdk)
 
 ## License

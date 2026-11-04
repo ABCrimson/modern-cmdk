@@ -7,29 +7,29 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27" alt="license" /></a>
+  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-dc2626?style=flat-square&labelColor=0a0e27" alt="license" /></a>
 </p>
 
-> **Status:** Not yet published. Requires `wasm-pack` to build from source. The package is marked `private` until the WASM build is integrated into CI.
+> **Status:** private 0.9.0, not published to npm. Build it from source with `pnpm build:wasm` (requires `wasm-pack`).
 
 ---
 
 ## What is this?
 
-A drop-in replacement for the default search engine in `modern-cmdk`. Uses a Rust-compiled WASM module with trigram indexing for sub-millisecond fuzzy search on datasets of 100K+ items.
+A drop-in replacement for the default search engine in `modern-cmdk`. Uses a Rust-compiled WASM module with trigram indexing for fuzzy search. It is experimental and has no published benchmark.
 
 ### Two execution modes
 
 | Mode | Description | Best for |
 |------|-------------|----------|
-| **Main thread** | Direct WASM calls, zero latency | < 10K items |
-| **Web Worker** | Off-main-thread search via `SharedArrayBuffer` | 10K+ items, keeps UI at 60fps |
+| **Main thread** | Direct WASM calls on the main thread | Smaller item sets |
+| **Web Worker** | Off-main-thread search in a Web Worker; scores travel via SharedArrayBuffer when cross-origin isolated, else by structured clone | Larger item sets |
 
 ## Install (from source)
 
 ```bash
-# 1. Install wasm-pack
-curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+# 1. Install wasm-pack 0.15.1 (the version CI pins in .github/workflows/ci.yml)
+cargo install wasm-pack --version 0.15.1 --locked
 
 # 2. Build the WASM module
 pnpm --filter modern-cmdk-search-wasm run build:wasm
@@ -74,21 +74,21 @@ using machine = createCommandMachine({
 |    Main Thread      |     |      Web Worker          |
 |                     |     |                          |
 |  createCommand      |---->|  WASM trigram index      |
-|  Machine()          |<----|  SharedArrayBuffer       |
-|                     |     |  results                 |
+|  Machine()          |<----|  scores (SAB or clone)   |
+|                     |     |                          |
 +--------------------+     +-------------------------+
 ```
 
-The Rust crate builds a trigram index at startup, enabling O(1) candidate lookup per query trigram. Scoring uses the same multi-strategy approach as the default engine (exact > prefix > substring > fuzzy).
+The Rust crate builds a trigram index at startup, which gives an O(1) hash lookup of each query trigram's posting list; candidates come from walking those lists. Scoring uses the same multi-strategy approach as the default engine (exact > prefix > substring > fuzzy).
 
 ## Peer Dependencies
 
-- `modern-cmdk` >= 1.0.2
+- `modern-cmdk` (the workspace version; declared as `workspace:*`)
 
 ## Links
 
 - [Core Engine](https://www.npmjs.com/package/modern-cmdk)
-- [Documentation](https://command.crimson.dev)
+- [Documentation](https://abcrimson.github.io/modern-cmdk/)
 - [GitHub](https://github.com/ABCrimson/modern-cmdk)
 
 ## License
