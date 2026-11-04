@@ -2,16 +2,18 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 import thresholds from './coverage-thresholds.json' with { type: 'json' };
 
+// Source aliases for the unit and perf projects. The dist project sets none: dist/react imports
+// 'modern-cmdk' by name, and an alias to src would run built React over source core (a mixed tree).
+// 'modern-cmdk/react' stays first: Vite matches a string key exactly or as a prefix followed by '/'.
+const srcAlias = {
+  'modern-cmdk/react': resolve(import.meta.dirname, 'packages/modern-cmdk/src/react/index.ts'),
+  'modern-cmdk': resolve(import.meta.dirname, 'packages/modern-cmdk/src/core/index.ts'),
+};
+
 export default defineConfig({
   // Vitest 5.1 on Vite 8 (Rolldown) transpiles with oxc (target node22), not esbuild —
   // JSX automatic runtime and ESNext syntax (incl. `using`) are handled natively,
   // so no transform block is needed.
-  resolve: {
-    alias: {
-      'modern-cmdk/react': resolve(import.meta.dirname, 'packages/modern-cmdk/src/react/index.ts'),
-      'modern-cmdk': resolve(import.meta.dirname, 'packages/modern-cmdk/src/core/index.ts'),
-    },
-  },
   test: {
     environment: 'happy-dom',
     setupFiles: ['./tests/setup.ts'],
@@ -21,20 +23,28 @@ export default defineConfig({
     projects: [
       {
         extends: true,
+        resolve: { alias: srcAlias },
         test: {
           name: 'unit',
           expect: { requireAssertions: true },
-          include: [
-            'packages/*/src/**/*.test.ts',
-            'tests/unit/**/*.test.{ts,tsx}',
-            // Built-package tests import packages/modern-cmdk/dist, so they need `pnpm build` first
-            'tests/dist/**/*.test.{ts,tsx}',
-          ],
+          include: ['packages/*/src/**/*.test.ts', 'tests/unit/**/*.test.{ts,tsx}'],
+          benchmark: { include: [] },
+        },
+      },
+      {
+        // Built-package tests import packages/modern-cmdk/dist, so they need `pnpm build` first;
+        // no alias, so 'modern-cmdk' resolves through the package self-reference to dist/core.
+        extends: true,
+        test: {
+          name: 'dist',
+          expect: { requireAssertions: true },
+          include: ['tests/dist/**/*.test.{ts,tsx}'],
           benchmark: { include: [] },
         },
       },
       {
         extends: true,
+        resolve: { alias: srcAlias },
         test: {
           name: 'perf',
           include: [],

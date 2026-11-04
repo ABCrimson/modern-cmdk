@@ -6,9 +6,9 @@
 // React 19: use() for context, ref as prop (no forwardRef)
 // Isolated declarations: explicit return types on all exports
 
+import type { ItemId } from 'modern-cmdk';
 import type { ComponentPropsWithRef, CSSProperties, ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ItemId } from '../core/index.js';
 import {
   CommandListStatusContext,
   CommandStateContext,

@@ -65,9 +65,23 @@
       "gzip": true
     },
     {
-      "name": "modern-cmdk/react",
+      "name": "modern-cmdk/react (adapter only)",
       "path": "packages/modern-cmdk/dist/react/index.mjs",
-      "limit": "12 kB",
+      "limit": "5.5 kB",
+      "gzip": true,
+      "ignore": [
+        "modern-cmdk",
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "radix-ui"
+      ]
+    },
+    {
+      "name": "modern-cmdk + modern-cmdk/react",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
+      "limit": "9.9 kB",
       "gzip": true,
       "ignore": [
         "react",
