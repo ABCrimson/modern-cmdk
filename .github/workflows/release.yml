@@ -42,8 +42,9 @@ permissions: {}
 # tags through the GitHub API with their default `github-token` (github.token); a
 # GITHUB_TOKEN env var is ignored. publish's `push-git-tags` and
 # `create-github-releases` default to true, so per-package tags and GitHub releases are
-# created after a publish. backfill creates the missing tags and releases for the two
-# npm versions that were published without them.
+# created after a publish. backfill is meant to create the missing tags and releases for
+# the two npm versions that were published without them (see the job for why it needs a
+# token other than the GITHUB_TOKEN).
 #
 # Per the changesets guide, git credentials are not persisted on disk and the jobs that
 # version, pack or publish do not restore the pnpm cache (cache poisoning).
@@ -186,8 +187,13 @@ jobs:
 
   # Temporary: modern-cmdk@1.2.2 and create-modern-cmdk@1.2.1 reached npm (commit 33678255)
   # without a git tag or GitHub release. `gh release create` creates each tag through the API at
-  # --target, so no tag is pushed by hand. Delete this job (and the `backfill` dispatch option)
-  # once the 1.4.0 gate "gh release list equals npm" has passed.
+  # --target, so no tag is pushed by hand. That API call needs a token authorized to modify
+  # workflows when the target commit's .github/workflows differs from the default branch's
+  # (docs.github.com, "Create a release"); the GITHUB_TOKEN cannot be, and the workflows changed
+  # after 33678255, so with the GITHUB_TOKEN below this job fails with HTTP 403 (run 41786088539).
+  # It works only after GH_TOKEN is pointed at a token holding the Workflows permission.
+  # Delete this job (and the `backfill` dispatch option) once the 1.4.0 gate
+  # "gh release list equals npm" has passed.
   backfill:
     if: github.event_name == 'workflow_dispatch' && inputs.task == 'backfill'
     needs: ci-gate
@@ -197,7 +203,6 @@ jobs:
       contents: write # create tags and GitHub releases (gh release create)
     env:
       GH_TOKEN: ${{ github.token }}
-      GH_DEBUG: api # prints the HTTP exchange of every gh call, to diagnose the 403 on release creation
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

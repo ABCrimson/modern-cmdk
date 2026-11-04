@@ -713,7 +713,7 @@ When changesets are merged to `main`, the release workflow first waits (`ci-gate
 
 Publishing authenticates via **npm OIDC Trusted Publishing** -- the workflow's `id-token: write` permission supplies a short-lived token, so no long-lived `NPM_TOKEN` secret exists. The publish job runs in the `npm` GitHub environment, which only the `main` branch may deploy to. Never push git tags manually; tag pushes can trigger publishing.
 
-The `backfill` task (Actions > Release > Run workflow) is a temporary job that creates the missing `modern-cmdk@1.2.2` and `create-modern-cmdk@1.2.1` tags and GitHub releases through the GitHub API; like every dispatched task it waits for CI on the dispatched commit first, and it is deleted once every npm version has a GitHub release.
+The `backfill` task (Actions > Release > Run workflow) is a temporary job meant to create the missing `modern-cmdk@1.2.2` and `create-modern-cmdk@1.2.1` tags and GitHub releases through the GitHub API; like every dispatched task it waits for CI on the dispatched commit first. Creating a release at those old commits needs a token with the Workflows permission, which the workflow's `GITHUB_TOKEN` cannot have, so the job fails with HTTP 403 until it is given such a token. It is deleted once every npm version has a GitHub release.
 
 ### Configuration
 
