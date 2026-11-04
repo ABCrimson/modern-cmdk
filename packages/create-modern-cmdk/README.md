@@ -18,13 +18,13 @@
 ## Usage
 
 ```bash
-npm create modern-cmdk my-command-palette
+npm create modern-cmdk@latest my-command-palette
 ```
 
 Or with pnpm / npx:
 
 ```bash
-pnpm create modern-cmdk my-command-palette
+pnpm create modern-cmdk@latest my-command-palette
 npx create-modern-cmdk my-command-palette
 ```
 
@@ -32,17 +32,32 @@ npx create-modern-cmdk my-command-palette
 
 | Template | Description |
 |----------|-------------|
-| `react-basic` | Inline command palette with search, items, and groups |
-| `react-dialog` | Dialog-based palette with Ctrl+K trigger and overlay |
-| `react-full` | Full-featured: dialog, async items, frecency, shortcuts, pages |
+| `react-basic` | Basic inline command palette (React) |
+| `react-dialog` | Command palette in a dialog, opened with Mod+K (Ctrl+K, Cmd+K on macOS) (React) |
+| `react-full` | Same output as react-basic; frecency and WASM search are not scaffolded yet (React) |
+
+`react-basic` is the default.
 
 Specify a template:
 
 ```bash
-npm create modern-cmdk my-app -- --template=react-dialog
+npm create modern-cmdk@latest my-app -- --template=react-dialog
 ```
 
-> **Note:** the flag must use the `--template=<name>` form (with `=`); a space-separated `--template <name>` is not parsed.
+`--template=<name>` is the documented form; `--template <name>` (with a space) is honoured too since 1.3.0. An unknown template, given either way, exits 1.
+
+## Options and exit codes
+
+```text
+Usage: create-modern-cmdk <project-name> [options]
+
+Options:
+  --template=<name>  Template to scaffold (default react-basic)
+  --strict           Exit 2 on usage errors (incl. unknown options)
+  -h, --help         Show this help
+```
+
+Default exit codes in 1.x: `0` for `--help` and a missing project name; `1` for an unknown template and write failures. An unknown option is warned about on stderr and ignored when a project name is given. A malformed known option (`--template` with no value, `--strict=yes`) is a usage error that writes nothing and exits `0`. With `--strict`, every usage error (including an unknown option, a missing project name and an unknown template) exits `2`.
 
 ## What you get
 
@@ -53,11 +68,11 @@ my-command-palette/
     main.tsx         # Entry point
   index.html
   package.json       # Dependencies pre-configured
-  tsconfig.json      # TypeScript 7 strict mode
+  tsconfig.json      # TypeScript strict mode
   vite.config.ts     # Vite + React plugin
 ```
 
-All dependencies are pinned to compatible versions:
+Dependencies are declared as caret ranges (`^`) of known-good versions:
 
 - [`modern-cmdk`](https://www.npmjs.com/package/modern-cmdk) -- core engine + React 19 adapter
 - React 19, TypeScript 7, Vite 8
@@ -70,7 +85,7 @@ All dependencies are pinned to compatible versions:
 
 ## Links
 
-- [Documentation](https://command.crimson.dev)
+- [Documentation](https://abcrimson.github.io/modern-cmdk/)
 - [modern-cmdk on npm](https://www.npmjs.com/package/modern-cmdk)
 - [GitHub](https://github.com/ABCrimson/modern-cmdk)
 
