@@ -254,6 +254,8 @@ jobs:
           output-file: sbom/modern-cmdk.spdx.json
           upload-artifact: "false"
           upload-release-assets: "false"
+          # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
+          syft-version: v1.56.0
       - name: SBOM for create-modern-cmdk
         if: steps.tarballs.outputs.create_modern_cmdk != ''
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
@@ -264,6 +266,8 @@ jobs:
           output-file: sbom/create-modern-cmdk.spdx.json
           upload-artifact: "false"
           upload-release-assets: "false"
+          # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
+          syft-version: v1.56.0
       - name: Build provenance attestation
         if: steps.tarballs.outputs.count != '0'
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
