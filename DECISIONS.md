@@ -164,3 +164,44 @@ Merged-tree gate on the fix-round tree: all 14 commands exit 0 (biome `--error-o
 - W1-08b's verifier passed the item but flagged that axe now scans only the light theme (Playwright's colorScheme defaults to light): W1-08c adds a dark-theme colour-contrast axe test and removes the unreachable `?? 'dark'` fallback (a silent fallback, LAW).
 
 Second fix round launched as tiered-apply-1.3.0-wave1c (W1-01c, W1-09c, W1-08c). Ledger dispositions for every row wave 1 claimed are judged by a separate three-verifier workflow against the working tree; FIXED rows get `fixedBy` = the code commit after 1c. Status: D38 LOCKED for 1.3.0; wave 1 code still uncommitted.
+
+### G-14 · 2026-11-04 · Wave 1 landed on release/1.3.0 (10 commits); dispositions applied; `remaining` field; TypeScript drift; shared-tree incident; D39 push after wave 3
+
+**Wave 1c** (tiered-apply-1.3.0-wave1c, wf_f3084cc7-05f; 9 agents, 16 min): W1-01c, W1-09c, W1-08c all PASS (W1-01c after one fix round: the loose re-parse also rejects a dash-led space-form value, as Node's strict parser does). Merged-tree gate: all 14 commands exit 0 (biome `--error-on-warnings` 226 files; build:wasm; build; typecheck; tests/, tests/dist and benchmarks tsconfigs; 494/494 unit tests in 32 files; Playwright 102 passed, chromium, 13.9 s; cargo fmt, clippy, test 20 passed; size core 6.35/6.5 kB, react 9.84/12 kB). The gate wrapper's `bash -c` resolved to the System32 WSL bash for the cargo step (exit 127); the gate agent reran the three cargo commands and `pnpm size` in a `( cd … )` subshell under the same PATH, exit 0. Fix for later waves: the tiered-apply gate runner must call `/usr/bin/bash` (host fact; skill retro).
+
+Three minor findings attached to passing items were applied by the orchestrator after the gate and re-proven: theme.spec.ts drops `.withTags()` before `.withRules()` (in @axe-core/playwright 4.14.1 the later call replaces `runOnly`, so the tag filter was a no-op that read as scope); both CLI headers name exit 0 for a malformed known option and fit 100 columns; the loose path prints Node's three-line ambiguity message. Proofs: biome 3 files clean; typecheck of 4 workspaces and tests/, tests/e2e, tests/dist, benchmarks configs 0 diagnostics; 51/51 tests in the 4 CLI and input files; theme.spec 4/4 chromium; the built create bin prints all three lines for `a11 --typescript --template --help` and creates nothing.
+
+**Drift adoption** (registry read 2026-11-04 09:00 UTC via dep-freshness.mjs; 85 pins checked, 6 held per .peak-modern-holds.json):
+
+| Package | Was | Adopted | Note |
+|---|---|---|---|
+| typescript (3 manifests, 4 docs) | 7.1.0-dev.20261103.1 | **7.1.0-dev.20261104.1** | `next`, published 2026-11-04T08:26Z; 0 new diagnostics; the pnpm `minimumReleaseAgeExclude` entries move to the new build (the 20261103 builds are a day old and need none) |
+
+**Commits on release/1.3.0** (lefthook pre-commit lint and typecheck green on each):
+
+| Item | Commit | Scope |
+|---|---|---|
+| deps | 1027749 | typescript 7.1.0-dev.20261104.1 at every manifest and doc site |
+| W1-01 | 80a7b21 | codemod bin and create-modern-cmdk print again; --strict; D35, D38 |
+| W1-09 | df75080 | Command.Input keeps every keystroke; search no longer runs in a transition (T48) |
+| W1-08 | 44eb35e | muted-text token; playground light tokens, OS theme default, ordered dark ramp, dark axe gate |
+| W1-03 | 590c13f | tests/ typechecked; type tests that bite; bug matrix |
+| W1-05 | f50c0d6 | failOnFlakyTests in CI; html report; Chromium is the gate (D36) |
+| W1-02 | cbbca9d | wasm: honest build script, env guard, emitted worker, deny.toml, typecheck without pkg/, tests |
+| W1-04 | efc7867 | one standalone bench harness with honest exit codes; benches typechecked |
+| W1-06 | 4fe416f | CodeQL actions language; docs build on PRs, deploy on main |
+| W1-07 | a01e483 | scheduled lanes and OpenSSF Scorecard |
+
+**Dispositions** (ledger-dispositions-wave1, wf_f3b3976a-4a7; three opus-verifiers judged every row wave 1 claimed against the working tree, 95 rows): 72 FIXED, 22 PARTIAL, 1 OPEN (W47, release D). Applied to docs/ledger/findings.json with `verified_at` = the item's commit and `fixedBy` for FIXED rows.
+
+- **Policy: `remaining` field.** A row that a change closed only in part keeps its status (OPEN or MOVED) and gains `remaining`: the open clause as the judge stated it, with the commit it was judged at in brackets. The next release that owns the clause closes it. Documented in docs/ledger/README.md (Row shape, Maintenance). Rows now carrying it: 20 in 1.3.0.
+- Overrides on the judges' verdicts: TEB-32 FIXED by 024e0ad (#53 gates the CI Summary on the e2e result) with its cross-engine half re-filed as TEB-81; CLI-7 moves to 2.0.0 (the default exit code for missing arguments stays 0 in 1.x under LD-05; `--strict` exits 2 since 1.3.0); T31 (e2e infrastructure: captureGitInfo, tags, sharding) moves to 1.8.0.
+- New rows: TEB-81 (1.8.0; Firefox 159.0 and WebKit 27.2 never run in a gate, measured failures listed), T48 (1.3.0, FIXED df75080; the keystroke drop and the per-keystroke Command.Loading flash), PG-72 (1.3.0, FIXED 44eb35e; inverted dark ramp, was oklch(0.86 0.014 260) secondary vs oklch(0.78 0.012 260) muted at HEAD), A11Y-40 (1.8.0; loading pulse fades role=status text to opacity 0.5), A11Y-41 (1.3.0; the light-dark() muted token needs color-scheme or an override: README and changeset must say so; W5-02, W7-02), TUB-74 (1.3.0; tests/snapshot-serializers.ts is dead; W2-02), U-11 (1.3.0; "Iterator Helpers (ES2026)" and "ES2026 Set.union" sites that escape the U-4 grep; W5-07, W5-01).
+- Routing of the partial clauses (items plan v6, `WAVE-1 DISPOSITIONS` paragraphs): W2-02 TUB-74 and W13 coverage; W2-03 (new) TUB-50 and RDG-67; W3-01 the CI red W1-04 left (package.json `bench:ci`, ci.yml:152 and benchmarks.yml:30 still call the deleted ci-bench.ts), typecheck wiring of tests/, tests/e2e, tests/dist and benchmarks (X-2, T05, TUB-03), the Rust/WASM job (T12, W13); W4-01 P31 and TEB-38; W5-01/W5-03/W5-04/W5-06/W5-07 the doc halves (ES2025 labels, bench:ci mentions, dry-run wording, registry.ts comment); W7-02 A11Y-41 and D36.
+- Ledger header after the apply: 1405 rows; status {"OPEN":1194,"FIXED":171,"MOVED":39,"REFUTED":1}; 1.3.0 rows not FIXED: 272.
+
+**Incident and contract change.** My W1-08c brief told the worker to prove a test bites by editing apps/playground/src/styles.css and reverting with `git checkout --`; the file carried W1-08's and W1-08b's uncommitted edits and the revert erased them (the worker flagged it SEVERE). Recovered byte-exactly from the W1-08b verifier's `git diff` in its transcript (blob 0391419 → 2d7c917, re-applied with `git apply`, hash verified before commit 44eb35e). plan-1.3.0-context.md now forbids git checkout/restore/stash/reset/clean and deleting untracked files one did not create in the shared checkout; a bite-proof against a foreign file copies it through the scratchpad and shows the same `git hash-object` before and after. Lesson for the tiered-apply skill: wave output is committed before the next round starts editing.
+
+- **D39 (push timing).** The branch is not pushed after wave 1: W1-04 deleted benchmarks/standalone/ci-bench.ts while package.json `bench:ci`, ci.yml:152 and benchmarks.yml:30 still run it, so the bench job and the CI Summary would be red on the first push. W3-01 removes the call sites; the push, the draft PR and the post-push proofs (CodeQL both languages, lanes.yml dispatch, scorecard on main, F36) follow wave 3's green gate. Only green, honest gates applies to the first CI run of the branch too.
+
+Status: wave 1 CLOSED (remaining clauses routed); D38 and D39 LOCKED; wave 2 (W2-01, W2-02, W2-03) launched.

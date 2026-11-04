@@ -24,9 +24,11 @@
 | `status` | `OPEN`, `MOVED` (still true, new location), `FIXED` (`fixedBy` names the commit), `REFUTED` (the claim was wrong), `UNVERIFIABLE` (needs a device or account). |
 | `release` | The roadmap step that owns the fix: `Phase 0`, `1.3.0` … `1.12.0`, `R`, `D`, `2.0.0`, or `deferred`. Placement follows roadmap section 3. |
 | `group`, `groupTitle` | Root-cause group: rows one change closes together. |
+| `remaining` | For a row that a change closed only in part: the clause still open, judged at the `verified_at` commit named in brackets. The row keeps its status (and may move release) until that clause is closed. |
 
 ## Maintenance
 
 - A release re-verifies its rows on its candidate commit (roadmap section 3, step 1) and records the outcome here in the same PR as the code; a row becomes `FIXED` only with the fixing commit named.
+- A change that addresses a row only in part writes the open clause into `remaining` with the commit it was judged at; the row stays `OPEN` (or `MOVED`) and the next release that owns the clause closes it.
 - New findings are appended with the next free id of their source prefix, never by editing an existing row's claim.
 - `DECISIONS.md` records every policy change about this file.
