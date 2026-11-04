@@ -230,20 +230,22 @@ test.describe('Basic Command Palette', () => {
   // ---------- Cross-Browser Consistency ----------
 
   test('should maintain consistent item count across renders', async ({ page }) => {
+    // beforeEach waited for the root only; wait for options to render before reading the count
     const options = page.getByRole('option');
+    await expect(options.first()).toBeVisible();
     const initialCount = await options.count();
+    expect(initialCount).toBeGreaterThan(0);
 
-    // Navigate away and back
+    // Navigate away and back: the settled page must render the same number of options
     await page.goto('/');
-
-    const afterCount = await page.getByRole('option').count();
-    expect(afterCount).toBe(initialCount);
+    await expect(page.locator('[data-command-root]')).toBeVisible();
+    await expect(page.getByRole('option')).toHaveCount(initialCount);
   });
 
   test('should handle rapid search input without errors', async ({ page }) => {
     const input = page.getByRole('combobox');
 
-    // Type rapidly (30ms delay — 10ms drops characters on CI)
+    // 50 ms between keys; a dropped key here is a Command.Input bug, not a reason to slow typing
     await input.pressSequentially('testing rapid input', { delay: 50 });
     await expect(input).toHaveValue('testing rapid input');
 
