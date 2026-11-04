@@ -191,7 +191,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2.90.0
+      - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
         with:
           tool: wasm-pack@0.15.1,cargo-deny@0.20.2,cargo-audit@0.22.2
       # With no argument, `rustup toolchain install` installs the toolchain that crate/rust-toolchain.toml
