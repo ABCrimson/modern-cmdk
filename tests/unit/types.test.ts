@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type {
   CommandEvent,
   CommandItem,
@@ -11,13 +13,17 @@ import type {
   SearchEngine,
 } from 'modern-cmdk';
 import {
+  createCommandMachine,
   createInitialState,
+  createSearchEngine,
   DEFAULT_FRECENCY_DECAY,
   DEFAULT_MACHINE_OPTIONS,
   groupId,
   itemId,
+  MemoryFrecencyStorage,
+  scoreItem,
 } from 'modern-cmdk';
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 describe('Type Foundation', () => {
   describe('Branded types', () => {
@@ -25,12 +31,16 @@ describe('Type Foundation', () => {
       const id = itemId('test');
       expectTypeOf(id).toExtend<ItemId>();
       expectTypeOf(id).toExtend<string>();
+      expect(typeof id).toBe('string');
+      expect(id).toBe('test');
     });
 
     it('should have GroupId as a branded string type', () => {
       const id = groupId('test');
       expectTypeOf(id).toExtend<GroupId>();
       expectTypeOf(id).toExtend<string>();
+      expect(typeof id).toBe('string');
+      expect(id).toBe('test');
     });
 
     it('should prevent mixing ItemId and GroupId', () => {
@@ -38,6 +48,8 @@ describe('Type Foundation', () => {
       const group = groupId('b');
       // These are structurally different due to unique symbol brands
       expectTypeOf(item).not.toEqualTypeOf(group);
+      // At runtime a brand is just the string: distinct inputs stay distinct
+      expect([item, group]).toEqual(['a', 'b']);
     });
   });
 
@@ -53,21 +65,37 @@ describe('Type Foundation', () => {
       expectTypeOf<CommandState>().toHaveProperty('pageStack');
       expectTypeOf<CommandState>().toHaveProperty('open');
       expectTypeOf<CommandState>().toHaveProperty('lastUpdated');
+      expect(Object.keys(createInitialState())).toEqual(
+        expect.arrayContaining([
+          'search',
+          'activeId',
+          'filteredIds',
+          'groupedIds',
+          'filteredCount',
+          'loading',
+          'page',
+          'pageStack',
+          'open',
+          'lastUpdated',
+        ]),
+      );
     });
 
     it('should use number for lastUpdated (epoch ms)', () => {
       expectTypeOf<CommandState['lastUpdated']>().toEqualTypeOf<number>();
+      expect(typeof createInitialState().lastUpdated).toBe('number');
     });
 
     it('should use ReadonlyMap for groupedIds', () => {
       expectTypeOf<CommandState['groupedIds']>().toExtend<
         ReadonlyMap<GroupId, readonly ItemId[]>
       >();
+      expect(createInitialState().groupedIds).toBeInstanceOf(Map);
     });
   });
 
   describe('CommandEvent', () => {
-    it('should be a discriminated union on type', () => {
+    it('should be a discriminated union on type', async () => {
       const searchEvent: CommandEvent = { type: 'SEARCH_CHANGE', query: 'test' };
       const selectEvent: CommandEvent = { type: 'ITEM_SELECT', id: itemId('x') };
       const navEvent: CommandEvent = { type: 'NAVIGATE', direction: 'next' };
@@ -81,6 +109,13 @@ describe('Type Foundation', () => {
       expectTypeOf(openEvent).toExtend<CommandEvent>();
       expectTypeOf(closeEvent).toExtend<CommandEvent>();
       expectTypeOf(toggleEvent).toExtend<CommandEvent>();
+      using machine = createCommandMachine();
+      machine.send(searchEvent);
+      machine.send(openEvent);
+      await vi.waitFor(() => {
+        expect(machine.getState().search).toBe('test');
+        expect(machine.getState().open).toBe(true);
+      });
     });
 
     it('should list all 14 event variants in the type discriminant', () => {
@@ -100,6 +135,29 @@ describe('Type Foundation', () => {
         | 'REGISTER_GROUP'
         | 'UNREGISTER_GROUP'
       >();
+      // Runtime mirror of the union: `satisfies` keeps every entry a valid discriminant
+      const variants = [
+        'SEARCH_CHANGE',
+        'ITEM_SELECT',
+        'ITEM_ACTIVATE',
+        'NAVIGATE',
+        'PAGE_PUSH',
+        'PAGE_POP',
+        'OPEN',
+        'CLOSE',
+        'TOGGLE',
+        'ITEMS_LOADED',
+        'REGISTER_ITEM',
+        'UNREGISTER_ITEM',
+        'REGISTER_GROUP',
+        'UNREGISTER_GROUP',
+      ] as const satisfies readonly CommandEvent['type'][];
+      const machineSource = readFileSync(
+        join(import.meta.dirname, '../../packages/modern-cmdk/src/core/machine.ts'),
+        'utf8',
+      );
+      const handled = [...machineSource.matchAll(/case '([A-Z_]+)':/g)].map(([, type]) => type);
+      expect(handled.toSorted()).toEqual([...variants].toSorted());
     });
   });
 
@@ -109,21 +167,32 @@ describe('Type Foundation', () => {
       expectTypeOf<CommandItem>().toEqualTypeOf<Readonly<CommandItem>>();
       expectTypeOf<CommandItem['id']>().toEqualTypeOf<ItemId>();
       expectTypeOf<CommandItem['value']>().toEqualTypeOf<string>();
+      const item: CommandItem = { id: itemId('a'), value: 'Alpha' };
+      expect(item).toEqual({ id: 'a', value: 'Alpha' });
     });
 
     it('should have optional properties with undefined union', () => {
       expectTypeOf<CommandItem['keywords']>().toEqualTypeOf<readonly string[] | undefined>();
+      const bare: CommandItem = { id: itemId('a'), value: 'Alpha' };
+      const tagged: CommandItem = { id: itemId('b'), value: 'Beta', keywords: ['x'] };
+      expect(scoreItem('x', bare)).toBeNull();
+      expect(scoreItem('x', tagged)?.score).toBe(1); // exact keyword match
     });
   });
 
   describe('CommandMachineOptions', () => {
-    it('should type onSelect as an optional (id: ItemId) => void callback', () => {
+    it('should type onSelect as an optional (id: ItemId) => void callback', async () => {
       expectTypeOf<CommandMachineOptions['onSelect']>().toEqualTypeOf<
         ((id: ItemId) => void) | undefined
       >();
       expectTypeOf<Parameters<NonNullable<CommandMachineOptions['onSelect']>>>().toEqualTypeOf<
         [id: ItemId]
       >();
+      const onSelect = vi.fn<(id: ItemId) => void>();
+      using machine = createCommandMachine({ onSelect });
+      machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('picked'), value: 'Picked' } });
+      machine.send({ type: 'ITEM_SELECT', id: itemId('picked') });
+      await vi.waitFor(() => expect(onSelect).toHaveBeenCalledExactlyOnceWith('picked'));
     });
   });
 
@@ -134,6 +203,13 @@ describe('Type Foundation', () => {
       expectTypeOf<FrecencyDecayConfig>().toHaveProperty('weekWeight');
       expectTypeOf<FrecencyDecayConfig>().toHaveProperty('monthWeight');
       expectTypeOf<FrecencyDecayConfig>().toHaveProperty('olderWeight');
+      expect(Object.keys(DEFAULT_FRECENCY_DECAY).sort()).toEqual([
+        'dayWeight',
+        'hourWeight',
+        'monthWeight',
+        'olderWeight',
+        'weekWeight',
+      ]);
     });
   });
 
@@ -179,14 +255,20 @@ describe('Type Foundation', () => {
   describe('Disposable interfaces', () => {
     it('FrecencyStorage should extend Disposable', () => {
       expectTypeOf<FrecencyStorage>().toHaveProperty(Symbol.dispose);
+      using storage = new MemoryFrecencyStorage();
+      expect(typeof storage[Symbol.dispose]).toBe('function');
     });
 
     it('SearchEngine should extend Disposable', () => {
       expectTypeOf<SearchEngine>().toHaveProperty(Symbol.dispose);
+      using engine = createSearchEngine();
+      expect(typeof engine[Symbol.dispose]).toBe('function');
     });
 
     it('CommandMachine should extend Disposable', () => {
       expectTypeOf<CommandMachine>().toHaveProperty(Symbol.dispose);
+      using machine = createCommandMachine();
+      expect(typeof machine[Symbol.dispose]).toBe('function');
     });
   });
 });

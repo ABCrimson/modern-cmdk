@@ -14,7 +14,6 @@
   "include": [
     "unit/**/*",
     "setup.ts",
-    "snapshot-serializers.ts",
     "../vitest.config.ts",
     "../playwright.config.ts",
     "../packages/modern-cmdk/src/core/es2026.d.ts"
