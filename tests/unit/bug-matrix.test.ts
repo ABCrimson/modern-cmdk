@@ -8,10 +8,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Closed rows with no mapped check; listed in DECISIONS.md G-22.
+// Closed rows with no mapped check; listed in DECISIONS.md G-22. D46 re-armed DG-71 and DG-72 through
+// the docs-samples gate (scripts/check-doc-samples.ts, TEB-84), so they are no longer listed here.
 const PENDING_BY_DECISION: readonly string[] = [
-  'DG-71',
-  'DG-72',
   'DT-03',
   'DT-04',
   'F6',
