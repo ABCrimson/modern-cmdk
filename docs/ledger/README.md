@@ -21,7 +21,7 @@
 | `category` | `BUG`, `DOC_INACCURACY`, `STALE`, `TEST_GAP`, `A11Y`, `SECURITY`, `PERF`, `DEAD`, `BLOAT`, `STRUCTURE`, `MODERNIZE`, `DEPRECATED`. |
 | `severity` | `high`, `medium`, `low`, `trivial`, as graded by the verifier. |
 | `claim`, `fix` | The confirmed defect and the fix the verifier proposed; the owning release decides the real fix. |
-| `status` | `OPEN`, `MOVED` (still true, new location), `FIXED` (`fixedBy` names the commit), `REFUTED` (the claim was wrong), `UNVERIFIABLE` (needs a device or account). |
+| `status` | `OPEN`, `MOVED` (still true, new location), `FIXED` (`fixedBy` names the commit; for a change made outside the repository, such as GitHub settings or the wiki, it names the action, its date and the DECISIONS row), `REFUTED` (the claim was wrong), `UNVERIFIABLE` (needs a device or account). |
 | `release` | The roadmap step that owns the fix: `Phase 0`, `1.3.0` … `1.12.0`, `R`, `D`, `2.0.0`, or `deferred`. Placement follows roadmap section 3. |
 | `group`, `groupTitle` | Root-cause group: rows one change closes together. |
 | `remaining` | For a row that a change closed only in part: the clause still open, judged at the `verified_at` commit named in brackets. The row keeps its status (and may move release) until that clause is closed. |
