@@ -3,18 +3,27 @@
 // dependencies included: tsdown inlines the codemod's devDependencies into dist/codemod/cli.mjs, which
 // ships in the modern-cmdk tarball) and evaluates the report against tests/package/license-policy.json.
 // Prints every violation and a census (licence -> count); exits 1 on any violation.
-// The policy file is untrusted JSON: every exception must be {package, license: non-empty strings, ships:
-// boolean, reason: non-empty string}. A malformed exception is a violation (reported with its index and
-// granting nothing), never a crash and never a pass.
+// The policy file is untrusted JSON with two sections. `exceptions`: every entry must be {package, license:
+// non-empty strings, ships: boolean, reason: non-empty string}. `licenseFiles`: a package whose manifest has
+// no licence field is resolved from a licence file by an entry {package, version, license, file, sha256,
+// reason}; the file's SHA-256 must match the pin, and the declared licence then goes through the allowlist
+// and exceptions like any other. This keeps the audit identical on Linux and Windows: pnpm's resolver opens
+// the uppercase names it knows (LICENSE, LICENCE, LICENSE.md, ...) by exact name, which reaches a lowercase
+// `license` file on case-insensitive NTFS and misses it on ext4.
+// A malformed entry in either section is a violation (reported with its index and granting nothing),
+// never a crash and never a pass.
 // Node built-ins only; run with `node scripts/check-licenses.ts` (native type stripping).
 
 import { spawnSync } from 'node:child_process';
+import { hash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export interface LicensedPackage {
   readonly name: string;
   readonly versions: readonly string[];
+  /** Installed paths: pnpm 12 prints one per installed copy, so a version installed under two peer sets has two (vue-tsc 3.3.14 here); index-aligned with `versions` only when the two lengths are equal. */
+  readonly paths: readonly string[];
   readonly license: string;
 }
 
@@ -96,6 +105,42 @@ function matchesPackage(pattern: string, name: string): boolean {
 export interface LicensePolicyInput {
   readonly allowed: readonly string[];
   readonly exceptions: readonly unknown[];
+  /** Untrusted until `isValidLicenseFile` accepts each entry; absent means none. */
+  readonly licenseFiles?: readonly unknown[];
+}
+
+/** A licence read from a file inside the installed package, pinned by hash (see the header comment). */
+export interface LicenseFileDeclaration {
+  readonly package: string;
+  /** One exact version. */
+  readonly version: string;
+  /** The SPDX id or expression the file carries; evaluated afterwards by the allowlist / exceptions. */
+  readonly license: string;
+  /** A bare file name inside the installed package. */
+  readonly file: string;
+  /** 64 lowercase hex characters. */
+  readonly sha256: string;
+  readonly reason: string;
+}
+
+const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+
+function isValidLicenseFile(value: unknown): value is LicenseFileDeclaration {
+  if (typeof value !== 'object' || value === null) return false;
+  const d = value as Partial<Record<keyof LicenseFileDeclaration, unknown>>;
+  const text = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
+  return (
+    text(d.package) &&
+    text(d.license) &&
+    text(d.reason) &&
+    typeof d.version === 'string' &&
+    EXACT_VERSION.test(d.version) &&
+    text(d.file) &&
+    !/[/\\]/.test(d.file) &&
+    typeof d.sha256 === 'string' &&
+    SHA256_HEX.test(d.sha256)
+  );
 }
 
 function isValidException(value: unknown): value is LicenseException {
@@ -184,6 +229,106 @@ export function evaluate(report: LicenseReport, policy: LicensePolicyInput): str
   return violations;
 }
 
+/**
+ * Resolves Unknown packages named by a hash-pinned `licenseFiles` declaration: the file inside the installed
+ * package is read through `readFile`, hashed, and on a match the version moves to the declared licence in the
+ * returned report. Never mutates `report`. A malformed, stale, mismatching or unreadable declaration is a
+ * violation and the version stays where the report put it.
+ */
+export function resolveLicenseFiles(
+  report: LicenseReport,
+  policy: LicensePolicyInput,
+  readFile: (path: string) => Buffer = (path: string): Buffer => readFileSync(path),
+): { report: LicenseReport; violations: string[] } {
+  const working: Record<string, LicensedPackage[]> = {};
+  for (const [bucket, packages] of Object.entries(report)) working[bucket] = [...packages];
+  const violations: string[] = [];
+
+  for (const [i, d] of (policy.licenseFiles ?? []).entries()) {
+    if (!isValidLicenseFile(d)) {
+      const fields = (typeof d === 'object' && d !== null ? d : {}) as Record<string, unknown>;
+      violations.push(
+        `licence-file declaration #${i} (${String(fields.package)}, ${String(fields.version)}) is malformed: package, license and reason must be non-empty strings, version one exact version, file a bare file name, and sha256 64 lowercase hex characters`,
+      );
+      continue;
+    }
+    const id = `${d.package}@${d.version}`;
+    let found: { bucket: string; index: number; entry: LicensedPackage; at: number } | undefined;
+    for (const [bucket, packages] of Object.entries(working)) {
+      for (const [index, entry] of packages.entries()) {
+        const at = entry.name === d.package ? entry.versions.indexOf(d.version) : -1;
+        if (at >= 0) found ??= { bucket, index, entry, at };
+      }
+    }
+    if (found === undefined) {
+      violations.push(`stale licence-file declaration: ${id} is not in the report; remove it`);
+      continue;
+    }
+    const { bucket, index, entry, at } = found;
+    if (!UNKNOWN.has(bucket.trim().toLowerCase())) {
+      if (bucket !== d.license) {
+        violations.push(
+          `${id}: the report says ${bucket}, the policy declares ${d.license}; fix the declaration`,
+        );
+      }
+      continue; // already the declared licence (case-insensitive file systems): nothing to resolve
+    }
+
+    let dirs: string[];
+    if (entry.versions.length === 1) dirs = [...entry.paths];
+    else if (entry.paths.length === entry.versions.length) {
+      dirs = [entry.paths[at]].filter((p): p is string => p !== undefined);
+    } else {
+      violations.push(
+        `${id}: the report lists ${entry.paths.length} paths for ${entry.versions.length} versions; cannot tell which path holds ${d.version}`,
+      );
+      continue;
+    }
+    if (dirs.length === 0) {
+      violations.push(
+        `${id}: the report lists no installed path to read licence file ${d.file} from`,
+      );
+      continue;
+    }
+    let mismatch: string | undefined;
+    for (const dir of dirs) {
+      let actual: string;
+      try {
+        actual = hash('sha256', readFile(join(dir, d.file)), 'hex');
+      } catch (error) {
+        mismatch = error instanceof Error ? error.message : String(error);
+        break;
+      }
+      if (actual !== d.sha256) {
+        mismatch = actual;
+        break;
+      }
+    }
+    if (mismatch !== undefined) {
+      violations.push(
+        `${id}: licence file ${d.file} does not match the policy (sha256 ${mismatch} vs ${d.sha256})`,
+      );
+      continue;
+    }
+
+    const remaining = working[bucket] ?? [];
+    if (entry.versions.length === 1) remaining.splice(index, 1);
+    else {
+      remaining[index] = {
+        ...entry,
+        versions: entry.versions.filter((_, k) => k !== at),
+        paths: entry.paths.filter((_, k) => k !== at),
+      };
+    }
+    if (remaining.length === 0) delete working[bucket];
+    working[d.license] = [
+      ...(working[d.license] ?? []),
+      { ...entry, versions: [d.version], paths: [...dirs], license: d.license },
+    ];
+  }
+  return { report: working, violations };
+}
+
 /** Licence -> package count (one per name@version), most common first. */
 export function census(report: LicenseReport): [string, number][] {
   return Object.entries(report)
@@ -211,15 +356,18 @@ function loadReport(): LicenseReport {
 function main(): number {
   const policyPath = join(import.meta.dirname, '..', 'tests', 'package', 'license-policy.json');
   const policy = JSON.parse(readFileSync(policyPath, 'utf8')) as LicensePolicyInput;
-  const report = loadReport();
-  const violations = evaluate(report, policy);
+  const resolved = resolveLicenseFiles(loadReport(), policy);
+  const report = resolved.report;
+  const violations = [...resolved.violations, ...evaluate(report, policy)];
 
   process.stdout.write('licence census (licence -> packages):\n');
   for (const [license, count] of census(report)) {
     process.stdout.write(`  ${license}: ${count}\n`);
   }
   if (violations.length === 0) {
-    process.stdout.write(`licence audit: ok (${policy.exceptions.length} exceptions)\n`);
+    process.stdout.write(
+      `licence audit: ok (${policy.exceptions.length} exceptions, ${policy.licenseFiles?.length ?? 0} licence files)\n`,
+    );
     return 0;
   }
   process.stderr.write(`licence audit: ${violations.length} violation(s)\n`);
