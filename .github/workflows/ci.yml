@@ -1,7 +1,8 @@
 name: CI
 on:
   push:
-    branches: [main]
+    # release/** so a release branch is checked on every push, before its pull request is opened
+    branches: [main, 'release/**']
   pull_request:
     branches: [main]
 
@@ -14,6 +15,12 @@ concurrency:
 permissions:
   contents: read
 
+# Job graph: lint gates everything. build runs once and shares packages/*/dist as the `dist`
+# artifact with dist-tests, e2e, bench and size. test, react-lanes, coverage, rust-wasm and docs do not
+# need that build: the unit suites resolve `modern-cmdk` to src through the aliases in
+# vitest.config.ts, and rust-wasm and docs build what they need themselves. Every job that installs
+# from the committed lockfile uses `--frozen-lockfile`; the pnpm store cache (`cache: pnpm`) is keyed on the OS,
+# architecture and lockfile hash alone, so the one job that installs unvetted builds (react-lanes) must not use it.
 jobs:
   lint:
     name: Lint & Typecheck
@@ -29,66 +36,15 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm biome check .
-      - run: pnpm --filter 'modern-cmdk' exec tsc --noEmit
+      # Zero warnings: the `lint` script is `biome check . --error-on-warnings`
+      - run: pnpm lint
+      # modern-cmdk, create-modern-cmdk, tests/, tests/e2e and tests/docs: none needs build output.
+      # The projects that import built packages are checked after the build: tests/dist (dist-tests),
+      # benchmarks (bench), the playground (e2e) and the wasm package (rust-wasm).
+      - run: pnpm typecheck
 
-  test:
-    name: Test (${{ matrix.os }}, Node ${{ matrix.node }}, shard ${{ matrix.shard }}/4)
-    needs: lint
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        # Linux/Windows: newest GA labels. macOS: `xcode-27` is the newest image
-        # (macOS 27, public preview, no SLA); `macos-26` is the GA fallback.
-        os: [ubuntu-26.04, xcode-27, windows-2025-vs2026]
-        # 26.4.0 = the engines.node floor; the other entry = .nvmrc
-        # (a matrix cannot read the file — keep in sync).
-        node: ['26.4.0', '28.0.0-nightly2026110370074c6f98']
-        shard: [1, 2, 3, 4]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ matrix.node }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
-      - run: pnpm vitest run --shard=${{ matrix.shard }}/4
-
-  e2e:
-    name: E2E Tests
-    needs: lint
-    runs-on: ubuntu-26.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --ignore-scripts
-      # Build sequentially — playground depends on modern-cmdk dist (styles.css, exports)
-      - run: pnpm -r --filter '!docs' --filter '!modern-cmdk-monorepo' run build
-      - run: pnpm playwright install --with-deps chromium
-      - run: pnpm playwright test
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: failure()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 14
-          include-hidden-files: true
-
-  size:
-    name: Bundle Size
+  build:
+    name: Build
     needs: lint
     runs-on: ubuntu-26.04
     timeout-minutes: 10
@@ -102,7 +58,256 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
+      # Topological order (a package builds after the workspace packages it depends on), no --parallel.
+      # command-search-wasm skips its JS build here: it needs pkg/, which only the rust-wasm job produces.
+      - run: pnpm --filter './packages/*' run build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          # One wildcard path: the artifact root is packages/, so a job restores it with `path: packages`
+          path: packages/*/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  test:
+    name: Test (${{ matrix.os }}, Node ${{ matrix.node }})
+    needs: lint
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Newest GA images. The macOS 27 image (`xcode-27`, public preview, no SLA) runs in
+        # lanes.yml, not here.
+        os: [ubuntu-26.04, macos-26, windows-2025-vs2026]
+        # 26.4.0 = the engines.node floor; the other entry = .nvmrc
+        # (a matrix cannot read the file — keep in sync).
+        node: ['26.4.0', '28.0.0-nightly2026110370074c6f98']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # No build: the unit suites resolve src through the aliases; tests/dist runs in dist-tests.
+      - run: pnpm exec vitest run --exclude "tests/dist/**"
+
+  # Required (roadmap D15): the stable React release and the declared peer floor. scripts/lane.mjs
+  # rewrites the pnpm overrides and runs `pnpm install --no-frozen-lockfile` with the release-age
+  # policy lifted for that one install, so these installs are unvetted: no `cache: pnpm`, because the
+  # setup-node cache key (OS, architecture, committed lockfile hash) ignores how the install ran, and this
+  # job could otherwise write the store entry that the frozen-lockfile jobs restore.
+  react-lanes:
+    name: React ${{ matrix.lane }}
+    needs: lint
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [react-stable, react-floor]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/lane.mjs ${{ matrix.lane }}
+      - run: pnpm --filter modern-cmdk exec tsc --noEmit
+      - run: pnpm exec vitest run --exclude "tests/dist/**"
+
+  dist-tests:
+    name: Built-package tests
+    needs: build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: packages
+      - run: pnpm exec tsc -p tests/dist/tsconfig.json --noEmit
+      # The devtools dist test and the CLI smoke test import the built packages
+      - run: pnpm exec vitest run tests/dist
+
+  coverage:
+    name: Coverage
+    needs: lint
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The ratchet reads coverage-thresholds.json from origin/main, so full history and remote refs
+          fetch-depth: 0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # Thresholds come from coverage-thresholds.json (vitest.config.ts); a metric below its threshold fails the run
+      - run: pnpm exec vitest run --coverage --exclude "tests/dist/**"
+      # Fails when a threshold in coverage-thresholds.json is lower than the one on origin/main
+      - run: node scripts/coverage-ratchet.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 30
+
+  rust-wasm:
+    name: Rust & WASM
+    needs: lint
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2.90.0
+        with:
+          tool: wasm-pack@0.15.1,cargo-deny@0.20.2,cargo-audit@0.22.2
+      # With no argument, `rustup toolchain install` installs the toolchain that crate/rust-toolchain.toml
+      # pins (channel, wasm32 target, rustfmt, clippy).
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+        working-directory: packages/command-search-wasm/crate
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: packages/command-search-wasm/crate
+      - name: Format, lint and test the crate
+        working-directory: packages/command-search-wasm/crate
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo clippy --locked --target wasm32-unknown-unknown -- -D warnings
+          cargo test --locked
+      # deny.toml and Cargo.lock live in the crate directory. Both tools fetch the RustSec advisory
+      # database over HTTPS with their built-in gitoxide client (cargo-deny's git-fetch-with-cli is
+      # left at its default, false), so the step needs network access but no git CLI.
+      - name: Check licenses, bans and advisories
+        working-directory: packages/command-search-wasm/crate
+        run: |
+          cargo deny check
+          cargo audit
+      # The wasm package imports modern-cmdk, so that builds first; then the wasm-pack output
+      # (pkg/), the package's tests against it (pkg-stub.test.ts, the src/pkg.d.ts drift guard, skips
+      # itself without pkg/, so this is the one CI run where it executes), the package's own typecheck
+      # against the real pkg/ types, and its tsdown build.
+      - run: pnpm --filter modern-cmdk run build
+      - run: pnpm --filter modern-cmdk-search-wasm run build:wasm
+      - run: pnpm exec vitest run packages/command-search-wasm
+      - run: pnpm --filter modern-cmdk-search-wasm exec tsc --noEmit
+      - run: pnpm --filter modern-cmdk-search-wasm run build
+
+  e2e:
+    name: E2E Tests
+    needs: build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: packages
+      # The playground imports the built modern-cmdk, so it is checked and built here, after the download
+      - run: pnpm --filter playground exec tsc --noEmit
+      - run: pnpm --filter playground run build
+      # Chromium only: Firefox and WebKit are opt-in (E2E_ENGINES=all) until 1.8.0, never set in CI
+      - run: pnpm playwright install --with-deps chromium
+      - run: pnpm playwright test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-failure
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: error
+          retention-days: 14
+
+  # Runs on pull requests as well as pushes (docs.yml deploys only from main), and is part of the CI
+  # Summary, so a Mermaid, base-path or link regression cannot merge.
+  docs:
+    name: Docs build & render
+    needs: lint
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm docs:build
+      - run: pnpm playwright install --with-deps chromium
+      # Renders every built page under the Pages base (playwright.docs.config.ts)
+      - run: pnpm test:docs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: docs-render
+          path: test-results/
+          if-no-files-found: error
+          retention-days: 14
+
+  size:
+    name: Bundle Size
+    needs: build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: packages
       - id: size
         run: |
           pnpm size-limit --json > size-report.json
@@ -135,7 +340,7 @@ jobs:
 
   bench:
     name: Benchmarks
-    needs: lint
+    needs: build
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
@@ -148,11 +353,15 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
-      - run: pnpm bench:ci
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: packages
       - name: Compare against baseline
-        # compare-baseline.ts exits 1 for a regression above 5% (a warning by the
-        # documented contract) and 2 above 15% (a failure); only exit 2 fails the job.
+        # compare-baseline.ts exits 1 for a regression above 5% (a warning by the documented
+        # contract) and 2 for a regression above 15% or a harness error; only exit 2 fails the job.
+        # `|| code=$?` is not a mask: it records the status so exit 1 can become a warning, and
+        # every other non-zero status is re-raised by `exit "$code"`.
         run: |
           code=0
           pnpm bench:compare || code=$?
@@ -161,19 +370,27 @@ jobs:
             exit 0
           fi
           exit "$code"
+      # vitest.config.ts sets expect.requireAssertions, which a benchmark (it asserts nothing) cannot meet;
+      # the `bench` script switches it off for bench runs only
+      - run: pnpm bench --run
+      # benchmarks/tsconfig.json resolves modern-cmdk to the downloaded dist declarations
+      - run: pnpm exec tsc -p benchmarks/tsconfig.json --noEmit
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: benchmark-results
           path: benchmarks/results/
+          if-no-files-found: error
           retention-days: 30
 
   summary:
     name: CI Summary
-    needs: [lint, test, e2e, size, bench, security]
+    needs: [lint, build, test, react-lanes, dist-tests, coverage, rust-wasm, e2e, docs, size, security, bench]
     if: always()
     runs-on: ubuntu-26.04
     timeout-minutes: 2
+    env:
+      NEEDS: ${{ toJSON(needs) }}
     steps:
       - name: Generate summary
         run: |
@@ -186,16 +403,36 @@ jobs:
               *) echo "warn" ;;
             esac
           }
-          echo "## CI Summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Job | Status | Result |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-----|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Lint & Typecheck | $(status_icon "${{ needs.lint.result }}") | \`${{ needs.lint.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Tests (3 OS x 2 Node x 4 shards) | $(status_icon "${{ needs.test.result }}") | \`${{ needs.test.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| E2E (Chromium) | $(status_icon "${{ needs.e2e.result }}") | \`${{ needs.e2e.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Bundle Size | $(status_icon "${{ needs.size.result }}") | \`${{ needs.size.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Benchmarks | $(status_icon "${{ needs.bench.result }}") | \`${{ needs.bench.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Security Audit | $(status_icon "${{ needs.security.result }}") | \`${{ needs.security.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## CI Summary"
+            echo ""
+            echo "| Job | Status | Result |"
+            echo "|-----|--------|--------|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          # job id | row label
+          rows=(
+            "lint|Lint & Typecheck"
+            "build|Build (shared dist artifact)"
+            "test|Tests (3 OS x 2 Node)"
+            "react-lanes|React stable and peer floor"
+            "dist-tests|Built-package tests"
+            "coverage|Coverage and ratchet"
+            "rust-wasm|Rust & WASM"
+            "e2e|E2E (Chromium)"
+            "docs|Docs build & render"
+            "size|Bundle Size"
+            "security|Security Audit"
+            "bench|Benchmarks"
+          )
+          for row in "${rows[@]}"; do
+            IFS='|' read -r id label <<< "$row"
+            result=$(jq -r --arg id "$id" '.[$id].result' <<< "$NEEDS")
+            echo "| $label | $(status_icon "$result") | \`$result\` |" >> "$GITHUB_STEP_SUMMARY"
+          done
       - name: Fail unless every job succeeded
-        if: needs.lint.result != 'success' || needs.test.result != 'success' || needs.e2e.result != 'success' || needs.size.result != 'success' || needs.bench.result != 'success' || needs.security.result != 'success'
-        run: exit 1
+        # Any result other than success (failure, cancelled, skipped) fails, for every job in `needs`.
+        run: |
+          if ! jq -e 'all(.[]; .result == "success")' <<< "$NEEDS" > /dev/null; then
+            jq -r 'to_entries[] | select(.value.result != "success") | "::error::\(.key): \(.value.result)"' <<< "$NEEDS"
+            exit 1
+          fi
