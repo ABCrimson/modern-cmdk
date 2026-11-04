@@ -21,8 +21,7 @@
   <a href="https://abcrimson.github.io/modern-cmdk/">Documentation</a> &middot;
   <a href="https://abcrimson.github.io/modern-cmdk/guide/getting-started.html">Getting Started</a> &middot;
   <a href="https://abcrimson.github.io/modern-cmdk/api/command.html">API Reference</a> &middot;
-  <a href="https://abcrimson.github.io/modern-cmdk/examples/basic.html">Examples</a> &middot;
-  <a href="https://abcrimson.github.io/modern-cmdk/">Docs site</a>
+  <a href="https://abcrimson.github.io/modern-cmdk/examples/basic.html">Examples</a>
 </p>
 
 ---

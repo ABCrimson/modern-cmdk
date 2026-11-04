@@ -37,8 +37,6 @@ exclude = [
   '^https?://localhost(:\d+)?(/|$)',
   # a documentation placeholder, not a live host
   '^https?://example\.(com|org)(/|$)',
-  # baseline history files reach main only when pull request #57 merges; the post-merge pull request (DECISIONS D42) removes this entry
-  '^https://github\.com/ABCrimson/modern-cmdk/blob/main/benchmarks/history/',
 ]
 
 # The glob over apps/docs/**/*.md also reaches installed packages' READMEs and the VitePress build

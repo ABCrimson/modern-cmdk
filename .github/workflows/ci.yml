@@ -292,11 +292,10 @@ jobs:
           retention-days: 14
 
   # Required: phantom claims (scripts/check-claims.mjs: APIs and numbers the code does not back) in
-  # the README files, ARCHITECTURE.md, CONTRIBUTING.md, SECURITY.md and apps/docs. The script reads
-  # the checked-out files with git grep, so it needs Node and nothing installed. It scans the
-  # repository only: the live wiki still carries the old claims until the stub commit is pushed after
-  # pull request #57 merges (DECISIONS D42), and the post-merge pull request adds
-  # `--wiki <clone of modern-cmdk.wiki.git>` to this step.
+  # the README files, ARCHITECTURE.md, CONTRIBUTING.md, SECURITY.md and apps/docs, plus every page of
+  # the GitHub wiki, cloned shallow into ./wiki for the scan (the wiki is a stub pointing at the docs
+  # site since 2026-11-04; DECISIONS D9, D42). The script reads the checked-out files with git grep,
+  # so it needs Node and nothing installed.
   claims:
     name: Phantom claims
     runs-on: ubuntu-26.04
@@ -308,7 +307,10 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - run: node scripts/check-claims.mjs
+      # The wiki is a stub pointing at the docs site (DECISIONS D9, G-18); its clone is scanned read-only (D42).
+      - name: Clone the wiki
+        run: git clone --depth 1 https://github.com/ABCrimson/modern-cmdk.wiki.git wiki
+      - run: node scripts/check-claims.mjs --wiki wiki
 
   # Required: external links and their #anchors in the Markdown the repository ships (lychee.toml
   # holds the retry policy and the reasoned excludes). Links between docs pages are checked against
