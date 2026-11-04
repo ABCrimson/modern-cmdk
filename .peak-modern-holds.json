@@ -5,8 +5,8 @@
       "name": "node",
       "field": "engines",
       "pin": ">=26.4.0",
-      "reason": "engines.node is the consumer compatibility floor of the published packages (modern-cmdk, create-modern-cmdk) and the monorepo root; a library cannot require an exact or pre-release Node. The dev toolchain pin is .nvmrc 28.0.0-nightly20261104d36e9ba1f8 (Node 28 nightly), and CI tests both the floor (26.4.0) and 28.0.0-nightly20261104d36e9ba1f8.",
-      "evidence": "orchestrator decision 2 (2026-10-30); engines.node in package.json, packages/modern-cmdk/package.json, packages/create-modern-cmdk/package.json"
+      "reason": "engines.node is the consumer compatibility floor of create-modern-cmdk (>=26.4.0 through its 1.x) and the toolchain floor of the monorepo root; a library cannot require an exact or pre-release Node. modern-cmdk no longer declares engines (D14, 1.4.0): dropping engines overrides the #42 hold, with evidence (roadmap 1.4.0 risks). The dev toolchain pin is .nvmrc 28.0.0-nightly20261104d36e9ba1f8 (Node 28 nightly), and CI tests both the floor (26.4.0) and 28.0.0-nightly20261104d36e9ba1f8.",
+      "evidence": "orchestrator decision 2 (2026-10-30); D14 (DECISIONS.md: engines dropped from modern-cmdk only in 1.4, create and codemod keep >=26.4.0); engines.node in package.json and packages/create-modern-cmdk/package.json; tests/dist/manifest.test.ts asserts modern-cmdk has none"
     },
     {
       "kind": "npm",

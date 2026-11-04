@@ -4,7 +4,8 @@
 // Checked by `tsc -p tests/dist/tsconfig.json`, which maps both entries to the built .d.mts.
 
 import type { CommandItem, CommandMachine, ItemId } from 'modern-cmdk';
-import type { CommandContextValue, useRegisterItem } from 'modern-cmdk/react';
+import type { CommandContextValue, CommandDialogProps, useRegisterItem } from 'modern-cmdk/react';
+import type { CommandDialogProps as SubpathDialogProps } from 'modern-cmdk/react/dialog';
 
 type ReactItemId = ReturnType<typeof useRegisterItem>;
 
@@ -21,3 +22,9 @@ export const contextToMachine: CommandMachine = contextValue.machine;
 
 declare const item: CommandItem;
 export const itemKeepsId: ItemId = item.id;
+
+// The dialog subpath (RP-02) exposes the barrel's props type: assignable in both directions.
+declare const barrelDialogProps: CommandDialogProps;
+declare const subpathDialogProps: SubpathDialogProps;
+export const barrelToSubpath: SubpathDialogProps = barrelDialogProps;
+export const subpathToBarrel: CommandDialogProps = subpathDialogProps;

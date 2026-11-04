@@ -4,8 +4,13 @@ import thresholds from './coverage-thresholds.json' with { type: 'json' };
 
 // Source aliases for the unit and perf projects. The dist project sets none: dist/react imports
 // 'modern-cmdk' by name, and an alias to src would run built React over source core (a mixed tree).
-// 'modern-cmdk/react' stays first: Vite matches a string key exactly or as a prefix followed by '/'.
+// Most specific key first: Vite matches a string key exactly or as a prefix followed by '/', so
+// 'modern-cmdk/react/dialog' precedes 'modern-cmdk/react', which precedes 'modern-cmdk'.
 const srcAlias = {
+  'modern-cmdk/react/dialog': resolve(
+    import.meta.dirname,
+    'packages/modern-cmdk/src/react/dialog.tsx',
+  ),
   'modern-cmdk/react': resolve(import.meta.dirname, 'packages/modern-cmdk/src/react/index.ts'),
   'modern-cmdk': resolve(import.meta.dirname, 'packages/modern-cmdk/src/core/index.ts'),
 };

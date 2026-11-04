@@ -8,24 +8,24 @@
   "bugs": {
     "url": "https://github.com/ABCrimson/modern-cmdk/issues"
   },
-  "engines": {
-    "node": ">=26.4.0"
-  },
   "publishConfig": {
     "access": "public"
   },
   "exports": {
     ".": {
       "types": "./dist/core/index.d.mts",
-      "import": "./dist/core/index.mjs",
       "default": "./dist/core/index.mjs"
     },
     "./react": {
       "types": "./dist/react/index.d.mts",
-      "import": "./dist/react/index.mjs",
       "default": "./dist/react/index.mjs"
     },
-    "./styles.css": "./dist/react/styles.css"
+    "./react/dialog": {
+      "types": "./dist/react/dialog.d.mts",
+      "default": "./dist/react/dialog.mjs"
+    },
+    "./styles.css": "./dist/react/styles.css",
+    "./package.json": "./package.json"
   },
   "main": "./dist/core/index.mjs",
   "types": "./dist/core/index.d.mts",
@@ -42,8 +42,7 @@
     "typecheck": "tsc --noEmit"
   },
   "sideEffects": [
-    "./dist/react/styles.css",
-    "./dist/react/index.mjs"
+    "./dist/react/styles.css"
   ],
   "peerDependencies": {
     "react": ">=19.0.0 <21.0.0",

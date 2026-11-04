@@ -7,7 +7,8 @@
     "isolatedDeclarations": false,
     "paths": {
       "modern-cmdk": ["../../packages/modern-cmdk/dist/core/index.d.mts"],
-      "modern-cmdk/react": ["../../packages/modern-cmdk/dist/react/index.d.mts"]
+      "modern-cmdk/react": ["../../packages/modern-cmdk/dist/react/index.d.mts"],
+      "modern-cmdk/react/dialog": ["../../packages/modern-cmdk/dist/react/dialog.d.mts"]
     }
   },
   "include": [
