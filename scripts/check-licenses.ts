@@ -10,6 +10,9 @@
 // and exceptions like any other. This keeps the audit identical on Linux and Windows: pnpm's resolver opens
 // the uppercase names it knows (LICENSE, LICENCE, LICENSE.md, ...) by exact name, which reaches a lowercase
 // `license` file on case-insensitive NTFS and misses it on ext4.
+// An exception may carry `platforms` (process.platform values): pnpm lists only the optional platform binaries it
+// installed, so a binary that exists on one OS is absent from the report on another; elsewhere the entry grants
+// nothing and is never stale.
 // A malformed entry in either section is a violation (reported with its index and granting nothing),
 // never a crash and never a pass.
 // Node built-ins only; run with `node scripts/check-licenses.ts` (native type stripping).
@@ -36,6 +39,8 @@ export interface LicenseException {
   readonly license: string;
   /** True when the package is a dependency of a published package or appears in a built bundle. */
   readonly ships: boolean;
+  /** The process.platform values where pnpm installs the package; absent means every platform; elsewhere the entry grants nothing and is never stale. */
+  readonly platforms?: readonly string[];
   readonly reason: string;
 }
 
@@ -151,13 +156,21 @@ function isValidException(value: unknown): value is LicenseException {
     e.package !== '' &&
     typeof e.license === 'string' &&
     typeof e.ships === 'boolean' &&
+    (e.platforms === undefined ||
+      (Array.isArray(e.platforms) &&
+        e.platforms.length > 0 &&
+        e.platforms.every((p) => typeof p === 'string' && p !== ''))) &&
     typeof e.reason === 'string' &&
     e.reason.trim() !== ''
   );
 }
 
 /** Returns one message per violation; an empty array means the report satisfies the policy. */
-export function evaluate(report: LicenseReport, policy: LicensePolicyInput): string[] {
+export function evaluate(
+  report: LicenseReport,
+  policy: LicensePolicyInput,
+  platform: string = process.platform,
+): string[] {
   const allowed = new Set(policy.allowed);
   const violations: string[] = [];
   const used = new Array<boolean>(policy.exceptions.length).fill(false);
@@ -166,12 +179,13 @@ export function evaluate(report: LicenseReport, policy: LicensePolicyInput): str
 
   for (const [i, e] of policy.exceptions.entries()) {
     if (isValidException(e)) {
-      exceptions[i] = e;
+      if (e.platforms !== undefined && !e.platforms.includes(platform)) used[i] = true;
+      else exceptions[i] = e;
       continue;
     }
     const fields = (typeof e === 'object' && e !== null ? e : {}) as Record<string, unknown>;
     violations.push(
-      `exception #${i} (${String(fields.package)}, ${String(fields.license)}) is malformed: package and license must be non-empty strings, ships a boolean, and reason a non-empty string saying why it is acceptable and whether it ships`,
+      `exception #${i} (${String(fields.package)}, ${String(fields.license)}) is malformed: package and license must be non-empty strings, ships a boolean, platforms (if present) a non-empty list of non-empty strings, and reason a non-empty string saying why it is acceptable and whether it ships`,
     );
     used[i] = true; // reported once above; a malformed exception grants nothing
     invalid.add(i);

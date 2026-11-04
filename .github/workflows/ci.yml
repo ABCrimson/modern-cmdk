@@ -42,7 +42,7 @@ jobs:
       # Zero warnings: the `lint` script is `biome check . --error-on-warnings`
       - run: pnpm lint
       # modern-cmdk, create-modern-cmdk, tests/, tests/e2e, tests/docs and the docs app (vue-tsc): none needs build output.
-      # The projects that import built packages are checked after the build: tests/dist (dist-tests),
+      # The projects that import built packages are checked after the build: tests/dist and the docs samples (dist-tests),
       # benchmarks (bench), the playground (e2e) and the wasm package (rust-wasm).
       - run: pnpm typecheck
 
@@ -145,6 +145,9 @@ jobs:
           name: dist
           path: packages
       - run: pnpm exec tsc -p tests/dist/tsconfig.json --noEmit
+      # Docs-samples gate (TEB-84): every fenced ts/tsx sample of apps/docs and the READMEs type-checks against the downloaded dist.
+      # The dist artifact (packages/*/dist from the build job) has no wasm build, so the wasm-importing samples are skipped here and checked in the Rust & WASM job.
+      - run: pnpm check:doc-samples --skip-wasm
       # tests/dist runs against the built packages: the CLI smoke test, the create-modern-cmdk tarball, the devtools and dialog subpaths, the exports map, the manifest and the one-core invariant
       - run: pnpm exec vitest run tests/dist
 
@@ -227,6 +230,8 @@ jobs:
       - run: pnpm exec vitest run packages/command-search-wasm
       - run: pnpm --filter modern-cmdk-search-wasm exec tsc --noEmit
       - run: pnpm --filter modern-cmdk-search-wasm run build
+      # Docs-samples gate (TEB-84), the one run with both dists present: the wasm-importing samples type-check here (the modern-cmdk dist is built earlier in this job)
+      - run: pnpm check:doc-samples
 
   e2e:
     name: E2E Tests

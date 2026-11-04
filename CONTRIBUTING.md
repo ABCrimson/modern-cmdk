@@ -138,7 +138,7 @@ modern-cmdk/
           async-items.tsx         <Command.AsyncItems>
           error-boundary.tsx      <CommandErrorBoundary>
           primitives.ts           Dead file, imported by nothing (excluded from tsc and coverage; deleted in the D window)
-          styles.css              GPU-composited animations
+          styles.css              tokens, item and list transitions; dialog transitions inert until DT-19
           hooks/                  use-command, use-command-setup, use-command-state,
                                   use-register, use-virtualizer, use-keyboard, use-devtools
         codemod/                  cmdk -> modern-cmdk migration CLI (bin: modern-cmdk)
@@ -199,8 +199,8 @@ modern-cmdk/
     setup.ts                      Vitest setup (registered via setupFiles)
     unit/                         Vitest unit and integration tests (machine, registry, search,
                                   keyboard, frecency, command, async, virtualization, stress,
-                                  bug-matrix, codemod-*, create-cli, check-package, check-licenses,
-                                  consumer-smoke, manifests, ...); `ls tests/unit` is the list
+                                  bug-matrix, codemod-*, create-cli, check-package, check-licenses, check-doc-samples,
+                                  consumer-smoke, playground-manifest, vscode-manifest, ...); `ls tests/unit` is the list
     dist/                         Tests against the built packages (cli-smoke, create-tarball,
                                   devtools, dialog-subpath, exports, manifest, one-core; run
                                   `pnpm build` first); `ls tests/dist` is the list
@@ -260,7 +260,8 @@ modern-cmdk/
 | `pnpm typecheck` | `tsc --noEmit` for `modern-cmdk` and `create-modern-cmdk`, then `tests/`, `tests/e2e` and `tests/docs`; `vue-tsc --noEmit` for the docs app (`apps/docs/tsconfig.json`). The playground and `modern-cmdk-search-wasm` are type-checked only in CI, after their build inputs exist |
 | `pnpm size` | Build and check bundle size limits |
 | `pnpm check:package` | Pack `modern-cmdk` and `create-modern-cmdk` and run publint (strict) on both tarballs; on the `modern-cmdk` tarball also run @arethetypeswrong/cli (`--profile esm-only`), compare the tarball file list with `tests/package/modern-cmdk.files.json` and check the `'use client'` directive on `dist/react`. It packs but never builds: run `pnpm build` first |
-| `pnpm check:licenses` | Licence audit of the whole workspace lockfile against `tests/package/license-policy.json`: `allowed` (the allowed SPDX ids), `exceptions` (packages with another licence, all `ships: false`) and `licenseFiles` (hash-pinned declarations for a manifest without a licence field). It needs an install, not a build |
+| `pnpm check:doc-samples` | Type-check every fenced `ts`/`tsx`/`typescript` sample of `apps/docs/**/*.md` and the three READMEs against the built `dist` with the repository's `tsc` (run `pnpm build` first). A fence whose info string has the word `fragment` is a deliberate excerpt and is skipped and counted. `--skip-wasm` also skips the samples that import `modern-cmdk-search-wasm` (a checkout without the wasm build). CI runs it twice: dist-tests with `--skip-wasm` (its dist artifact has no wasm build) and the Rust & WASM job in full. Exit 1 on any diagnostic |
+| `pnpm check:licenses` | Licence audit of the whole workspace lockfile against `tests/package/license-policy.json`: `allowed` (the allowed SPDX ids), `exceptions` (packages with another licence, all `ships: false`; an optional `platforms` list scopes an entry to the OSes where pnpm installs the package, so it is never stale elsewhere) and `licenseFiles` (hash-pinned declarations for a manifest without a licence field). It needs an install, not a build |
 | `pnpm test:consumers` | Consumer apps (Next.js with Turbopack and webpack, and Vite) built from the packed tarball: one core copy in the client JS, SSR output, hydration and the `CommandDialog` subpath. It packs but never builds: run `pnpm build` first |
 | `pnpm docs:dev` | Start docs dev server (VitePress) |
 | `pnpm docs:build` | Build docs for production |
