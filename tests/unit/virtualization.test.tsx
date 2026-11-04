@@ -25,9 +25,9 @@ afterEach(() => {
   container?.remove();
 });
 
-describe('Virtualization (0.2.2)', () => {
+describe('Virtualization', () => {
   it('should render all items when count is below threshold', async () => {
-    // ES2026 Iterator Helpers — generate JSX items via iterator pipeline
+    // ES2025 Iterator helpers — generate JSX items via iterator pipeline
     const items: ReactNode[] = Iterator.from({
       [Symbol.iterator]: function* (): Generator<number> {
         for (let i = 0; i < 10; i++) yield i;

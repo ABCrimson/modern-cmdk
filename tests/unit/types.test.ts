@@ -19,18 +19,18 @@ import {
 } from 'modern-cmdk';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-describe('Type Foundation (0.0.2)', () => {
+describe('Type Foundation', () => {
   describe('Branded types', () => {
     it('should have ItemId as a branded string type', () => {
       const id = itemId('test');
-      expectTypeOf(id).toMatchTypeOf<ItemId>();
-      expectTypeOf(id).toMatchTypeOf<string>();
+      expectTypeOf(id).toExtend<ItemId>();
+      expectTypeOf(id).toExtend<string>();
     });
 
     it('should have GroupId as a branded string type', () => {
       const id = groupId('test');
-      expectTypeOf(id).toMatchTypeOf<GroupId>();
-      expectTypeOf(id).toMatchTypeOf<string>();
+      expectTypeOf(id).toExtend<GroupId>();
+      expectTypeOf(id).toExtend<string>();
     });
 
     it('should prevent mixing ItemId and GroupId', () => {
@@ -60,7 +60,7 @@ describe('Type Foundation (0.0.2)', () => {
     });
 
     it('should use ReadonlyMap for groupedIds', () => {
-      expectTypeOf<CommandState['groupedIds']>().toMatchTypeOf<
+      expectTypeOf<CommandState['groupedIds']>().toExtend<
         ReadonlyMap<GroupId, readonly ItemId[]>
       >();
     });
@@ -75,17 +75,38 @@ describe('Type Foundation (0.0.2)', () => {
       const closeEvent: CommandEvent = { type: 'CLOSE' };
       const toggleEvent: CommandEvent = { type: 'TOGGLE' };
 
-      expectTypeOf(searchEvent).toMatchTypeOf<CommandEvent>();
-      expectTypeOf(selectEvent).toMatchTypeOf<CommandEvent>();
-      expectTypeOf(navEvent).toMatchTypeOf<CommandEvent>();
-      expectTypeOf(openEvent).toMatchTypeOf<CommandEvent>();
-      expectTypeOf(closeEvent).toMatchTypeOf<CommandEvent>();
-      expectTypeOf(toggleEvent).toMatchTypeOf<CommandEvent>();
+      expectTypeOf(searchEvent).toExtend<CommandEvent>();
+      expectTypeOf(selectEvent).toExtend<CommandEvent>();
+      expectTypeOf(navEvent).toExtend<CommandEvent>();
+      expectTypeOf(openEvent).toExtend<CommandEvent>();
+      expectTypeOf(closeEvent).toExtend<CommandEvent>();
+      expectTypeOf(toggleEvent).toExtend<CommandEvent>();
+    });
+
+    it('should list all 14 event variants in the type discriminant', () => {
+      expectTypeOf<CommandEvent['type']>().toEqualTypeOf<
+        | 'SEARCH_CHANGE'
+        | 'ITEM_SELECT'
+        | 'ITEM_ACTIVATE'
+        | 'NAVIGATE'
+        | 'PAGE_PUSH'
+        | 'PAGE_POP'
+        | 'OPEN'
+        | 'CLOSE'
+        | 'TOGGLE'
+        | 'ITEMS_LOADED'
+        | 'REGISTER_ITEM'
+        | 'UNREGISTER_ITEM'
+        | 'REGISTER_GROUP'
+        | 'UNREGISTER_GROUP'
+      >();
     });
   });
 
   describe('CommandItem', () => {
     it('should have readonly properties', () => {
+      // Readonly<T> only differs from T when some property is mutable
+      expectTypeOf<CommandItem>().toEqualTypeOf<Readonly<CommandItem>>();
       expectTypeOf<CommandItem['id']>().toEqualTypeOf<ItemId>();
       expectTypeOf<CommandItem['value']>().toEqualTypeOf<string>();
     });
@@ -96,13 +117,13 @@ describe('Type Foundation (0.0.2)', () => {
   });
 
   describe('CommandMachineOptions', () => {
-    it('should use NoInfer on callback params', () => {
-      const opts: CommandMachineOptions = {
-        onSelect: (id: ItemId) => {
-          expectTypeOf(id).toMatchTypeOf<ItemId>();
-        },
-      };
-      expectTypeOf(opts).toMatchTypeOf<CommandMachineOptions>();
+    it('should type onSelect as an optional (id: ItemId) => void callback', () => {
+      expectTypeOf<CommandMachineOptions['onSelect']>().toEqualTypeOf<
+        ((id: ItemId) => void) | undefined
+      >();
+      expectTypeOf<Parameters<NonNullable<CommandMachineOptions['onSelect']>>>().toEqualTypeOf<
+        [id: ItemId]
+      >();
     });
   });
 
@@ -118,7 +139,7 @@ describe('Type Foundation (0.0.2)', () => {
 
   describe('Default values with satisfies', () => {
     it('DEFAULT_FRECENCY_DECAY should satisfy Required<FrecencyDecayConfig>', () => {
-      expectTypeOf(DEFAULT_FRECENCY_DECAY).toMatchTypeOf<Required<FrecencyDecayConfig>>();
+      expectTypeOf(DEFAULT_FRECENCY_DECAY).toExtend<Required<FrecencyDecayConfig>>();
       // Vitest — soft assertions to report all mismatched defaults at once
       expect.soft(DEFAULT_FRECENCY_DECAY.hourWeight).toBe(4.0);
       expect.soft(DEFAULT_FRECENCY_DECAY.dayWeight).toBe(2.0);
@@ -128,7 +149,9 @@ describe('Type Foundation (0.0.2)', () => {
     });
 
     it('DEFAULT_MACHINE_OPTIONS should satisfy Partial<CommandMachineOptions>', () => {
-      expectTypeOf(DEFAULT_MACHINE_OPTIONS).toMatchTypeOf<Partial<CommandMachineOptions>>();
+      expectTypeOf(DEFAULT_MACHINE_OPTIONS).toExtend<Partial<CommandMachineOptions>>();
+      expectTypeOf(DEFAULT_MACHINE_OPTIONS.open).toEqualTypeOf<boolean | undefined>();
+      expect.soft(DEFAULT_MACHINE_OPTIONS.open).toBe(false);
       expect.soft(DEFAULT_MACHINE_OPTIONS.loop).toBe(true);
       expect.soft(DEFAULT_MACHINE_OPTIONS.virtualizeThreshold).toBe(100);
     });
@@ -137,7 +160,7 @@ describe('Type Foundation (0.0.2)', () => {
   describe('createInitialState', () => {
     it('should return a valid CommandState', () => {
       const state = createInitialState();
-      expectTypeOf(state).toMatchTypeOf<CommandState>();
+      expectTypeOf(state).toExtend<CommandState>();
       expect(state.search).toBe('');
       expect(state.activeId).toBeNull();
       expect(state.filteredCount).toBe(0);

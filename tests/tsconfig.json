@@ -1,0 +1,23 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "typeRoots": ["../node_modules/@types", "../packages/create-modern-cmdk/node_modules/@types"],
+    "noEmit": true,
+    "declaration": false,
+    "isolatedDeclarations": false,
+    "paths": {
+      "modern-cmdk": ["../packages/modern-cmdk/src/core/index.ts"],
+      "modern-cmdk/react": ["../packages/modern-cmdk/src/react/index.ts"]
+    }
+  },
+  "include": [
+    "unit/**/*",
+    "setup.ts",
+    "snapshot-serializers.ts",
+    "../vitest.config.ts",
+    "../playwright.config.ts",
+    "../packages/modern-cmdk/src/core/es2026.d.ts"
+  ],
+  "exclude": ["dist/**", "e2e/**"]
+}

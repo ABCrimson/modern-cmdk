@@ -1,6 +1,6 @@
 // tests/unit/command.test.tsx
 // React adapter compound component tests — Vitest + happy-dom
-// React (experimental channel build), TypeScript, ES2026
+// React (experimental channel build), TypeScript, ESNext
 
 import { groupId, itemId } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
@@ -146,7 +146,7 @@ describe('Command — React Compound Components', () => {
   // ---- 2. ARIA attributes ----
 
   describe('ARIA attributes', () => {
-    it('should set aria-expanded based on filteredCount', async () => {
+    it('should set aria-expanded=true and aria-autocomplete=list', async () => {
       await render(
         <Command>
           <Command.Input />
@@ -504,12 +504,6 @@ describe('Command — React Compound Components', () => {
   });
 
   // ---- 8. Group rendering ----
-  //
-  // NOTE: In the current implementation, <Command.Item> does not automatically
-  // read the CommandGroupContext to associate itself with its parent group.
-  // Items without an explicit groupId end up in the "__ungrouped" bucket, so
-  // <Command.Group> hides when none of its registered items are in its bucket.
-  // These tests verify the component structure and the actual rendering logic.
 
   describe('group rendering', () => {
     it('should render group with items when items are inside Command.Group', async () => {
@@ -796,7 +790,8 @@ describe('Command — React Compound Components', () => {
   // ---- 16. Dialog ----
 
   describe('Dialog component', () => {
-    // Radix Dialog.Portal renders into document.body, not the test container
+    // Dialog.Portal is pointed at the test container via the container prop, so queries on
+    // container find the overlay and dialog
     it('should render overlay and dialog when open', async () => {
       await render(
         <Command.Dialog open label="Command dialog" container={container}>

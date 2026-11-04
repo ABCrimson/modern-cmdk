@@ -1,13 +1,13 @@
 import { TypedEmitter } from 'modern-cmdk';
 import { describe, expect, it, vi } from 'vitest';
 
-interface TestEvents {
+type TestEvents = {
   message: string;
   count: number;
   data: { x: number; y: number };
-}
+};
 
-describe('TypedEmitter (0.0.3)', () => {
+describe('TypedEmitter', () => {
   it('should emit and receive events', () => {
     using emitter = new TypedEmitter<TestEvents>();
     const handler = vi.fn();
@@ -59,7 +59,9 @@ describe('TypedEmitter (0.0.3)', () => {
 
     // After using block, subscription is disposed
     emitter.emit('message', 'outside');
-    // Handler may or may not be called due to WeakRef — the ref was disposed
+    // The emitter holds strong references; dispose removed the listener, so the outside
+    // emit did not reach the handler and the count stays at the one inside call.
+    expect(handler).toHaveBeenCalledOnce();
   });
 
   it('should not emit to removed listeners', () => {
@@ -70,7 +72,7 @@ describe('TypedEmitter (0.0.3)', () => {
     sub[Symbol.dispose]();
     emitter.emit('message', 'after-remove');
 
-    // Handler should not be called since ref was deleted from set
+    // Handler should not be called: dispose removed the listener from the set
     expect(handler).not.toHaveBeenCalled();
   });
 
@@ -138,7 +140,7 @@ describe('TypedEmitter (0.0.3)', () => {
 
     using _sub = emitter.on('count', handler);
 
-    // ES2026 Iterator Helpers — emit using iterator pipeline
+    // ES2025 Iterator helpers — emit using iterator pipeline
     Iterator.from({
       [Symbol.iterator]: function* (): Generator<number> {
         for (let i = 0; i < 100; i++) yield i;

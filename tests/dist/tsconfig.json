@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "typeRoots": [
+      "../../node_modules/@types",
+      "../../packages/create-modern-cmdk/node_modules/@types"
+    ],
+    "noEmit": true,
+    "declaration": false,
+    "isolatedDeclarations": false,
+    "paths": {
+      "modern-cmdk": ["../../packages/modern-cmdk/dist/core/index.d.mts"],
+      "modern-cmdk/react": ["../../packages/modern-cmdk/dist/react/index.d.mts"]
+    }
+  },
+  "include": ["*.test.ts", "*.test.tsx", "../../packages/modern-cmdk/src/core/es2026.d.ts"]
+}

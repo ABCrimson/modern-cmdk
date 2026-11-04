@@ -17,37 +17,29 @@ function run(source: string, parser: string = 'tsx'): string {
   return transform(fileInfo, createApi(parser));
 }
 
-// ES2026 Object.groupBy — organize test cases by category for data-driven testing
-const attrRenameTests: Partial<
-  Record<string, { attr: string; expected: string; category: string }[]>
-> = Object.groupBy(
-  [
-    { attr: 'cmdk-root', expected: 'data-command', category: 'jsx-attr' },
-    { attr: 'cmdk-item', expected: 'data-command-item', category: 'jsx-attr' },
-    { attr: 'cmdk-input', expected: 'data-command-input', category: 'jsx-attr' },
-    { attr: 'cmdk-list', expected: 'data-command-list', category: 'jsx-attr' },
-    { attr: 'cmdk-group', expected: 'data-command-group', category: 'jsx-attr' },
-    { attr: 'cmdk-separator', expected: 'data-command-separator', category: 'jsx-attr' },
-    { attr: 'cmdk-empty', expected: 'data-command-empty', category: 'jsx-attr' },
-    { attr: 'cmdk-loading', expected: 'data-command-loading', category: 'jsx-attr' },
-  ],
-  (t) => t.category,
-);
+const attrRenameCases: readonly { readonly attr: string; readonly expected: string }[] = [
+  { attr: 'cmdk-root', expected: 'data-command' },
+  { attr: 'cmdk-item', expected: 'data-command-item' },
+  { attr: 'cmdk-input', expected: 'data-command-input' },
+  { attr: 'cmdk-list', expected: 'data-command-list' },
+  { attr: 'cmdk-group', expected: 'data-command-group' },
+  { attr: 'cmdk-separator', expected: 'data-command-separator' },
+  { attr: 'cmdk-empty', expected: 'data-command-empty' },
+  { attr: 'cmdk-loading', expected: 'data-command-loading' },
+];
 
 describe('codemod: data-attrs', () => {
-  // Data-driven JSX attribute renames using Object.groupBy results
+  // Data-driven JSX attribute renames
   describe('JSX attribute renames', () => {
-    for (const testCase of attrRenameTests['jsx-attr'] ?? []) {
-      it(`renames ${testCase.attr} to ${testCase.expected}`, () => {
-        const tag = testCase.attr === 'cmdk-input' ? 'input' : 'div';
-        const input = `const el = <${tag} ${testCase.attr}="" />;`;
-        const output = run(input);
+    it.for(attrRenameCases)('renames $attr to $expected', ({ attr, expected }) => {
+      const tag = attr === 'cmdk-input' ? 'input' : 'div';
+      const input = `const el = <${tag} ${attr}="" />;`;
+      const output = run(input);
 
-        // Vitest — soft assertions to check both conditions
-        expect.soft(output).toContain(testCase.expected);
-        expect.soft(output).not.toContain(testCase.attr);
-      });
-    }
+      // Vitest — soft assertions to check both conditions
+      expect.soft(output).toContain(expected);
+      expect.soft(output).not.toContain(attr);
+    });
   });
 
   it('replaces [cmdk-*] in querySelector strings', () => {

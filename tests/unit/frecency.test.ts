@@ -1,4 +1,4 @@
-import type { FrecencyRecord } from 'modern-cmdk';
+import type { FrecencyRecord, ItemId } from 'modern-cmdk';
 import { computeFrecencyBonus, FrecencyEngine, itemId, MemoryFrecencyStorage } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
@@ -133,7 +133,7 @@ describe('MemoryFrecencyStorage', () => {
 
   it('should persist and reload data', () => {
     using storage = new MemoryFrecencyStorage();
-    const records = new Map();
+    const records = new Map<ItemId, FrecencyRecord>();
     records.set(itemId('a'), { frequency: 3, lastUsed: Date.now() });
 
     storage.save('test', { records });
@@ -144,7 +144,7 @@ describe('MemoryFrecencyStorage', () => {
 
   it('should serialize to JSON using Iterator.prototype.toArray()', () => {
     using storage = new MemoryFrecencyStorage();
-    const records = new Map();
+    const records = new Map<ItemId, FrecencyRecord>();
     records.set(itemId('a'), { frequency: 1, lastUsed: Date.now() });
 
     storage.save('test', { records });

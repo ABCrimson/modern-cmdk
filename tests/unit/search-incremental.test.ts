@@ -6,7 +6,7 @@ function makeItem(id: string, value: string, keywords?: string[]): CommandItem {
   return { id: itemId(id), value, keywords };
 }
 
-describe('Incremental Filtering (0.0.6)', () => {
+describe('Incremental Filtering', () => {
   it('should use incremental filtering when query extends previous', () => {
     using engine = createSearchEngine();
     const items = [
@@ -18,9 +18,10 @@ describe('Incremental Filtering (0.0.6)', () => {
     ];
     engine.index(items);
 
-    // First search — full scan (fuzzy scorer matches 'a' in all items including Banana/Cherry)
+    // First search — full scan (the fuzzy scorer matches every item containing 'a':
+    // Apple, Application, Banana, Apricot; Cherry is excluded)
     const r1 = engine.search('a', items).toArray();
-    expect(r1.length).toBeGreaterThanOrEqual(3); // At least Apple, Application, Apricot
+    expect(r1.length).toBe(4);
 
     // Incremental — only re-scores previous matches
     const r2 = engine.search('ap', items).toArray();
@@ -115,14 +116,13 @@ describe('Incremental Filtering (0.0.6)', () => {
     const results = engine.search('app', items).toArray();
 
     // Results should be sorted by score (descending)
-    for (let i = 1; i < results.length; i++) {
-      expect(results[i - 1]?.score).toBeGreaterThanOrEqual(results[i]?.score);
-    }
+    const scores = results.map((r) => r.score);
+    expect(scores).toEqual(scores.toSorted((a, b) => b - a));
   });
 
   it('should handle single-character incremental filtering', () => {
     using engine = createSearchEngine();
-    // ES2026 Iterator Helpers — generate test items via iterator pipeline
+    // ES2025 Iterator helpers — generate test items via iterator pipeline
     const items = Iterator.from({
       [Symbol.iterator]: function* (): Generator<number> {
         for (let i = 0; i < 100; i++) yield i;

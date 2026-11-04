@@ -1,44 +1,42 @@
 import { detectConflicts, formatShortcut, matchesShortcut, parseShortcut } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
-// ES2026 Object.groupBy — organize parse test cases by category
-const parseTestCases: Partial<
-  Record<
-    string,
-    { shortcut: string; expected: Record<string, string | boolean>; category: string }[]
-  >
-> = Object.groupBy(
-  [
-    {
-      shortcut: 'k',
-      expected: { key: 'k', meta: false, ctrl: false, shift: false, alt: false },
-      category: 'simple',
-    },
-    { shortcut: 'Shift+A', expected: { key: 'a', shift: true }, category: 'modifier' },
-    { shortcut: 'Alt+N', expected: { key: 'n', alt: true }, category: 'modifier' },
-    {
-      shortcut: 'Ctrl+Shift+P',
-      expected: { key: 'p', ctrl: true, shift: true },
-      category: 'multi-modifier',
-    },
-    { shortcut: 'ctrl+k', expected: { key: 'k', ctrl: true }, category: 'case-insensitive' },
-  ],
-  (t) => t.category,
-);
+type ParseCase = {
+  readonly shortcut: string;
+  readonly expected: Readonly<Record<string, string | boolean>>;
+};
+
+const simpleCases: readonly ParseCase[] = [
+  {
+    shortcut: 'k',
+    expected: { key: 'k', meta: false, ctrl: false, shift: false, alt: false },
+  },
+];
+
+const modifierCases: readonly ParseCase[] = [
+  { shortcut: 'Shift+A', expected: { key: 'a', shift: true, alt: false } },
+  { shortcut: 'Alt+N', expected: { key: 'n', shift: false, alt: true } },
+];
+
+const multiModifierCases: readonly ParseCase[] = [
+  { shortcut: 'Ctrl+Shift+P', expected: { key: 'p', ctrl: true, shift: true } },
+];
+
+const caseInsensitiveCases: readonly ParseCase[] = [
+  { shortcut: 'ctrl+k', expected: { key: 'k', ctrl: true } },
+];
 
 describe('parseShortcut', () => {
   // Data-driven: simple key parsing
-  for (const testCase of parseTestCases.simple ?? []) {
-    it(`should parse simple key "${testCase.shortcut}"`, () => {
-      const result = parseShortcut(testCase.shortcut);
-      // Vitest — soft assertions for multi-property checks
-      expect.soft(result.key).toBe(testCase.expected.key);
-      expect.soft(result.meta).toBe(testCase.expected.meta);
-      expect.soft(result.ctrl).toBe(testCase.expected.ctrl);
-      expect.soft(result.shift).toBe(testCase.expected.shift);
-      expect.soft(result.alt).toBe(testCase.expected.alt);
-    });
-  }
+  it.for(simpleCases)('should parse simple key "$shortcut"', ({ shortcut, expected }) => {
+    const result = parseShortcut(shortcut);
+    // Vitest — soft assertions for multi-property checks
+    expect.soft(result.key).toBe(expected.key);
+    expect.soft(result.meta).toBe(expected.meta);
+    expect.soft(result.ctrl).toBe(expected.ctrl);
+    expect.soft(result.shift).toBe(expected.shift);
+    expect.soft(result.alt).toBe(expected.alt);
+  });
 
   it('should parse Mod+Key', () => {
     const result = parseShortcut('Mod+K');
@@ -48,24 +46,23 @@ describe('parseShortcut', () => {
   });
 
   // Data-driven: single modifier tests
-  for (const testCase of parseTestCases.modifier ?? []) {
-    it(`should parse modifier in "${testCase.shortcut}"`, () => {
-      const result = parseShortcut(testCase.shortcut);
-      expect(result.key).toBe(testCase.expected.key);
-      expect(result.shift).toBe(testCase.expected.shift === true);
-      expect(result.alt).toBe(testCase.expected.alt === true);
-    });
-  }
+  it.for(modifierCases)('should parse modifier in "$shortcut"', ({ shortcut, expected }) => {
+    const result = parseShortcut(shortcut);
+    expect(result.key).toBe(expected.key);
+    expect(result.shift).toBe(expected.shift);
+    expect(result.alt).toBe(expected.alt);
+  });
 
   // Data-driven: multi-modifier tests
-  for (const testCase of parseTestCases['multi-modifier'] ?? []) {
-    it(`should parse multiple modifiers in "${testCase.shortcut}"`, () => {
-      const result = parseShortcut(testCase.shortcut);
-      expect.soft(result.ctrl).toBe(testCase.expected.ctrl);
-      expect.soft(result.shift).toBe(testCase.expected.shift);
-      expect.soft(result.key).toBe(testCase.expected.key);
-    });
-  }
+  it.for(multiModifierCases)(
+    'should parse multiple modifiers in "$shortcut"',
+    ({ shortcut, expected }) => {
+      const result = parseShortcut(shortcut);
+      expect.soft(result.ctrl).toBe(expected.ctrl);
+      expect.soft(result.shift).toBe(expected.shift);
+      expect.soft(result.key).toBe(expected.key);
+    },
+  );
 
   it('should normalize consistently', () => {
     const a = parseShortcut('Ctrl+Shift+K');
@@ -74,13 +71,14 @@ describe('parseShortcut', () => {
   });
 
   // Data-driven: case-insensitive
-  for (const testCase of parseTestCases['case-insensitive'] ?? []) {
-    it(`should handle case-insensitive modifiers: "${testCase.shortcut}"`, () => {
-      const result = parseShortcut(testCase.shortcut);
+  it.for(caseInsensitiveCases)(
+    'should handle case-insensitive modifiers: "$shortcut"',
+    ({ shortcut, expected }) => {
+      const result = parseShortcut(shortcut);
       expect(result.ctrl).toBe(true);
-      expect(result.key).toBe(testCase.expected.key);
-    });
-  }
+      expect(result.key).toBe(expected.key);
+    },
+  );
 });
 
 describe('matchesShortcut', () => {
