@@ -94,13 +94,13 @@ export function CommandDialog({
   return (
     <Dialog.Root open={state.open} onOpenChange={handleRadixOpenChange}>
       <Dialog.Portal container={container}>
-        {/* Overlay — GPU-composited @starting-style animation */}
+        {/* Overlay — tint set by data-state; its transition and @starting-style entry are inert until DT-19 */}
         <Dialog.Overlay
           data-command-overlay=""
           data-state={state.open ? 'open' : 'closed'}
           className={overlayClassName}
         />
-        {/* Content — focus trap via Radix, @starting-style animation */}
+        {/* Content — focus trap via Radix; its @starting-style entry is inert until DT-19 */}
         <Dialog.Content
           data-command-dialog=""
           data-state={state.open ? 'open' : 'closed'}

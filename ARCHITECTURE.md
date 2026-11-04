@@ -30,7 +30,7 @@ This document describes the technical architecture of `modern-cmdk` -- a ground-
   - [Concurrent Features](#concurrent-features)
 - [Event Flow](#event-flow)
 - [CSS Architecture](#css-architecture)
-  - [GPU-Composited Animations](#gpu-composited-animations)
+  - [Animations and transitions](#animations-and-transitions)
   - [Scroll-Driven Animations](#scroll-driven-animations)
   - [Content Visibility](#content-visibility)
   - [Accessibility Media Queries](#accessibility-media-queries)
@@ -502,13 +502,24 @@ sequenceDiagram
 
 ## CSS Architecture
 
-### GPU-Composited Animations
+### Animations and transitions
 
 **File:** `packages/modern-cmdk/src/react/styles.css`
 
-All animations use compositor-only properties (`opacity`, `scale`, `translate`) to avoid layout thrashing:
+What resolves today:
+
+- Item background: `[data-command-item]` declares a `background-color` transition over `--command-duration-item` (120ms) with a `linear()` ease (styles.css:213); it runs on the background the app sets for `[data-active]` (the library sets one only under `forced-colors`, :570). `content-visibility: auto` skips off-screen item rendering (:215).
+- List height: `[data-command-list]` declares `transition: height` over `--command-duration-list` with `--command-spring-easing` and sets `will-change: height` (styles.css:195-196). Both tokens resolve because the list sits inside `[data-command-root]`. The library sets only `--command-list-height` on the list (list.tsx:107), not `height`, so the transition interpolates once the app sets `height: var(--command-list-height)` on `[data-command-list]` (apps/docs/guide/migration-from-cmdk.md:111).
+- Virtual positioning: items use `translateY` transforms and the virtual list sets `will-change: transform` (:234). The motion is transform-based, which keeps it off the layout path.
+- Overlay tint: `--command-overlay-opacity` is a registered property (:30) read by the overlay background (:140) and set to 0 or 0.4 by the state rules (:324, :334). The value switches with `data-state`; the `transition` declarations beside it (:326-331, :335-341) read unset tokens, so it does not interpolate.
+
+What is declared and inert until DT-19:
+
+The tokens are declared only in `[data-command-root]` (styles.css:51-104). The overlay and dialog elements sit outside it: `dialog.tsx` renders the Command root inside the dialog content (dialog.tsx:116). Every `transition`, `backdrop-filter` and size declaration that reads an unset token is invalid at computed-value time, so the dialog and overlay open and close transitions (styles.css:319-380) do not run. DT-19 moves the tokens to a selector the overlay and dialog match. Until then an app sets all twelve tokens on `[data-command-overlay], [data-command-dialog]`; see `apps/docs/guide/theming.md` (Library Tokens).
 
 ```
+declared (inert until DT-19)
+
 Dialog open:
   @starting-style { opacity: 0; scale: 0.96; translate: 0 8px; }
   -> opacity: 1; scale: 1; translate: 0 0;
@@ -519,17 +530,11 @@ Dialog open:
 Dialog close:
   -> opacity: 0; scale: 0.96; translate: 0 4px;
   -> 150ms cubic-bezier(0.4, 0, 1, 1)  // quicker, no spring overshoot
-
-Item active:
-  -> background-color transition 120ms, linear() eased
-  -> content-visibility: auto skips off-screen item rendering
 ```
 
-The spring easings are `linear()` stop lists: `--command-spring-easing` rises to 1 without overshoot (critically damped), and `--command-spring-easing-bouncy` peaks at 1.033 before settling, which is the slight overshoot above -- spring-like motion with zero JavaScript.
+The spring easings are `linear()` stop lists (styles.css:52-90): `--command-spring-easing` rises to 1 without overshoot (critically damped), and `--command-spring-easing-bouncy` peaks at 1.033 before settling. They also live in `[data-command-root]`, so only the list height transition reads them today, and it animates only when the app sets the list height (see above).
 
-`@starting-style` (CSS Transitions Level 2) enables entry animations without JavaScript -- the browser interpolates from the starting style to the final style on first render.
-
-`display` and `overlay` transitions use `allow-discrete` for animating to/from `display: none`.
+`@starting-style` (CSS Transitions Level 2) is written for the overlay (:320-323) and the dialog (:348-354). Once the tokens resolve, the browser interpolates from the starting style to the final style on first render. `display` and `overlay` transitions use `allow-discrete` to animate to and from `display: none`.
 
 ### Scroll-Driven Animations
 
@@ -676,12 +681,12 @@ The interactive playground (`apps/playground`) uses **Vite 8.3.5** with `@vitejs
 
 ### Why `@starting-style` over JavaScript animations?
 
-`@starting-style` enables CSS-only entry animations:
-- Zero JavaScript execution for animation setup
-- Compositor-thread only -- no main thread blocking
+This is the design intent. The dialog and overlay transitions are declared in `styles.css` (:319-380) and inert until DT-19 moves their tokens (see Animations and transitions). `@starting-style` is meant to give CSS-only entry animations:
+- No JavaScript is needed to set up the animation
+- Opacity, scale and translate changes can be handled by the browser without React state
 - Works with `display: none` transitions via `allow-discrete`
 - Gracefully degrades in older browsers (no animation, but no breakage)
-- Respects `prefers-reduced-motion` via a single CSS rule
+- Respects `prefers-reduced-motion` via one media query (styles.css:513-530)
 
 JavaScript animation libraries (Framer Motion, React Spring) would add 10-30 KB to the bundle and require main-thread execution.
 
@@ -761,7 +766,7 @@ packages/modern-cmdk/src/react/
   async-items.tsx        -- <Command.AsyncItems> (Suspense)
   error-boundary.tsx     -- <CommandErrorBoundary>
   primitives.ts          -- Slot/ref-merge helper; imported by nothing and excluded from the build and from coverage (dead file)
-  styles.css             -- GPU-composited animations
+  styles.css             -- tokens, item and list transitions; dialog transitions inert until DT-19
   hooks/
     use-command.ts       -- useCommand hook
     use-command-setup.ts -- Machine creation + wiring for <Command>
