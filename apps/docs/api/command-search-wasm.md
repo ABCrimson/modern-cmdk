@@ -52,6 +52,8 @@ await using engine = await createWasmSearchEngine();
 ### SearchResult
 
 ```typescript
+import type { ItemId } from 'modern-cmdk';
+
 interface SearchResult {
   readonly id: ItemId;
   readonly score: number;
@@ -120,6 +122,15 @@ Inherits all `WasmSearchEngine` methods, plus:
 The `search()` method on the worker engine yields from a cache populated by the most recent `searchAsync()` call. For worker engines, always prefer `searchAsync()`:
 
 ```typescript
+import { itemId } from 'modern-cmdk';
+import type { CommandItem } from 'modern-cmdk';
+import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
+
+const items: CommandItem[] = [{ id: itemId('settings'), value: 'Settings' }];
+
+await using engine = await createWorkerSearchEngine();
+engine.index(items);
+
 // Preferred: async search
 const results = await engine.searchAsync('settings');
 
@@ -145,14 +156,14 @@ Cross-Origin-Embedder-Policy: require-corp
 ::: code-group
 ```typescript [Vite]
 // vite.config.ts
-export default defineConfig({
+export default {
   server: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
     },
   },
-});
+};
 ```
 
 ```typescript [Next.js]
@@ -201,8 +212,14 @@ export default nextConfig;
 Both engine types implement the `SearchEngine` interface from `modern-cmdk`:
 
 ```typescript
-import { createCommandMachine } from 'modern-cmdk';
+import type { CommandItem } from 'modern-cmdk';
+import { createCommandMachine, itemId } from 'modern-cmdk';
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
+
+const largeDataset: CommandItem[] = Array.from({ length: 10_000 }, (_, i) => ({
+  id: itemId(`item-${i}`),
+  value: `Item ${i}`,
+}));
 
 await using searchEngine = await createWasmSearchEngine();
 
@@ -215,9 +232,16 @@ using machine = createCommandMachine({
 Via the React adapter:
 
 ```tsx
-<Command search={wasmEngine}>
-  {/* Intended: items indexed and searched via WASM; today the TypeScript fallback runs */}
-</Command>
+import type { SearchEngine } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
+
+function Palette({ wasmEngine }: { wasmEngine: SearchEngine }) {
+  return (
+    <Command search={wasmEngine}>
+      {/* Intended: items indexed and searched via WASM; today the TypeScript fallback runs */}
+    </Command>
+  );
+}
 ```
 
 ---

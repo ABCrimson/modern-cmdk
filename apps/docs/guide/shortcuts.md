@@ -43,13 +43,21 @@ function ShortcutPalette() {
 `<Command.Shortcut>` renders a platform-aware keyboard shortcut badge. On macOS it shows symbols like `Cmd`, on Windows/Linux it shows `Ctrl`:
 
 ```tsx
-{/* macOS renders: ⌘C */}
-{/* Windows/Linux renders: Ctrl+C */}
-<Command.Shortcut shortcut="Mod+C" />
+import { Command } from 'modern-cmdk/react';
 
-{/* macOS renders: ⌘⇧F */}
-{/* Windows/Linux renders: Ctrl+Shift+F */}
-<Command.Shortcut shortcut="Mod+Shift+F" />
+export function ShortcutBadges() {
+  return (
+    <>
+      {/* macOS renders: ⌘C */}
+      {/* Windows/Linux renders: Ctrl+C */}
+      <Command.Shortcut shortcut="Mod+C" />
+
+      {/* macOS renders: ⌘⇧F */}
+      {/* Windows/Linux renders: Ctrl+Shift+F */}
+      <Command.Shortcut shortcut="Mod+Shift+F" />
+    </>
+  );
+}
 ```
 
 The component renders with `[data-command-shortcut]` for styling:

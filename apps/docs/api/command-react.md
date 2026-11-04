@@ -19,24 +19,34 @@ npm install modern-cmdk
 ```
 :::
 
-Every `modern-cmdk/react` import needs `react` and `react-dom` (`>=19.0.0 <21.0.0`), optional peers your package manager does not install for you, and `radix-ui` (`>=1.4.0 <2.0.0`), a required peer that pnpm installs automatically while `auto-install-peers` is on (its default); to add all three yourself: `pnpm add react react-dom radix-ui`.
+Every `modern-cmdk/react` import needs `react` and `react-dom` (`>=19.0.0 <21.0.0`) and `radix-ui` (`>=1.4.0 <2.0.0`). `react` and `react-dom` are optional peers of `modern-cmdk`, but `radix-ui` requires them, so npm 7+ and pnpm install them with `modern-cmdk/react`; install them explicitly to pin the version: `pnpm add react react-dom radix-ui`.
 
 ## `<Command>`
 
 Root component that creates a command palette state machine and provides context to all child components.
 
 ```tsx
+import type { ReactNode } from 'react';
+import type { CommandItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
 
-<Command
-  label="Command Menu"
-  filter={customFilterFn}
-  frecency={{ enabled: true }}
-  loop={true}
-  onSelect={(id) => console.log(id)}
->
-  {children}
-</Command>
+// A custom filter: return a score, or false to hide the item.
+const customFilterFn = (item: CommandItem, query: string): number | false =>
+  item.value.toLowerCase().includes(query.toLowerCase()) ? 1 : false;
+
+function Palette({ children }: { children: ReactNode }) {
+  return (
+    <Command
+      label="Command Menu"
+      filter={customFilterFn}
+      frecency={{ enabled: true }}
+      loop={true}
+      onSelect={(id) => console.log(id)}
+    >
+      {children}
+    </Command>
+  );
+}
 ```
 
 ### Props
@@ -79,10 +89,14 @@ import { Command } from 'modern-cmdk/react';
 Search input with ARIA combobox role. Manages the search query and connects to the listbox.
 
 ```tsx
-<Command.Input
-  placeholder="Type a command..."
-  onValueChange={(value) => console.log(value)}
-/>
+import { Command } from 'modern-cmdk/react';
+
+const input = (
+  <Command.Input
+    placeholder="Type a command..."
+    onValueChange={(value) => console.log(value)}
+  />
+);
 ```
 
 ### Props
@@ -119,9 +133,16 @@ Extends `ComponentPropsWithRef<'input'>` (excluding `value`, `onChange`, `type`,
 Scrollable result list with built-in virtualization, `aria-live` announcements, and scroll-to-active behavior.
 
 ```tsx
-<Command.List estimateSize={48} overscan={10}>
-  {children}
-</Command.List>
+import type { ReactNode } from 'react';
+import { Command } from 'modern-cmdk/react';
+
+function Results({ children }: { children: ReactNode }) {
+  return (
+    <Command.List estimateSize={48} overscan={10}>
+      {children}
+    </Command.List>
+  );
+}
 ```
 
 ### Props
@@ -164,16 +185,25 @@ Extends `ComponentPropsWithRef<'div'>`.
 Individual command item. Renders only when it passes the current filter.
 
 ```tsx
-<Command.Item
-  value="settings"
-  keywords={['preferences', 'config']}
-  shortcut="Mod+,"
-  onSelect={() => openSettings()}
-  disabled={false}
->
-  Settings
-  <Command.Shortcut shortcut="Mod+," />
-</Command.Item>
+import { Command } from 'modern-cmdk/react';
+
+// Your app's navigation (app-owned).
+function openSettings(): void {
+  location.assign('/settings');
+}
+
+const settingsItem = (
+  <Command.Item
+    value="settings"
+    keywords={['preferences', 'config']}
+    shortcut="Mod+,"
+    onSelect={() => openSettings()}
+    disabled={false}
+  >
+    Settings
+    <Command.Shortcut shortcut="Mod+," />
+  </Command.Item>
+);
 ```
 
 ### Props
@@ -215,10 +245,14 @@ Extends `ComponentPropsWithRef<'div'>` (excluding `onSelect`, `value`).
 Groups related items with an optional heading. Automatically hidden when no items in the group pass the filter.
 
 ```tsx
-<Command.Group heading="Navigation" priority={1}>
-  <Command.Item value="home">Home</Command.Item>
-  <Command.Item value="about">About</Command.Item>
-</Command.Group>
+import { Command } from 'modern-cmdk/react';
+
+const navigation = (
+  <Command.Group heading="Navigation" priority={1}>
+    <Command.Item value="home">Home</Command.Item>
+    <Command.Item value="about">About</Command.Item>
+  </Command.Group>
+);
 ```
 
 ### Props
@@ -254,7 +288,9 @@ Extends `ComponentPropsWithRef<'div'>`.
 Renders when no items match the current search query and the list is not loading.
 
 ```tsx
-<Command.Empty>No results found.</Command.Empty>
+import { Command } from 'modern-cmdk/react';
+
+const empty = <Command.Empty>No results found.</Command.Empty>;
 ```
 
 Extends `ComponentPropsWithRef<'div'>`. Data attribute: `data-command-empty`. ARIA: `role="status"`, `aria-live="polite"`.
@@ -266,7 +302,11 @@ Extends `ComponentPropsWithRef<'div'>`. Data attribute: `data-command-empty`. AR
 Renders when the `loading` prop is `true`. Without the prop it renders only while the optimistic active-item transition is pending (`isPending`); `state.loading` is never set to `true` by the machine today, so async item loading does not show it on its own, and a search never sets `isPending`. Pass `loading` explicitly (for example `loading` inside a Suspense fallback) to show it.
 
 ```tsx
-<Command.Loading loading={isSearching}>Searching...</Command.Loading>
+import { Command } from 'modern-cmdk/react';
+
+function Status({ isSearching }: { isSearching: boolean }) {
+  return <Command.Loading loading={isSearching}>Searching...</Command.Loading>;
+}
 ```
 
 Extends `ComponentPropsWithRef<'div'>`.
@@ -284,7 +324,9 @@ Data attribute: `data-command-loading`. ARIA: `role="status"`, `aria-busy`, `ari
 Visual separator between groups or items.
 
 ```tsx
-<Command.Separator />
+import { Command } from 'modern-cmdk/react';
+
+const separator = <Command.Separator />;
 ```
 
 Extends `ComponentPropsWithRef<'div'>`. Data attribute: `data-command-separator`. ARIA: `role="none"`.
@@ -365,11 +407,15 @@ Inherits all `CommandMachineOptions` props, plus:
 Renders text with highlighted match ranges from the search scorer.
 
 ```tsx
-<Command.Highlight
-  text="Application Settings"
-  ranges={[[0, 3], [12, 15]]}
-  highlightClassName="my-highlight"
-/>
+import { Command } from 'modern-cmdk/react';
+
+const highlight = (
+  <Command.Highlight
+    text="Application Settings"
+    ranges={[[0, 3], [12, 15]]}
+    highlightClassName="my-highlight"
+  />
+);
 ```
 
 | Prop | Type | Default | Description |
@@ -387,7 +433,9 @@ Data attribute: `data-command-highlight` on each `<mark>` element.
 Renders a platform-aware keyboard shortcut label. On macOS displays glyphs, on Windows/Linux displays text labels.
 
 ```tsx
-<Command.Shortcut shortcut="Mod+Shift+K" />
+import { Command } from 'modern-cmdk/react';
+
+const shortcut = <Command.Shortcut shortcut="Mod+Shift+K" />;
 ```
 
 Extends `ComponentPropsWithRef<'kbd'>`.
@@ -425,19 +473,30 @@ Data attributes: `data-command-page`, `data-command-page-id`.
 Loads items from an async source using React 19 `use()` hook with Suspense integration.
 
 ```tsx
-<Command.AsyncItems
-  items={fetchItems()}
-  fallback={<Command.Loading>Loading...</Command.Loading>}
->
-  {(items) => items.map((item) => (
-    <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
-  ))}
-</Command.AsyncItems>
+import { itemId } from 'modern-cmdk';
+import type { CommandItem } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
+
+// Your data source (app-owned).
+async function fetchItems(): Promise<CommandItem[]> {
+  return [{ id: itemId('home'), value: 'Home' }];
+}
+
+const asyncItems = (
+  <Command.AsyncItems
+    items={fetchItems()}
+    fallback={<Command.Loading>Loading...</Command.Loading>}
+  >
+    {(items) => items.map((item) => (
+      <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
+    ))}
+  </Command.AsyncItems>
+);
 ```
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `items` | `Promise<CommandItem[]>` | Required | Async item source |
+| `items` | `Promise<readonly CommandItem[]>` | Required | Async item source |
 | `fallback` | `ReactNode` | -- | Fallback during loading (passed to `<Suspense>`) |
 | `children` | `(items: CommandItem[]) => ReactNode` | Required | Render function for resolved items |
 
@@ -459,14 +518,16 @@ Wraps content in React's Activity API (stable since React 19.2) for state preser
 Error boundary for graceful failure recovery in command subtrees. Exported as a named export (not attached to `Command`).
 
 ```tsx
-import { CommandErrorBoundary } from 'modern-cmdk/react';
+import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
 
-<CommandErrorBoundary
-  fallback={(error) => <div>Palette failed: {error.message}</div>}
-  onError={(error, info) => reportError(error, info)}
->
-  <Command>{/* ... */}</Command>
-</CommandErrorBoundary>
+const guarded = (
+  <CommandErrorBoundary
+    fallback={(error) => <div>Palette failed: {error.message}</div>}
+    onError={(error, info) => console.error(error, info.componentStack)}
+  >
+    <Command>{/* ... */}</Command>
+  </CommandErrorBoundary>
+);
 ```
 
 | Prop | Type | Default | Description |

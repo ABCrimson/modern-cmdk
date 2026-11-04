@@ -44,9 +44,18 @@ You do not need to change any code to benefit from virtualization. The same comp
 If you need all items rendered in the DOM (for example, for custom scroll behavior or accessibility testing), disable virtualization:
 
 ```tsx
-<Command.List virtualize={false}>
-  {/* All items render in the DOM — cmdk-compatible behavior */}
-</Command.List>
+import { Command } from 'modern-cmdk/react';
+
+export function FullDomPalette() {
+  return (
+    <Command>
+      <Command.Input placeholder="Search..." />
+      <Command.List virtualize={false}>
+        {/* All items render in the DOM — cmdk-compatible behavior */}
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 ::: warning
@@ -60,9 +69,18 @@ Disabling virtualization with large datasets (1K+ items) will significantly impa
 Provide an estimated item height in pixels. This is used for initial layout before items are measured:
 
 ```tsx
-<Command.List estimateSize={48}>
-  {/* Items are estimated at 48px tall until measured */}
-</Command.List>
+import { Command } from 'modern-cmdk/react';
+
+export function TallItemsPalette() {
+  return (
+    <Command>
+      <Command.Input placeholder="Search..." />
+      <Command.List estimateSize={48}>
+        {/* Items are estimated at 48px tall until measured */}
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 The virtualizer uses `ResizeObserver` to measure actual item heights during idle periods via `requestIdleCallback`. The estimate only affects initial render — after measurement, exact heights are used.
@@ -72,9 +90,18 @@ The virtualizer uses `ResizeObserver` to measure actual item heights during idle
 Control how many items are rendered outside the visible viewport. Higher values reduce blank flashes during fast scrolling but use more memory:
 
 ```tsx
-<Command.List overscan={10}>
-  {/* 10 extra items rendered above and below the viewport */}
-</Command.List>
+import { Command } from 'modern-cmdk/react';
+
+export function OverscanPalette() {
+  return (
+    <Command>
+      <Command.Input placeholder="Search..." />
+      <Command.List overscan={10}>
+        {/* 10 extra items rendered above and below the viewport */}
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 | Prop | Type | Default | Description |

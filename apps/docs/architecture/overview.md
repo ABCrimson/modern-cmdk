@@ -201,6 +201,8 @@ Without `SharedArrayBuffer`, results are transferred via structured clone (`post
 Any object implementing `SearchEngine` can replace the built-in TypeScript scorer:
 
 ```typescript
+import type { CommandItem, ItemId, SearchResult } from 'modern-cmdk';
+
 interface SearchEngine extends Disposable {
   index(items: readonly CommandItem[]): void;
   search(query: string, items: readonly CommandItem[]): IteratorObject<SearchResult>;
@@ -221,6 +223,8 @@ where you release indexes, workers, or WASM instances.
 Custom storage backends implement `FrecencyStorage`:
 
 ```typescript
+import type { FrecencyData } from 'modern-cmdk';
+
 interface FrecencyStorage extends Disposable {
   load(namespace: string): FrecencyData | Promise<FrecencyData>;
   save(namespace: string, data: FrecencyData): void | Promise<void>;

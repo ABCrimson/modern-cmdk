@@ -116,26 +116,40 @@ There is no `--cmdk-list-height` alias at runtime -- update to `--command-list-h
 ### 3. `shouldFilter` Renamed to `filter`
 
 ::: code-group
-```tsx [Before (cmdk)]
+```tsx fragment [Before (cmdk)]
 <Command shouldFilter={false}>
   {/* External filtering */}
 </Command>
 ```
 
 ```tsx [After (modern-cmdk/react)]
-<Command filter={false}>
-  {/* External filtering */}
-</Command>
+import { Command } from 'modern-cmdk/react';
+
+export function ExternalFilterPalette() {
+  return (
+    <Command filter={false}>
+      {/* External filtering */}
+    </Command>
+  );
+}
 ```
 :::
 
 The `filter` prop also accepts a custom filter function (not just `false`). Note the signature differs from cmdk -- it receives the whole `CommandItem`, not separate `value`/`keywords` arguments:
 
 ```tsx
-<Command filter={(item, query) => {
-  // Return a score (higher = better match), or false to exclude the item
-  return item.value.toLowerCase().includes(query.toLowerCase()) ? 1 : false;
-}}>
+import { Command } from 'modern-cmdk/react';
+
+export const Palette = () => (
+  <Command
+    filter={(item, query) => {
+      // Return a score (higher = better match), or false to exclude the item
+      return item.value.toLowerCase().includes(query.toLowerCase()) ? 1 : false;
+    }}
+  >
+    {/* Input, List and Items */}
+  </Command>
+);
 ```
 
 ### 4. `forwardRef` Removed (React 19)
@@ -143,7 +157,7 @@ The `filter` prop also accepts a custom filter function (not just `false`). Note
 React 19 passes `ref` as a regular prop. All `forwardRef` wrappers are removed.
 
 ::: code-group
-```tsx [Before (cmdk + React 18)]
+```tsx fragment [Before (cmdk + React 18)]
 import { forwardRef } from 'react';
 
 const CustomInput = forwardRef<HTMLInputElement, Props>((props, ref) => (
@@ -152,7 +166,10 @@ const CustomInput = forwardRef<HTMLInputElement, Props>((props, ref) => (
 ```
 
 ```tsx [After (modern-cmdk/react + React 19)]
-function CustomInput({ ref, ...props }: Props & { ref?: React.Ref<HTMLInputElement> }) {
+import { Command } from 'modern-cmdk/react';
+import type { CommandInputProps } from 'modern-cmdk/react';
+
+function CustomInput({ ref, ...props }: CommandInputProps) {
   return <Command.Input ref={ref} {...props} />;
 }
 ```
@@ -162,7 +179,7 @@ function CustomInput({ ref, ...props }: Props & { ref?: React.Ref<HTMLInputEleme
 
 Every component in `modern-cmdk/react` has `"use client"` at the top. If you are importing from a server component, you must use the component from a client component boundary:
 
-```tsx
+```tsx fragment
 // This file is a Server Component
 import { CommandPalette } from './command-palette'; // Client Component
 

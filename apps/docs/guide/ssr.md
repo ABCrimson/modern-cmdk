@@ -7,18 +7,24 @@ modern-cmdk/react is fully SSR-compatible with Next.js App Router, Remix, and an
 The React adapter uses `useSyncExternalStore` with a `getServerSnapshot` parameter, ensuring hydration safety:
 
 ```tsx
-const state = useSyncExternalStore(
-  machine.subscribe,
-  machine.getState,
-  machine.getState, // Server snapshot — returns initial state
-);
+import type { CommandMachine } from 'modern-cmdk';
+import { useSyncExternalStore } from 'react';
+
+// What the adapter does with the machine it holds in context
+export function useMachineState(machine: CommandMachine) {
+  return useSyncExternalStore(
+    machine.subscribe,
+    machine.getState,
+    machine.getState, // Server snapshot — returns initial state
+  );
+}
 ```
 
 ## Next.js App Router
 
 All components are marked with `'use client'` — they automatically become Client Components when imported into Server Component trees:
 
-```tsx
+```tsx fragment
 // app/page.tsx (Server Component)
 import { CommandPalette } from './command-palette';
 
@@ -71,26 +77,40 @@ that receives the resolved items:
 ```tsx
 'use client';
 
-import { Command } from 'modern-cmdk/react';
 import { itemId } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
+
+interface ResultRow {
+  readonly slug: string;
+  readonly title: string;
+}
+
+async function fetchResults(): Promise<readonly ResultRow[]> {
+  const res = await fetch('/api/results');
+  return res.json();
+}
 
 // Created once, outside render — a new promise on every render re-suspends forever.
 const resultsPromise = fetchResults().then((rows) =>
   rows.map((row) => ({ id: itemId(row.slug), value: row.title })),
 );
 
-<Command.AsyncItems
-  items={resultsPromise}
-  fallback={<Command.Loading>Searching...</Command.Loading>}
->
-  {(items) =>
-    items.map((item) => (
-      <Command.Item key={item.id} value={item.value}>
-        {item.value}
-      </Command.Item>
-    ))
-  }
-</Command.AsyncItems>;
+export function StreamedResults() {
+  return (
+    <Command.AsyncItems
+      items={resultsPromise}
+      fallback={<Command.Loading loading>Searching...</Command.Loading>}
+    >
+      {(items) =>
+        items.map((item) => (
+          <Command.Item key={item.id} value={item.value}>
+            {item.value}
+          </Command.Item>
+        ))
+      }
+    </Command.AsyncItems>
+  );
+}
 ```
 
 ::: warning
@@ -139,7 +159,7 @@ export function CommandPalette() {
 
 Map the rows to items with `itemId()` on the server (see the warning above) and pass them as props. The `id` is a plain string at runtime, so the objects cross the Server to Client boundary; an `onSelect` function would not, so attach callbacks in the Client Component.
 
-```tsx
+```tsx fragment
 // app/command-wrapper.tsx (Server Component)
 import { itemId } from 'modern-cmdk';
 import { db } from './db';

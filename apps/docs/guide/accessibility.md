@@ -59,9 +59,18 @@ The command palette follows the ARIA combobox with listbox popup pattern:
 `Command.List` renders a visually hidden `aria-live="polite"` region (`role="status"`, `data-command-aria-live`) that announces the filtered count. Its `announceResults` prop is `(count: number) => string`, optional; unset, the text is `"<count> result(s) available."` in English. Pass it to localize or reword the announcement:
 
 ```tsx
-<Command.List announceResults={(count) => `${count} resultados`}>
-  {/* ... */}
-</Command.List>
+import { Command } from 'modern-cmdk/react';
+
+export function LocalizedList() {
+  return (
+    <Command>
+      <Command.Input placeholder="Buscar..." />
+      <Command.List announceResults={(count: number) => `${count} resultados`}>
+        {/* ... */}
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 ### Key ARIA Attributes
@@ -247,9 +256,15 @@ Full keyboard navigation support:
 By default, navigation loops — pressing `ArrowDown` on the last item wraps to the first item, and vice versa. Disable with `loop={false}`:
 
 ```tsx
-<Command loop={false}>
-  {/* Navigation stops at first/last item */}
-</Command>
+import { Command } from 'modern-cmdk/react';
+
+export function NoLoopPalette() {
+  return (
+    <Command loop={false}>
+      {/* Navigation stops at first/last item */}
+    </Command>
+  );
+}
 ```
 
 ### Focus Management in Dialog Mode
@@ -261,13 +276,22 @@ When `<Command.Dialog>` opens:
 4. Pressing `Escape` closes the dialog and returns focus to the previously focused element
 
 ```tsx
-<Command.Dialog open={open} onOpenChange={setOpen}>
-  {/* Focus is trapped here */}
-  <Command.Input placeholder="Search..." />
-  <Command.List>
-    {/* ... */}
-  </Command.List>
-</Command.Dialog>
+import { useState } from 'react';
+import { Command } from 'modern-cmdk/react';
+
+export function FocusTrappedDialog() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Command.Dialog open={open} onOpenChange={setOpen}>
+      {/* Focus is trapped here */}
+      <Command.Input placeholder="Search..." />
+      <Command.List>
+        {/* ... */}
+      </Command.List>
+    </Command.Dialog>
+  );
+}
 ```
 
 ## Visible Focus Indicators
