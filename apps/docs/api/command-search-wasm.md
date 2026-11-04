@@ -228,7 +228,7 @@ The compiled WASM binary is about 52 kB gzipped (about 113 kB raw). It is loaded
 
 ## Features
 
-- **Fuzzy matching** -- trigram-overlap scoring (exact > prefix > substring > fuzzy) that tolerates small typos such as a dropped letter; there is no explicit edit-distance pass yet
+- **Fuzzy matching** -- trigram-overlap scoring (query-trigram hits divided by query trigram count, results at or below 0.1 dropped; no exact or prefix tier) that tolerates small typos such as a dropped letter; there is no explicit edit-distance pass yet
 - **Trigram index** -- Pre-built index on item registration for O(1) candidate lookup
 - **Match positions** -- Returns `[start, end]` ranges for highlighting via `<Command.Highlight>`
 - **Graceful fallback** -- Automatically degrades to the TypeScript engine when WASM cannot load (`isWasm: false`)

@@ -42,7 +42,7 @@ The extension is not yet published to the VS Code Marketplace; install it from s
 
 ```bash
 cd packages/vscode-modern-cmdk
-npx @vscode/vsce@4.1.0 package
+npx @vscode/vsce@4.1.1-0 package
 code --install-extension vscode-modern-cmdk-1.0.0.vsix
 ```
 

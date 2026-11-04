@@ -10,13 +10,13 @@
   <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-dc2626?style=flat-square&labelColor=0a0e27" alt="license" /></a>
 </p>
 
-> **Status:** private 0.9.0, not published to npm. Build it from source with `pnpm build:wasm` (requires `wasm-pack`).
+> **Status:** private 0.9.0, not published to npm. Build it from source with `pnpm build:wasm` (requires `wasm-pack`). It does not work yet: the factories never call the wasm-bindgen init function, so `createWasmSearchEngine()` always returns the TypeScript fallback (`isWasm: false`), and `createWorkerSearchEngine()` never receives the worker's `ready` message and falls back to that same TypeScript scorer. The examples below show the intended API, not today's behaviour.
 
 ---
 
 ## What is this?
 
-A drop-in replacement for the default search engine in `modern-cmdk`. Uses a Rust-compiled WASM module with trigram indexing for fuzzy search. It is experimental and has no published benchmark.
+An experimental replacement for the default search engine in `modern-cmdk` (not functional yet; see Status). Uses a Rust-compiled WASM module with trigram indexing for fuzzy search. It is experimental and has no published benchmark.
 
 ### Two execution modes
 
@@ -56,6 +56,8 @@ using machine = createCommandMachine({
 
 ### Web Worker
 
+`createCommandMachine` calls only the synchronous `search()`, which ignores its arguments and yields the results of the most recent `searchAsync()` call. Nothing calls `searchAsync()` for you, so call `await workerEngine.searchAsync(query)` yourself before the machine filters.
+
 ```ts
 import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
 
@@ -79,7 +81,7 @@ using machine = createCommandMachine({
 +--------------------+     +-------------------------+
 ```
 
-The Rust crate builds a trigram index at startup, which gives an O(1) hash lookup of each query trigram's posting list; candidates come from walking those lists. Scoring uses the same multi-strategy approach as the default engine (exact > prefix > substring > fuzzy).
+The Rust crate builds a trigram index at startup, which gives an O(1) hash lookup of each query trigram's posting list; candidates come from walking those lists. A result's score is the number of query-trigram hits in the item's `value` divided by the number of query trigrams. Results at or below 0.1 are dropped, there is no exact or prefix tier, and match ranges are exact substring hits. The edit-distance helpers in `crate/src/scorer.rs` are compiled for tests only and are not used in search.
 
 ## Peer Dependencies
 
