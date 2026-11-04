@@ -4,18 +4,17 @@
 // Performance: pre-cached lowercase at index time, charCode comparison, zero redundant allocation
 
 import type { CommandItem, ItemId } from '../types.js';
+import { isDev } from '../utils/env.js';
 import { setDifference } from '../utils/set-ops.js';
 import { scoreItemPreLowered } from './default-scorer.js';
 import type { ScorerFn, SearchEngine, SearchResult } from './types.js';
 
-// Dev-only leak detection via FinalizationRegistry — warns if a search engine
-// instance is garbage collected without being explicitly disposed
-const __DEV__: boolean = (globalThis as Record<string, unknown>).process
-  ? ((globalThis as Record<string, unknown>).process as { env: Record<string, string | undefined> })
-      .env.NODE_ENV !== 'production'
-  : false;
+// Dev-only leak detection via FinalizationRegistry — warns if a search engine instance is
+// garbage collected without being explicitly disposed. Browser dev builds only (`isDev` is
+// false once a bundler folds NODE_ENV to production): on the server machines are never
+// disposed, so a warning there would be noise.
 let leakRegistry: FinalizationRegistry<string> | undefined;
-if (__DEV__) {
+if (isDev && typeof window !== 'undefined') {
   leakRegistry = new FinalizationRegistry((label) => {
     // biome-ignore lint/suspicious/noConsole: Dev-only leak detection diagnostic
     console.warn(
@@ -52,7 +51,7 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
 
   // Leak detection sentinel — weak reference target for FinalizationRegistry
   const sentinel = {};
-  if (__DEV__ && leakRegistry) {
+  if (leakRegistry) {
     leakRegistry.register(sentinel, 'SearchEngine', sentinel);
   }
 
@@ -148,7 +147,7 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
       indexedEntries.clear();
       previousResults.clear();
       // Unregister from leak detector — this engine was properly disposed
-      if (__DEV__ && leakRegistry) {
+      if (leakRegistry) {
         leakRegistry.unregister(sentinel);
       }
     },

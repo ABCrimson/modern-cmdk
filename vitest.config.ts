@@ -14,7 +14,12 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     setupFiles: ['./tests/setup.ts'],
-    include: ['packages/*/src/**/*.test.ts', 'tests/unit/**/*.test.{ts,tsx}'],
+    include: [
+      'packages/*/src/**/*.test.ts',
+      'tests/unit/**/*.test.{ts,tsx}',
+      // Built-package tests import packages/modern-cmdk/dist, so they need `pnpm build` first
+      'tests/dist/**/*.test.{ts,tsx}',
+    ],
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**/*.ts', 'packages/*/src/**/*.tsx'],
