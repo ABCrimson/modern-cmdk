@@ -44,12 +44,26 @@ async function searchAPI(query: string): Promise<readonly CommandItem[]> {
   }));
 }
 
+// One promise per query, created here so it is stable across renders: a promise created
+// in render is new every time and suspends again (see the Server-Side Rendering guide).
+// The Map is never evicted; bound it in a real app.
+const cache = new Map<string, Promise<readonly CommandItem[]>>();
+
+function cachedSearch(query: string): Promise<readonly CommandItem[]> {
+  let promise = cache.get(query);
+  if (!promise) {
+    promise = searchAPI(query);
+    cache.set(query, promise);
+  }
+  return promise;
+}
+
 function SearchResults() {
   const query = useCommandState((state) => state.search);
 
   return (
     <Command.AsyncItems
-      items={searchAPI(query)}
+      items={cachedSearch(query)}
       fallback={<Command.Loading loading>Searching...</Command.Loading>}
     >
       {(results) => (
@@ -100,7 +114,7 @@ Setting `filter={false}` on `<Command>` disables client-side filtering. All filt
 
 ## With Error Boundary
 
-`modern-cmdk/react` exports `CommandErrorBoundary`. Wrap async items in it so a failed request renders a fallback instead of unmounting the palette. Its `fallback` prop takes a node or a function of the caught `Error`, and `onError` receives the error and React's `ErrorInfo`. The boundary has no reset method: to retry, change its `key` so React mounts a fresh boundary.
+`modern-cmdk/react` exports `CommandErrorBoundary`. Wrap async items in it so a failed request renders a fallback instead of unmounting the palette. Its `fallback` prop takes a node or a function of the caught `Error`, and `onError` receives the error and React's `ErrorInfo`. The boundary has no reset method: to retry, change its `key` so React mounts a fresh boundary. The search promises are cached per query, so a rejected one would be reused: the Retry button clears the cache before it changes the key, so the retry fetches again.
 
 ```tsx
 'use client';
@@ -109,14 +123,15 @@ import type { CommandItem } from 'modern-cmdk';
 import { Command, CommandErrorBoundary, useCommandState } from 'modern-cmdk/react';
 import { Suspense, useState } from 'react';
 
-// App-owned: the searchAPI from the example above.
-declare function searchAPI(query: string): Promise<readonly CommandItem[]>;
+// App-owned: the cache and cachedSearch from the example above.
+declare const cache: Map<string, Promise<readonly CommandItem[]>>;
+declare function cachedSearch(query: string): Promise<readonly CommandItem[]>;
 
 function SearchResults() {
   const query = useCommandState((state) => state.search);
 
   return (
-    <Command.AsyncItems items={searchAPI(query)}>
+    <Command.AsyncItems items={cachedSearch(query)}>
       {(results) =>
         results.map((item) => (
           <Command.Item key={item.id} value={item.value}>
@@ -142,7 +157,14 @@ export function ResilientSearchExample() {
           fallback={(error) => (
             <div role="alert" style={{ padding: '16px', textAlign: 'center' }}>
               <p>Search failed: {error.message}</p>
-              <button type="button" onClick={() => setAttempt((n) => n + 1)}>
+              <button
+                type="button"
+                onClick={() => {
+                  // A rejected promise stays cached: clear it so the retry fetches again
+                  cache.clear();
+                  setAttempt((n) => n + 1);
+                }}
+              >
                 Retry
               </button>
             </div>
