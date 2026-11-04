@@ -18,7 +18,7 @@
     "pkg"
   ],
   "scripts": {
-    "build": "node --input-type=commonjs -e \"process.exit(require('fs').existsSync('pkg/command_search_wasm.js')?0:1)\" && tsdown || echo Skipping WASM build - run build:wasm first",
+    "build": "node scripts/build.mjs",
     "build:wasm": "wasm-pack build crate --target web --out-dir ../pkg",
     "typecheck": "tsc --noEmit"
   },

@@ -1,10 +1,10 @@
 // WASM-accelerated fuzzy search engine
-// Uses: await using for WASM module lifecycle, Iterator Helpers (ES2026)
+// Uses: Symbol.dispose / Symbol.asyncDispose for the WASM instance (works with `await using`), Iterator Helpers (ES2025)
 // Falls back to TypeScript scorer from modern-cmdk if WASM fails to load
 
 import type { ItemId, SearchEngine, SearchResult } from 'modern-cmdk';
 
-const __DEV__: boolean = process.env.NODE_ENV !== 'production';
+import { isDev } from './env.js';
 
 /** Extended search engine backed by a WASM trigram index */
 interface WasmSearchEngine extends SearchEngine, AsyncDisposable {
@@ -58,7 +58,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
       },
 
       remove(_ids: ReadonlySet<ItemId>): void {
-        // Rebuild index without removed items — WASM index is immutable
+        // Clears the whole index: the remaining items are not re-indexed (known gap, ledger W05)
         instance.clear();
       },
 
@@ -77,7 +77,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
 
     return engine;
   } catch (error: unknown) {
-    if (__DEV__) {
+    if (isDev) {
       // biome-ignore lint/suspicious/noConsole: dev-only WASM load failure diagnostic
       console.warn(
         '[modern-cmdk] WASM search engine failed to load, falling back to TypeScript scorer:',

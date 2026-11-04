@@ -1,6 +1,6 @@
 // Worker script — runs in a dedicated Web Worker thread
 // WASM-accelerated fuzzy search off the main thread
-// Uses: await using for WASM module lifecycle
+// Frees the WASM instance when the main thread sends 'dispose'
 
 /** Messages sent from the main thread to the worker */
 export type WorkerMessage =
@@ -38,8 +38,7 @@ export type WorkerResponse =
 
 /**
  * Initialize the WASM engine and listen for messages.
- * The entire lifecycle is managed with `await using` so that
- * the WASM instance is freed when the worker is disposed.
+ * The WASM instance is freed (once) when the worker receives 'dispose'.
  */
 async function initWorker(): Promise<void> {
   const wasm = await import('../pkg/command_search_wasm.js');
@@ -116,8 +115,7 @@ async function initWorker(): Promise<void> {
         }
 
         case 'remove': {
-          // WASM index is immutable — clear and re-index happens on main thread side
-          // The worker only receives the remove signal for bookkeeping
+          // Unreachable today: worker-engine.ts remove() posts 'clear' then 'index', never 'remove' (ledger W47)
           instance.clear();
           self.postMessage({ type: 'cleared' } satisfies WorkerResponse);
           break;
@@ -146,4 +144,10 @@ async function initWorker(): Promise<void> {
 }
 
 // Boot the worker
-void initWorker();
+initWorker().catch((error: unknown) => {
+  self.postMessage({
+    type: 'error',
+    message: error instanceof Error ? error.message : String(error),
+  } satisfies WorkerResponse);
+  self.close();
+});
