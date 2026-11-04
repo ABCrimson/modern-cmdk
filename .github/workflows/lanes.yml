@@ -108,7 +108,8 @@ jobs:
   report:
     name: Report red lanes
     needs: [react-canary, typescript, xcode-27, audit]
-    if: failure()
+    # A lane that exceeds its timeout-minutes ends cancelled, not failed, so failure() alone would skip this job; !cancelled() rather than always() keeps a run someone cancels from opening a lane-red issue.
+    if: ${{ !cancelled() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:

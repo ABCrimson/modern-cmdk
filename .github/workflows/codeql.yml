@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     strategy:
+      # Both Analyze checks are required by the main ruleset (DECISIONS G-22): one language's failure must not cancel the other's report.
+      fail-fast: false
       matrix:
         include:
           - language: javascript-typescript

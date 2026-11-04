@@ -15,8 +15,10 @@ concurrency:
 permissions:
   contents: read
 
-# Job graph: lint gates everything. build runs once and shares packages/*/dist as the `dist`
-# artifact with dist-tests, e2e, bench and size. test, react-lanes, coverage, rust-wasm and docs do not
+# Job graph: lint gates build, test, react-lanes, coverage, rust-wasm and docs; claims, links and security have no `needs:`
+# and start beside lint. build runs once (after lint) and shares packages/*/dist as the `dist`
+# artifact with dist-tests, e2e, bench and size, which need build. summary needs all 14 jobs.
+# test, react-lanes, coverage, rust-wasm and docs do not
 # need that build: the unit suites resolve `modern-cmdk` to src through the aliases in
 # vitest.config.ts, and rust-wasm and docs build what they need themselves. Every job that installs
 # from the committed lockfile uses `--frozen-lockfile`; the pnpm store cache (`cache: pnpm`) is keyed on the OS,
