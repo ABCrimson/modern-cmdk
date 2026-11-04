@@ -62,13 +62,13 @@ body:
       description: Node, browser, OS, and package versions.
       render: shell
       placeholder: |
-        Node: v28.0.0-nightly202610304e48b9b06b
+        Node: v28.0.0-nightly2026110370074c6f98
         Browser: Chrome 130
         OS: macOS 15.2
         modern-cmdk: 1.2.2
         modern-cmdk/react: 1.2.2
         React: 0.0.0-experimental-e84e1492-20261031
-        TypeScript: 7.1.0-dev.20261031.1
+        TypeScript: 7.1.0-dev.20261103.1
         Vite: 8.3.5
     validations:
       required: false

@@ -26,11 +26,13 @@ updates:
         patterns: ['vitest', '@vitest/*']
         update-types: [minor, patch]
     ignore:
-      # Pinned to specific pre-release versions — manual update only
+      # react, react-dom and scheduler are pinned to a 0.0.0-experimental-* build (pnpm-workspace.yaml
+      # overrides), which the peak-modern sweep re-resolves at every session start. Dependabot cannot
+      # order 0.0.0-experimental-* builds: PR #48 (2026-11-02) proposed 0.14.10, a 2020 release that
+      # it sorts above them. Ignored for every update type.
       - dependency-name: 'react'
-        update-types: ['version-update:semver-major']
       - dependency-name: 'react-dom'
-        update-types: ['version-update:semver-major']
+      - dependency-name: 'scheduler'
     labels:
       - dependencies
     commit-message:
