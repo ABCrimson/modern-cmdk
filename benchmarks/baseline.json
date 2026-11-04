@@ -3,7 +3,7 @@
   "date": "2026-11-04",
   "commit": "45a91340dacbac9c7d6302d4fe2d91e92b6a1079",
   "source": "benchmarks/history/2026-11-04-45a9134.json",
-  "note": "Runner noise is +/-20-40 %, so the 5 %/15 % compare is a coarse tripwire, not a regression gate, until the 1.9 CodSpeed gate. One CI run is one sample.",
+  "note": "Runner noise is +/-20-40 %, so the 5 %/15 % compare is a coarse tripwire, not a regression gate, until the 1.9 CodSpeed gate. One CI run is one sample. Medians below floor_ms (today only stateUpdate:navigate, 0.75 microseconds) are reported, not compared, because run-to-run noise at that scale exceeds the thresholds; a median above target_ms still fails.",
   "environment": {
     "os": "linux 7.0.0-1017-azure",
     "runner": "ubuntu26",
@@ -14,7 +14,8 @@
   },
   "regressionThresholds": {
     "warning": 0.05,
-    "failure": 0.15
+    "failure": 0.15,
+    "floor_ms": 0.01
   },
   "benchmarks": {
     "search": {

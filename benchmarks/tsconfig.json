@@ -6,6 +6,8 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "types": ["node"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "modern-cmdk": ["../packages/modern-cmdk/dist/core/index.d.mts"],
       "modern-cmdk-search-wasm": ["../packages/command-search-wasm/src/index.ts"]

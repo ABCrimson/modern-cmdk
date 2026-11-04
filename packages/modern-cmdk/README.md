@@ -214,13 +214,13 @@ machine.subscribe(() => {
 |---|---|---|
 | Search 10K items (TS scorer) | < 16 ms | ~3.5 ms median |
 | State update: `SEARCH_CHANGE` | < 4 ms | ~0.37 ms median |
-| State update: `NAVIGATE` | < 1 ms | ~0.001 ms median |
+| State update: `NAVIGATE` | < 1 ms | ~0.00075 ms median |
 | Core bundle (gzipped) | <= 6.5 KB | ~6.4 KB |
 | React bundle (gzipped) | <= 12 KB | ~9.8 KB |
 
 Timings are single-run medians from `benchmarks/baseline.json`, measured on a shared GitHub Actions
 runner (noise is +/-20-40 %). CI compares new runs against that baseline with 5 % warning / 15 % failure
-thresholds as a coarse tripwire, not a precise regression gate. There is no published WASM benchmark.
+thresholds as a coarse tripwire, not a precise regression gate; the `NAVIGATE` baseline sits below the 0.01 ms noise floor and is reported, not compared, and a median above its target fails. There is no published WASM benchmark.
 
 ---
 

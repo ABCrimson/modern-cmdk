@@ -2,8 +2,12 @@
 // The one standalone bench harness (`pnpm bench:compare`): runs the named operations 3x with
 // tinybench, averages the run statistics, writes benchmarks/results/bench-<shortsha>.json and
 // compares the medians with benchmarks/baseline.json.
-// Exit codes: 0 = pass, 1 = warning (>5% regression), 2 = failure (>15% regression) or harness
-// error (missing dist or tinybench, task that did not complete, measured key with no baseline entry).
+// Verdicts come from compare-rules.ts: a median above its target_ms fails; a baseline median below
+// the floor (regressionThresholds.floor_ms, 0.01 ms; today only stateUpdate:navigate, 0.75 microseconds)
+// is reported, not compared, because run-to-run noise at that scale exceeds the thresholds; every
+// other median is compared with the baseline.
+// Exit codes: 0 = pass, 1 = warning (>5% regression), 2 = failure (>15% regression, or above target_ms)
+// or harness error (missing dist or tinybench, task that did not complete, measured key with no baseline entry).
 // When the baseline's CPU or Node differs from this machine, one line says so before the table and the
 // results JSON carries `comparedTo`; the exit codes do not change.
 // Runs under Node's native type stripping, no loader: `node benchmarks/standalone/compare-baseline.ts`.
@@ -12,6 +16,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
+import { type Classification, classify, type Thresholds } from './compare-rules.ts';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -23,10 +28,7 @@ interface BaselineBenchmark {
 
 interface BaselineFile {
   readonly environment?: { readonly cpu?: string | null; readonly node?: string | null };
-  readonly regressionThresholds: {
-    readonly warning: number;
-    readonly failure: number;
-  };
+  readonly regressionThresholds: Thresholds;
   readonly benchmarks: Readonly<Record<string, unknown>>;
 }
 
@@ -48,14 +50,10 @@ interface TaskStats {
   readonly rme: number;
 }
 
-type Status = 'pass' | 'warn' | 'fail';
-
-interface ComparisonRow {
+interface ComparisonRow extends Classification {
   readonly name: string;
   readonly baseline_ms: number;
   readonly current_ms: number;
-  readonly delta_pct: number;
-  readonly status: Status;
 }
 
 const RUNS = 3;
@@ -85,7 +83,7 @@ async function main(): Promise<number> {
   // 1. Read baseline
   const baselinePath = new URL('../../benchmarks/baseline.json', import.meta.url);
   const baseline: BaselineFile = JSON.parse(await readFile(baselinePath, 'utf-8'));
-  const { warning: warnThreshold, failure: failThreshold } = baseline.regressionThresholds;
+  const { regressionThresholds } = baseline;
 
   // 2. Import built core package — a missing dist is a harness error (exit 2), not a pass
   const { Bench } = await import('tinybench');
@@ -224,7 +222,34 @@ async function main(): Promise<number> {
     });
   }
 
-  // 7. Write benchmarks/results/bench-<shortsha>.json
+  // 7. Compare against baseline. A measured key without a baseline entry is a failure.
+  let missing = false;
+  const rows: ComparisonRow[] = [];
+  for (const spec of specs) {
+    const name = `${spec.category}:${spec.key}`;
+    const stats = measured.get(name);
+    if (!stats) throw new Error(`${name}: no statistics collected`);
+    const category = baseline.benchmarks[spec.category] as Record<string, unknown> | undefined;
+    const entry = category?.[spec.key];
+    if (!isBaselineBenchmark(entry)) {
+      console.error(`NO BASELINE ENTRY for measured key "${name}" in benchmarks/baseline.json`);
+      missing = true;
+      continue;
+    }
+    rows.push({
+      name,
+      baseline_ms: entry.median_ms,
+      current_ms: stats.median_ms,
+      ...classify({
+        baseline_ms: entry.median_ms,
+        current_ms: stats.median_ms,
+        target_ms: entry.target_ms,
+        thresholds: regressionThresholds,
+      }),
+    });
+  }
+
+  // 8. Write benchmarks/results/bench-<shortsha>.json (after the comparison: it records each verdict)
   const thisCpu = os.cpus()[0]?.model ?? null;
   const baseCpu = baseline.environment?.cpu ?? null;
   const baseNode = baseline.environment?.node ?? null;
@@ -250,40 +275,25 @@ async function main(): Promise<number> {
         },
         comparedTo: { cpu: baseCpu, node: baseNode, sameMachine },
         runs: RUNS,
+        thresholds: regressionThresholds,
         tasks: Object.fromEntries(measured),
+        comparisons: Object.fromEntries(
+          rows.map((r) => [
+            r.name,
+            {
+              baseline_ms: r.baseline_ms,
+              delta_pct: r.delta_pct,
+              status: r.status,
+              reason: r.reason,
+            },
+          ]),
+        ),
       },
       null,
       2,
     )}\n`,
   );
   console.log(`Results written to ${resultsUrl.pathname.replace(/^\/(?=[A-Za-z]:)/, '')}\n`);
-
-  // 8. Compare against baseline. A measured key without a baseline entry is a failure.
-  let missing = false;
-  const rows: ComparisonRow[] = [];
-  for (const spec of specs) {
-    const name = `${spec.category}:${spec.key}`;
-    const stats = measured.get(name);
-    if (!stats) throw new Error(`${name}: no statistics collected`);
-    const category = baseline.benchmarks[spec.category] as Record<string, unknown> | undefined;
-    const entry = category?.[spec.key];
-    if (!isBaselineBenchmark(entry)) {
-      console.error(`NO BASELINE ENTRY for measured key "${name}" in benchmarks/baseline.json`);
-      missing = true;
-      continue;
-    }
-    const delta_pct = (stats.median_ms - entry.median_ms) / entry.median_ms;
-    let status: Status = 'pass';
-    if (delta_pct > failThreshold) status = 'fail';
-    else if (delta_pct > warnThreshold) status = 'warn';
-    rows.push({
-      name,
-      baseline_ms: entry.median_ms,
-      current_ms: stats.median_ms,
-      delta_pct,
-      status,
-    });
-  }
 
   // 9. Print formatted table
   if (!sameMachine) {
@@ -296,19 +306,25 @@ async function main(): Promise<number> {
   const colBaseline = 14;
   const colCurrent = 14;
   const colDelta = 12;
-  const colStatus = 8;
-  const separator = '-'.repeat(colName + colBaseline + colCurrent + colDelta + colStatus + 8);
+  const colStatus = 6;
+  const colReason = 12;
+  const separator = '-'.repeat(
+    colName + colBaseline + colCurrent + colDelta + colStatus + colReason + 10,
+  );
 
   console.log(
-    `${'Benchmark'.padEnd(colName)} | ${'Baseline'.padStart(colBaseline)} | ${'Current'.padStart(colCurrent)} | ${'Delta'.padStart(colDelta)} | ${'Status'.padStart(colStatus)}`,
+    `${'Benchmark'.padEnd(colName)} | ${'Baseline'.padStart(colBaseline)} | ${'Current'.padStart(colCurrent)} | ${'Delta'.padStart(colDelta)} | ${'Status'.padStart(colStatus)} | ${'Reason'.padEnd(colReason)}`,
   );
   console.log(separator);
+  // Millisecond medians print three decimals; sub-millisecond ones keep three significant digits
+  // (0.000752 ms, not 0.001 ms), so a row reported below the floor still shows its numbers.
+  const fmtMs = (ms: number): string => `${ms >= 1 ? ms.toFixed(3) : ms.toPrecision(3)} ms`;
   for (const row of rows) {
-    const baselineStr = `${row.baseline_ms.toFixed(3)} ms`;
-    const currentStr = `${row.current_ms.toFixed(3)} ms`;
+    const baselineStr = fmtMs(row.baseline_ms);
+    const currentStr = fmtMs(row.current_ms);
     const deltaStr = `${row.delta_pct >= 0 ? '+' : ''}${(row.delta_pct * 100).toFixed(1)}%`;
     console.log(
-      `${row.name.padEnd(colName)} | ${baselineStr.padStart(colBaseline)} | ${currentStr.padStart(colCurrent)} | ${deltaStr.padStart(colDelta)} | ${row.status.toUpperCase().padStart(colStatus)}`,
+      `${row.name.padEnd(colName)} | ${baselineStr.padStart(colBaseline)} | ${currentStr.padStart(colCurrent)} | ${deltaStr.padStart(colDelta)} | ${row.status.padStart(colStatus)} | ${row.reason.padEnd(colReason)}`,
     );
   }
   console.log(separator);
@@ -325,8 +341,8 @@ async function main(): Promise<number> {
   }
 
   // 10. Exit code
-  if (missing || rows.some((r) => r.status === 'fail')) return 2;
-  if (rows.some((r) => r.status === 'warn')) return 1;
+  if (missing || rows.some((r) => r.status === 'FAIL')) return 2;
+  if (rows.some((r) => r.status === 'WARN')) return 1;
   return 0;
 }
 

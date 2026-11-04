@@ -400,14 +400,16 @@ jobs:
           path: packages
       - name: Compare against baseline
         # compare-baseline.ts exits 1 for a regression above 5% (a warning by the documented
-        # contract) and 2 for a regression above 15% or a harness error; only exit 2 fails the job.
+        # contract) and 2 for a regression above 15%, a median above its target_ms or a harness error; only
+        # exit 2 fails the job. A baseline median below floor_ms (0.01 ms; today only stateUpdate:navigate,
+        # 0.75 microseconds) is reported, not compared, because runner noise at that scale exceeds 5%/15%.
         # `|| code=$?` is not a mask: it records the status so exit 1 can become a warning, and
         # every other non-zero status is re-raised by `exit "$code"`.
         run: |
           code=0
           pnpm bench:compare || code=$?
           if [ "$code" -eq 1 ]; then
-            echo "::warning title=Benchmark regression above 5%::See the comparison table in this step; a regression above 15% fails the job."
+            echo "::warning title=Benchmark regression above 5%::See the comparison table in this step; a regression above 15% or a median above its target fails the job; baselines below the 0.01 ms floor are reported, not compared."
             exit 0
           fi
           exit "$code"
