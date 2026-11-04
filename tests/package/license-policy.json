@@ -39,7 +39,7 @@
       "package": "caniuse-lite",
       "license": "CC-BY-4.0",
       "ships": false,
-      "reason": "Browser-support data read by build/docs tooling; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Reached only through jscodeshift 17.4.0 (a devDependency of modern-cmdk and of the workspace root) via @babel/core -> @babel/helper-compilation-targets -> browserslist. tsdown inlines only @babel/parser from that tree into dist/codemod/cli.mjs; caniuse-lite, browserslist and @babel/core are absent from every built dist file (checked 2026-11-04), so it does not ship. Re-check if the codemod bundle starts inlining @babel/core."
     },
     {
       "package": "@vscode/vsce-sign",

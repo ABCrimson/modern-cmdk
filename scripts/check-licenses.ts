@@ -3,6 +3,9 @@
 // dependencies included: tsdown inlines the codemod's devDependencies into dist/codemod/cli.mjs, which
 // ships in the modern-cmdk tarball) and evaluates the report against tests/package/license-policy.json.
 // Prints every violation and a census (licence -> count); exits 1 on any violation.
+// The policy file is untrusted JSON: every exception must be {package, license: non-empty strings, ships:
+// boolean, reason: non-empty string}. A malformed exception is a violation (reported with its index and
+// granting nothing), never a crash and never a pass.
 // Node built-ins only; run with `node scripts/check-licenses.ts` (native type stripping).
 
 import { spawnSync } from 'node:child_process';
@@ -89,33 +92,62 @@ function matchesPackage(pattern: string, name: string): boolean {
   return pattern.endsWith('*') ? name.startsWith(pattern.slice(0, -1)) : pattern === name;
 }
 
+/** The policy as parsed from JSON: exception entries are untrusted until `isValidException` accepts them. */
+export interface LicensePolicyInput {
+  readonly allowed: readonly string[];
+  readonly exceptions: readonly unknown[];
+}
+
+function isValidException(value: unknown): value is LicenseException {
+  if (typeof value !== 'object' || value === null) return false;
+  const e = value as Partial<Record<keyof LicenseException, unknown>>;
+  return (
+    typeof e.package === 'string' &&
+    e.package !== '' &&
+    typeof e.license === 'string' &&
+    typeof e.ships === 'boolean' &&
+    typeof e.reason === 'string' &&
+    e.reason.trim() !== ''
+  );
+}
+
 /** Returns one message per violation; an empty array means the report satisfies the policy. */
-export function evaluate(report: LicenseReport, policy: LicensePolicy): string[] {
+export function evaluate(report: LicenseReport, policy: LicensePolicyInput): string[] {
   const allowed = new Set(policy.allowed);
   const violations: string[] = [];
   const used = new Array<boolean>(policy.exceptions.length).fill(false);
+  const exceptions: (LicenseException | undefined)[] = [];
+  const invalid = new Set<number>();
 
-  for (const [index, exception] of policy.exceptions.entries()) {
-    if (exception.reason.trim() === '') {
-      violations.push(
-        `exception for ${exception.package} (${exception.license}) has no reason: say why it is acceptable and whether it ships`,
-      );
-      used[index] = true; // reported once above; an exception without a reason grants nothing
+  for (const [i, e] of policy.exceptions.entries()) {
+    if (isValidException(e)) {
+      exceptions[i] = e;
+      continue;
     }
+    const fields = (typeof e === 'object' && e !== null ? e : {}) as Record<string, unknown>;
+    violations.push(
+      `exception #${i} (${String(fields.package)}, ${String(fields.license)}) is malformed: package and license must be non-empty strings, ships a boolean, and reason a non-empty string saying why it is acceptable and whether it ships`,
+    );
+    used[i] = true; // reported once above; a malformed exception grants nothing
+    invalid.add(i);
   }
+  const find = (entry: LicensedPackage): number =>
+    exceptions.findIndex(
+      (e, i) =>
+        !invalid.has(i) &&
+        e !== undefined &&
+        matchesPackage(e.package, entry.name) &&
+        e.license === entry.license,
+    );
 
   for (const entry of Object.values(report).flat()) {
     const license = entry.license.trim();
     const ids = entry.versions.map((version) => `${entry.name}@${version}`).join(', ');
 
     if (UNKNOWN.has(license.toLowerCase())) {
-      const idx = policy.exceptions.findIndex(
-        (e) => matchesPackage(e.package, entry.name) && e.license === entry.license,
-      );
+      const idx = find(entry);
       if (idx >= 0) used[idx] = true;
-      if (idx < 0 || policy.exceptions[idx]?.reason.trim() === '') {
-        violations.push(`${ids}: unknown or missing licence`);
-      }
+      else violations.push(`${ids}: unknown or missing licence`);
       continue;
     }
 
@@ -130,15 +162,11 @@ export function evaluate(report: LicenseReport, policy: LicensePolicy): string[]
     }
     if (ok) continue;
 
-    const idx = policy.exceptions.findIndex(
-      (e) => matchesPackage(e.package, entry.name) && e.license === entry.license,
-    );
-    const exception = idx >= 0 ? policy.exceptions[idx] : undefined;
+    const idx = find(entry);
+    const exception = idx >= 0 ? exceptions[idx] : undefined;
     if (idx >= 0) used[idx] = true;
     if (exception === undefined) {
       violations.push(`${ids}: licence "${license}" is not in the allowlist and has no exception`);
-    } else if (exception.reason.trim() === '') {
-      violations.push(`${ids}: the exception for "${license}" has no reason`);
     } else if (exception.ships && COPYLEFT.test(license)) {
       violations.push(
         `${ids}: shipped copyleft licence "${license}" gets no exception (owner decision)`,
@@ -146,8 +174,8 @@ export function evaluate(report: LicenseReport, policy: LicensePolicy): string[]
     }
   }
 
-  for (const [index, exception] of policy.exceptions.entries()) {
-    if (!used[index]) {
+  for (const [index, exception] of exceptions.entries()) {
+    if (exception !== undefined && !used[index]) {
       violations.push(
         `stale exception: ${exception.package} (${exception.license}) matches no package in the report; remove it`,
       );
@@ -182,7 +210,7 @@ function loadReport(): LicenseReport {
 
 function main(): number {
   const policyPath = join(import.meta.dirname, '..', 'tests', 'package', 'license-policy.json');
-  const policy = JSON.parse(readFileSync(policyPath, 'utf8')) as LicensePolicy;
+  const policy = JSON.parse(readFileSync(policyPath, 'utf8')) as LicensePolicyInput;
   const report = loadReport();
   const violations = evaluate(report, policy);
 
