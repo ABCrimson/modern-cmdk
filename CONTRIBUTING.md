@@ -519,7 +519,7 @@ pnpm bench
 pnpm bench:compare
 ```
 
-Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnpm bench:compare` prints each one beside the measured median:
+Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnpm bench:compare` fails a median above its target (Reason `above target` in its table). Baselines below `regressionThresholds.floor_ms` (0.01 ms; today only `stateUpdate:navigate`, 0.75 microseconds) are reported, not compared with the 5 % and 15 % thresholds, because run-to-run noise at that scale exceeds them:
 
 | Benchmark (baseline key) | Target | Baseline median (CI runner, benchmarks/history/2026-11-04-45a9134.json) |
 |---|---|---|

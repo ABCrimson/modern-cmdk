@@ -16,7 +16,7 @@ The figures below are copied by hand from [`benchmarks/baseline.json`](https://g
 | Method | 3 runs of 1000 samples each, averaged (3000 samples per task) |
 
 > [!WARNING]
-> Runner noise is +/-20-40 %. One CI run is one sample, so the 5 % and 15 % comparison below is a coarse tripwire, not a precise regression gate. Run `pnpm bench:compare` locally for numbers from your own machine.
+> Runner noise is +/-20-40 %. One CI run is one sample, so the 5 % and 15 % comparison below is a coarse tripwire, not a precise regression gate; the one sub-0.01 ms baseline (`stateUpdate:navigate`, 0.75 microseconds) is reported below a 0.01 ms floor instead of compared, and a median above its `target_ms` still fails. Run `pnpm bench:compare` locally for numbers from your own machine.
 
 ### Gated tasks
 
@@ -55,4 +55,4 @@ What the code does, as of 1.2.3:
 
 ## Regression Tracking
 
-CI runs `pnpm bench:compare`, which re-measures the three gated tasks and compares their medians with `benchmarks/baseline.json`. A regression above 5 % prints a warning annotation; above 15 % (or a harness error) the job fails. Given the noise above, a single flagged run is a prompt to re-run, not proof of a regression. When the baseline's CPU or Node differs from the machine running the comparison, the tool says so before the table.
+CI runs `pnpm bench:compare`, which re-measures the three gated tasks and compares their medians with `benchmarks/baseline.json`. A regression above 5 % prints a warning annotation; above 15 %, above a task's `target_ms`, or a harness error the job fails. A baseline below the 0.01 ms floor (only `stateUpdate:navigate`) is reported, not compared. Given the noise above, a single flagged run is a prompt to re-run, not proof of a regression. When the baseline's CPU or Node differs from the machine running the comparison, the tool says so before the table.

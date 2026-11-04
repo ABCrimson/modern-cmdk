@@ -260,7 +260,7 @@ Bundle size (gzip, from `pnpm size`): core 6353 B against a 6.5 kB budget, React
 
 The WASM engine is unpublished and no gate builds or measures it, so no WASM figures are published. There is no head-to-head table against cmdk because none of its numbers are in the committed benchmark history.
 
-CI compares only the three benchmarks above (`search:ts-scorer-10k`, `stateUpdate:navigate`, `stateUpdate:searchChange`) against the committed baseline, with a 5 % warning and 15 % failure threshold. Given the runner noise this is a coarse tripwire, not a regression gate; a stable gate is planned for 1.9.
+CI compares only the three benchmarks above (`search:ts-scorer-10k`, `stateUpdate:navigate`, `stateUpdate:searchChange`) against the committed baseline, with a 5 % warning and 15 % failure threshold; a baseline median below the 0.01 ms floor (today only `stateUpdate:navigate`, 0.75 microseconds) is reported, not compared, and a median above its `target_ms` fails. Given the runner noise this is a coarse tripwire, not a regression gate; a stable gate is planned for 1.9.
 
 ### Feature Comparison
 
