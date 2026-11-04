@@ -11,13 +11,13 @@
   },
   {
     "id": "DG-71",
-    "test": null,
-    "status": "pending"
+    "test": "scripts/check-doc-samples.ts::TEB-84: type-checks every fenced",
+    "status": "gate"
   },
   {
     "id": "DG-72",
-    "test": null,
-    "status": "pending"
+    "test": "scripts/check-doc-samples.ts::TEB-84: type-checks every fenced",
+    "status": "gate"
   },
   {
     "id": "ARCH-07",
