@@ -7,6 +7,9 @@ overrides:
 allowBuilds:
   esbuild: true
   lefthook: true
+  # 2026-11-04: @vscode/vsce-sign (postinstall fetches a signing binary) arrives with @vscode/vsce; signing is publish-only and
+  # `vsce package --no-dependencies` does not use it, so its build stays off (W2-03; .vsix listing proves packaging works).
+  '@vscode/vsce-sign': false
 # Supply-chain policy (pnpm 12.17.0). minimumReleaseAge is in minutes (1440 = 1 day, the built-in
 # default, written out so the policy is visible). minimumReleaseAgeStrict: true fails resolution when
 # no version in the requested range meets minimumReleaseAge instead of falling back to a younger one
