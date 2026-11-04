@@ -1,8 +1,9 @@
 // import { transformerTwoslash } from '@shikijs/twoslash';
-// Twoslash stays disabled (checked 2026-11-04): twoslash 0.3.9, the newest release, declares peer
-// typescript ^5.5.0 || ^6.0.0 and drives the TypeScript JS compiler API, which the installed
-// typescript 7.1 entry point (lib/version.cjs, lib/tsc.js) does not expose. @shikijs/twoslash 4.6.0
-// only widens its own peer to typescript >=5.5.0; it still delegates to twoslash.
+// Twoslash is not enabled. twoslash 0.3.9, the newest release, declares peer typescript
+// ^5.5.0 || ^6.0.0 and drives the TypeScript 6 compiler API. The docs app pins typescript 6.0.3
+// (apps/docs/package.json, for vue-tsc), which has that API and which @shikijs/twoslash 4.6.0
+// resolves here, so turning twoslash on is now possible. The root typescript 7.1 does not have
+// it: its package exports only the new typescript/sync and typescript/async API.
 import { defineConfig, type MarkdownRenderer } from 'vitepress';
 
 type FenceRule = NonNullable<MarkdownRenderer['renderer']['rules']['fence']>;

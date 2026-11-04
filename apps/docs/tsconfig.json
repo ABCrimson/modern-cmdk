@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["vitepress/client", "node"],
+    "noEmit": true,
+    "declaration": false,
+    "isolatedDeclarations": false
+  },
+  "include": [".vitepress/config.ts", ".vitepress/theme/**/*.ts", ".vitepress/theme/**/*.vue"]
+}

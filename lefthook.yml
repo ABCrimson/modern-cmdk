@@ -6,7 +6,7 @@ pre-commit:
       glob: "*.{ts,tsx,js,jsx,json,css}"
       run: pnpm exec biome check --staged --no-errors-on-unmatched {staged_files}
     - name: typecheck
-      glob: "*.{ts,tsx}"
+      glob: "*.{ts,tsx,vue}"
       # The same script CI's lint job runs: it needs no build output
       run: pnpm typecheck
       skip:

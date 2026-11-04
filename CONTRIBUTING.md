@@ -253,7 +253,7 @@ modern-cmdk/
 | `pnpm lint` | Check lint rules (Biome) |
 | `pnpm lint:fix` | Fix lint issues and write changes |
 | `pnpm format` | Format all files (Biome) |
-| `pnpm typecheck` | `tsc --noEmit` for `modern-cmdk` and `create-modern-cmdk`, then `tests/`, `tests/e2e` and `tests/docs`. The playground and `modern-cmdk-search-wasm` are type-checked only in CI, after their build inputs exist |
+| `pnpm typecheck` | `tsc --noEmit` for `modern-cmdk` and `create-modern-cmdk`, then `tests/`, `tests/e2e` and `tests/docs`; `vue-tsc --noEmit` for the docs app (`apps/docs/tsconfig.json`). The playground and `modern-cmdk-search-wasm` are type-checked only in CI, after their build inputs exist |
 | `pnpm size` | Build and check bundle size limits |
 | `pnpm docs:dev` | Start docs dev server (VitePress) |
 | `pnpm docs:build` | Build docs for production |

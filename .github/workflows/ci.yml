@@ -38,7 +38,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       # Zero warnings: the `lint` script is `biome check . --error-on-warnings`
       - run: pnpm lint
-      # modern-cmdk, create-modern-cmdk, tests/, tests/e2e and tests/docs: none needs build output.
+      # modern-cmdk, create-modern-cmdk, tests/, tests/e2e, tests/docs and the docs app (vue-tsc): none needs build output.
       # The projects that import built packages are checked after the build: tests/dist (dist-tests),
       # benchmarks (bench), the playground (e2e) and the wasm package (rust-wasm).
       - run: pnpm typecheck
@@ -261,7 +261,7 @@ jobs:
           retention-days: 14
 
   # Runs on pull requests as well as pushes (docs.yml deploys only from main), and is part of the CI
-  # Summary, so a Mermaid, base-path or link regression cannot merge.
+  # Summary, so a Mermaid, base-path or internal-link regression cannot merge.
   docs:
     name: Docs build & render
     needs: lint
@@ -288,6 +288,47 @@ jobs:
           path: test-results/
           if-no-files-found: error
           retention-days: 14
+
+  # Required: phantom claims (scripts/check-claims.mjs: APIs and numbers the code does not back) in
+  # the README files, ARCHITECTURE.md, CONTRIBUTING.md, SECURITY.md and apps/docs. The script reads
+  # the checked-out files with git grep, so it needs Node and nothing installed. It scans the
+  # repository only: the live wiki still carries the old claims until the stub commit is pushed after
+  # pull request #57 merges (DECISIONS D42), and the post-merge pull request adds
+  # `--wiki <clone of modern-cmdk.wiki.git>` to this step.
+  claims:
+    name: Phantom claims
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/check-claims.mjs
+
+  # Required: external links and their #anchors in the Markdown the repository ships (lychee.toml
+  # holds the retry policy and the reasoned excludes). Links between docs pages are checked against
+  # the built site by tests/docs/links.spec.ts in the docs job.
+  links:
+    name: Links
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        env:
+          # Authenticated GitHub API calls: unauthenticated link checks are rate-limited
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          lycheeVersion: v0.24.2
+          fail: true
+          args: >-
+            --config lychee.toml --no-progress
+            README.md 'packages/*/README.md' CONTRIBUTING.md SECURITY.md ARCHITECTURE.md 'apps/docs/**/*.md'
 
   size:
     name: Bundle Size
@@ -383,7 +424,7 @@ jobs:
 
   summary:
     name: CI Summary
-    needs: [lint, build, test, react-lanes, dist-tests, coverage, rust-wasm, e2e, docs, size, security, bench]
+    needs: [lint, build, test, react-lanes, dist-tests, coverage, rust-wasm, e2e, docs, claims, links, size, security, bench]
     if: always()
     runs-on: ubuntu-26.04
     timeout-minutes: 2
@@ -418,6 +459,8 @@ jobs:
             "rust-wasm|Rust & WASM"
             "e2e|E2E (Chromium)"
             "docs|Docs build & render"
+            "claims|Phantom claims"
+            "links|Links"
             "size|Bundle Size"
             "security|Security Audit"
             "bench|Benchmarks"

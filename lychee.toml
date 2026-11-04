@@ -1,0 +1,39 @@
+# External-link and fragment check (CI job `links`, lycheeverse/lychee-action; lychee 0.24.2).
+# Inputs are passed on the command line (ci.yml). Only http(s) links are checked here: links between
+# docs pages are VitePress routes with their own heading ids, which tests/docs/links.spec.ts checks
+# against the built site (status and #fragment), and which lychee cannot resolve from the markdown.
+scheme = ["https", "http"]
+
+# Root-relative links in the docs pages (/guide/wasm-search) are VitePress routes. lychee resolves
+# them against this directory before the scheme filter drops them, instead of failing on them.
+root_dir = "apps/docs"
+
+# Anchor fragments (#section) are checked, including GitHub's generated markdown heading anchors.
+# Text fragments (#:~:text=) are not: they never fail in a browser.
+include_fragments = "anchor-only"
+
+# 2xx only. A 429 is not accepted: it is retried (below), so a link that stays rate-limited fails.
+accept = ["200..=299"]
+
+# Retries before a link is reported dead. GitHub, npm and shields.io answer 429 under load.
+max_retries = 6
+retry_wait_time = 10
+timeout = 30
+max_concurrency = 8
+
+# Unauthenticated GitHub calls are rate-limited hard; lychee reads GITHUB_TOKEN from the job
+# environment (ci.yml passes the workflow token), so no token appears in this file.
+
+# Excluded URLs (regular expressions), each with its reason:
+exclude = [
+  # a local dev-server address in the contributing guide, reachable only on the reader's machine
+  '^https?://localhost(:\d+)?(/|$)',
+  # a documentation placeholder, not a live host
+  '^https?://example\.(com|org)(/|$)',
+  # baseline history files reach main only when pull request #57 merges; the post-merge pull request (DECISIONS D42) removes this entry
+  '^https://github\.com/ABCrimson/modern-cmdk/blob/main/benchmarks/history/',
+]
+
+# The glob over apps/docs/**/*.md also reaches installed packages' READMEs and the VitePress build
+# output; only the authored pages are checked.
+exclude_path = ['node_modules', '\.vitepress']
