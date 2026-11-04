@@ -1,4 +1,4 @@
-// packages/command/src/utils/scheduler.ts
+// packages/modern-cmdk/src/core/utils/scheduler.ts
 // Batched update scheduler — rAF in browsers, queueMicrotask in Node.js/tests
 // Uses scheduler.yield() when available for input-responsive large batches
 

@@ -1,4 +1,4 @@
-// packages/command/src/core/utils/string-wellformed.ts
+// packages/modern-cmdk/src/core/utils/string-wellformed.ts
 // Cross-browser replacement for String.isWellFormed() / String.toWellFormed() (ES2024+)
 // Explicit return types required by isolatedDeclarations
 

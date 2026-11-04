@@ -1,4 +1,4 @@
-// packages/command/src/registry.ts
+// packages/modern-cmdk/src/core/registry.ts
 // Command/item registration — set operations (union/intersection/difference) for ID management
 // Performance: O(1) registration/lookup via Map + Set, O(1) order tracking via array + Set guard
 

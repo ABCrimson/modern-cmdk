@@ -24,7 +24,7 @@ graph TD
 
 ## Core Engine (`modern-cmdk`)
 
-The core is a **pure TypeScript state machine** with zero DOM or framework dependencies. It manages search, filtering, keyboard navigation, frecency ranking, and keyboard shortcuts.
+The core is a **pure TypeScript state machine** with no framework dependency and no hard DOM dependency (DOM APIs are feature-detected and SSR-safe). It manages search, filtering, keyboard navigation, frecency ranking, and keyboard shortcuts.
 
 ```mermaid
 stateDiagram-v2

@@ -1,4 +1,4 @@
-// packages/command/src/frecency/memory-storage.ts
+// packages/modern-cmdk/src/core/frecency/memory-storage.ts
 // In-memory storage (default) — Map with Iterator.prototype.toArray()
 
 import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';

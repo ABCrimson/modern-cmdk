@@ -375,8 +375,6 @@ These are set in `tsconfig.base.json` and must not be overridden:
 
 - **Branded types** for IDs: `type ItemId = string & { readonly __brand: unique symbol }`
 - **`satisfies`** on value expressions: `const config = { ... } as const satisfies Config`
-- **`NoInfer<T>`** on callback parameters: `filter: (item: CommandItem, query: NoInfer<string>) => ...`
-- **`const` type params** where inference narrowing is needed
 - **`readonly` on all interface properties** -- immutability by default
 - **`Disposable` protocol** on any class with cleanup needs
 
@@ -538,7 +536,7 @@ Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnp
 ### What to measure
 
 1. **Bundle size** -- Run `pnpm size` after any code change. The CI rejects PRs that exceed the budget.
-2. **Search latency** -- Run `pnpm bench` and check the search benchmarks. Incremental filtering should be significantly faster than full re-score.
+2. **Search latency** -- Run `pnpm bench` and compare the incremental-filter suites (`filter-10k`, `filter-100k`) with the full re-score timings; no gate asserts a ratio, and for broad prefixes incremental filtering is not faster (ledger P04).
 3. **Re-render count** -- In the playground, use React DevTools Profiler. Each keystroke should trigger at most 2 re-renders (input + list).
 4. **Memory** -- For large item sets (10K+), check heap size in DevTools. The registry uses `Map` + `Set` for O(1) operations.
 

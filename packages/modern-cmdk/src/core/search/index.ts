@@ -1,4 +1,4 @@
-// packages/command/src/search/index.ts
+// packages/modern-cmdk/src/core/search/index.ts
 // Search engine factory with pluggable scorer — Iterator Helpers (ES2025) for result pipelines
 // Incremental filtering: when the query extends the previous one, only the previous matches are re-scored
 // Performance: pre-cached lowercase at index time, charCode comparison, zero redundant allocation

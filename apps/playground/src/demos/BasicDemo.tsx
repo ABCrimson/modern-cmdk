@@ -2,7 +2,7 @@
 
 // apps/playground/src/demos/BasicDemo.tsx
 // Basic inline command palette with ~15 items across 3 groups
-// React 19: useId, useCallback, ref as prop
+// React 19: useId, useCallback
 
 import { Command, useCommandDevtools } from 'modern-cmdk/react';
 import { useCallback, useId } from 'react';

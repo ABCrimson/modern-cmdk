@@ -1,4 +1,4 @@
-// packages/command/src/frecency/index.ts
+// packages/modern-cmdk/src/core/frecency/index.ts
 // Uses: Date.now() for timestamps
 
 import type {
@@ -15,7 +15,7 @@ import { MemoryFrecencyStorage } from './memory-storage.js';
 /** Shared empty bonus map — avoids allocation when no frecency records exist */
 const EMPTY_BONUS_MAP: ReadonlyMap<ItemId, number> = new Map();
 
-/** Pre-computed bucket boundaries in hours — avoids Duration.total() per call */
+/** Bucket boundaries as hour constants — no per-call unit conversion */
 const BUCKET_HOURS = {
   hour: 1,
   day: 24,

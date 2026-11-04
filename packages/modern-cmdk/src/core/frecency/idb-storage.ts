@@ -1,4 +1,4 @@
-// packages/command/src/frecency/idb-storage.ts
+// packages/modern-cmdk/src/core/frecency/idb-storage.ts
 // IndexedDB-backed frecency persistence — idb-keyval (lazy-loaded)
 // Implements both Disposable and AsyncDisposable for await using support
 // ES2025: Iterator Helpers; Explicit Resource Management (using/await using, TS lib esnext.disposable)

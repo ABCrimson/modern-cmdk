@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/hooks/use-keyboard.ts
+// packages/modern-cmdk/src/react/hooks/use-keyboard.ts
 // Keyboard navigation — keydown handler factory; Command.Root and Command.Dialog attach it to document
 // Isolated declarations: explicit return types on all exports
 // Navigation keys dispatch through an object lookup; action keys (Enter/Backspace/Escape) through a switch

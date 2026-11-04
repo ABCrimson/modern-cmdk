@@ -41,8 +41,8 @@ export default defineConfig({
           benchmark: {
             include: ['benchmarks/**/*.bench.ts'],
             // wasm-search needs the browser-target WASM engine (createWasmSearchEngine loads
-            // a `--target web` module) — it runs via the standalone benchmarks/standalone
-            // harness, not the Node-based `vitest bench` runner.
+            // a `--target web` module), and the engine does not initialise yet (ledger W01),
+            // so the suite stays excluded until it does.
             exclude: ['benchmarks/wasm-search.bench.ts'],
           },
         },

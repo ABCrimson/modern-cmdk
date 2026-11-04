@@ -1,6 +1,6 @@
-// packages/command/src/utils/event-emitter.ts
+// packages/modern-cmdk/src/core/utils/event-emitter.ts
 // Type-safe event emitter — strong refs for reliable delivery, `using` for auto-unsub
-// Performance: for...of in hot emit() path, Iterator Helpers for listenerCount()
+// Performance: for...of in the hot emit() path; listenerCount() reads Set.size
 
 type EventMap = { [key: string]: unknown };
 

@@ -1,4 +1,4 @@
-// packages/command/src/search/fuzzy-scorer.ts
+// packages/modern-cmdk/src/core/search/fuzzy-scorer.ts
 // Advanced fuzzy matcher (pure TS) — safe async scoring via Promise.resolve().then()
 // Iterator Helpers, toSorted
 

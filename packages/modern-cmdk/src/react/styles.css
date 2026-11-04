@@ -109,7 +109,7 @@
 }
 
 /* ─── Spring Easing ─── */
-/* linear() approximation of a critically-damped spring (stiffness: 100, damping: 15) */
+/* linear() spring approximations: --command-spring-easing settles without overshoot; --command-spring-easing-bouncy peaks at 1.033 before settling */
 /* Generated from spring physics: x(t) = 1 - e^(-zt)(cos(wd*t) + (zw/wd)sin(wd*t)) */
 
 @layer command.base, command.layout, command.animation, command.a11y;

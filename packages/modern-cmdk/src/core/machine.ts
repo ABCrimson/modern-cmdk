@@ -1,4 +1,4 @@
-// packages/command/src/machine.ts
+// packages/modern-cmdk/src/core/machine.ts
 // Core state machine — pure functions, `using` for subscription cleanup
 // Implements Disposable, useSyncExternalStore-compatible API
 

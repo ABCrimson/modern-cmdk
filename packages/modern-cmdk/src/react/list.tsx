@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/list.tsx
+// packages/modern-cmdk/src/react/list.tsx
 // <Command.List> — auto-virtualization when filteredCount > 100, ResizeObserver for height
 // GPU-composited scroll container, aria-live announcements, scroll-to-active on keyboard nav
 // React 19: use() for context, ref as prop (no forwardRef)

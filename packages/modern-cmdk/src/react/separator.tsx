@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/separator.tsx
+// packages/modern-cmdk/src/react/separator.tsx
 // <Command.Separator> — role="none" (presentational inside listbox)
 // React 19: ref as prop (no forwardRef)
 // Isolated declarations: explicit return types on all exports

@@ -16,7 +16,7 @@ hero:
       link: https://github.com/ABCrimson/modern-cmdk
 features:
   - title: Framework Agnostic
-    details: Pure TypeScript state machine core — no framework, no DOM. React 19 adapter included.
+    details: Pure TypeScript state machine core — no framework, no hard DOM dependency (DOM APIs are feature-detected). React 19 adapter included.
   - title: Blazing Fast
     details: Fuzzy search with a built-in TypeScript scorer and a pluggable `SearchEngine` interface.
   - title: Fully Accessible

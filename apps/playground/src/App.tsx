@@ -2,11 +2,13 @@
 
 // apps/playground/src/App.tsx
 // Main app with pathname-based routing for demos
-// React 19: useTransition, useId, ref as prop
+// React 19: useTransition, useId
 // ES2025: Iterator Helpers
 
 import { useCallback, useEffect, useId, useState, useTransition } from 'react';
-import modernCmdkPackage from '../../../packages/modern-cmdk/package.json' with { type: 'json' };
+import { version as modernCmdkVersion } from '../../../packages/modern-cmdk/package.json' with {
+  type: 'json',
+};
 import { AllStatesDemo } from './demos/AllStatesDemo.js';
 import { BasicDemo } from './demos/BasicDemo.js';
 import { DarkModeDemo } from './demos/DarkModeDemo.js';
@@ -123,7 +125,7 @@ export function App(): React.ReactNode {
           The definitive command palette engine for the modern web.
         </p>
         <div className="playground-meta">
-          <span className="playground-version">v{modernCmdkPackage.version}</span>
+          <span className="playground-version">v{modernCmdkVersion}</span>
           <span className="playground-version">React 19</span>
           <span className="playground-version">ESNext</span>
           <ThemeToggle />

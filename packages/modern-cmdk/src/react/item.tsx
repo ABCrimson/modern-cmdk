@@ -1,6 +1,6 @@
 'use client';
 
-// packages/command-react/src/item.tsx
+// packages/modern-cmdk/src/react/item.tsx
 // <Command.Item> — ref as prop (no forwardRef), useId for ARIA
 // React 19: use() for context
 // Isolated declarations: explicit return types on all exports

@@ -139,9 +139,9 @@ A ground-up rewrite of `cmdk` for **React 19**, **ES2026**, and **TypeScript 7**
 
 ## Features
 
-- **Framework-agnostic core** -- Pure TypeScript state machine. No DOM. No React. Portable to any runtime. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
+- **Framework-agnostic core** -- Pure TypeScript state machine. No React. No hard DOM dependency; DOM APIs are feature-detected and SSR-safe. Portable to any runtime. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
 - **React 19 adapter** -- a `Command` root with 14 compound sub-components (`Command.Input` through `Command.Activity`). `useSyncExternalStore`, `useTransition`, `useOptimistic`, `use()` for Suspense. React Compiler compatible.
-- **Automatic virtualization** -- Variable-height virtual scrolling kicks in at a configurable threshold (`virtualizeThreshold`, default 100). Handles 100K+ items smoothly with `content-visibility: auto`.
+- **Automatic virtualization** -- Variable-height virtual scrolling kicks in at a configurable threshold (`virtualizeThreshold`, default 100). Off-screen items use `content-visibility: auto`.
 - **Fuzzy search** -- Built-in TypeScript scorer with incremental filtering. Optional Rust/WASM engine, built from source, with a TS fallback _(experimental, private, not published to npm)_.
 - **Frecency ranking** -- Frequency x recency, weighted by hour/day/week/month buckets. Pluggable persistence (memory or IndexedDB).
 - **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, and conflict detection. Cross-browser helper functions for grouping and set operations.
