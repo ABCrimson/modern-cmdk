@@ -136,6 +136,39 @@ describe('check-licenses evaluate', () => {
     expect(v[0]).toContain('copyleft');
   });
 
+  it('reports an exception with no ships flag instead of passing a shipped copyleft package', () => {
+    const report: LicenseReport = { 'GPL-3.0': [pkg('gpl-lib', '1.0.0', 'GPL-3.0')] };
+    const violations = evaluate(report, {
+      ...policy,
+      exceptions: [{ package: 'gpl-lib', license: 'GPL-3.0', reason: 'inlined' }],
+    });
+    expect(violations.length).toBeGreaterThanOrEqual(1);
+    expect(violations.join('\n')).toContain('ships');
+    expect(violations.join('\n')).toContain('gpl-lib@1.0.0');
+  });
+
+  it('reports an exception with no reason key without throwing', () => {
+    const report: LicenseReport = { 'MPL-2.0': [pkg('axe-ish', '4.0.0', 'MPL-2.0')] };
+    const run = (): string[] =>
+      evaluate(report, {
+        ...policy,
+        exceptions: [{ package: 'axe-ish', license: 'MPL-2.0', ships: false }],
+      });
+    expect(run).not.toThrow();
+    expect(run().join('\n')).toContain('reason');
+  });
+
+  it('reports an exception with an empty package name as malformed, with its index', () => {
+    const report: LicenseReport = { MIT: [pkg('left-pad', '1.0.0', 'MIT')] };
+    const violations = evaluate(report, {
+      ...policy,
+      exceptions: [{ package: '', license: 'MPL-2.0', ships: false, reason: 'dev only' }],
+    });
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toContain('exception #0');
+    expect(violations[0]).toContain('malformed');
+  });
+
   it('audits the whole workspace, dev dependencies included', () => {
     expect(LICENSES_ARGS).toContain('--recursive');
     expect(LICENSES_ARGS).not.toContain('--prod');
