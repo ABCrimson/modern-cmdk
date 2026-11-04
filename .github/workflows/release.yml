@@ -64,7 +64,7 @@ jobs:
             # Newest ci.yml push run for this commit as "<status> <conclusion|none> <url>"; empty until that run exists.
             if ! line=$(gh run list --commit "$GITHUB_SHA" --workflow ci.yml --event push \
                 --json databaseId,status,conclusion,url --limit 10 \
-                --jq 'sort_by(.databaseId) | if length == 0 then empty else last | "\(.status) \(.conclusion // "none") \(.url)" end'); then
+                --jq 'sort_by(.databaseId) | if length == 0 then empty else last | "\(.status) \(if .conclusion == null or .conclusion == "" then "none" else .conclusion end) \(.url)" end'); then
               echo "gh run list failed; retrying"
               sleep 30
               continue
@@ -197,6 +197,7 @@ jobs:
       contents: write # create tags and GitHub releases (gh release create)
     env:
       GH_TOKEN: ${{ github.token }}
+      GH_DEBUG: api # prints the HTTP exchange of every gh call, to diagnose the 403 on release creation
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
