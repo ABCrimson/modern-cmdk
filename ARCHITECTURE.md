@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the technical architecture of `modern-cmdk` -- a ground-up rewrite of `cmdk` as a framework-agnostic, headless command palette engine.
+This document describes the technical architecture of `modern-cmdk` -- a ground-up rewrite of `cmdk` as a framework-agnostic, headless command palette engine. It is written from the sources under `packages/*/src`; where a number is a target rather than a measurement, it says so.
 
 ---
 
@@ -15,6 +15,7 @@ This document describes the technical architecture of `modern-cmdk` -- a ground-
   - [Scheduler](#scheduler)
 - [Search Pipeline](#search-pipeline)
   - [Default Scorer](#default-scorer)
+  - [Plug Points: `search` and `filter`](#plug-points-search-and-filter)
   - [Incremental Filtering](#incremental-filtering)
   - [Frecency Re-Ranking](#frecency-re-ranking)
   - [WASM Search Engine](#wasm-search-engine)
@@ -35,6 +36,7 @@ This document describes the technical architecture of `modern-cmdk` -- a ground-
   - [Accessibility Media Queries](#accessibility-media-queries)
 - [Performance Budget](#performance-budget)
 - [Design Decisions](#design-decisions)
+- [File Map](#file-map)
 
 ---
 
@@ -50,24 +52,26 @@ flowchart TB
     subgraph core ["modern-cmdk — Framework-Agnostic Core"]
         direction TB
         SM["State Machine<br/>Pure TS · Disposable<br/>Immutable snapshots"]
-        SE["Search Engine<br/>Pluggable scorer fn<br/>Incremental filtering"]
-        FE["Frecency Engine<br/>Exponential time decay<br/>Pluggable storage · Disposable"]
-        REG["Command Registry<br/>Items (Map) · Groups (Map) · Order (Array + Set)<br/>setIntersection / setDifference / setUnion helpers<br/>Iterator Helpers · objectGroupBy · Disposable"]
-        KB["Keyboard Shortcut Registry<br/>Parser (RegExp.escape) · Matcher<br/>Conflicts (mapGroupBy) · Disposable"]
-        SCH["Scheduler<br/>rAF batching (browser) · microtask (Node.js)<br/>Promise.withResolvers · Disposable"]
+        SE["Search Engine<br/>SearchEngine plug point (option: search)<br/>Incremental filtering"]
+        FE["Frecency Engine<br/>Bucketed recency weights<br/>Pluggable storage · Disposable"]
+        REG["Command Registry<br/>Items (Map) · Groups (Map) · Order (Array + Set)<br/>Set-operation helpers · Iterator Helpers · Disposable"]
+        KB["Keyboard Shortcut Registry<br/>Parser (split on +) · Matcher<br/>Conflicts (mapGroupBy helper) · Disposable"]
+        SCH["Scheduler<br/>rAF batching (browser) · microtask (Node.js)<br/>Synchronous flush() · Disposable"]
+        EM["Event Emitter<br/>Strong refs · Set per event<br/>Snapshot on emit · Disposable"]
         SM --> REG
-        SE --> REG
-        FE --> REG
-        REG --> KB
-        REG --> SCH
+        SM --> SE
+        SM --> FE
+        SM --> KB
+        SM --> SCH
+        SM --> EM
     end
 
-    WASM["modern-cmdk-search-wasm<br/>Rust / wasm-pack · Trigram index + scorer<br/>Sub-1ms on 100K items"]
+    WASM["modern-cmdk-search-wasm (private, unpublished)<br/>Rust / wasm-pack · Trigram index<br/>implements SearchEngine"]
 
     App --> React
     App -.-> Future
     React -->|"useSyncExternalStore<br/>useTransition / useOptimistic"| core
-    core -.->|"Optional drop-in replacement"| WASM
+    WASM -.->|"passed as the search option"| core
 ```
 
 ---
@@ -76,11 +80,11 @@ flowchart TB
 
 The architecture follows strict layering rules:
 
-1. **Core layer** (`modern-cmdk`) -- Pure TypeScript. No DOM APIs. No framework imports. No side effects beyond subscriber notification. Runs in Node.js, Deno, Bun, or any browser.
+1. **Core layer** (`modern-cmdk`) -- Pure TypeScript. No DOM APIs required to construct or drive the machine (the keyboard registry attaches a `keydown` listener only when `document` exists). No framework imports. Runs in Node.js, Deno, Bun, or any browser.
 
 2. **Adapter layer** (`modern-cmdk/react`) -- Thin React 19 wrapper. Consumes the core via `useSyncExternalStore`. Renders JSX. Handles DOM events. Has `"use client"` directives.
 
-3. **Extension layer** (`modern-cmdk-search-wasm`) -- Optional WASM search engine. Drop-in replacement for the default TypeScript scorer. Ships a Rust crate compiled with `wasm-pack`.
+3. **Extension layer** (`modern-cmdk-search-wasm`) -- Optional WASM search engine. It implements the core's `SearchEngine` interface and is handed to the machine through the `search` option. It ships a Rust crate compiled with `wasm-pack`. The package is `private: true` in `packages/command-search-wasm/package.json`; it is not published to npm.
 
 Dependencies flow strictly downward. The core never imports from adapters or extensions.
 
@@ -102,14 +106,17 @@ createCommandMachine(options)
 |  CommandMachine   |
 |                   |
 |  getState()      -+-> Returns immutable CommandState snapshot
-|  send(event)     -+-> Dispatches CommandEvent through scheduler
+|  send(event)     -+-> Enqueues CommandEvent on the scheduler (applied on its next tick)
 |  subscribe(fn)   -+-> useSyncExternalStore-compatible (returns () => void)
 |  subscribeState  -+-> Returns Disposable for `using` pattern
 |  getRegistry()   -+-> Access the CommandRegistry
 |  getKeyboard..() -+-> Access the KeyboardShortcutRegistry
+|  getFilteredIdSet / getFilteredIdIndex -+-> O(1) membership / position lookup
 |  [Symbol.dispose] +-> Cleans up all subsystems
 +------------------+
 ```
+
+`send()` never applies an event synchronously: it calls `scheduler.schedule(() => handleEvent(event))`, so state changes on the scheduler's next tick (a `requestAnimationFrame` in browsers, a microtask elsewhere).
 
 **State shape** (`CommandState`):
 
@@ -130,19 +137,19 @@ createCommandMachine(options)
 
 | Event | Payload | Effect |
 |---|---|---|
-| `SEARCH_CHANGE` | `query: string` | Re-filters, re-ranks, updates `activeId` |
-| `ITEM_SELECT` | `id: ItemId` | Fires `onSelect`, records frecency, emits to listeners |
+| `SEARCH_CHANGE` | `query: string` | Re-filters, re-ranks, updates `activeId`, calls `onSearchChange` |
+| `ITEM_SELECT` | `id: ItemId` | Fires the item's `onSelect`, records frecency, emits `select`, calls the machine's `onSelect` |
 | `ITEM_ACTIVATE` | `id: ItemId` | Sets `activeId` if item is in filtered set |
-| `NAVIGATE` | `direction: next \| prev \| first \| last` | Moves `activeId` with optional loop wrapping |
+| `NAVIGATE` | `direction: next \| prev \| first \| last` | Moves `activeId` with optional loop wrapping (`loop` defaults to `true`) |
 | `PAGE_PUSH` | `page: string` | Pushes current page to stack, sets new page |
 | `PAGE_POP` | -- | Pops page stack |
 | `OPEN` / `CLOSE` / `TOGGLE` | -- | Controls dialog visibility |
-| `ITEMS_LOADED` | `items: readonly CommandItem[]` | Registers items from async source |
+| `ITEMS_LOADED` | `items: readonly CommandItem[]` | Registers items from async source and indexes them |
 | `REGISTER_ITEM` | `item: CommandItem` | Registers a single item + its shortcut |
 | `UNREGISTER_ITEM` | `id: ItemId` | Removes item from registry, search index, keyboard registry |
 | `REGISTER_GROUP` / `UNREGISTER_GROUP` | group/id | Manages group lifecycle |
 
-All state transitions produce a new immutable `CommandState` object. The machine never mutates state in place.
+All state transitions produce a new immutable `CommandState` object (`setState` assigns a spread copy, then emits `stateChange`). The machine never mutates state in place.
 
 ### Command Registry
 
@@ -161,34 +168,37 @@ CommandRegistry
   +-- registerItem(item) -> Disposable      -- `using` auto-deregister
   +-- registerItems(items) -> Disposable    -- batch registration
   +-- unregisterItem(id) -> void            -- single removal
-  +-- unregisterItems(ids: Set) -> void     -- setDifference for pruning
+  +-- unregisterItems(ids: Set) -> void     -- bulk removal (setDifference on the order set)
   +-- registerGroup(group) -> Disposable    -- group lifecycle
   +-- unregisterGroup(id) -> void
   +-- getItem(id) / getGroup(id)            -- O(1) Map lookup
   +-- getItems() -> readonly CommandItem[]  -- Iterator Helpers pipeline, cached
   +-- getGroups() -> readonly CommandGroup[]-- sorted by priority, cached
-  +-- getGroupedItems() -> ReadonlyMap      -- mapGroupBy, emitted in group-priority order
+  +-- getGroupedItems() -> ReadonlyMap      -- mapGroupBy helper, emitted in group-priority order
   +-- getItemIds() -> ReadonlySet<ItemId>   -- internal set, zero allocation
   +-- intersectWith / differenceFrom / unionWith / symmetricDifferenceWith
   +-- isSubsetOf / isSupersetOf / isDisjointFrom
   +-- size / groupCount (getters) · clear()
 ```
 
-Cross-browser set operation helpers (`setIntersection`, `setDifference`, `setUnion`) back the set methods above -- they are used for efficient bulk ID operations during filtering and registration.
+The set methods above delegate to the helper functions in `utils/set-ops.ts` (`setIntersection`, `setDifference`, `setUnion`, `setSymmetricDifference`, `setIsSubsetOf`, `setIsSupersetOf`, `setIsDisjointFrom`). They are plain loops, not the native `Set.prototype` methods (Set methods are ES2025), so the registry does not depend on a runtime that ships them. Because the registry calls every one of them, none of these helpers is removed by tree-shaking when the registry is in the bundle.
 
-`getItems()` and `getGroups()` memoize their results and invalidate the cache on the next mutation, so repeated reads inside a single filter pass are free. `getGroupedItems()` buckets with `mapGroupBy` and then re-emits groups in `priority` order, appending an `__ungrouped` bucket last.
+`getItems()` and `getGroups()` memoize their results and invalidate the cache on the next mutation, so repeated reads inside a single filter pass are free. `getGroupedItems()` buckets with the `mapGroupBy` helper from `utils/group-by.ts` (the native `Map.groupBy` is ES2024; the helper is a plain loop) and then re-emits groups in `priority` order, appending an `__ungrouped` bucket last. `utils/group-by.ts` also exports `objectGroupBy`; nothing in `packages/*/src` calls it and the core entry does not export it.
 
 ### Event Emitter
 
 **File:** `packages/modern-cmdk/src/core/utils/event-emitter.ts`
 
-A typed, GC-safe event emitter using `WeakRef` for listener storage and Iterator Helpers for pipeline operations.
+`TypedEmitter<T>` is a small typed emitter. It holds **strong references**; nothing about it observes garbage collection.
 
-Key characteristics:
-- Listeners are stored as `WeakRef<Function>` -- if the consumer is garbage collected, the listener is automatically pruned on the next `emit()`.
-- `.on(event, listener)` returns a `Disposable` for the `using` pattern.
-- `.has(event)` and `.listenerCount(event)` use Iterator Helpers (`.some()`, `.filter().toArray().length`).
-- Implements `Disposable` -- `[Symbol.dispose]()` clears all listeners.
+- Storage is `Map<event, Set<listener>>`: one `Set` per event.
+- `.on(event, listener)` adds the listener to that event's `Set` and returns a `Disposable` whose `[Symbol.dispose]()` deletes it, so `using sub = emitter.on(...)` unsubscribes at block exit.
+- `.emit(event, data)` iterates a **snapshot** of the `Set` (`[...set]`), so a listener added or removed during an emit does not change the pass in progress.
+- `.has(event)` and `.listenerCount(event)` read `Set.size`.
+- `.removeAll()` and `[Symbol.dispose]()` clear every listener.
+- A listener that is never unsubscribed stays reachable from the emitter until the emitter is disposed. There is no pruning of dead listeners: the owner of a subscription is responsible for disposing it. The machine's own emitter is cleared when the machine is disposed.
+
+The machine uses it for three events: `stateChange`, `select` and `openChange`.
 
 ### Scheduler
 
@@ -197,15 +207,17 @@ Key characteristics:
 The scheduler coalesces state updates to prevent redundant re-renders:
 
 ```
-Browser environment:
+Browser environment (requestAnimationFrame exists):
   schedule(update) -> pending[] -> requestAnimationFrame -> executeBatch()
 
 Node.js / test environment:
   schedule(update) -> pending[] -> queueMicrotask -> executeBatch()
 ```
 
-- Uses `Promise.withResolvers` (ES2024) for the `flush()` method.
-- Uses nullish assignment (`??=`) for single-rAF coalescing: `rafId ??= requestAnimationFrame(...)`.
+- `schedule()` pushes the update, then arms exactly one rAF (`rafId ??= requestAnimationFrame(...)`) or one microtask for the whole batch.
+- `executeBatch()` snapshots and clears the queue before running it, so updates scheduled while a batch runs land in the next one. Each update runs in a `try`/`catch`; a throwing update is re-thrown from a `queueMicrotask` so it surfaces without stopping the rest of the batch.
+- For a batch of more than 10 updates, if `navigator.scheduling.isInputPending()` is available and reports pending input, the batch is re-queued and resumed after `scheduler.yield()` (or the next rAF when `yield` is missing). `isInputPending` is Chromium-only and is declared ambiently in `core/es2026.d.ts`.
+- `flush()` is **synchronous**: it cancels a pending rAF, clears the microtask flag and runs `executeBatch()` immediately. It returns `void`, not a promise.
 - Implements `Disposable` -- cancels pending rAF and clears the queue.
 
 ---
@@ -215,10 +227,12 @@ Node.js / test environment:
 ```mermaid
 flowchart LR
     A["User types query"] --> B["SEARCH_CHANGE event"]
-    B --> C{"Incremental?"}
-    C -->|"Query extends previous"| D["Filter previous result set only"]
-    C -->|"New query"| E["Score all items"]
-    D --> F["Scorer: score(query, item)"]
+    B --> Q{"Empty query or<br/>filter === false?"}
+    Q -->|Yes| ALL["All non-disabled items,<br/>registration order"]
+    Q -->|No| C{"Incremental?"}
+    C -->|"Query extends previous"| D["Candidates: previous result set only"]
+    C -->|"New query"| E["Candidates: all items"]
+    D --> F["Score each candidate"]
     E --> F
     F --> G["Sort by score descending"]
     G --> H{"Frecency enabled?"}
@@ -226,6 +240,7 @@ flowchart LR
     I --> J["Re-sort by score + bonus"]
     H -->|No| K["Final result set"]
     J --> K
+    ALL --> L
     K --> L["Update filteredIds + activeId"]
     L --> M["Emit stateChange"]
 ```
@@ -234,24 +249,37 @@ flowchart LR
 
 **File:** `packages/modern-cmdk/src/core/search/default-scorer.ts`
 
-The built-in scorer performs fuzzy matching against the item's `value` and `keywords` fields. It returns a `SearchResult` with:
+The built-in scorer matches against the item's `value` and `keywords` and keeps the best score. Per target it tries, in order: exact match (1), prefix, substring (with a position bonus), word-boundary (separators are found by character code, no regex), then a character-by-character fuzzy match. It returns a `SearchResult` with:
 - `id: ItemId` -- the matched item
 - `score: number` -- relevance score (higher is better)
 - `matches: ReadonlyArray<readonly [number, number]>` -- character ranges for highlighting
 
-The scorer is pluggable -- pass a custom `filter` function to `createCommandMachine()` to replace it entirely.
+`scoreItem(query, item)` is the public entry; the search engine calls the internal `scoreItemPreLowered` with lowercase text cached at index time.
+
+`search/fuzzy-scorer.ts` exports `scoreItemAsync` and `batchScoreItems`: `Promise`-wrapped calls to the same `scoreItem`. They run synchronously inside the promise executor; they are not a separate matching algorithm and the machine does not use them.
+
+### Plug Points: `search` and `filter`
+
+Two options on `createCommandMachine()` (and, through `CommandMachineOptions`, on `<Command>`) change how items are matched. They are different things:
+
+| Option | Type | What it does |
+|---|---|---|
+| `search` | `SearchEngine` | **The pluggable engine.** Replaces the whole default engine: `index(items)`, `search(query, items)` returning an iterator of `SearchResult` (with match ranges), `remove(ids)`, `clear()`, `[Symbol.dispose]()`. The WASM engine implements this interface. |
+| `filter` | `(item, query) => number \| false`, or `false` | A **score override** for the default engine. Return a score, or `false` to drop the item. The machine wraps it as the engine's scorer with `matches: []`, so a `filter` cannot supply highlight ranges. `filter: false` skips searching altogether and lists every non-disabled item. |
+
+When `search` is given, it is used as is (`options.search ?? createSearchEngine(...)` in `machine.ts`), and a `filter` function is not consulted. The engine's `ScorerFn` type (`(query, item) => SearchResult | null`) is only the option type of `createSearchEngine({ scorer })`.
 
 ### Incremental Filtering
 
 **File:** `packages/modern-cmdk/src/core/search/index.ts`
 
-When the user appends characters to the search query (e.g., "cop" -> "copy"), the engine only re-scores items that matched the previous query. This is tracked via:
+When the user appends characters to the search query (e.g., "cop" -> "copy"), the default engine only re-scores items that matched the previous query. This is tracked via:
 - `previousQuery: string` -- the last query string
 - `previousResults: Set<ItemId>` -- the IDs that matched
 
-If the new query starts with the previous query, candidates are narrowed to `previousResults` before scoring. This reduces work from O(n) to O(k) where k << n.
+If the new query starts with the previous (non-empty) query, candidates are narrowed to `previousResults` before scoring. This reduces work from O(n) to O(k) where k << n. `index()` resets the cache, because newly indexed items may match the current query; `remove(ids)` prunes it with the `setDifference` helper.
 
-Bulk removal uses `Set.difference` (ES2026) to efficiently prune the incremental cache.
+In browser development builds the engine also registers itself with a `FinalizationRegistry` and warns if it is garbage collected without being disposed. This is a diagnostic only; it never affects delivery or pruning.
 
 ### Frecency Re-Ranking
 
@@ -263,21 +291,23 @@ After scoring, results are optionally re-ranked by frecency bonus:
 Final rank = search_score + frecency_bonus
 ```
 
-The frecency bonus is computed using exponential decay buckets based on elapsed time since last use:
+The bonus uses **bucketed recency weights**: the elapsed time since last use picks one of five fixed weights. It is a step function, not a continuous time decay.
 
-| Time Since Last Use | Weight |
+| Time Since Last Use | Weight (default) |
 |---|---|
 | < 1 hour | 4.0 |
 | < 1 day | 2.0 |
 | < 1 week | 1.5 |
-| < 1 month | 1.0 |
+| < 1 month (30 days) | 1.0 |
 | Older | 0.5 |
 
 ```
 frecency_bonus = frequency_count * recency_weight
 ```
 
-Time elapsed is computed using `(Date.now() - lastUsed) / 3_600_000` for hours. The `FrecencyEngine` implements `Disposable` -- on dispose, it flushes dirty data to storage (best-effort for async storage).
+The weights are the defaults in `DEFAULT_FRECENCY_DECAY` (`types.ts`) and can be overridden per bucket through `decayConfig`. Time elapsed is computed using `(now - lastUsed) / 3_600_000` for hours. `FrecencyEngine.recordSelection()` runs on `ITEM_SELECT`; the bonus is applied only on the non-empty-query path.
+
+`FrecencyEngine` implements `Disposable` and `AsyncDisposable`. `[Symbol.dispose]()` starts a best-effort `save` and logs a warning if it fails; `await using` (`[Symbol.asyncDispose]()`) awaits the save first.
 
 **Storage interface:**
 
@@ -289,18 +319,20 @@ interface FrecencyStorage extends Disposable {
 }
 ```
 
-Ships with `MemoryFrecencyStorage` (in-memory, no persistence) and `IdbFrecencyStorage` (IndexedDB persistence via `idb-keyval`, which is lazy-loaded on first use so non-persisting consumers never pay for it).
+Ships with `MemoryFrecencyStorage` (in-memory, no persistence) and `IdbFrecencyStorage` (IndexedDB persistence via `idb-keyval`, which is imported dynamically on first use so non-persisting consumers never load it).
 
 ### WASM Search Engine
 
-**File:** `packages/command-search-wasm/crate/src/`
+**Files:** `packages/command-search-wasm/crate/src/` (Rust), `packages/command-search-wasm/src/` (TypeScript wrappers)
 
-The optional WASM engine provides:
-- **Trigram indexing** -- pre-computes 3-character subsequences for O(1) candidate lookup
-- **Rust scorer** -- native performance for fuzzy matching
-- **Sub-1ms on 100K items** -- orders of magnitude faster than the TypeScript scorer at scale
+The optional WASM engine implements the core's `SearchEngine` interface; you pass it as `search:` to `createCommandMachine()` (or `<Command search={...}>`). It is **not** a `filter` function and not a `ScorerFn`.
 
-The WASM engine implements the same `ScorerFn` interface and is a drop-in replacement.
+- **Trigram index** (`crate/src/trigram.rs`) -- `index_items` receives a JSON array of `[id, value]` pairs and maps every lowercase 3-character window of `value` to the items containing it. Only `value` is indexed; `keywords` are not. A query's score is the share of its trigrams found in an item, results at or below 0.1 are dropped, and match ranges are exact substring hits.
+- **`createWasmSearchEngine()`** (`src/wasm-engine.ts`) -- main-thread wrapper. If the WASM module cannot be loaded it falls back to the TypeScript engine from `modern-cmdk` (`isWasm: false`). `remove(ids)` clears the whole WASM index and does not re-index the remaining items (a known gap).
+- **`createWorkerSearchEngine()`** (`src/worker-engine.ts`) -- runs the same engine in a Web Worker; scores travel in a `SharedArrayBuffer` only when the page is cross-origin isolated, otherwise they are structured-cloned. Its synchronous `search()` yields the results of the most recent `searchAsync()` call, and nothing in `createCommandMachine` calls `searchAsync()`, so pair it with explicit `await engine.searchAsync(query)` calls. This file is the only place in `packages/*/src` that uses `Promise.withResolvers` (ES2024): for the worker-ready signal and for per-request tracking.
+- **Edit distance** -- `crate/src/scorer.rs` (Levenshtein helpers) is compiled under `cfg(test)` only and is not part of the search path.
+
+**Measurements.** The `.wasm` binary is 113,495 bytes raw and 52,188 bytes under `gzip -9` (measured 2026-11-04 on the built `pkg/command_search_wasm_bg.wasm`), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
 
 ---
 
@@ -309,7 +341,7 @@ The WASM engine implements the same `ScorerFn` interface and is a drop-in replac
 ```mermaid
 flowchart TB
     A["Shortcut string<br/>e.g. 'Mod+Shift+K'"] --> B["Parser<br/>parseShortcut()"]
-    B --> C["ParsedShortcut<br/>{key, meta, ctrl, shift, alt, normalized}"]
+    B --> C["ParsedShortcut<br/>{key, meta, ctrl, shift, alt, raw, normalized}"]
     C --> D["Registry<br/>KeyboardShortcutRegistry"]
     D --> E["Global keydown listener"]
     E --> F["Matcher<br/>matchesShortcut(event, parsed)"]
@@ -325,16 +357,21 @@ flowchart TB
 
 **File:** `packages/modern-cmdk/src/core/keyboard/parser.ts`
 
-Parses human-readable shortcut strings into structured `ParsedShortcut` objects:
+Parses human-readable shortcut strings into structured `ParsedShortcut` objects. It builds no pattern from user input; the only regular expressions involved are two fixed literals, the lone-surrogate pattern inside `ensureWellFormed` (`utils/string-wellformed.ts`) and the module-level platform test `MAC_PLATFORM_RE` (`parser.ts`):
 
-- `"Mod+K"` -- resolves `Mod` to `Meta` on macOS, `Ctrl` on Windows/Linux
+1. Replace lone surrogates with U+FFFD (`ensureWellFormed`, a helper for `String.prototype.toWellFormed`).
+2. Split on `+`, then `trim()` and `toLowerCase()` each part.
+3. Look each part up in the alias map (`MODIFIER_MAP`). A part that is a modifier sets that flag; any other part becomes `key` (the last non-modifier part wins).
+4. Build `normalized` from the set modifiers in the fixed order `meta`, `ctrl`, `shift`, `alt`, then `key`, joined with `+`.
+
+- `"Mod+K"` -- `Mod` resolves to `meta` on Apple platforms and `ctrl` elsewhere (decided once at module load, from `navigator.userAgentData` or `navigator.platform`)
 - `"Ctrl+Shift+P"` -- explicit modifier specification
 - `"Alt+Enter"` -- named key support
 - Aliases: `Cmd`/`Command` -> `meta`, `Option`/`Opt` -> `alt`, `Control` -> `ctrl`
 
-Uses `RegExp.escape` (ES2026) for safe pattern construction from user-provided strings.
+Because the key is whatever remains after the split, a literal `+` key cannot be written (`"Mod++"` yields an empty key).
 
-The `normalized` field produces a deterministic modifier ordering (`meta+ctrl+shift+alt+key`) for deduplication and conflict comparison.
+The `normalized` field is a deterministic string (`meta+ctrl+shift+alt+key`, absent modifiers omitted) used as the registry's map key and for conflict comparison: `"Shift+Cmd+K"` and `"cmd + shift + k"` normalize to the same value.
 
 `formatShortcut()` renders platform-appropriate display labels (Mac symbols vs. Windows text).
 
@@ -342,7 +379,7 @@ The `normalized` field produces a deterministic modifier ordering (`meta+ctrl+sh
 
 **File:** `packages/modern-cmdk/src/core/keyboard/matcher.ts`
 
-Compares `KeyboardEvent` properties against `ParsedShortcut` fields. All four modifier keys (`metaKey`, `ctrlKey`, `shiftKey`, `altKey`) must match exactly -- no partial matching.
+Compares `KeyboardEvent` properties against `ParsedShortcut` fields. All four modifier keys (`metaKey`, `ctrlKey`, `shiftKey`, `altKey`) must match exactly -- no partial matching -- and `event.key.toLowerCase()` must equal the parsed `key`.
 
 ### Keyboard Shortcut Registry
 
@@ -350,20 +387,22 @@ Compares `KeyboardEvent` properties against `ParsedShortcut` fields. All four mo
 
 Global shortcut management:
 
-- `.register(shortcutStr, itemId, handler)` returns a `Disposable` -- enables `using` for automatic deregistration when the owning component unmounts.
-- Attaches a single `document.addEventListener('keydown', ...)` listener.
+- `.register(shortcutStr, itemId, handler)` returns a `Disposable` -- enables `using` for automatic deregistration. Bindings are keyed by `normalized`, so registering the same shortcut twice replaces the first binding.
+- Attaches a single `document.addEventListener('keydown', ...)` listener, in the constructor.
 - Safe in SSR -- checks `typeof document` before attaching.
 - Implements `Disposable` -- removes the global listener and clears all bindings.
 
 ### Conflict Detection
 
-Uses the `mapGroupBy` helper to group shortcuts by normalized form:
+`detectConflicts` (in `matcher.ts`) uses the `mapGroupBy` helper to group shortcuts by normalized form:
 
 ```ts
 const grouped = mapGroupBy(shortcuts, (s) => s.normalized);
 // Any group with length > 1 is a conflict
 return new Map(grouped.entries().filter(([, group]) => group.length > 1));
 ```
+
+`KeyboardShortcutRegistry.getConflicts()` feeds it the registered bindings. Since the registry itself is keyed by `normalized`, two bindings of one shortcut cannot coexist there; `detectConflicts` is most useful on a list of shortcuts collected elsewhere.
 
 ---
 
@@ -389,14 +428,14 @@ All components consume the machine via React context using `use(CommandContext)`
 
 | Component | Role | Key Props |
 |---|---|---|
-| `Command` | Root -- creates machine, provides context | `label`, `filter`, `loop`, `frecency` |
+| `Command` | Root -- creates machine, provides context | every `CommandMachineOptions` field (`items`, `groups`, `filter`, `search`, `loop`, `frecency`, ...) plus `label`, `className` |
 | `Command.Dialog` | Radix Dialog wrapper with overlay and portal | `open`, `onOpenChange` |
-| `Command.Input` | Search input bound to machine state | `placeholder`, `value`, `onValueChange` |
+| `Command.Input` | Search input bound to machine state; keeps its own urgent draft value | `placeholder`, `onValueChange` |
 | `Command.List` | Scrollable list with auto-virtualization and `aria-live` | `virtualize` |
 | `Command.Item` | Selectable item -- registers/unregisters on mount/unmount | `value`, `onSelect`, `shortcut`, `disabled` |
 | `Command.Group` | Logical group with heading | `heading` |
 | `Command.Empty` | Rendered when `filteredCount === 0` | -- |
-| `Command.Loading` | Rendered when `state.loading === true` | -- |
+| `Command.Loading` | Rendered when its `loading` prop is `true`; when the prop is omitted, rendered while `state.loading` is true or the optimistic active-item transition is pending (`loading={false}` hides it in all cases) | `loading` |
 | `Command.Separator` | Visual divider | -- |
 | `Command.Highlight` | Fuzzy match character highlighting | -- |
 | `Command.Badge` | Status badge on items | -- |
@@ -415,11 +454,13 @@ All components:
 | React 19 Feature | Usage |
 |---|---|
 | `useSyncExternalStore` | Subscribe to machine state without tearing |
-| `useTransition` | Wrap search updates -- keeps input responsive during heavy filtering |
+| `useTransition` | Wraps **only** the optimistic active-item setter (`setOptimisticActiveId`). It does not wrap search: `isPending` never reflects a search. |
 | `useOptimistic` | Optimistic `activeId` updates -- instant visual feedback on navigation |
 | `useId` | Generate stable IDs for `aria-labelledby`, `aria-controls`, `aria-activedescendant` |
 | `use()` | Consume `CommandContext` (replaces `useContext`) |
 | `ref` as prop | All components accept `ref` directly -- no `forwardRef` wrapper |
+
+**Search is not a transition.** `Command.Input` keeps the typed text in local state (`draft`), set inside the change event, so the input is always responsive. The same handler then calls `machine.send({ type: 'SEARCH_CHANGE', query })`, which only enqueues the event on the machine's scheduler (see [Scheduler](#scheduler)). Filtering and the state update happen on that scheduler tick, outside React; React sees the result through `useSyncExternalStore`. On every machine tick `Command.Input` reconciles its draft: an echo of a query typed here is ignored, and any other `search` value (an external `SEARCH_CHANGE`, a reset) replaces the draft. No `startTransition` wraps a search, so a search never marks `isPending` and `Command.Loading` does not appear for one.
 
 ---
 
@@ -432,27 +473,28 @@ sequenceDiagram
     participant User
     participant React as React Adapter
     participant Machine as State Machine
+    participant Scheduler
     participant Search as Search Engine
     participant Frecency as Frecency Engine
-    participant Scheduler
 
     User->>React: Types in Input
-    React->>React: useTransition(() => ...)
+    React->>React: setDraft(value) -- urgent, local to Command.Input
     React->>Machine: send({ type: 'SEARCH_CHANGE', query })
     Machine->>Scheduler: schedule(handleEvent)
-    Scheduler->>Machine: executeBatch()
+    Note over Scheduler: next rAF (browser) or microtask
+    Scheduler->>Machine: executeBatch() -> handleEvent -> refilter(query)
     Machine->>Search: search(query, items)
-    Search->>Search: Incremental filter (if applicable)
-    Search->>Search: Score candidates via scorer fn
+    Search->>Search: Incremental narrowing (default engine, if applicable)
+    Search->>Search: Score candidates
     Search-->>Machine: Iterator<SearchResult>
-    Machine->>Frecency: getAllBonuses()
+    Machine->>Frecency: getAllBonuses() (if frecency enabled)
     Frecency-->>Machine: Map<ItemId, number>
     Machine->>Machine: Sort by score + bonus
     Machine->>Machine: Build groupedIds, select activeId
     Machine->>Machine: setState(newState) -- new immutable snapshot
     Machine->>React: emit('stateChange', state)
     React->>React: useSyncExternalStore triggers re-render
-    React->>React: useOptimistic resolves activeId
+    React->>React: Command.Input reconciles draft with state.search
     React->>User: Updated UI
 ```
 
@@ -543,18 +585,22 @@ CSS custom properties (`@property`) are registered for `--command-list-height` a
 
 | Metric | Target | Enforcement |
 |---|---|---|
-| Core bundle (minified + gzipped) | ≤ 6.5 kB | `size-limit` in CI |
-| React adapter bundle (minified + gzipped; react/react-dom/radix-ui externalized) | ≤ 12 kB | `size-limit` in CI |
-| WASM search (minified + gzipped) | ~52 kB (about 113 kB raw) | Target only (package unpublished, not in `size-limit`) |
-| Search latency (10K items, TS scorer) | < 16 ms | Vitest bench |
-| Search latency (100K items, WASM scorer) | < 1 ms | Vitest bench |
-| Time to first render | < 50 ms | Playwright performance trace |
-| State update cycle (send -> re-render) | < 4 ms | Vitest bench |
-| Filter 10K items (incremental) | < 2 ms | Vitest bench |
-| Memory per 10K items | < 5 MB | Playwright heap snapshot |
-| Coverage threshold | 80% statements/lines, 75% functions, 70% branches | `pnpm test:coverage` (Vitest V8) |
+| Core bundle (minified + gzipped) | ≤ 6.5 kB | **Enforced**: `size-limit` (`pnpm size`, CI "Bundle Size" job) on `packages/modern-cmdk/dist/core/index.mjs` |
+| React adapter bundle (minified + gzipped; react/react-dom/radix-ui externalized) | ≤ 12 kB | **Enforced**: `size-limit` on `packages/modern-cmdk/dist/react/index.mjs` |
+| WASM binary (gzipped) | no budget; about 52 kB measured (113,495 bytes raw) | Not enforced (package private, not in `size-limit`) |
+| Search latency (10K items, TS scorer) | < 16 ms | Tripwire on the named task `search:ts-scorer-10k`: `pnpm bench:compare` against `benchmarks/baseline.json` warns above a 5% regression and fails the CI bench job above 15% (see below). The 16 ms itself (`target_ms`) is not checked. |
+| Search latency (100K items, WASM engine) | none (unmeasured) | Target (not enforced); no figure has been measured |
+| Time to first render | < 50 ms | Target (not enforced) |
+| State update cycle (send -> re-render) | < 4 ms | Tripwire on `stateUpdate:searchChange` (the machine side only, 1K items; no re-render is timed); the 4 ms is not checked |
+| Filter 10K items (incremental) | < 2 ms | Target (not enforced); `benchmarks/filter-10k.bench.ts` prints timings and asserts nothing |
+| Memory per 10K items | < 5 MB | Target (not enforced) |
+| Coverage threshold | `coverage-thresholds.json`: 85% lines, 83% statements, 80% functions, 76% branches | **Enforced**: Vitest V8 coverage in the CI "coverage" job, plus `scripts/coverage-ratchet.mjs`, which fails when a threshold is lower than the one on `origin/main` |
 
-Bundle sizes are enforced on every push via the `size` CI job. Benchmarks run in a dedicated CI workflow with `pnpm bench:ci`.
+A row marked "Target (not enforced)" has no check in CI or in the test suites: it is a goal, and nothing fails if it is missed.
+
+**What `ci.yml` does with benchmarks.** The `bench` job (needs `build`, downloads the `dist` artifact) runs `pnpm bench:compare`, which measures the three named operations (`search:ts-scorer-10k`, `stateUpdate:navigate`, `stateUpdate:searchChange`) three times each and compares the medians with `benchmarks/baseline.json`. Exit code 1 (a regression above 5%) is turned into a warning annotation and the job continues; exit code 2 (a regression above 15%, or a harness error) fails the job. If the baseline was recorded on a different CPU or Node version the table says so, and the thresholds are a tripwire, not a verdict. The job then runs `pnpm bench --run` (the Vitest bench files, which print timings but assert nothing), type-checks `benchmarks/tsconfig.json`, and uploads `benchmarks/results/` as the `benchmark-results` artifact. There is no separate benchmark workflow.
+
+Bundle sizes are checked on every CI run by the `size` job, which uploads `size-report.json`.
 
 ---
 
@@ -570,29 +616,29 @@ React Context triggers re-renders in all consumers when any value changes. The m
 
 1. **Testability** -- The core can be tested with Vitest in a Node.js environment, no DOM simulation needed. Tests run in milliseconds, not seconds.
 2. **Portability** -- A Svelte, Vue, or Solid adapter can wrap the same core. The state machine logic is written once.
-3. **Bundle efficiency** -- Users who only need the core (e.g., for a CLI tool or a non-React app) get a ~6.4 KB (gzipped) bundle whose only runtime dependency, `idb-keyval`, is lazy-loaded and tree-shaken away unless IndexedDB frecency persistence is used.
+3. **Bundle efficiency** -- Users who only need the core (e.g., for a CLI tool or a non-React app) get a bundle under the 6.5 kB gzip `size-limit` budget whose only runtime dependency, `idb-keyval`, is imported dynamically by `IdbFrecencyStorage`, so it is loaded only when IndexedDB frecency persistence is used.
 4. **Separation of concerns** -- Framework quirks (React's batching, Svelte's reactivity) are isolated in the adapter layer.
 
 ### Why `Date.now()` for timestamps?
 
 - Simple epoch milliseconds (`number`) fit the immutable state model with zero serialization overhead.
-- Elapsed hours computed via `(Date.now() - lastUsed) / 3_600_000` -- straightforward and cross-browser compatible.
-- No polyfill or runtime dependency required (Temporal API was previously used but is not yet available in browsers).
+- Elapsed hours computed via `(now - lastUsed) / 3_600_000` -- straightforward and cross-browser compatible.
+- No polyfill or runtime dependency required (the Temporal API is not used).
 
-### Why ES2026 target?
+### Which language features does the source use, and from which edition?
 
-The project targets Node.js 26.4.0+, which ships many ES2026 features natively. Benefits:
+The compile target is `ESNext` with the `ESNext` and `DOM` libs (`tsconfig.base.json`), and development needs Node.js 26.4.0 or newer (`engines`). What `packages/*/src` actually uses:
 
-- **Iterator Helpers** (`map`, `filter`, `toArray`, `some`, `forEach`) -- pipeline operations on Map/Set iterators without intermediate arrays.
-- **`using` / `await using`** -- Explicit Resource Management prevents leaked listeners, timers, and storage connections. Every class implements `Disposable`.
-- **`Promise.withResolvers`** -- Clean scheduler flush implementation.
-- **`RegExp.escape`** -- Safe pattern construction from user-provided shortcut strings.
-
-Some ES2026 features (Set methods, `Map.groupBy`, `Object.groupBy`, `Promise.try`, `Temporal`, `Math.sumPrecise`) are replaced with cross-browser helper functions to ensure compatibility with current browsers via the tsdown build pipeline.
+- **Iterator Helpers** (ES2025: `.values().map()`, `.filter()`, `.toArray()`, `.find()`, `.entries().filter()`) -- native, used in the registry, search engine, machine and keyboard code to pipe Map/Set/array iterators without intermediate arrays.
+- **`using` / `await using` / `Symbol.dispose`** (Explicit Resource Management, ESNext) -- every stateful class implements `Disposable`, so cleanup can be `using machine = createCommandMachine(...)`. `FrecencyEngine` also implements `AsyncDisposable`.
+- **Array copy methods** (ES2023: `toSorted`, `toSpliced`) -- native.
+- **`Promise.withResolvers`** (ES2024) -- native, used only by `packages/command-search-wasm/src/worker-engine.ts`. The core does not use it.
+- **Replaced with plain helpers** so the core does not need a runtime that ships them: Set methods (ES2025, `utils/set-ops.ts`), `Map.groupBy` / `Object.groupBy` (ES2024, `utils/group-by.ts`) and `String.prototype.toWellFormed` (ES2024, `utils/string-wellformed.ts`).
+- **Not used anywhere in `packages/*/src`:** `Temporal`, and no pattern escaping of any kind (the shortcut parser needs none; see [Parser](#parser)).
 
 ### Why `Disposable` everywhere?
 
-Every stateful object (machine, registry, emitter, scheduler, frecency engine, keyboard registry) implements `[Symbol.dispose]()`. This enables:
+Every stateful object (machine, registry, emitter, scheduler, search engine, frecency engine, keyboard registry) implements `[Symbol.dispose]()`. This enables:
 
 ```ts
 // Automatic cleanup -- no manual teardown
@@ -606,11 +652,11 @@ useEffect(() => {
 }, []);
 ```
 
-Without `Disposable`, cleanup relies on convention. With it, the compiler and runtime enforce it.
+Without `Disposable`, cleanup relies on convention. With it, the language gives a block-scoped way to enforce it.
 
 ### Why Radix UI for the React adapter dialog?
 
-The `Command.Dialog` component wraps Radix UI's Dialog primitive for:
+The `Command.Dialog` component wraps Radix UI's Dialog primitive (the `radix-ui` package) for:
 - Portal rendering (escapes z-index stacking contexts)
 - Focus trapping and restoration
 - Scroll locking
@@ -619,14 +665,9 @@ The `Command.Dialog` component wraps Radix UI's Dialog primitive for:
 
 Building a production-quality dialog from scratch would add significant bundle size and maintenance burden. Radix provides these behaviors in a well-tested, accessible package.
 
-### Why Vite 8 for the playground?
+### Why Vite for the playground?
 
-The interactive playground uses **Vite 8.3.5** with `@vitejs/plugin-react` 6.2.1. Key benefits:
-
-- **ES2026 build target** -- No downleveling of Iterator Helpers, Set methods, or `using` syntax.
-- **Native CSS nesting** -- Vite 8 passes through CSS nesting, `@layer`, and `@starting-style` without transformation.
-- **Environment API** -- Vite 8's new Environment API enables better dev/prod parity.
-- **HMR warmup** -- Frequently used modules are pre-transformed for instant HMR feedback.
+The interactive playground (`apps/playground`) uses **Vite 8.3.5** with `@vitejs/plugin-react` 6.2.1 and `build.target: 'esnext'`, so Iterator Helpers and `using` syntax are not downleveled. Vite passes CSS nesting, `@layer` and `@starting-style` through unchanged.
 
 ### Why `@starting-style` over JavaScript animations?
 
@@ -642,15 +683,20 @@ JavaScript animation libraries (Framer Motion, React Spring) would add 10-30 KB 
 ### Why branded types for IDs?
 
 ```ts
-type ItemId = string & { readonly __brand: unique symbol };
-type GroupId = string & { readonly __brand: unique symbol };
+declare const __itemIdBrand: unique symbol;
+export type ItemId = string & { readonly [__itemIdBrand]: never };
+
+declare const __groupIdBrand: unique symbol;
+export type GroupId = string & { readonly [__groupIdBrand]: never };
 ```
 
-This prevents accidentally passing a `GroupId` where an `ItemId` is expected. The runtime cost is zero -- brands are erased by the compiler. TypeScript 7's improved `unique symbol` inference makes this pattern ergonomic.
+This prevents accidentally passing a `GroupId` where an `ItemId` is expected. The runtime cost is zero -- brands are erased by the compiler. `itemId()` and `groupId()` create them from plain strings (and replace lone surrogates).
 
-### Why a scoped `sideEffects` array?
+### Tree-shaking and the scoped `sideEffects` array
 
-`package.json` declares `"sideEffects": ["./dist/react/styles.css", "./dist/react/index.mjs"]`. Listing only the React entry and its stylesheet tells bundlers (Vite, webpack, Rollup) that *every other* module -- the entire framework-agnostic core -- is side-effect-free and can be tree-shaken when its exports are unused. Consumers who only import `createCommandMachine` do not pay for `KeyboardShortcutRegistry` or `FrecencyEngine`, while the listed entries are preserved so `import "modern-cmdk/styles.css"` is never dropped.
+`packages/modern-cmdk/package.json` declares `"sideEffects": ["./dist/react/styles.css", "./dist/react/index.mjs"]`. Listing only the React entry and its stylesheet tells bundlers (Vite, webpack, Rollup) that every other module -- the framework-agnostic core -- is side-effect-free, so an export nobody uses can be dropped, while the listed entries are preserved so `import "modern-cmdk/styles.css"` is never dropped.
+
+What that does and does not buy: it removes **unused exports**, not subsystems the machine itself uses. `createCommandMachine` imports and constructs the `CommandRegistry`, `KeyboardShortcutRegistry`, `FrecencyEngine`, `TypedEmitter` and scheduler, so a consumer who imports only `createCommandMachine` still ships all of them, and with them the parser, the matcher's `detectConflicts`, the `mapGroupBy` helper and every set helper the registry calls. Bundling `dist/core/index.mjs` with esbuild 0.28.2 from a single `createCommandMachine` import (checked 2026-11-04) drops the exports the machine never reaches: `IdbFrecencyStorage` (and with it the `idb-keyval` import), `createTelemetryMiddleware`, `formatShortcut`, `findMatchingShortcut`, `scoreItem` (the engine calls the internal `scoreItemPreLowered`), `scoreItemAsync` / `batchScoreItems`, `itemId`, `groupId` and `DEFAULT_MACHINE_OPTIONS`. `parseShortcut` ships whenever `createCommandMachine` or `KeyboardShortcutRegistry` is imported, and `TypedEmitter` whenever `createCommandMachine` is; importing `CommandRegistry` alone pulls in neither. `objectGroupBy` is not in `dist/core/index.mjs` at all: it is not exported, so the package build already removes it. The set helpers in `utils/set-ops.ts` are not exported from `modern-cmdk`; they ship whenever `CommandRegistry` is bundled, which `createCommandMachine` always does.
 
 ---
 
@@ -659,29 +705,30 @@ This prevents accidentally passing a `GroupId` where an `ItemId` is expected. Th
 ```
 packages/modern-cmdk/src/core/
   index.ts               -- Public API exports
-  types.ts               -- Branded types, interfaces, defaults
+  types.ts               -- Branded types, interfaces, defaults (DEFAULT_FRECENCY_DECAY, createInitialState)
   machine.ts             -- State machine (createCommandMachine)
   registry.ts            -- Item/group registry (Map + Set)
   telemetry.ts           -- Telemetry middleware hooks
   es2026.d.ts            -- Ambient declaration for Navigator.scheduling.isInputPending (absent from lib.dom)
   search/
-    types.ts             -- SearchEngine, SearchResult, ScorerFn
-    index.ts             -- Search engine factory (incremental filtering)
+    types.ts             -- SearchEngine (the plug point), SearchResult, ScorerFn type
+    index.ts             -- createSearchEngine (incremental filtering, optional scorer)
     default-scorer.ts    -- Built-in fuzzy scorer
-    fuzzy-scorer.ts      -- Async scorer
+    fuzzy-scorer.ts      -- scoreItemAsync / batchScoreItems (Promise wrappers over scoreItem)
   frecency/
-    index.ts             -- FrecencyEngine (Date.now, Disposable)
+    index.ts             -- FrecencyEngine, computeFrecencyBonus (bucketed weights)
     storage.ts           -- FrecencyStorage interface
     memory-storage.ts    -- In-memory storage implementation
-    idb-storage.ts       -- IndexedDB storage (idb-keyval, lazy-loaded)
+    idb-storage.ts       -- IndexedDB storage (idb-keyval, dynamically imported)
   keyboard/
-    parser.ts            -- Shortcut string parser (RegExp.escape)
-    matcher.ts           -- KeyboardEvent matcher
+    parser.ts            -- Shortcut string parser (split, trim, lowercase, alias map)
+    matcher.ts           -- KeyboardEvent matcher, detectConflicts
     index.ts             -- KeyboardShortcutRegistry (Disposable)
   utils/
-    event-emitter.ts     -- TypedEmitter (WeakRef, Iterator Helpers)
-    scheduler.ts         -- rAF/microtask batching (Promise.withResolvers)
-    set-ops.ts           -- Cross-browser Set operation helpers
+    env.ts               -- isDev flag (NODE_ENV)
+    event-emitter.ts     -- TypedEmitter (strong refs, Set per event)
+    scheduler.ts         -- rAF/microtask batching, synchronous flush()
+    set-ops.ts           -- Plain-loop Set operation helpers
     group-by.ts          -- mapGroupBy / objectGroupBy helpers
     string-wellformed.ts -- ensureWellFormed()
 
@@ -690,7 +737,7 @@ packages/modern-cmdk/src/react/
   command.tsx            -- <Command> root component
   context.ts             -- React context definitions
   dialog.tsx             -- <Command.Dialog> (Radix)
-  input.tsx              -- <Command.Input>
+  input.tsx              -- <Command.Input> (urgent local draft value)
   list.tsx               -- <Command.List> (virtualization, ResizeObserver)
   item.tsx               -- <Command.Item> (register/unregister lifecycle)
   group.tsx              -- <Command.Group>
@@ -704,7 +751,7 @@ packages/modern-cmdk/src/react/
   activity.tsx           -- <Command.Activity> (Activity API)
   async-items.tsx        -- <Command.AsyncItems> (Suspense)
   error-boundary.tsx     -- <CommandErrorBoundary>
-  primitives.ts          -- Shared primitive utilities
+  primitives.ts          -- Slot/ref-merge helper; imported by nothing and excluded from the build and from coverage (dead file)
   styles.css             -- GPU-composited animations
   hooks/
     use-command.ts       -- useCommand hook
@@ -719,16 +766,17 @@ packages/modern-cmdk/src/codemod/
   cli.ts                 -- Codemod CLI runner (bin: modern-cmdk)
   transforms/            -- import-rewrite, data-attrs, forward-ref, should-filter
 
-packages/command-search-wasm/
+packages/command-search-wasm/        -- private, unpublished
   src/
     index.ts             -- TypeScript entry point
-    wasm-engine.ts       -- Main-thread WASM engine wrapper
-    worker-engine.ts     -- Web Worker engine wrapper
+    wasm-engine.ts       -- Main-thread WASM engine wrapper (SearchEngine, TS fallback)
+    worker-engine.ts     -- Web Worker engine wrapper (Promise.withResolvers)
     worker.ts            -- Worker entry
+    env.ts               -- isDev flag
   crate/
     Cargo.toml           -- Rust crate configuration (edition 2024)
     src/
-      lib.rs             -- WASM entry point
-      trigram.rs          -- Trigram index implementation
-      scorer.rs           -- Rust fuzzy scorer
+      lib.rs             -- WASM entry point (WasmSearchEngine)
+      trigram.rs         -- Trigram index and search
+      scorer.rs          -- Levenshtein helpers (compiled under cfg(test) only)
 ```
