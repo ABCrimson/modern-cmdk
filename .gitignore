@@ -15,3 +15,6 @@ packages/command-search-wasm/pkg/
 .playwright-mcp/
 benchmarks/results/
 .claude/worktrees/
+
+# vsce package output (vscode-modern-cmdk)
+*.vsix
