@@ -22,6 +22,8 @@ interface Manifest {
   readonly engines?: { readonly node?: string };
   readonly exports: Record<string, string | Record<string, string>>;
   readonly sideEffects: readonly string[];
+  readonly peerDependencies?: Record<string, string>;
+  readonly peerDependenciesMeta?: Record<string, { readonly optional?: boolean }>;
 }
 
 const readManifest = (file: string): Manifest => JSON.parse(readFileSync(file, 'utf8'));
@@ -89,4 +91,16 @@ describe('modern-cmdk manifest', () => {
     );
     expect(declarations).toEqual([]);
   });
+
+  it.skipIf(!distBuilt)(
+    'radix-ui is a required peer while modern-cmdk/react imports it (RP-02)',
+    () => {
+      expect.hasAssertions();
+      const manifest = readManifest(packageJsonPath);
+      expect(manifest.peerDependencies?.['radix-ui']).toBe('>=1.4.0 <2.0.0');
+      expect(manifest.peerDependenciesMeta?.['radix-ui']).toBeUndefined();
+      const dialogChunk = readFileSync(join(packageDir, 'dist/react/chunk-dialog.mjs'), 'utf8');
+      expect(dialogChunk).toContain('from "radix-ui"');
+    },
+  );
 });

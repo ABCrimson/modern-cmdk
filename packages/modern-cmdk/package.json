@@ -55,9 +55,6 @@
     },
     "react-dom": {
       "optional": true
-    },
-    "radix-ui": {
-      "optional": true
     }
   },
   "dependencies": {
