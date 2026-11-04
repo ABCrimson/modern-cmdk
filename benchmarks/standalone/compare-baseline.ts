@@ -4,6 +4,8 @@
 // compares the medians with benchmarks/baseline.json.
 // Exit codes: 0 = pass, 1 = warning (>5% regression), 2 = failure (>15% regression) or harness
 // error (missing dist or tinybench, task that did not complete, measured key with no baseline entry).
+// When the baseline's CPU or Node differs from this machine, one line says so before the table and the
+// results JSON carries `comparedTo`; the exit codes do not change.
 // Runs under Node's native type stripping, no loader: `node benchmarks/standalone/compare-baseline.ts`.
 // Requires: tinybench 6.2.3, built packages (pnpm build), Node >=26.4.0 (package.json engines)
 
@@ -16,10 +18,11 @@ import os from 'node:os';
 interface BaselineBenchmark {
   readonly median_ms: number;
   readonly p99_ms: number;
-  readonly target_ms: number;
+  readonly target_ms?: number;
 }
 
 interface BaselineFile {
+  readonly environment?: { readonly cpu?: string | null; readonly node?: string | null };
   readonly regressionThresholds: {
     readonly warning: number;
     readonly failure: number;
@@ -222,6 +225,10 @@ async function main(): Promise<number> {
   }
 
   // 7. Write benchmarks/results/bench-<shortsha>.json
+  const thisCpu = os.cpus()[0]?.model ?? null;
+  const baseCpu = baseline.environment?.cpu ?? null;
+  const baseNode = baseline.environment?.node ?? null;
+  const sameMachine = baseCpu === thisCpu && baseNode === process.version;
   const commit = process.env.GITHUB_SHA ?? git('rev-parse', 'HEAD');
   const resultsDir = new URL('../../benchmarks/results/', import.meta.url);
   await mkdir(resultsDir, { recursive: true });
@@ -238,9 +245,10 @@ async function main(): Promise<number> {
           runner: process.env.ImageOS ?? process.env.RUNNER_OS ?? null,
           runnerImageVersion: process.env.ImageVersion ?? null,
           node: process.version,
-          cpu: os.cpus()[0]?.model ?? null,
+          cpu: thisCpu,
           cpuCount: os.availableParallelism(),
         },
+        comparedTo: { cpu: baseCpu, node: baseNode, sameMachine },
         runs: RUNS,
         tasks: Object.fromEntries(measured),
       },
@@ -278,6 +286,12 @@ async function main(): Promise<number> {
   }
 
   // 9. Print formatted table
+  if (!sameMachine) {
+    console.log(
+      `baseline: ${baseCpu ?? 'unknown CPU'}, Node ${baseNode ?? 'unknown'}; this machine: ${thisCpu ?? 'unknown CPU'}, Node ${process.version}: cross-machine numbers, the thresholds below are a tripwire, not a verdict
+`,
+    );
+  }
   const colName = 30;
   const colBaseline = 14;
   const colCurrent = 14;
