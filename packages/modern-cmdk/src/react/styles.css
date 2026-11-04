@@ -6,6 +6,12 @@
 /* CSS Logical Properties: full RTL/LTR support */
 /* CSS Nesting, @layer cascade control, oklch() color space */
 /* Container queries for responsive item layout */
+/* Secondary text (group headings, shortcuts, empty state, placeholder) is coloured with
+   --command-muted-color, never faded with opacity: opacity stacks on the consumer's text
+   colour and cannot be checked against it. The default is light-dark(), so it follows the
+   used color-scheme of the page (set color-scheme on :root or a parent, or override the
+   token); it is 4.5:1 or better on white, black and the usual near-white / near-black
+   surfaces. Only [data-disabled] items keep opacity (WCAG 1.4.3 exempts disabled controls). */
 
 /* ─── CSS Custom Properties ─── */
 
@@ -99,6 +105,7 @@
   --command-item-height: 44px;
   --command-fade-edge-size: 16px;
   --command-highlight-color: oklch(0.85 0.15 90 / 0.3);
+  --command-muted-color: light-dark(oklch(0.45 0.015 260), oklch(0.75 0.015 260));
 }
 
 /* ─── Spring Easing ─── */
@@ -173,7 +180,9 @@
     font: inherit;
 
     &::placeholder {
-      opacity: 0.5;
+      color: var(--command-muted-color);
+      /* Firefox fades ::placeholder by default; the colour token carries the contrast */
+      opacity: 1;
     }
   }
 
@@ -232,7 +241,7 @@
     font-size: 0.75em;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    opacity: 0.6;
+    color: var(--command-muted-color);
   }
 
   /* ─── Separator ─── */
@@ -255,7 +264,7 @@
 
   [data-command-empty] {
     text-align: center;
-    opacity: 0.6;
+    color: var(--command-muted-color);
   }
 
   /* ─── Shortcut Badge ─── */
@@ -263,7 +272,7 @@
   [data-command-shortcut] {
     font-family: inherit;
     font-size: 0.75em;
-    opacity: 0.5;
+    color: var(--command-muted-color);
     letter-spacing: 0.05em;
   }
 
@@ -543,7 +552,7 @@
     }
 
     [data-command-group-heading] {
-      opacity: 0.8;
+      color: inherit;
     }
 
     [data-command-highlight] {

@@ -14,6 +14,7 @@ import { ErrorBoundaryDemo } from './demos/ErrorBoundaryDemo.js';
 import { HighContrastDemo } from './demos/HighContrastDemo.js';
 import { RTLDemo } from './demos/RTLDemo.js';
 import { VirtualizedDemo } from './demos/VirtualizedDemo.js';
+import { readTheme, type Theme } from './theme.js';
 
 type Route =
   | '/'
@@ -44,9 +45,7 @@ function getRouteFromPathname(): Route {
 }
 
 function ThemeToggle(): React.ReactNode {
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (document.documentElement.dataset.theme as 'dark' | 'light') ?? 'dark';
-  });
+  const [theme, setTheme] = useState<Theme>(readTheme);
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => {
