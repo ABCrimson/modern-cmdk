@@ -91,4 +91,4 @@ Dependencies are declared as caret ranges (`^`) of known-good versions:
 
 ## License
 
-[MIT](https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE) -- Copyright (c) 2026 Crimson Dev
+[MIT](https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE) -- Copyright (c) 2026 Albert Badalov
