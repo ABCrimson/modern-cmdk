@@ -94,7 +94,7 @@ body:
       options:
         - label: I have searched existing issues for duplicates
           required: true
-        - label: I have read the [documentation](https://command.crimson.dev)
+        - label: I have read the [documentation](https://abcrimson.github.io/modern-cmdk/)
           required: false
         - label: I can provide a minimal reproduction
           required: false
