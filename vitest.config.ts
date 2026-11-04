@@ -15,7 +15,7 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     setupFiles: ['./tests/setup.ts'],
-    // vitest/dist/chunks/index.Di8au7q4.js expandBenchmarksInEntries: under `vitest bench` each project's
+    // Vitest 5.1.0, expandBenchmarksInEntries in its node bundle: under `vitest bench` each project's
     // bench variant runs its own benchmark.include, so benchmarks (which assert nothing) live in the 'perf'
     // project, which never sets requireAssertions, and 'unit' benchmarks nothing.
     projects: [
