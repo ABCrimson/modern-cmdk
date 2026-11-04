@@ -223,5 +223,15 @@
     "id": "T48",
     "test": "tests/unit/input-typing.test.tsx::keeps typed characters when an optimistic active-item render lands between keystrokes",
     "status": "covered"
+  },
+  {
+    "id": "CE-102",
+    "test": "tests/unit/scheduler.test.ts::loads on a runtime without a navigator global (feature detection must not throw)",
+    "status": "covered"
+  },
+  {
+    "id": "RDG-103",
+    "test": ".github/workflows/lanes.yml::contains(needs.*.result, 'cancelled')",
+    "status": "gate"
   }
 ]
