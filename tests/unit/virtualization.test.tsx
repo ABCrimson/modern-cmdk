@@ -20,8 +20,12 @@ async function render(ui: React.ReactNode): Promise<void> {
   });
 }
 
-afterEach(() => {
-  root?.unmount();
+afterEach(async () => {
+  if (root) {
+    await act(async () => {
+      root.unmount();
+    });
+  }
   container?.remove();
 });
 

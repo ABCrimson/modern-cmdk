@@ -86,8 +86,12 @@ beforeEach(() => {
   root = createRoot(container);
 });
 
-afterEach(() => {
-  root.unmount();
+// react-dom-client commitRoot schedules a passive-effects task that reads `window.event`;
+// unmounting inside act() flushes it before Vitest tears the happy-dom window down.
+afterEach(async () => {
+  await act(async () => {
+    root.unmount();
+  });
   container.remove();
 });
 
