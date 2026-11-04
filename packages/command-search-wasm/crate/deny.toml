@@ -1,0 +1,31 @@
+# cargo-deny 0.20 policy for command-search-wasm. Run from this directory: `cargo deny check`.
+# The license allow-list is exactly what `cargo deny list` reports for the locked dependency tree;
+# a new license (or a new crate with one) must be reviewed and added here on purpose.
+
+[graph]
+targets = ["wasm32-unknown-unknown", "x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"]
+
+[advisories]
+# Unmaintained or unsound crates fail the check as well, in the whole dependency tree.
+unmaintained = "all"
+unsound = "all"
+yanked = "deny"
+
+[licenses]
+allow = [
+  "Apache-2.0", # bumpalo, serde, serde_json, syn, wasm-bindgen, ...
+  "MIT", # this crate and most of its tree
+  "Unicode-3.0", # unicode-ident
+  "Unlicense", # memchr (Unlicense OR MIT)
+]
+confidence-threshold = 0.93
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
