@@ -565,9 +565,9 @@ Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnp
 | `modern-cmdk/react/dialog` (adapter only) | 1.5 kB | `dist/react/dialog.mjs`, gzip; same ignore list as the adapter |
 | `CommandSeparator` only | 5 kB | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; still contains the whole compound |
 | `modern-cmdk/styles.css` | 4 kB | `dist/react/styles.css`, gzip |
-| Codemod bin | 3.4 MB | `dist/codemod/cli.mjs`, installed size (no compression) |
+| Codemod bin | 3.4 MB | `dist/codemod/cli.mjs` plus `dist/codemod/transforms/*.mjs` (the whole bin), installed size (no compression) |
 
-These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.4.0.json`.
+These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.4.0.json` (6e7c04d); its codemod value (3318819 B) is `cli.mjs` alone, measured at 9827e1f. The whole bin (`cli.mjs` plus the transforms) measured 3325793 B on 2026-11-04 by size-limit (the raw bytes of the five files on disk, no bundling or compression), and the record is re-measured at the RC.
 
 ### Performance rules
 
@@ -575,7 +575,7 @@ These limits are defined in the root `package.json` under `size-limit` and enfor
 - **No barrel re-exports** -- Biome enforces `noBarrelFile` and `noReExportAll`. Each export is explicit.
 - **Iterator Helpers over intermediate arrays** -- Use `.values().filter().map().toArray()` instead of creating temporary arrays.
 - **Set methods over manual loops** -- Use `.intersection()`, `.difference()`, `.union()` for bulk ID operations.
-- **GPU-only CSS animations** -- Only animate `opacity`, `scale`, `translate`, `background-color`. Never `width`, `height`, `top`, `left`.
+- **Animate cheap properties** -- `styles.css` animates `opacity`, `scale`, `translate` and `background-color`; the dialog and overlay transitions (`styles.css:319-380`) are declared but inert until DT-19; never `width`, `top` or `left`. The one deliberate exception is the height of `[data-command-list]`: it declares `transition: height` with `will-change: height` (`styles.css:195-196`), but the library sets only `--command-list-height` on the list (the ResizeObserver height, `list.tsx:107`), so the height animates once the app sets `height: var(--command-list-height)` on `[data-command-list]` (as ARCHITECTURE.md says); no further reason is recorded in the code.
 
 ---
 

@@ -42,7 +42,7 @@ The figures come from [`benchmarks/size-history/1.4.0.json`](https://github.com/
 | `modern-cmdk/react/dialog` (adapter only) | 1425 B | 1.5 kB | `dist/react/dialog.mjs`, gzip; the `radix-ui` import is ignored |
 | `modern-cmdk/react`: `CommandSeparator` only | 4767 B | 5 kB | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import because `Command` is a compound (see [SSR](/guide/ssr#tree-shaking)) |
 | `modern-cmdk/styles.css` | 3932 B | 4 kB | `dist/react/styles.css`, gzip |
-| `modern-cmdk` codemod bin | 3318819 B (raw) | 3.4 MB | `dist/codemod/cli.mjs` installed size, no compression; the transforms are separate files and are not in it |
+| `modern-cmdk` codemod bin | 3318819 B (raw, `cli.mjs` alone) | 3.4 MB | `dist/codemod/cli.mjs` plus `dist/codemod/transforms/*.mjs` installed size, no compression; the recorded value is `cli.mjs` alone at 9827e1f, the whole bin measured 3325793 B on 2026-11-04 and is re-measured at the RC |
 
 For comparison, 1.3 (commit `85a33bf`, size-limit at that commit, quoted from the same record's `baseline_1_3` block) measured `modern-cmdk` at 6355 B and `modern-cmdk/react` at 9844 B, where the React figure was `dist/react/index.mjs` with the core inlined: the pair summed to 16199 B because the core was counted twice. The 1.4.0 build keeps the core external to the adapter (`modern-cmdk` is imported by name), so the adapter alone is 5403 B and the core plus the adapter together is 9830 B.
 

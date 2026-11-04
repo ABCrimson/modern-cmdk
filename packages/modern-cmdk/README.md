@@ -163,7 +163,7 @@ Figures come from [`benchmarks/size-history/1.4.0.json`](https://github.com/ABCr
 | `modern-cmdk/react/dialog`, adapter only | 1425 | gzip, `modern-cmdk` ignored |
 | `modern-cmdk/react`, `CommandSeparator` only | 4767 | gzip, `modern-cmdk` ignored; still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (tree-shaking of the barrel is a 2.0 item) |
 | `modern-cmdk/styles.css` | 3932 | gzip |
-| codemod bin (`dist/codemod/cli.mjs`) | 3318819 | raw, not gzip; the transforms are not in it |
+| codemod bin (`dist/codemod/cli.mjs`, `cli.mjs` alone) | 3318819 | raw, not gzip; the enforced budget covers `cli.mjs` plus `dist/codemod/transforms/*.mjs` (whole bin 3325793 B on 2026-11-04, re-measured at the RC) |
 
 1.3's 9844 B React figure measured `dist/react/index.mjs` with the core inlined, so it was core plus adapter, not the adapter.
 

@@ -596,7 +596,7 @@ Five custom properties are registered with `@property` (`--command-list-height`,
 | `modern-cmdk/react/dialog` only | ≤ 1.5 kB | **Enforced**: `dist/react/dialog.mjs`, gzip, same ignore list. Measured 1425 B |
 | `CommandSeparator` only | ≤ 5 kB | **Enforced**: `import { CommandSeparator }` from `dist/react/index.mjs`, gzip, same ignore list. Measured 4767 B; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (the compound), so this entry is a regression tripwire and not a tree-shaking claim |
 | `modern-cmdk/styles.css` | ≤ 4 kB | **Enforced**: `dist/react/styles.css`, gzip. Measured 3932 B |
-| Codemod bin | ≤ 3.4 MB | **Enforced**: `dist/codemod/cli.mjs`, installed size (no compression). Measured 3318819 B; the transforms are not in it |
+| Codemod bin | ≤ 3.4 MB | **Enforced**: `dist/codemod/cli.mjs` plus `dist/codemod/transforms/*.mjs` (the whole bin), installed size (no compression). The record `benchmarks/size-history/1.4.0.json` (6e7c04d) holds 3318819 B, `cli.mjs` alone at 9827e1f; the whole bin measured 3325793 B on 2026-11-04, re-measured at the RC |
 | WASM binary (gzipped) | no budget; about 52 kB measured (113,495 bytes raw) | Not enforced (package private, not in `size-limit`) |
 | Search latency (10K items, TS scorer) | < 16 ms | Tripwire on the named task `search:ts-scorer-10k`: `pnpm bench:compare` against `benchmarks/baseline.json` warns above a 5% regression and fails the CI bench job above 15% or when the median exceeds the 16 ms `target_ms` (see below). |
 | Search latency (100K items, WASM engine) | none (unmeasured) | Target (not enforced); no figure has been measured |
