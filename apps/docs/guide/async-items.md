@@ -11,6 +11,7 @@ Wrap your async data source in `<Command.AsyncItems>`. The component suspends wh
 
 import type { CommandItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
+import { useMemo } from 'react';
 
 async function fetchCommands(): Promise<readonly CommandItem[]> {
   const res = await fetch('/api/commands');
@@ -18,6 +19,10 @@ async function fetchCommands(): Promise<readonly CommandItem[]> {
 }
 
 function AsyncCommandPalette() {
+  // useMemo keeps one promise across re-renders; fetchCommands() inline in the JSX
+  // would create a new promise on every render and suspend again each time.
+  const commands = useMemo(() => fetchCommands(), []);
+
   return (
     <Command>
       <Command.Input placeholder="Search commands..." />
@@ -25,7 +30,7 @@ function AsyncCommandPalette() {
         <Command.Empty>No results found.</Command.Empty>
 
         <Command.AsyncItems
-          items={fetchCommands()}
+          items={commands}
           fallback={<div>Loading results...</div>}
         >
           {(items) =>
@@ -44,7 +49,9 @@ function AsyncCommandPalette() {
 
 ## Debounced API Search
 
-For real-world usage, you typically want to debounce the search input before making API calls. `<Command.AsyncItems>` suspends while its promise is pending and shows `fallback` meanwhile:
+For real-world usage, you typically want to debounce the search input before making API calls. The sample defines a `useDebouncedValue` hook (a `setTimeout` that restarts on every keystroke) and passes the debounced query to a cached search. `<Command.AsyncItems>` suspends while its promise is pending and shows `fallback` meanwhile.
+
+The promise must be created where it is cached, not in render: a new promise on every render suspends again each time (see [Server-Side Rendering](/guide/ssr)). The module-level `Map` below keys one promise per query, so re-rendering with the same query reuses it and returning to an earlier query is served from the cache. It is never evicted, so bound it in a real app.
 
 ```tsx
 'use client';
@@ -52,12 +59,25 @@ For real-world usage, you typically want to debounce the search input before mak
 import type { CommandItem } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
 import { Command, useCommandState } from 'modern-cmdk/react';
+import { useEffect, useState } from 'react';
 
 interface ApiResult {
   id: string;
   title: string;
   description: string;
   category: string;
+}
+
+// Returns `value` only after it has stopped changing for `delayMs`
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+
+  return debounced;
 }
 
 // Map raw API results into CommandItem shape — AsyncItems requires
@@ -80,12 +100,28 @@ async function searchAPI(query: string): Promise<readonly CommandItem[]> {
   }));
 }
 
+// One promise per query, created here so it is stable across renders (React's pattern
+// for a promise created on the client and read with use())
+const cache = new Map<string, Promise<readonly CommandItem[]>>();
+
+function cachedSearch(query: string): Promise<readonly CommandItem[]> {
+  let promise = cache.get(query);
+  if (!promise) {
+    promise = searchAPI(query);
+    cache.set(query, promise);
+  }
+  return promise;
+}
+
 function SearchResults() {
-  const query = useCommandState((state) => state.search);
+  const query = useDebouncedValue(
+    useCommandState((state) => state.search),
+    200,
+  );
 
   return (
     <Command.AsyncItems
-      items={searchAPI(query)}
+      items={cachedSearch(query)}
       fallback={<Command.Loading loading>Searching...</Command.Loading>}
     >
       {(results) => (
@@ -135,6 +171,7 @@ Each `<Command.AsyncItems>` renders its own `<Suspense>` boundary around the loa
 
 import type { CommandItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
+import { useMemo } from 'react';
 
 async function fetchRecent(): Promise<readonly CommandItem[]> {
   const res = await fetch('/api/commands/recent');
@@ -147,13 +184,17 @@ async function fetchAllCommands(): Promise<readonly CommandItem[]> {
 }
 
 export function GranularLoading() {
+  // One promise per source, kept across re-renders by useMemo
+  const recent = useMemo(() => fetchRecent(), []);
+  const allCommands = useMemo(() => fetchAllCommands(), []);
+
   return (
     <Command>
       <Command.Input placeholder="Search commands..." />
       <Command.List>
         <Command.Group heading="Recent">
           <Command.AsyncItems
-            items={fetchRecent()}
+            items={recent}
             fallback={<Command.Loading loading>Loading recent...</Command.Loading>}
           >
             {(items) => items.map((item) => (
@@ -164,7 +205,7 @@ export function GranularLoading() {
 
         <Command.Group heading="All Commands">
           <Command.AsyncItems
-            items={fetchAllCommands()}
+            items={allCommands}
             fallback={<Command.Loading loading>Loading commands...</Command.Loading>}
           >
             {(items) => items.map((item) => (
@@ -180,7 +221,7 @@ export function GranularLoading() {
 
 ## Error Handling
 
-Wrap `<Command.AsyncItems>` in `<CommandErrorBoundary>`, exported by `modern-cmdk/react`, so a rejected promise renders a fallback instead of unmounting the tree. Its `fallback` is a node or a function `(error: Error) => ReactNode`, and `onError` receives the error and React's `ErrorInfo`. It has no reset prop: change its `key` to remount the subtree and retry, as the sample does.
+Wrap `<Command.AsyncItems>` in `<CommandErrorBoundary>`, exported by `modern-cmdk/react`, so a rejected promise renders a fallback instead of unmounting the tree. Its `fallback` is a node or a function `(error: Error) => ReactNode`, and `onError` receives the error and React's `ErrorInfo`. It has no reset prop: change its `key` to remount the subtree and retry, as the sample does. The promise is cached at module level so re-renders reuse it, which means a rejected promise would be reused too: `onError` deletes the cache entry before the remount, so the retry fetches again.
 
 ```tsx
 'use client';
@@ -195,10 +236,22 @@ async function fetchCommands(): Promise<readonly CommandItem[]> {
   return res.json();
 }
 
+// Created once per key and reused across renders; a rejected entry is deleted in onError
+const cache = new Map<string, Promise<readonly CommandItem[]>>();
+
+function cachedCommands(): Promise<readonly CommandItem[]> {
+  let promise = cache.get('commands');
+  if (!promise) {
+    promise = fetchCommands();
+    cache.set('commands', promise);
+  }
+  return promise;
+}
+
 function SearchResults() {
   return (
     <Command.AsyncItems
-      items={fetchCommands()}
+      items={cachedCommands()}
       fallback={<Command.Loading loading>Searching...</Command.Loading>}
     >
       {(items) =>
@@ -222,6 +275,7 @@ export function ResilientSearch() {
         <Command.Empty>No results.</Command.Empty>
         <CommandErrorBoundary
           key={attempt}
+          onError={() => cache.delete('commands')}
           fallback={(error) => (
             <div role="alert" data-command-error>
               <p>Search failed: {error.message}</p>

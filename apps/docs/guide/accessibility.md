@@ -138,15 +138,19 @@ When no results match the query, `<Command.Empty>` renders with `role="status"` 
 
 ## Loading State
 
-During async data loading, `<Command.Loading>` sets `aria-busy="true"` on the list:
+`<Command.Loading loading>` renders its own element and announces the loading state there: `role="status"`, `aria-live="assertive"` and `aria-busy` on that element, not on the list. Without the `loading` prop it renders only while the machine reports loading or a React transition is pending:
 
 ```html
-<div role="listbox" aria-busy="true" data-command-list>
-  <div role="status" data-command-loading>
-    Searching...
+<div role="listbox" aria-busy="false" data-command-list>
+  <div data-command-list-inner>
+    <div role="status" aria-live="assertive" aria-busy="true" data-command-loading>
+      Searching...
+    </div>
   </div>
 </div>
 ```
+
+The list's own `aria-busy` mirrors `state.loading`, which nothing sets to `true` in 1.4.0 (ARCH-59 tracks the core change), so it stays `"false"`.
 
 ## `forced-colors: active` Support
 
