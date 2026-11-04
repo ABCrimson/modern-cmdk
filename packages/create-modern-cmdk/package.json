@@ -27,7 +27,7 @@
   "devDependencies": {
     "@types/node": "26.6.6",
     "tsdown": "0.23.5",
-    "typescript": "7.1.0-dev.20261104.1"
+    "typescript": "catalog:"
   },
   "keywords": [
     "create",

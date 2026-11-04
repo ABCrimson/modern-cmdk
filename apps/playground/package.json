@@ -10,12 +10,12 @@
   "dependencies": {
     "modern-cmdk": "workspace:*",
     "radix-ui": "1.8.2-rc.1791984254107",
-    "react": "0.0.0-experimental-e84e1492-20261031",
-    "react-dom": "0.0.0-experimental-e84e1492-20261031"
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
-    "vite": "8.3.5",
+    "vite": "catalog:",
     "@vitejs/plugin-react": "6.2.1",
-    "typescript": "7.1.0-dev.20261104.1"
+    "typescript": "catalog:"
   }
 }

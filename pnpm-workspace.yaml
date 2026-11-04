@@ -1,9 +1,17 @@
 packages:
   - 'packages/*'
   - 'apps/*'
-overrides:
+# Single source of the dev pins the workspace manifests share (RDG-66, D54). Workspace manifests reference them as catalog:; the freshness sweep checks these entries at this site (dep-freshness-catalog.mjs, 2026-11-04). apps/docs keeps its own typescript pin (a scoped hold for vue-tsc) and the tests/consumers apps are not workspace projects.
+catalog:
+  '@types/react': 19.3.0
+  '@types/react-dom': 19.3.0
   react: 0.0.0-experimental-e84e1492-20261031
   react-dom: 0.0.0-experimental-e84e1492-20261031
+  typescript: 7.1.0-dev.20261104.1
+  vite: 8.3.5
+overrides:
+  react: 'catalog:'
+  react-dom: 'catalog:'
 allowBuilds:
   esbuild: true
   lefthook: true
