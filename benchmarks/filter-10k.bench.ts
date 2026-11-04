@@ -4,7 +4,7 @@ import { describe, test } from 'vitest';
 
 const WORDS = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
 
-// ES2026 Iterator Helpers — generate benchmark items via iterator pipeline
+// ES2025 Iterator Helpers — generate benchmark items via iterator pipeline
 function generateItems(count: number): CommandItem[] {
   return Iterator.from({
     [Symbol.iterator]: function* () {

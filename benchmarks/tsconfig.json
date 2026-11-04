@@ -1,0 +1,15 @@
+{
+  // Type-checks the vitest benches and the standalone harness. Run after `pnpm build`: the paths
+  // below resolve to the built dist declarations, the same files the standalone harness imports.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // The root has no @types/node; create-modern-cmdk's copy is the only one installed.
+    "typeRoots": ["../node_modules/@types", "../packages/create-modern-cmdk/node_modules/@types"],
+    "paths": {
+      "modern-cmdk": ["../packages/modern-cmdk/dist/core/index.d.mts"],
+      "modern-cmdk-search-wasm": ["../packages/command-search-wasm/dist/index.d.ts"]
+    }
+  },
+  "include": ["*.bench.ts", "standalone/**/*.ts"]
+}
