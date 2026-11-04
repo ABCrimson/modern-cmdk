@@ -76,27 +76,19 @@
   <!-- Divider line -->
   <line x1="400" y1="380" x2="800" y2="380" stroke="#dc2626" stroke-width="2" opacity="0.4" />
 
-  <!-- Stats pills -->
+  <!-- Claim pills: only what ships in 1.x, and nothing that goes stale with a release -->
   <g transform="translate(600, 430)">
-    <!-- 2.8KB core -->
-    <g transform="translate(-330, 0)">
-      <rect x="0" y="-18" width="140" height="36" rx="18" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" />
-      <text x="70" y="6" font-family="'SF Mono', 'Cascadia Code', 'Fira Code', monospace" font-size="15" font-weight="600" fill="#e0e0f0" text-anchor="middle">2.8KB core</text>
+    <g transform="translate(-235, 0)">
+      <rect x="0" y="-18" width="160" height="36" rx="18" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" />
+      <text x="80" y="6" font-family="'SF Mono', 'Cascadia Code', 'Fira Code', monospace" font-size="15" font-weight="600" fill="#e0e0f0" text-anchor="middle">headless core</text>
     </g>
-    <!-- React 19 -->
-    <g transform="translate(-155, 0)">
+    <g transform="translate(-50, 0)">
       <rect x="0" y="-18" width="130" height="36" rx="18" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" />
       <text x="65" y="6" font-family="'SF Mono', 'Cascadia Code', 'Fira Code', monospace" font-size="15" font-weight="600" fill="#e0e0f0" text-anchor="middle">React 19</text>
     </g>
-    <!-- ES2026 -->
-    <g transform="translate(10, 0)">
-      <rect x="0" y="-18" width="120" height="36" rx="18" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" />
-      <text x="60" y="6" font-family="'SF Mono', 'Cascadia Code', 'Fira Code', monospace" font-size="15" font-weight="600" fill="#e0e0f0" text-anchor="middle">ES2026</text>
-    </g>
-    <!-- WASM -->
-    <g transform="translate(165, 0)">
-      <rect x="0" y="-18" width="110" height="36" rx="18" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" />
-      <text x="55" y="6" font-family="'SF Mono', 'Cascadia Code', 'Fira Code', monospace" font-size="15" font-weight="600" fill="#e0e0f0" text-anchor="middle">WASM</text>
+    <g transform="translate(105, 0)">
+      <rect x="0" y="-18" width="130" height="36" rx="18" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" />
+      <text x="65" y="6" font-family="'SF Mono', 'Cascadia Code', 'Fira Code', monospace" font-size="15" font-weight="600" fill="#e0e0f0" text-anchor="middle">WAI-ARIA</text>
     </g>
   </g>
 
