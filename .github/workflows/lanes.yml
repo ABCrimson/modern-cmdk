@@ -17,6 +17,12 @@ permissions:
   contents: read
 
 jobs:
+  # The two jobs that run scripts/lane.mjs (react-canary, typescript) install unvetted young builds
+  # (`--no-frozen-lockfile --config.minimumReleaseAge=0`), so they do not use `cache: pnpm`: setup-node keys
+  # that cache on the OS, architecture and lockfile hash alone, and a scheduled run saves to the default
+  # branch, which ci.yml and docs.yml restore from. Their pins change daily, so the cache
+  # would buy little. xcode-27 and audit install from the committed lockfile with `--frozen-lockfile`
+  # and keep it.
   react-canary:
     name: React canary
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
@@ -30,7 +36,6 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: pnpm
       - run: node scripts/lane.mjs react-canary
       - run: pnpm --filter modern-cmdk exec tsc --noEmit
       - run: pnpm exec vitest run --exclude "tests/dist/**"
@@ -52,7 +57,6 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: pnpm
       # The lane prints "skipped" and sets skipped=true when the rc tag is not newer than latest;
       # the steps below then do not run, so a skipped lane is never reported as a tested one.
       - id: lane
@@ -120,7 +124,7 @@ jobs:
           failed=$(jq -r 'to_entries | map(select(.value.result == "failure" or .value.result == "cancelled") | .key) | join(", ")' <<<"$NEEDS")
           body="Red lane job(s): ${failed}. Run: ${RUN_URL}"
           if ! gh label list --limit 200 --json name --jq '.[].name' | grep -qx 'lane-red'; then
-            gh label create lane-red --color B60205 --description 'A scheduled lane in lanes.yml is red'
+            gh label create lane-red --color B60205 --description 'A scheduled lane in lanes.yml is red; blocks release.yml'
           fi
           number=$(gh issue list --label lane-red --state open --json number --jq '.[0].number // empty')
           if [ -n "$number" ]; then

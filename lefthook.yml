@@ -7,17 +7,27 @@ pre-commit:
       run: pnpm exec biome check --staged --no-errors-on-unmatched {staged_files}
     - name: typecheck
       glob: "*.{ts,tsx}"
-      run: pnpm --filter 'modern-cmdk' exec tsc --noEmit
+      # The same script CI's lint job runs: it needs no build output
+      run: pnpm typecheck
       skip:
         - merge
         - rebase
 
+# `piped` runs the jobs in order and stops at the first failure: the build comes first because
+# tests/dist/* import packages/*/dist, and a stale dist failed tests/dist/devtools.test.tsx
+# (ledger G-09). The group after it runs the tests and the size check in parallel on that one build.
 pre-push:
-  parallel: true
+  piped: true
   jobs:
-    - name: test
-      run: pnpm exec vitest run --reporter=dot
-    - name: size
-      # Only check size if packages changed — skip full rebuild on docs-only pushes
-      glob: "packages/*/src/**/*.{ts,tsx}"
-      run: pnpm --filter './packages/*' run build && pnpm exec size-limit
+    - name: build
+      run: pnpm --filter './packages/*' run build
+    - name: verify
+      group:
+        parallel: true
+        jobs:
+          - name: test
+            run: pnpm exec vitest run --reporter=dot
+          - name: size
+            # Only check size if packages changed — skip it on docs-only pushes (the build above always runs)
+            glob: "packages/*/src/**/*.{ts,tsx}"
+            run: pnpm exec size-limit

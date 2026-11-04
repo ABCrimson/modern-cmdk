@@ -24,7 +24,10 @@ permissions: {}
 # never reaches backfill.
 #
 # ci-gate holds every other job until the ci.yml run for the same commit has completed and
-# succeeded: nothing is published or released for a commit whose CI is red or cancelled.
+# succeeded: nothing is published or released for a commit whose CI is red or cancelled. It also
+# fails while any issue labelled `lane-red` is open: lanes.yml opens one when a scheduled lane (React
+# canary, TypeScript latest or rc, xcode-27, weekly audit) is red, so a red lane blocks the next
+# release. To override, fix the lane and close the issue; there is no other switch.
 # `workflow_run` was rejected because its GITHUB_SHA and GITHUB_REF are the default branch
 # head, not the commit that CI checked. ci.yml starts in parallel with this workflow, so
 # the gate polls until that run appears and finishes.
@@ -46,18 +49,32 @@ permissions: {}
 # the two npm versions that were published without them (see the job for why it needs a
 # token other than the GITHUB_TOKEN).
 #
-# Per the changesets guide, git credentials are not persisted on disk and the jobs that
-# version, pack or publish do not restore the pnpm cache (cache poisoning).
+# Per the changesets guide, git credentials are not persisted on disk and no job here restores the
+# pnpm cache (cache poisoning): setup-node keys it on the OS, architecture and lockfile hash alone,
+# so any job that installs from the same lockfile could have written the entry a publishing job
+# would restore. select-mode is included because it creates the publish plan that pack and publish consume.
 jobs:
   ci-gate:
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     permissions:
       actions: read # gh run list
+      issues: read # gh issue list
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
+      - name: Fail while a scheduled lane is red
+        shell: bash
+        run: |
+          open=$(gh issue list --label lane-red --state open --json number --jq length)
+          if [ "$open" -ne 0 ]; then
+            echo "Open lane-red issues:"
+            gh issue list --label lane-red --state open --json url --jq '.[].url'
+            echo "::error::$open open lane-red issue(s) block the release. Fix the lane, then close the issue."
+            exit 1
+          fi
+          echo "No open lane-red issue"
       - name: Wait for CI on this commit
         shell: bash
         run: |
@@ -104,7 +121,6 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Select Changesets mode
         id: select-mode
@@ -154,7 +170,7 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r --filter '!docs' --filter '!playground' --filter '!modern-cmdk-monorepo' --parallel run build
+      - run: pnpm --filter './packages/*' run build
       - name: Pack packages
         id: pack
         uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2

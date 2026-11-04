@@ -1,15 +1,15 @@
 {
-  // Type-checks the vitest benches and the standalone harness. Run after `pnpm build`: the paths
-  // below resolve to the built dist declarations, the same files the standalone harness imports.
+  // Type-checks the vitest benches and the standalone harness. Run after `pnpm build`: the `modern-cmdk`
+  // path below resolves to the built dist declarations, the same files the standalone harness imports.
+  // The wasm package resolves to its source instead: its dist exists only after the Rust build, and
+  // src/pkg.d.ts (included below) stands in for the wasm-pack output, so this check needs no pkg/.
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "types": ["node"],
-    // The root has no @types/node; create-modern-cmdk's copy is the only one installed.
-    "typeRoots": ["../node_modules/@types", "../packages/create-modern-cmdk/node_modules/@types"],
     "paths": {
       "modern-cmdk": ["../packages/modern-cmdk/dist/core/index.d.mts"],
-      "modern-cmdk-search-wasm": ["../packages/command-search-wasm/dist/index.d.ts"]
+      "modern-cmdk-search-wasm": ["../packages/command-search-wasm/src/index.ts"]
     }
   },
-  "include": ["*.bench.ts", "standalone/**/*.ts"]
+  "include": ["*.bench.ts", "standalone/**/*.ts", "../packages/command-search-wasm/src/pkg.d.ts"]
 }
