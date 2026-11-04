@@ -16,7 +16,12 @@ export interface Thresholds {
   readonly floor_ms?: number;
 }
 
+/**
+ * One comparison. `key` is the baseline.json row (`<category>:<key>`); when given, the harness error
+ * for a below-floor row without a target_ms is prefixed with it, so the reader knows which entry needs one.
+ */
 export interface ClassifyInput {
+  readonly key?: string;
   readonly baseline_ms: number;
   readonly current_ms: number;
   /** The published absolute target; absent means the entry has none. */
@@ -34,8 +39,9 @@ export interface Classification {
   readonly reason: Reason;
 }
 
+/** Classifies one row; throws, naming `input.key` when given, for a below-floor baseline without a target_ms. */
 export function classify(input: ClassifyInput): Classification {
-  const { baseline_ms, current_ms, target_ms, thresholds } = input;
+  const { key, baseline_ms, current_ms, target_ms, thresholds } = input;
   const delta_pct = (current_ms - baseline_ms) / baseline_ms;
   if (target_ms !== undefined && current_ms > target_ms) {
     return { status: 'FAIL', delta_pct, reason: 'above target' };
@@ -43,7 +49,7 @@ export function classify(input: ClassifyInput): Classification {
   if (baseline_ms < (thresholds.floor_ms ?? 0)) {
     if (target_ms === undefined) {
       throw new Error(
-        `baseline median ${baseline_ms} ms is below floor_ms but has no target_ms: nothing would check it`,
+        `${key === undefined ? '' : `${key}: `}baseline median ${baseline_ms} ms is below floor_ms but has no target_ms: nothing would check it`,
       );
     }
     return { status: 'PASS', delta_pct, reason: 'below floor' };
