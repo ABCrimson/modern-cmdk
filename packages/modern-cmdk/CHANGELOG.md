@@ -1,5 +1,13 @@
 # modern-cmdk
 
+## 1.2.3
+
+### Patch Changes
+
+- [#52](https://github.com/ABCrimson/modern-cmdk/pull/52) [`e55cce7`](https://github.com/ABCrimson/modern-cmdk/commit/e55cce780aaab5a3da922432a0918b6c54614e25) Thanks [@ABCrimson](https://github.com/ABCrimson)! - `useCommandDevtools` no longer throws `ReferenceError: __DEV__ is not defined` in published builds. Development-only code (the devtools bridge and the search-engine leak detector) is now gated on `process.env.NODE_ENV`, with a safe production fallback when no bundler replaces it; the leak detector stays off during SSR.
+
+- [#42](https://github.com/ABCrimson/modern-cmdk/pull/42) [`541a5d7`](https://github.com/ABCrimson/modern-cmdk/commit/541a5d7e961ff36bcc5aa68329f0dd6f5e617368) Thanks [@ABCrimson](https://github.com/ABCrimson)! - Republish built with the current toolchain (TypeScript 7.1, tsdown 0.23.5 with oxc declaration emit). The `core` and `react` entry points are runtime- and type-identical to the previous build apart from comments; the bundled codemod CLI (`dist/codemod/cli.mjs`) picks up newer versions of its bundled dependencies (glob matching and file-walking helpers).
+
 ## 1.2.2
 
 ### Patch Changes
