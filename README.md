@@ -356,7 +356,7 @@ pnpm install && pnpm build && pnpm test
 | `pnpm test` | Unit tests (Vitest 5, happy-dom) |
 | `pnpm test:e2e` | E2E tests (Playwright 1.66 -- Chromium; Firefox and WebKit opt-in via `E2E_ENGINES=all`) |
 | `pnpm bench` | Benchmarks (Vitest bench mode) |
-| `pnpm lint` | Lint (Biome 2.6.4) |
+| `pnpm lint` | Lint (Biome 2.6.5) |
 | `pnpm typecheck` | Type-check (TypeScript 7.1.0-dev.20261104.1) |
 | `pnpm size` | Bundle size budgets |
 | `pnpm docs:dev` | Docs dev server (VitePress 2.0) |
@@ -375,7 +375,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. See [ARCHITECTURE.m
 | Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261104d36e9ba1f8) | ES2025 Iterator helpers, Explicit Resource Management |
 | Vitest | 5.1.0 | Unit tests, benchmarks, V8 coverage |
 | Playwright | 1.66.0-alpha-2026-11-04 | E2E (Chromium; Firefox and WebKit opt-in via `E2E_ENGINES=all`) |
-| Biome | 2.6.4 | Lint + format (no ESLint, no Prettier) |
+| Biome | 2.6.5 | Lint + format (no ESLint, no Prettier) |
 | tsdown | 0.23.5 | ESM builds, isolated declarations |
 | pnpm | 12.17.0 | Workspace protocol, lockfile v9 |
 | VitePress | 2.0.0-alpha.21 | Documentation, Shiki |
