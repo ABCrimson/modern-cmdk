@@ -1,7 +1,7 @@
 'use client';
 
-// packages/command-react/src/hooks/use-command.ts
-// Core hook — useSyncExternalStore (native React 19), useTransition, useOptimistic, useId
+// packages/modern-cmdk/src/react/hooks/use-command.ts
+// Core hook — useSyncExternalStore (native React 19), useTransition (optimistic active item only), useOptimistic, useId
 // Isolated declarations: explicit return types on all exports
 // Branded CommandRootId type for type-safe ID propagation
 
@@ -18,7 +18,9 @@ import type { CommandRootId } from '../context.js';
 
 export interface UseCommandReturn {
   readonly state: CommandState;
+  /** True while an optimistic active-item transition is in flight. Search updates never set it: the machine applies them on its own scheduler tick, outside React. */
   readonly isPending: boolean;
+  /** Queue a search query on the machine. Not a React update: Command.Input owns the urgent input value. */
   readonly updateSearch: (query: string) => void;
   readonly setOptimisticActiveId: (id: ItemId | null) => void;
   /** O(1) membership set for filtered items — used by Item component */
@@ -26,7 +28,7 @@ export interface UseCommandReturn {
   readonly id: CommandRootId;
 }
 
-/** Core hook that binds a CommandMachine to React via useSyncExternalStore, useTransition, and useOptimistic. */
+/** Core hook that binds a CommandMachine to React via useSyncExternalStore, useOptimistic, and a transition for optimistic active-item updates. */
 export function useCommand(machine: CommandMachine): UseCommandReturn {
   const id = useId() as CommandRootId;
   const [isPending, startTransition] = useTransition();
@@ -61,12 +63,12 @@ export function useCommand(machine: CommandMachine): UseCommandReturn {
     [rawSetOptimisticActiveId],
   );
 
-  // Search wrapped in transition — input stays responsive during re-render
+  // machine.send only enqueues the event on the machine's scheduler (rAF in browsers); filtering
+  // and the state update happen on that tick, outside React. A transition around it would wrap no
+  // React update, so it is a plain call. The input's own value is urgent local state (Command.Input).
   const updateSearch = useCallback(
     (query: string): void => {
-      startTransition(() => {
-        machine.send({ type: 'SEARCH_CHANGE', query });
-      });
+      machine.send({ type: 'SEARCH_CHANGE', query });
     },
     [machine],
   );
