@@ -88,6 +88,20 @@
       "license": "EPL-2.0 OR GPL-3.0-or-later",
       "ships": false,
       "reason": "Dependency of mermaid 12.3.0 in apps/docs, used only by the docs site; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "@img/sharp-libvips-*",
+      "license": "LGPL-3.0-or-later",
+      "ships": false,
+      "platforms": ["linux", "darwin"],
+      "reason": "The libvips build that @img/sharp-linux-* and @img/sharp-darwin-* load on Linux and macOS (@img/sharp-libvips-linux-x64 1.3.4 on the ubuntu x64 CI runners; the darwin builds are LGPL-3.0-or-later too); an optional platform binary of sharp, an optional dependency of next 16.5.0-canary.40, a root devDependency since 2026-11-04 for the docs-samples gate (TEB-84); not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "@img/sharp-win32-*",
+      "license": "Apache-2.0 AND LGPL-3.0-or-later",
+      "ships": false,
+      "platforms": ["win32"],
+      "reason": "The Windows platform binary of sharp, which bundles libvips (@img/sharp-win32-x64 0.35.5); an optional platform binary of sharp, an optional dependency of next 16.5.0-canary.40, a root devDependency since 2026-11-04 for the docs-samples gate (TEB-84); not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     }
   ],
   "licenseFiles": [

@@ -57,3 +57,15 @@ minimumReleaseAgeExclude:
   - playwright@1.66.0-alpha-2026-11-04
   - tsdown@0.23.5
   - typescript@7.1.0-dev.20261104.1
+  # next@16.5.0-canary.40 (the tests/consumers/next-app pin) was published 2026-11-03T23:53Z, under the 24 h minimumReleaseAge at the
+  # 2026-11-04 root devDependency add for the docs-samples gate (TEB-84); with its @next/env and platform binaries. Drop after a day.
+  - next@16.5.0-canary.40
+  - '@next/env@16.5.0-canary.40'
+  - '@next/swc-darwin-arm64@16.5.0-canary.40'
+  - '@next/swc-darwin-x64@16.5.0-canary.40'
+  - '@next/swc-linux-arm64-gnu@16.5.0-canary.40'
+  - '@next/swc-linux-arm64-musl@16.5.0-canary.40'
+  - '@next/swc-linux-x64-gnu@16.5.0-canary.40'
+  - '@next/swc-linux-x64-musl@16.5.0-canary.40'
+  - '@next/swc-win32-arm64-msvc@16.5.0-canary.40'
+  - '@next/swc-win32-x64-msvc@16.5.0-canary.40'

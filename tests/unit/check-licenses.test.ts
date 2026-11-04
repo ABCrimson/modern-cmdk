@@ -121,6 +121,50 @@ describe('check-licenses evaluate', () => {
     expect(evaluate(report, stale).join('\n')).toContain('stale exception');
   });
 
+  describe('platform-scoped exceptions', () => {
+    const report: LicenseReport = {
+      'LGPL-3.0-or-later': [pkg('@img/sharp-libvips-linux-x64', '1.3.4', 'LGPL-3.0-or-later')],
+    };
+    const entry = (platforms: unknown): unknown => ({
+      package: '@img/sharp-win32-*',
+      license: 'Apache-2.0 AND LGPL-3.0-or-later',
+      ships: false,
+      platforms,
+      reason: 'Windows binary of sharp, not shipped',
+    });
+    const none: LicenseReport = { MIT: [pkg('left-pad', '1.0.0', 'MIT')] };
+
+    it('is not stale on a platform outside its platforms list', () => {
+      expect(evaluate(none, { ...policy, exceptions: [entry(['win32'])] }, 'linux')).toEqual([]);
+    });
+
+    it('is stale on a listed platform when no package matches', () => {
+      const violations = evaluate(none, { ...policy, exceptions: [entry(['win32'])] }, 'win32');
+      expect(violations).toHaveLength(1);
+      expect(violations[0]).toContain('stale exception');
+    });
+
+    it('grants nothing on a platform outside its platforms list', () => {
+      const libvips = {
+        package: '@img/sharp-libvips-*',
+        license: 'LGPL-3.0-or-later',
+        ships: false,
+        platforms: ['linux'],
+        reason: 'optional binary, not shipped',
+      };
+      expect(evaluate(report, { ...policy, exceptions: [libvips] }, 'linux')).toEqual([]);
+      expect(evaluate(report, { ...policy, exceptions: [libvips] }, 'win32').join(',')).toContain(
+        'has no exception',
+      );
+    });
+
+    it('treats an empty platforms list as malformed', () => {
+      expect(evaluate(none, { ...policy, exceptions: [entry([])] }, 'linux').join(',')).toContain(
+        'malformed',
+      );
+    });
+  });
+
   it('rejects an exception without a reason', () => {
     const report: LicenseReport = { 'MPL-2.0': [pkg('axe-ish', '4.0.0', 'MPL-2.0')] };
     const noReason: LicensePolicy = {
@@ -505,8 +549,8 @@ describe('check-licenses real policy', () => {
   const policyPath = join(import.meta.dirname, '..', 'package', 'license-policy.json');
   const real = JSON.parse(readFileSync(policyPath, 'utf8')) as LicensePolicyInput;
 
-  it('keeps its 13 exceptions and declares khroma 2.1.0 by file hash', () => {
-    expect(real.exceptions).toHaveLength(13);
+  it('keeps its 15 exceptions and declares khroma 2.1.0 by file hash', () => {
+    expect(real.exceptions).toHaveLength(15);
     expect(real.licenseFiles).toHaveLength(1);
     const [entry] = real.licenseFiles ?? [];
     expect(entry).toMatchObject({
