@@ -110,4 +110,23 @@ describe('Scheduler', () => {
     await scheduler.flush();
     expect(order).toEqual([1, 2, 3]);
   });
+  it('loads on a runtime without a navigator global (feature detection must not throw)', async () => {
+    // Node 21+ and every browser define navigator; older runtimes and embedded engines do not.
+    // `typeof navigator?.x` throws a ReferenceError there, because typeof guards only a bare identifier.
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    Reflect.deleteProperty(globalThis, 'navigator');
+    try {
+      expect(typeof navigator, 'the test could not remove the navigator global').toBe('undefined');
+      vi.resetModules();
+      const fresh = await import('modern-cmdk');
+      using scheduler = fresh.createScheduler();
+      const fn = vi.fn();
+      scheduler.schedule(fn);
+      scheduler.flush();
+      expect(fn).toHaveBeenCalledOnce();
+    } finally {
+      if (descriptor) Object.defineProperty(globalThis, 'navigator', descriptor);
+      vi.resetModules();
+    }
+  });
 });

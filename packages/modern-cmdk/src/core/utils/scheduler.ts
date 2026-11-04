@@ -15,9 +15,11 @@ export interface Scheduler extends Disposable {
 /** Whether we're in a browser environment with rAF available */
 const hasRAF: boolean = typeof requestAnimationFrame === 'function';
 
-/** Feature detection for cutting-edge scheduling APIs */
+/** Feature detection for cutting-edge scheduling APIs, read through globalThis: typeof guards only a bare
+ * identifier, so `typeof navigator?.scheduling` would throw where navigator is undeclared (runtimes without one). */
 const canYield: boolean = typeof globalThis.scheduler?.yield === 'function';
-const hasInputPending: boolean = typeof navigator?.scheduling?.isInputPending === 'function';
+const hasInputPending: boolean =
+  typeof globalThis.navigator?.scheduling?.isInputPending === 'function';
 
 /**
  * Creates a batched update scheduler. Coalesces rapid state updates into a single
