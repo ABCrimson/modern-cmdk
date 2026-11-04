@@ -63,14 +63,25 @@ function App() {
 Items can register global keyboard shortcuts:
 
 ```tsx
-<Command.Item
-  value="copy"
-  shortcut="Mod+C"
-  onSelect={handleCopy}
->
-  Copy
-  <Command.Shortcut shortcut="Mod+C" />
-</Command.Item>
+import { Command } from 'modern-cmdk/react';
+
+export function CopyPalette() {
+  return (
+    <Command>
+      <Command.Input placeholder="Search..." />
+      <Command.List>
+        <Command.Item
+          value="copy"
+          shortcut="Mod+C"
+          onSelect={() => void navigator.clipboard.writeText(window.location.href)}
+        >
+          Copy
+          <Command.Shortcut shortcut="Mod+C" />
+        </Command.Item>
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 ## Search Match Highlighting
@@ -78,12 +89,23 @@ Items can register global keyboard shortcuts:
 Use `Command.Highlight` to show where the search query matched:
 
 ```tsx
-<Command.Item value="application settings">
-  <Command.Highlight
-    text="Application Settings"
-    ranges={[/* match ranges from scorer */]}
-  />
-</Command.Item>
+import { Command } from 'modern-cmdk/react';
+
+export function HighlightedItem() {
+  return (
+    <Command>
+      <Command.Input placeholder="Search..." />
+      <Command.List>
+        <Command.Item value="application settings">
+          <Command.Highlight
+            text="Application Settings"
+            ranges={[/* match ranges from scorer */]}
+          />
+        </Command.Item>
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 ## Component Reference

@@ -100,41 +100,58 @@ Setting `filter={false}` on `<Command>` disables client-side filtering. All filt
 
 ## With Error Boundary
 
-Wrap async items in an error boundary for graceful error handling:
+`modern-cmdk/react` exports `CommandErrorBoundary`. Wrap async items in it so a failed request renders a fallback instead of unmounting the palette. Its `fallback` prop takes a node or a function of the caught `Error`, and `onError` receives the error and React's `ErrorInfo`. The boundary has no reset method: to retry, change its `key` so React mounts a fresh boundary.
 
 ```tsx
 'use client';
 
-import { Command } from 'modern-cmdk/react';
-import { Suspense } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
+import type { CommandItem } from 'modern-cmdk';
+import { Command, CommandErrorBoundary, useCommandState } from 'modern-cmdk/react';
+import { Suspense, useState } from 'react';
 
-function ErrorFallback({
-  error,
-  resetErrorBoundary,
-}: {
-  error: Error;
-  resetErrorBoundary: () => void;
-}) {
+// App-owned: the searchAPI from the example above.
+declare function searchAPI(query: string): Promise<readonly CommandItem[]>;
+
+function SearchResults() {
+  const query = useCommandState((state) => state.search);
+
   return (
-    <div role="alert" style={{ padding: '16px', textAlign: 'center' }}>
-      <p>Search failed: {error.message}</p>
-      <button onClick={resetErrorBoundary}>Retry</button>
-    </div>
+    <Command.AsyncItems items={searchAPI(query)}>
+      {(results) =>
+        results.map((item) => (
+          <Command.Item key={item.id} value={item.value}>
+            {item.value}
+          </Command.Item>
+        ))
+      }
+    </Command.AsyncItems>
   );
 }
 
 export function ResilientSearchExample() {
+  const [attempt, setAttempt] = useState(0);
+
   return (
     <Command label="Search" filter={false}>
       <Command.Input placeholder="Search..." />
       <Command.List>
         <Command.Empty>No results.</Command.Empty>
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <CommandErrorBoundary
+          key={attempt}
+          onError={(error) => console.error('Search failed:', error)}
+          fallback={(error) => (
+            <div role="alert" style={{ padding: '16px', textAlign: 'center' }}>
+              <p>Search failed: {error.message}</p>
+              <button type="button" onClick={() => setAttempt((n) => n + 1)}>
+                Retry
+              </button>
+            </div>
+          )}
+        >
           <Suspense fallback={<Command.Loading loading>Searching...</Command.Loading>}>
             <SearchResults />
           </Suspense>
-        </ErrorBoundary>
+        </CommandErrorBoundary>
       </Command.List>
     </Command>
   );
@@ -146,27 +163,51 @@ export function ResilientSearchExample() {
 Load items from multiple sources with independent Suspense boundaries:
 
 ```tsx
-<Command.List>
-  <Command.Group heading="Recent">
-    <Suspense fallback={<Command.Loading loading>Loading recent...</Command.Loading>}>
-      <Command.AsyncItems items={fetchRecent()}>
-        {(items) => items.map((item) => (
-          <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
-        ))}
-      </Command.AsyncItems>
-    </Suspense>
-  </Command.Group>
+import type { CommandItem } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
+import { Suspense } from 'react';
 
-  <Command.Group heading="All Commands">
-    <Suspense fallback={<Command.Loading loading>Loading commands...</Command.Loading>}>
-      <Command.AsyncItems items={fetchAllCommands()}>
-        {(items) => items.map((item) => (
-          <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
-        ))}
-      </Command.AsyncItems>
-    </Suspense>
-  </Command.Group>
-</Command.List>
+// App-owned data sources. Create the promises where they can be cached
+// (a framework loader or a cache); a promise created in render restarts on every render.
+declare const recent: Promise<readonly CommandItem[]>;
+declare const allCommands: Promise<readonly CommandItem[]>;
+
+export function MultiSourceExample() {
+  return (
+    <Command label="Search">
+      <Command.Input placeholder="Search..." />
+      <Command.List>
+        <Command.Group heading="Recent">
+          <Suspense fallback={<Command.Loading loading>Loading recent...</Command.Loading>}>
+            <Command.AsyncItems items={recent}>
+              {(items) =>
+                items.map((item) => (
+                  <Command.Item key={item.id} value={item.value}>
+                    {item.value}
+                  </Command.Item>
+                ))
+              }
+            </Command.AsyncItems>
+          </Suspense>
+        </Command.Group>
+
+        <Command.Group heading="All Commands">
+          <Suspense fallback={<Command.Loading loading>Loading commands...</Command.Loading>}>
+            <Command.AsyncItems items={allCommands}>
+              {(items) =>
+                items.map((item) => (
+                  <Command.Item key={item.id} value={item.value}>
+                    {item.value}
+                  </Command.Item>
+                ))
+              }
+            </Command.AsyncItems>
+          </Suspense>
+        </Command.Group>
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 Each group loads independently and shows its own loading state. The first group to resolve renders immediately.

@@ -137,6 +137,15 @@ Both implement the `SearchEngine` interface from the core package and support `A
 All engines implement `Disposable` or `AsyncDisposable` for automatic cleanup:
 
 ```typescript
+import { createSearchEngine, itemId } from 'modern-cmdk';
+import type { CommandItem } from 'modern-cmdk';
+import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
+
+const items: readonly CommandItem[] = [
+  { id: itemId('copy'), value: 'Copy' },
+  { id: itemId('paste'), value: 'Paste' },
+];
+
 // Synchronous — using
 {
   using engine = createSearchEngine();

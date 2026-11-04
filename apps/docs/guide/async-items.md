@@ -4,7 +4,7 @@
 
 ## Basic Usage
 
-Wrap your async data source in `<Command.AsyncItems>`. The component suspends while the data is loading, showing a fallback via `<Command.Loading>` or a custom `fallback` prop.
+Wrap your async data source in `<Command.AsyncItems>`. The component suspends while the data is loading and shows its `fallback` prop from its own `<Suspense>` boundary until the promise resolves.
 
 ```tsx
 'use client';
@@ -22,7 +22,6 @@ function AsyncCommandPalette() {
     <Command>
       <Command.Input placeholder="Search commands..." />
       <Command.List>
-        <Command.Loading>Searching...</Command.Loading>
         <Command.Empty>No results found.</Command.Empty>
 
         <Command.AsyncItems
@@ -31,7 +30,7 @@ function AsyncCommandPalette() {
         >
           {(items) =>
             items.map((item) => (
-              <Command.Item key={item.id} value={item.value} onSelect={item.onSelect}>
+              <Command.Item key={item.id} value={item.value} onSelect={() => item.onSelect?.()}>
                 {item.value}
               </Command.Item>
             ))
@@ -53,7 +52,6 @@ For real-world usage, you typically want to debounce the search input before mak
 import type { CommandItem } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
 import { Command, useCommandState } from 'modern-cmdk/react';
-import { Suspense } from 'react';
 
 interface ApiResult {
   id: string;
@@ -88,7 +86,7 @@ function SearchResults() {
   return (
     <Command.AsyncItems
       items={searchAPI(query)}
-      fallback={<Command.Loading>Searching...</Command.Loading>}
+      fallback={<Command.Loading loading>Searching...</Command.Loading>}
     >
       {(results) => (
         <>
@@ -96,11 +94,11 @@ function SearchResults() {
             Object.groupBy(results, (r) => String(r.data?.category))
           ).map(([category, items]) => (
             <Command.Group key={category} heading={category}>
-              {items!.map((item) => (
+              {(items ?? []).map((item) => (
                 <Command.Item
                   key={item.id}
                   value={item.value}
-                  keywords={item.keywords}
+                  keywords={item.keywords ?? []}
                   onSelect={() => console.log('Selected:', item.id)}
                 >
                   <span>{item.value}</span>
@@ -121,9 +119,7 @@ export function DebouncedSearchPalette() {
       <Command.Input placeholder="Search anything..." />
       <Command.List>
         <Command.Empty>No results found.</Command.Empty>
-        <Suspense fallback={<Command.Loading>Searching...</Command.Loading>}>
-          <SearchResults />
-        </Suspense>
+        <SearchResults />
       </Command.List>
     </Command>
   );
@@ -132,63 +128,111 @@ export function DebouncedSearchPalette() {
 
 ## Loading States
 
-`<Command.AsyncItems>` integrates with React Suspense boundaries. You can nest multiple `<Suspense>` boundaries for granular loading states:
-
-```tsx
-<Command.List>
-  <Command.Group heading="Recent">
-    <Suspense fallback={<Command.Loading>Loading recent...</Command.Loading>}>
-      <Command.AsyncItems items={fetchRecent()}>
-        {(items) => items.map((item) => (
-          <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
-        ))}
-      </Command.AsyncItems>
-    </Suspense>
-  </Command.Group>
-
-  <Command.Group heading="All Commands">
-    <Suspense fallback={<Command.Loading>Loading commands...</Command.Loading>}>
-      <Command.AsyncItems items={fetchAllCommands()}>
-        {(items) => items.map((item) => (
-          <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
-        ))}
-      </Command.AsyncItems>
-    </Suspense>
-  </Command.Group>
-</Command.List>
-```
-
-## Error Handling
-
-Wrap `<Command.AsyncItems>` in an error boundary for graceful error handling. React 19's error boundary API works seamlessly:
+Each `<Command.AsyncItems>` renders its own `<Suspense>` boundary around the loader and shows its `fallback` prop there, so give each one its own `fallback` for granular loading states; an enclosing `<Suspense>` never shows its fallback for it. `<Command.Loading>` renders only while the machine reports loading, so pass `loading` to show it as a fallback:
 
 ```tsx
 'use client';
 
+import type { CommandItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
-import { Suspense } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
-function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+async function fetchRecent(): Promise<readonly CommandItem[]> {
+  const res = await fetch('/api/commands/recent');
+  return res.json();
+}
+
+async function fetchAllCommands(): Promise<readonly CommandItem[]> {
+  const res = await fetch('/api/commands');
+  return res.json();
+}
+
+export function GranularLoading() {
   return (
-    <div role="alert" data-command-error>
-      <p>Search failed: {error.message}</p>
-      <button onClick={resetErrorBoundary}>Retry</button>
-    </div>
+    <Command>
+      <Command.Input placeholder="Search commands..." />
+      <Command.List>
+        <Command.Group heading="Recent">
+          <Command.AsyncItems
+            items={fetchRecent()}
+            fallback={<Command.Loading loading>Loading recent...</Command.Loading>}
+          >
+            {(items) => items.map((item) => (
+              <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
+            ))}
+          </Command.AsyncItems>
+        </Command.Group>
+
+        <Command.Group heading="All Commands">
+          <Command.AsyncItems
+            items={fetchAllCommands()}
+            fallback={<Command.Loading loading>Loading commands...</Command.Loading>}
+          >
+            {(items) => items.map((item) => (
+              <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
+            ))}
+          </Command.AsyncItems>
+        </Command.Group>
+      </Command.List>
+    </Command>
+  );
+}
+```
+
+## Error Handling
+
+Wrap `<Command.AsyncItems>` in `<CommandErrorBoundary>`, exported by `modern-cmdk/react`, so a rejected promise renders a fallback instead of unmounting the tree. Its `fallback` is a node or a function `(error: Error) => ReactNode`, and `onError` receives the error and React's `ErrorInfo`. It has no reset prop: change its `key` to remount the subtree and retry, as the sample does.
+
+```tsx
+'use client';
+
+import type { CommandItem } from 'modern-cmdk';
+import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
+import { useState } from 'react';
+
+async function fetchCommands(): Promise<readonly CommandItem[]> {
+  const res = await fetch('/api/commands');
+  if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+  return res.json();
+}
+
+function SearchResults() {
+  return (
+    <Command.AsyncItems
+      items={fetchCommands()}
+      fallback={<Command.Loading loading>Searching...</Command.Loading>}
+    >
+      {(items) =>
+        items.map((item) => (
+          <Command.Item key={item.id} value={item.value}>
+            {item.value}
+          </Command.Item>
+        ))
+      }
+    </Command.AsyncItems>
   );
 }
 
 export function ResilientSearch() {
+  const [attempt, setAttempt] = useState(0);
+
   return (
     <Command>
       <Command.Input placeholder="Search..." />
       <Command.List>
         <Command.Empty>No results.</Command.Empty>
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <Suspense fallback={<Command.Loading>Searching...</Command.Loading>}>
-            <SearchResults />
-          </Suspense>
-        </ErrorBoundary>
+        <CommandErrorBoundary
+          key={attempt}
+          fallback={(error) => (
+            <div role="alert" data-command-error>
+              <p>Search failed: {error.message}</p>
+              <button type="button" onClick={() => setAttempt((n) => n + 1)}>
+                Retry
+              </button>
+            </div>
+          )}
+        >
+          <SearchResults />
+        </CommandErrorBoundary>
       </Command.List>
     </Command>
   );
@@ -200,7 +244,7 @@ export function ResilientSearch() {
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `items` | `Promise<readonly CommandItem[]>` | Required | Promise resolving to command items |
-| `fallback` | `ReactNode` | `undefined` | Fallback UI during loading (also works via `<Suspense>`) |
+| `fallback` | `ReactNode` | `undefined` | Fallback UI while the promise is pending, shown by the component's own `<Suspense>` boundary (an enclosing `<Suspense>` never shows its fallback) |
 | `children` | `(items: readonly CommandItem[]) => ReactNode` | Required | Render function receiving resolved items |
 
 ::: tip

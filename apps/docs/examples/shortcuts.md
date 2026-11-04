@@ -96,14 +96,22 @@ for (const [normalized, group] of conflicts) {
 `<Command.Shortcut>` renders platform-appropriate symbols:
 
 ```tsx
-{/* macOS: Cmd+N  |  Windows: Ctrl+N */}
-<Command.Shortcut shortcut="Mod+N" />
+import { Command } from 'modern-cmdk/react';
 
-{/* macOS: Cmd+Shift+S  |  Windows: Ctrl+Shift+S */}
-<Command.Shortcut shortcut="Mod+Shift+S" />
+export function ShortcutDisplay() {
+  return (
+    <>
+      {/* macOS: Cmd+N  |  Windows: Ctrl+N */}
+      <Command.Shortcut shortcut="Mod+N" />
 
-{/* macOS: Option+Enter  |  Windows: Alt+Enter */}
-<Command.Shortcut shortcut="Alt+Enter" />
+      {/* macOS: Cmd+Shift+S  |  Windows: Ctrl+Shift+S */}
+      <Command.Shortcut shortcut="Mod+Shift+S" />
+
+      {/* macOS: Option+Enter  |  Windows: Alt+Enter */}
+      <Command.Shortcut shortcut="Alt+Enter" />
+    </>
+  );
+}
 ```
 
 ## Shortcut Styling

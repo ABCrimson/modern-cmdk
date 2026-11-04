@@ -10,7 +10,7 @@ import { createCommandMachine, itemId } from 'modern-cmdk';
 // Create machine with Explicit Resource Management
 using machine = createCommandMachine({
   items: [
-    { id: itemId('copy'), value: 'Copy', onSelect: () => navigator.clipboard.writeText(selection) },
+    { id: itemId('copy'), value: 'Copy', onSelect: () => navigator.clipboard.writeText(getSelection()?.toString() ?? '') },
     { id: itemId('paste'), value: 'Paste', onSelect: () => document.execCommand('insertText') },
     { id: itemId('cut'), value: 'Cut', onSelect: () => document.execCommand('cut') },
   ],
@@ -50,6 +50,9 @@ document.addEventListener('keydown', (e) => {
 ## With Keyboard Shortcuts
 
 ```ts
+import { createCommandMachine, itemId } from 'modern-cmdk';
+
+using machine = createCommandMachine();
 const keyboard = machine.getKeyboardRegistry();
 
 // Register global shortcuts

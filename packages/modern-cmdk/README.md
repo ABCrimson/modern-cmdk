@@ -121,8 +121,8 @@ import { createCommandMachine, itemId } from 'modern-cmdk';
 
 using machine = createCommandMachine({
   items: [
-    { id: itemId('copy'), value: 'Copy', shortcut: 'Mod+C', onSelect: () => copy() },
-    { id: itemId('paste'), value: 'Paste', shortcut: 'Mod+V', onSelect: () => paste() },
+    { id: itemId('copy'), value: 'Copy', shortcut: 'Mod+C', onSelect: () => navigator.clipboard.writeText(getSelection()?.toString() ?? '') },
+    { id: itemId('paste'), value: 'Paste', shortcut: 'Mod+V', onSelect: () => navigator.clipboard.readText().then((text) => console.log('Pasted:', text)) },
   ],
   frecency: { enabled: true },
   loop: true,
