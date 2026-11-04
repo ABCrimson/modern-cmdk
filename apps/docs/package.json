@@ -12,7 +12,9 @@
     "mermaid": "12.3.0",
     "shiki": "4.6.0",
     "svgo": "4.1.0",
+    "typescript": "6.0.3",
     "vitepress": "2.0.0-alpha.21",
-    "vue": "3.6.0-rc.14"
+    "vue": "3.6.0-rc.14",
+    "vue-tsc": "3.3.14"
   }
 }
