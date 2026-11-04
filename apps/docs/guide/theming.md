@@ -89,6 +89,18 @@ Change `--color-hue` to shift the entire color palette:
 }
 ```
 
+### Muted Text Token
+
+`--command-muted-color` colours secondary text: group headings, shortcuts, the empty state and the input placeholder. Since 1.3.0 it replaces fading with opacity, so the contrast against your own text colour can be checked. The default is declared on `[data-command-root]` and follows the page's used `color-scheme`; override it on that selector, since a value set on `:root` is shadowed there:
+
+```css
+[data-command-root] {
+  --command-muted-color: light-dark(oklch(0.45 0.015 260), oklch(0.75 0.015 260));
+}
+```
+
+Under `prefers-contrast: more`, group headings use the full text colour instead.
+
 ## Dark Mode via OKLCH Lightness Inversion
 
 Dark mode is achieved by flipping OKLCH lightness values. Since OKLCH is perceptually uniform, the same chroma and hue produce visually consistent results across light and dark:

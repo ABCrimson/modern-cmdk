@@ -11,7 +11,7 @@ For the simplest migration, swap the import:
 + import { Command } from 'modern-cmdk/react';
 ```
 
-The compound component API works identically for basic usage. Data attributes and CSS custom properties are renamed (`[cmdk-*]` to `[data-command-*]`, `--cmdk-*` to `--command-*`) -- the codemod below rewrites those for you.
+The compound component API works identically for basic usage. Data attributes and CSS custom properties are renamed (`[cmdk-*]` to `[data-command-*]`, `--cmdk-*` to `--command-*`) -- the `data-attrs` codemod below rewrites most of them in JSX and in JS/TS strings (it skips `cmdk-group-heading`, `cmdk-group-items`, `cmdk-dialog`, `cmdk-overlay` and `cmdk-list-sizer`, and mis-renames `cmdk-root`; see [Complete API Differences](#complete-api-differences)); rename them in `.css` files by hand.
 
 ## Automated Migration with Codemod
 
@@ -19,50 +19,62 @@ The compound component API works identically for basic usage. Data attributes an
 
 ::: code-group
 ```bash [npx]
-npx modern-cmdk import-rewrite ./src
-npx modern-cmdk data-attrs ./src
-npx modern-cmdk forward-ref ./src
-npx modern-cmdk should-filter ./src
+npx modern-cmdk import-rewrite "./src/**/*.{ts,tsx,js,jsx}"
+npx modern-cmdk data-attrs "./src/**/*.{ts,tsx,js,jsx}"
+npx modern-cmdk forward-ref "./src/**/*.{ts,tsx,js,jsx}"
+npx modern-cmdk should-filter "./src/**/*.{ts,tsx,js,jsx}"
 ```
 
 ```bash [pnpm]
-pnpm dlx modern-cmdk import-rewrite ./src
-pnpm dlx modern-cmdk data-attrs ./src
-pnpm dlx modern-cmdk forward-ref ./src
-pnpm dlx modern-cmdk should-filter ./src
+pnpm dlx modern-cmdk import-rewrite "./src/**/*.{ts,tsx,js,jsx}"
+pnpm dlx modern-cmdk data-attrs "./src/**/*.{ts,tsx,js,jsx}"
+pnpm dlx modern-cmdk forward-ref "./src/**/*.{ts,tsx,js,jsx}"
+pnpm dlx modern-cmdk should-filter "./src/**/*.{ts,tsx,js,jsx}"
 ```
 :::
+
+Quote the glob so your shell passes it to the CLI. A bare directory such as `./src` expands to every file in it, and every file is parsed as TypeScript: `import-rewrite` reports each stylesheet, JSON and Markdown file as an error, and the other transforms report such a file as an error only when it contains the text they look for (`cmdk`, `forwardRef` or `shouldFilter`).
 
 ### Available Transforms
 
 | Transform | What it does |
 |---|---|
 | `import-rewrite` | Rewrites `'cmdk'` imports to `'modern-cmdk/react'` |
-| `data-attrs` | Renames `[cmdk-*]` selectors (e.g. `[cmdk-item]` to `[data-command-item]`) and `--cmdk-*` CSS custom properties (e.g. `--cmdk-list-height` to `--command-list-height`) |
+| `data-attrs` | Renames `cmdk-input`, `cmdk-list`, `cmdk-item`, `cmdk-group`, `cmdk-separator`, `cmdk-empty`, `cmdk-loading` and `cmdk-root` as JSX attributes and as `[cmdk-*]` selectors inside JS/TS string and template literals (e.g. `querySelector('[cmdk-item]')`), and `--cmdk-list-height` inside those literals. It writes `cmdk-root` as `data-command`, not `data-command-root`, and leaves `cmdk-group-heading` and other attributes unchanged. It does not read `.css` files; rename selectors there by hand. |
 | `forward-ref` | Removes `React.forwardRef` wrappers, using `ref` as a prop |
 | `should-filter` | Converts `shouldFilter={false}` to `filter={false}` |
 
 ### Codemod Options
 
-Two flags are supported:
-
 ```bash
-npx modern-cmdk import-rewrite ./src \
-  --dry-run          # Preview changes without writing files
-  --concurrency=8    # Files processed per batch (default: 8)
+modern-cmdk <transform> <glob> [--dry-run] [--strict] [--concurrency=N]
+modern-cmdk --help
 ```
+
+| Option | Effect |
+|---|---|
+| `--dry-run` | Lists the files that would change (`would change <path>`) and writes nothing |
+| `--strict` | Exit `2` on usage errors (including unknown options) and `1` when any file errored |
+| `--concurrency=N` | Files processed at once (default: 8) |
+| `-h`, `--help` | Prints the usage |
 
 `node_modules`, `dist`, `build`, and `.next` are skipped automatically.
 
+The CLI prints one line per changed file (`changed <path>`, or `would change <path>` with `--dry-run`); unchanged files print nothing, and a summary such as `2 changed, 5 unchanged, 0 errors`. Per-file errors go to stderr as `<path>: <message>`. `--dry-run` prints no diff; review the result in version control after a real run.
+
+Without `--strict`, exit codes stay as in 1.2: `0` for `--help`, missing arguments and per-file errors; `1` for an unknown transform, no matching files and an uncaught error. With `--strict`, any usage error (including an unknown transform) exits `2`, any file error exits `1`, and no matching files still exits `1`.
+
+With both `<transform>` and `<glob>` given, an unknown option is ignored with a warning on stderr and the run goes on; without them it prints an error and the usage and exits `0`. With `--strict`, an unknown option is a usage error (exit `2`). A malformed known option -- `--concurrency` with no value, `--dry-run=yes` -- is a usage error that writes nothing (exit `0`; `2` with `--strict`).
+
 ::: tip
-Always run with `--dry-run` first to review changes before applying them.
+Run with `--dry-run` first to see which files would change, then run without it and review the diff in version control.
 :::
 
 ## Breaking Changes
 
 ### 1. Data Attributes Renamed
 
-All `[cmdk-*]` data attributes are renamed to `[data-command-*]`. There are **no runtime aliases** -- the old selectors simply stop matching, so update your CSS and tests (the `data-attrs` codemod rewrites them for you).
+All `[cmdk-*]` data attributes are renamed to `[data-command-*]`. There are **no runtime aliases** -- the old selectors simply stop matching, so update your CSS and tests (the `data-attrs` codemod rewrites most of them in JSX and JS/TS strings, not in `.css` files; it skips `[cmdk-group-heading]`, `[cmdk-group-items]`, `[cmdk-dialog]`, `[cmdk-overlay]` and `[cmdk-list-sizer]`, and writes `[data-command]` for `[cmdk-root]`).
 
 ::: code-group
 ```css [Before (cmdk)]
@@ -99,7 +111,7 @@ All `[cmdk-*]` data attributes are renamed to `[data-command-*]`. There are **no
 + height: var(--command-list-height);
 ```
 
-There is no `--cmdk-list-height` alias at runtime -- update to `--command-list-height` (the `data-attrs` codemod rewrites this too).
+There is no `--cmdk-list-height` alias at runtime -- update to `--command-list-height`. Rename it by hand in `.css` files; the `data-attrs` codemod rewrites it only inside JS/TS string and template literals.
 
 ### 3. `shouldFilter` Renamed to `filter`
 
@@ -267,16 +279,16 @@ function CommandPalette() {
 | cmdk | modern-cmdk/react | Notes |
 |---|---|---|
 | `import { Command } from 'cmdk'` | `import { Command } from 'modern-cmdk/react'` | Import path |
-| `[cmdk-root]` | `[data-command-root]` | Codemod: `data-attrs` |
+| `[cmdk-root]` | `[data-command-root]` | Manual: the `data-attrs` codemod currently writes `[data-command]` for the root, which matches nothing modern-cmdk emits (planned fix in 1.5.0) -- correct it by hand |
 | `[cmdk-input]` | `[data-command-input]` | Codemod: `data-attrs` |
 | `[cmdk-item]` | `[data-command-item]` | Codemod: `data-attrs` |
 | `[cmdk-group]` | `[data-command-group]` | Codemod: `data-attrs` |
-| `[cmdk-group-heading]` | `[data-command-group-heading]` | Codemod: `data-attrs` |
+| `[cmdk-group-heading]` | `[data-command-group-heading]` | Manual: not covered by the codemod |
 | `[cmdk-list]` | `[data-command-list]` | Codemod: `data-attrs` |
 | `[cmdk-separator]` | `[data-command-separator]` | Codemod: `data-attrs` |
 | `[cmdk-empty]` | `[data-command-empty]` | Codemod: `data-attrs` |
 | `[cmdk-loading]` | `[data-command-loading]` | Codemod: `data-attrs` |
-| `--cmdk-list-height` | `--command-list-height` | Codemod: `data-attrs` |
+| `--cmdk-list-height` | `--command-list-height` | Codemod: `data-attrs` inside JS/TS strings only; rename by hand in `.css` |
 | `shouldFilter={false}` | `filter={false}` | Also accepts filter function |
 | `React.forwardRef` | `ref` as regular prop | React 19 native |
 | No `"use client"` | `"use client"` on every component | RSC boundary |
@@ -293,8 +305,8 @@ After migrating, you get access to features not available in cmdk:
 - **[Keyboard shortcuts](/guide/shortcuts)** -- Built-in registry with `<Command.Shortcut />`
 - **[Fuzzy search](/guide/wasm-search)** -- Optional WASM-accelerated search for large datasets
 - **[Virtualization](/guide/virtualization)** -- Automatic for 100+ items
-- **[Match highlighting](/api/command-react#commandhighlight)** -- `<Command.Highlight />` component
+- **[Match highlighting](/api/command-react#command-highlight)** -- `<Command.Highlight />` component
 - **[Async items](/guide/async-items)** -- `<Command.AsyncItems />` with Suspense
-- **[Multi-page navigation](/api/command-react#commandpage)** -- `<Command.Page />` with a page stack (Backspace pops)
-- **[Activity preservation](/api/command-react#commandactivity)** -- `<Command.Activity />` for state preservation
+- **[Multi-page navigation](/api/command-react#command-page)** -- `<Command.Page />` with a page stack (Backspace pops)
+- **[Activity preservation](/api/command-react#command-activity)** -- `<Command.Activity />` for state preservation
 - **[Full ARIA support](/guide/accessibility)** -- Live regions, `forced-colors`, `prefers-contrast`

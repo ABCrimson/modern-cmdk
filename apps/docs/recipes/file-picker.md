@@ -59,7 +59,22 @@ import { IdbFrecencyStorage } from 'modern-cmdk';
 ## With Keyboard Shortcut
 
 ```tsx
-<Command.Dialog>
+import { useEffect, useState } from 'react';
+
+const [open, setOpen] = useState(false);
+
+useEffect(() => {
+  const onKeyDown = (e: KeyboardEvent): void => {
+    if (e.key === 'p' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      setOpen((o) => !o);
+    }
+  };
+  document.addEventListener('keydown', onKeyDown);
+  return () => document.removeEventListener('keydown', onKeyDown);
+}, []);
+
+<Command.Dialog open={open} onOpenChange={setOpen}>
   <Command.Input placeholder="Find a file (Ctrl+P)..." />
   ...
 </Command.Dialog>

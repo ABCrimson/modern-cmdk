@@ -119,7 +119,7 @@ Modifier+Modifier+Key
 
 ### `parseShortcut(shortcut)`
 
-Parses a shortcut string into a structured `ParsedShortcut` object. Uses `RegExp.escape` (ES2026) internally for safe pattern construction:
+Parses a shortcut string into a structured `ParsedShortcut` object. It splits on `+`, resolves modifier aliases such as `Mod`, and normalizes the key:
 
 ```typescript
 import { parseShortcut } from 'modern-cmdk';
