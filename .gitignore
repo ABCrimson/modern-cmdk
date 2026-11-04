@@ -4,7 +4,6 @@ dist/
 !/tests/dist/
 coverage/
 *.wasm
-**/.vitepress/dist/
 **/.vitepress/cache/
 playwright-report/
 test-results/

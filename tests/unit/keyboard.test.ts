@@ -1,9 +1,10 @@
+import type { ParsedShortcut } from 'modern-cmdk';
 import { detectConflicts, formatShortcut, matchesShortcut, parseShortcut } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
 type ParseCase = {
   readonly shortcut: string;
-  readonly expected: Readonly<Record<string, string | boolean>>;
+  readonly expected: Partial<ParsedShortcut>;
 };
 
 const simpleCases: readonly ParseCase[] = [
