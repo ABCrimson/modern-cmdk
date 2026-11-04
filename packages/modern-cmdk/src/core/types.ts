@@ -185,7 +185,7 @@ export interface CommandMachineOptions {
   readonly onSearchChange?: ((query: string) => void) | undefined;
   /** Whether keyboard navigation loops from last to first item (default: true) */
   readonly loop?: boolean | undefined;
-  /** Item count threshold for automatic virtualization (default: 100) */
+  /** Accepted but not read yet: Command.List uses fixed thresholds (on above 100 matches, off at 50 or fewer) (default: 100) */
   readonly virtualizeThreshold?: number | undefined;
 }
 

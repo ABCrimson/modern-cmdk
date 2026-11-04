@@ -46,7 +46,7 @@
 }
 
 /* ─── User-Customizable Animation Properties ─── */
-/* Override these on [data-command-root] or :root to customize all animations */
+/* Override these with unlayered CSS on [data-command-root] loaded after this file, or on a more specific unlayered selector; this block sits outside every @layer, so a normal (non-!important) value set inside a layer loses here whatever its selector, and a :root value is shadowed by this declaration */
 
 [data-command-root] {
   --command-spring-easing: linear(
