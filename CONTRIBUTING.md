@@ -219,7 +219,7 @@ modern-cmdk/
   .github/
     workflows/
       ci.yml                     Lint + test + e2e + size + bench + security audit
-      release.yml                Changeset publish
+      release.yml                Wait for CI, then changeset version / publish; backfill task
       docs.yml                   VitePress deploy
       benchmarks.yml             Benchmark tracking
       codeql.yml                 CodeQL static analysis
@@ -246,7 +246,7 @@ modern-cmdk/
 | `pnpm docs:dev` | Start docs dev server (VitePress) |
 | `pnpm docs:build` | Build docs for production |
 | `pnpm changeset` | Create a changeset for your changes |
-| `pnpm version` | Update package versions from changesets |
+| `pnpm version-packages` | Update package versions from changesets and refresh the lockfile |
 | `pnpm release` | Build and publish to npm |
 
 ### Per-package development:
@@ -705,13 +705,15 @@ The changeset is saved as a markdown file in `.changeset/`. Commit it with your 
 
 ### Publishing
 
-When changesets are merged to `main`, the release workflow:
+When changesets are merged to `main`, the release workflow first waits (`ci-gate`) for the CI run on that same commit and stops unless it succeeded, so nothing is released for a commit whose CI is red or cancelled. It then:
 
 1. Runs `pnpm version-packages` (`changeset version`, then `pnpm install --lockfile-only`) to update `package.json` versions, generate `CHANGELOG.md` entries and refresh `pnpm-lock.yaml`
 2. Creates a release PR (`chore: release packages`) with the version bumps
 3. When that PR is merged, builds the packages and runs `changeset publish` to publish to npm
 
-Publishing authenticates via **npm OIDC Trusted Publishing** -- the workflow's `id-token: write` permission supplies a short-lived token, so no long-lived `NPM_TOKEN` secret exists. Never push git tags manually; tag pushes can trigger publishing.
+Publishing authenticates via **npm OIDC Trusted Publishing** -- the workflow's `id-token: write` permission supplies a short-lived token, so no long-lived `NPM_TOKEN` secret exists. The publish job runs in the `npm` GitHub environment, which only the `main` branch may deploy to. Never push git tags manually; tag pushes can trigger publishing.
+
+The `backfill` task (Actions > Release > Run workflow) is a temporary job that creates the missing `modern-cmdk@1.2.2` and `create-modern-cmdk@1.2.1` tags and GitHub releases through the GitHub API; like every dispatched task it waits for CI on the dispatched commit first, and it is deleted once every npm version has a GitHub release.
 
 ### Configuration
 

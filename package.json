@@ -25,7 +25,6 @@
     "docs:dev": "pnpm --filter docs run dev",
     "docs:build": "pnpm --filter docs run build",
     "changeset": "changeset",
-    "version": "changeset version",
     "version-packages": "changeset version && pnpm install --lockfile-only",
     "release": "pnpm build && changeset publish"
   },
