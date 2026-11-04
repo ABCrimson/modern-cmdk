@@ -12,7 +12,7 @@
 If you discover a security vulnerability, please report it responsibly:
 
 1. **Do not** open a public GitHub issue
-2. Email **security@crimson.dev** with details
+2. Report it privately through [GitHub private vulnerability reporting](https://github.com/ABCrimson/modern-cmdk/security/advisories/new), or email **security@crimson.dev** with details
 3. Include steps to reproduce if possible
 4. Include the package name and version affected
 5. You will receive a response within 48 hours
@@ -45,3 +45,5 @@ This policy covers:
 ## Security Updates
 
 Security patches are released as `patch` versions and published to npm within 24 hours of a confirmed vulnerability.
+
+Releases are published by the `Release` GitHub Actions workflow, which first waits for CI to succeed on the release commit. It publishes from the `npm` GitHub environment (deployable from `main` only) through npm OIDC Trusted Publishing, so no long-lived npm token exists.

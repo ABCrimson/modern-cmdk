@@ -6,13 +6,9 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    # A dependency that matches more than one group joins the first one listed, so the four
+    # specific groups come before the two catch-all groups.
     groups:
-      dev-dependencies:
-        dependency-type: development
-        update-types: [minor, patch]
-      production-dependencies:
-        dependency-type: production
-        update-types: [minor, patch]
       typescript:
         patterns: ['typescript']
         update-types: [minor, patch]
@@ -24,6 +20,12 @@ updates:
         update-types: [minor, patch]
       vitest:
         patterns: ['vitest', '@vitest/*']
+        update-types: [minor, patch]
+      dev-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+      production-dependencies:
+        dependency-type: production
         update-types: [minor, patch]
     ignore:
       # react, react-dom and scheduler are pinned to a 0.0.0-experimental-* build (pnpm-workspace.yaml

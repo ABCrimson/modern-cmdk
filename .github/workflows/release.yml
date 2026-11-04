@@ -2,19 +2,39 @@ name: Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      task:
+        description: maintenance task; every task waits for CI on the dispatched commit
+        type: choice
+        required: true
+        options: [backfill]
 
+# A dispatched run gets its own group, so it can never replace a queued release run for a push.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: false
 
 # Reset permissions; each job declares only what it needs.
 permissions: {}
 
+# Job graph. On a push to main: ci-gate -> select-mode -> version | pack -> publish.
+# On a manual dispatch: ci-gate -> backfill. A job whose `needs` ancestor is skipped is
+# skipped too, so a dispatch never reaches select-mode, version, pack or publish and a push
+# never reaches backfill.
+#
+# ci-gate holds every other job until the ci.yml run for the same commit has completed and
+# succeeded: nothing is published or released for a commit whose CI is red or cancelled.
+# `workflow_run` was rejected because its GITHUB_SHA and GITHUB_REF are the default branch
+# head, not the commit that CI checked. ci.yml starts in parallel with this workflow, so
+# the gate polls until that run appears and finishes.
+#
 # changesets/action v2.1.2 split into sub-actions, following the trusted-publishing
 # setup in its README and https://changesets.dev/guide/automating: select-mode decides
 # whether to version or publish; version opens/updates the release PR; pack builds the
 # tarballs without any write permission; publish uploads those tarballs and is the only
-# job holding id-token: write.
+# job holding id-token: write. publish runs in the `npm` environment, whose deployment
+# branches are restricted to main.
 #
 # Publish via npm OIDC Trusted Publishing — no long-lived token. An empty NPM_TOKEN /
 # NODE_AUTH_TOKEN would make npm/pnpm try an empty token and skip the OIDC fallback, so
@@ -22,12 +42,52 @@ permissions: {}
 # tags through the GitHub API with their default `github-token` (github.token); a
 # GITHUB_TOKEN env var is ignored. publish's `push-git-tags` and
 # `create-github-releases` default to true, so per-package tags and GitHub releases are
-# created after a publish.
+# created after a publish. backfill creates the missing tags and releases for the two
+# npm versions that were published without them.
 #
 # Per the changesets guide, git credentials are not persisted on disk and the jobs that
 # version, pack or publish do not restore the pnpm cache (cache poisoning).
 jobs:
+  ci-gate:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    permissions:
+      actions: read # gh run list
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Wait for CI on this commit
+        shell: bash
+        run: |
+          while true; do
+            # Newest ci.yml push run for this commit as "<status> <conclusion|none> <url>"; empty until that run exists.
+            if ! line=$(gh run list --commit "$GITHUB_SHA" --workflow ci.yml --event push \
+                --json databaseId,status,conclusion,url --limit 10 \
+                --jq 'sort_by(.databaseId) | if length == 0 then empty else last | "\(.status) \(.conclusion // "none") \(.url)" end'); then
+              echo "gh run list failed; retrying"
+              sleep 30
+              continue
+            fi
+            if [ -z "$line" ]; then
+              echo "No ci.yml run for $GITHUB_SHA yet"
+            else
+              read -r status conclusion url <<< "$line"
+              echo "CI run $url: status=$status conclusion=$conclusion"
+              if [ "$status" = "completed" ]; then
+                if [ "$conclusion" = "success" ]; then
+                  exit 0
+                fi
+                echo "::error::CI did not succeed for $GITHUB_SHA ($conclusion): $url"
+                exit 1
+              fi
+            fi
+            sleep 30
+          done
+
   select-mode:
+    if: github.event_name == 'push'
+    needs: ci-gate
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
@@ -102,6 +162,7 @@ jobs:
 
   publish:
     needs: pack
+    environment: npm
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
@@ -122,3 +183,52 @@ jobs:
         uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+
+  # Temporary: modern-cmdk@1.2.2 and create-modern-cmdk@1.2.1 reached npm (commit 33678255)
+  # without a git tag or GitHub release. `gh release create` creates each tag through the API at
+  # --target, so no tag is pushed by hand. Delete this job (and the `backfill` dispatch option)
+  # once the 1.4.0 gate "gh release list equals npm" has passed.
+  backfill:
+    if: github.event_name == 'workflow_dispatch' && inputs.task == 'backfill'
+    needs: ci-gate
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # create tags and GitHub releases (gh release create)
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Create the missing tags and releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha=33678255dcee29a02a1222c10f5698f47cf7f24c
+          # tag | package directory | CHANGELOG heading of that version
+          entries=(
+            "modern-cmdk@1.2.2|modern-cmdk|## 1.2.2"
+            "create-modern-cmdk@1.2.1|create-modern-cmdk|## 1.2.1"
+          )
+          for entry in "${entries[@]}"; do
+            IFS='|' read -r tag dir heading <<< "$entry"
+            if gh release view "$tag" > /dev/null 2>&1; then
+              echo "::notice::Release $tag already exists; skipping"
+              continue
+            fi
+            notes=$(mktemp)
+            # The CHANGELOG section under $heading, without the heading line and without surrounding blank lines.
+            awk -v heading="$heading" '
+              $0 == heading { on = 1; next }
+              on && /^## / { exit }
+              on && NF == 0 { blank++; next }
+              on { if (started) while (blank-- > 0) print ""; blank = 0; started = 1; print }
+            ' "packages/$dir/CHANGELOG.md" > "$notes"
+            if [ ! -s "$notes" ]; then
+              echo "::error::No '$heading' section in packages/$dir/CHANGELOG.md"
+              exit 1
+            fi
+            gh release create "$tag" --target "$sha" --title "$tag" --notes-file "$notes" --latest=false --verify-tag=false
+          done
