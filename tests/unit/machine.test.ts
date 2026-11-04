@@ -2,7 +2,7 @@ import type { CommandItem, CommandMachine } from 'modern-cmdk';
 import { createCommandMachine, groupId, itemId } from 'modern-cmdk';
 import { describe, expect, it, vi } from 'vitest';
 
-// ES2026 Iterator Helpers — generate test items using Iterator pipeline
+// ES2025 Iterator helpers — generate test items using Iterator pipeline
 function generateItems(count: number): CommandItem[] {
   return Iterator.from({
     [Symbol.iterator]: function* (): Generator<number> {
@@ -132,10 +132,11 @@ describe('CommandMachine', () => {
 
   it('should handle ITEM_SELECT with onSelect callback', async () => {
     const onSelect = vi.fn();
-    const items = [{ id: itemId('test'), value: 'Test', onSelect }];
+    const id = itemId('test');
+    const items = [{ id, value: 'Test', onSelect }];
     using machine = createCommandMachine({ items });
 
-    machine.send({ type: 'ITEM_SELECT', id: items[0]?.id });
+    machine.send({ type: 'ITEM_SELECT', id });
     await vi.waitFor(() => {
       expect(onSelect).toHaveBeenCalledOnce();
     });
@@ -143,10 +144,11 @@ describe('CommandMachine', () => {
 
   it('should not select disabled items', async () => {
     const onSelect = vi.fn();
-    const items = [{ id: itemId('disabled'), value: 'Disabled', disabled: true, onSelect }];
+    const id = itemId('disabled');
+    const items = [{ id, value: 'Disabled', disabled: true, onSelect }];
     using machine = createCommandMachine({ items });
 
-    machine.send({ type: 'ITEM_SELECT', id: items[0]?.id });
+    machine.send({ type: 'ITEM_SELECT', id });
     // Vitest — use vi.waitFor() instead of raw setTimeout
     await vi.waitFor(() => {
       expect(onSelect).not.toHaveBeenCalled();

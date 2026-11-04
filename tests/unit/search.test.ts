@@ -109,7 +109,8 @@ describe('createSearchEngine', () => {
 
     const results = engine.search('ap', items).toArray();
     expect(results.length).toBe(2); // Apple and Apricot
-    expect(results[0]?.score).toBeGreaterThanOrEqual(results[1]?.score);
+    const scores = results.map((r) => r.score);
+    expect(scores).toEqual(scores.toSorted((a, b) => b - a));
   });
 
   it('should return all items for empty query', () => {
@@ -142,12 +143,13 @@ describe('createSearchEngine', () => {
 
   it('should remove items from index', () => {
     using engine = createSearchEngine();
-    const items = [makeItem('Apple'), makeItem('Banana')];
+    const apple = makeItem('Apple');
+    const items = [apple, makeItem('Banana')];
     engine.index(items);
 
-    engine.remove(new Set([items[0]?.id]));
+    engine.remove(new Set([apple.id]));
     const results = engine.search('a', [items[1] as CommandItem]).toArray();
-    expect(results.every((r) => r.id !== items[0]?.id)).toBe(true);
+    expect(results.every((r) => r.id !== apple.id)).toBe(true);
   });
 
   it('should support custom scorer', () => {

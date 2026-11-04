@@ -34,7 +34,7 @@ const WORDS: string[] = [
   'watermelon',
 ];
 
-// ES2026 Iterator Helpers — generate items using Iterator.from().map().toArray()
+// ES2025 Iterator helpers — generate items using Iterator.from().map().toArray()
 function generateItems(count: number): CommandItem[] {
   return Iterator.from({
     [Symbol.iterator]: function* (): Generator<number> {
@@ -50,10 +50,10 @@ function generateItems(count: number): CommandItem[] {
 }
 
 // ---------------------------------------------------------------------------
-// 0.8.6 — Stress Tests
+// Stress Tests
 // ---------------------------------------------------------------------------
 
-describe('Stress Tests (0.8.6)', () => {
+describe('Stress Tests', () => {
   it('should handle 100K items — search engine index + search', { timeout: 15_000 }, () => {
     const items = generateItems(100_000);
     using engine = createSearchEngine();
@@ -64,7 +64,7 @@ describe('Stress Tests (0.8.6)', () => {
     expect(results[0]?.score).toBeGreaterThan(0);
   });
 
-  it('should handle rapid typing simulation — 50 incremental queries', () => {
+  it('should handle rapid typing simulation — 10 incremental prefix queries', () => {
     const items = generateItems(10_000);
     using engine = createSearchEngine();
     engine.index(items);
@@ -90,7 +90,7 @@ describe('Stress Tests (0.8.6)', () => {
   });
 
   it('should handle 10K frecency selections without degradation', () => {
-    using engine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
+    using engine = new FrecencyEngine({ enabled: true, storage: new MemoryFrecencyStorage() });
 
     for (let i = 0; i < 10_000; i++) {
       engine.recordSelection(itemId(`stress-${i % 500}`));
@@ -108,17 +108,20 @@ describe('Stress Tests (0.8.6)', () => {
   it('should handle concurrent search + frecency', { timeout: 15_000 }, () => {
     const items = generateItems(10_000);
     using searchEngine = createSearchEngine();
-    using frecencyEngine = new FrecencyEngine({ storage: new MemoryFrecencyStorage() });
+    using frecencyEngine = new FrecencyEngine({
+      enabled: true,
+      storage: new MemoryFrecencyStorage(),
+    });
 
     searchEngine.index(items);
 
     // Simulate user flow: search, select, search again
     for (let i = 0; i < 50; i++) {
       const query = WORDS[i % WORDS.length] as string;
-      const results = searchEngine.search(query, items).toArray();
+      const [top] = searchEngine.search(query, items).toArray();
 
-      if (results.length > 0) {
-        frecencyEngine.recordSelection(results[0]?.id);
+      if (top) {
+        frecencyEngine.recordSelection(top.id);
       }
     }
 
@@ -148,12 +151,12 @@ describe('Stress Tests (0.8.6)', () => {
     engine.index(items);
 
     const results = engine.search('', items).toArray();
-    // Empty query should return all items or empty depending on implementation
+    // Empty query returns every indexed item
     expect(results.length).toBe(50_000);
   });
 
   it('should handle items with very long values', () => {
-    // ES2026 Iterator Helpers — generate long items via iterator pipeline
+    // ES2025 Iterator helpers — generate long items via iterator pipeline
     const longItems: CommandItem[] = Iterator.from({
       [Symbol.iterator]: function* (): Generator<number> {
         for (let i = 0; i < 1_000; i++) yield i;
@@ -192,7 +195,7 @@ describe('Stress Tests (0.8.6)', () => {
 
     // Rapid state transitions
     for (let i = 0; i < 100; i++) {
-      const query = WORDS[i % WORDS.length]?.slice(0, (i % 5) + 1);
+      const query = (WORDS[i % WORDS.length] ?? '').slice(0, (i % 5) + 1);
       machine.send({ type: 'SEARCH_CHANGE', query });
     }
 

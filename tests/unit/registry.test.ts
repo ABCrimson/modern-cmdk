@@ -37,7 +37,7 @@ describe('CommandRegistry', () => {
     registry.registerItem(makeItem('b', 'Banana'));
 
     const items = registry.getItems();
-    // ES2026 Iterator Helpers — use .map().toArray() on the items iterator
+    // ES2025 Iterator helpers — use .map().toArray() on the items iterator
     const values = items
       .values()
       .map((i) => i.value)
@@ -64,7 +64,7 @@ describe('CommandRegistry', () => {
     expect(registry.size).toBe(3);
   });
 
-  it('should bulk unregister using Set.difference', () => {
+  it('should bulk unregister items', () => {
     using registry = new CommandRegistry();
     registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
 
@@ -84,7 +84,7 @@ describe('CommandRegistry', () => {
     expect(registry.groupCount).toBe(1);
   });
 
-  it('should get grouped items using Object.groupBy', () => {
+  it('should group items by group id', () => {
     using registry = new CommandRegistry();
     registry.registerGroup({ id: groupId('fruits'), heading: 'Fruits', priority: 0 });
     registry.registerGroup({ id: groupId('vegs'), heading: 'Vegetables', priority: 1 });
@@ -106,7 +106,7 @@ describe('CommandRegistry', () => {
     expect(ids.has(itemId('a'))).toBe(true);
   });
 
-  it('should intersect with candidate set (ES2026 Set.intersection)', () => {
+  it('should intersect with a candidate set', () => {
     using registry = new CommandRegistry();
     registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
 
@@ -118,7 +118,7 @@ describe('CommandRegistry', () => {
     expect(intersection.has(itemId('c'))).toBe(true);
   });
 
-  it('should compute difference from another set (ES2026 Set.difference)', () => {
+  it('should compute the difference from another set', () => {
     using registry = new CommandRegistry();
     registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
 
@@ -130,7 +130,7 @@ describe('CommandRegistry', () => {
     expect(diff.has(itemId('c'))).toBe(true);
   });
 
-  it('should compute union with another set (ES2026 Set.union)', () => {
+  it('should compute the union with another set', () => {
     using registry = new CommandRegistry();
     registry.registerItems([makeItem('a'), makeItem('b')]);
 

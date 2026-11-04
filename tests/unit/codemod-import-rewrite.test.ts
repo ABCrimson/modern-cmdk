@@ -17,67 +17,36 @@ function run(source: string, parser: string = 'tsx'): string {
   return transform(fileInfo, createApi(parser));
 }
 
-// ES2026 Object.groupBy — organize import rewrite test cases by type
-const importTestCases: Partial<
-  Record<string, { label: string; input: string; contains: string; type: string }[]>
-> = Object.groupBy(
-  [
-    {
-      label: 'named import',
-      input: `import { Command } from 'cmdk';`,
-      contains: '{ Command }',
-      type: 'rewrite',
-    },
-    {
-      label: 'default import',
-      input: `import Command from 'cmdk';`,
-      contains: 'import Command',
-      type: 'rewrite',
-    },
-    {
-      label: 'namespace import',
-      input: `import * as Cmdk from 'cmdk';`,
-      contains: '* as Cmdk',
-      type: 'rewrite',
-    },
-    {
-      label: 'named re-export',
-      input: `export { Command } from 'cmdk';`,
-      contains: 'export { Command }',
-      type: 'rewrite',
-    },
-    {
-      label: 'star re-export',
-      input: `export * from 'cmdk';`,
-      contains: 'modern-cmdk/react',
-      type: 'rewrite',
-    },
-    {
-      label: 'dynamic import',
-      input: `const mod = import('cmdk');`,
-      contains: 'modern-cmdk/react',
-      type: 'rewrite',
-    },
-    {
-      label: 'require call',
-      input: `const Command = require('cmdk');`,
-      contains: 'modern-cmdk/react',
-      type: 'rewrite',
-    },
-  ],
-  (t) => t.type,
-);
+const importRewriteCases: readonly {
+  readonly label: string;
+  readonly input: string;
+  readonly contains: string;
+}[] = [
+  { label: 'named import', input: `import { Command } from 'cmdk';`, contains: '{ Command }' },
+  { label: 'default import', input: `import Command from 'cmdk';`, contains: 'import Command' },
+  { label: 'namespace import', input: `import * as Cmdk from 'cmdk';`, contains: '* as Cmdk' },
+  {
+    label: 'named re-export',
+    input: `export { Command } from 'cmdk';`,
+    contains: 'export { Command }',
+  },
+  { label: 'star re-export', input: `export * from 'cmdk';`, contains: 'modern-cmdk/react' },
+  { label: 'dynamic import', input: `const mod = import('cmdk');`, contains: 'modern-cmdk/react' },
+  {
+    label: 'require call',
+    input: `const Command = require('cmdk');`,
+    contains: 'modern-cmdk/react',
+  },
+];
 
 describe('codemod: import-rewrite', () => {
-  // Data-driven rewrite tests using Object.groupBy
-  for (const testCase of importTestCases.rewrite ?? []) {
-    it(`rewrites ${testCase.label} from cmdk`, () => {
-      const output = run(testCase.input);
+  // Data-driven rewrite tests
+  it.for(importRewriteCases)('rewrites $label from cmdk', ({ input, contains }) => {
+    const output = run(input);
 
-      expect.soft(output).toContain('modern-cmdk/react');
-      expect.soft(output).toContain(testCase.contains);
-    });
-  }
+    expect.soft(output).toContain('modern-cmdk/react');
+    expect.soft(output).toContain(contains);
+  });
 
   it('does NOT modify unrelated imports', () => {
     const input = `import React from 'react';\nimport { useState } from 'react';`;

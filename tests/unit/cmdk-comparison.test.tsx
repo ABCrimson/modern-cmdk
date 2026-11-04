@@ -8,7 +8,7 @@
 // the improvements. Each section maps 1:1 to an original cmdk feature.
 //
 // cmdk API reference:     https://github.com/pacocoursey/cmdk
-// modern-cmdk:   packages/command + packages/command-react
+// modern-cmdk:           packages/modern-cmdk (src/core + src/react)
 //
 // Test categories:
 //   1. Compound component API parity
@@ -25,10 +25,10 @@
 //  12. Groups & separators
 //  13. Keywords filtering
 //  14. Custom filter function
-//  15. forceMount / alwaysRender
-//  16. Loop navigation
-//  17. onSelect callback
-//  18. NEW features not in cmdk (superset)
+//  15. Loop navigation
+//  16. onSelect callback
+//  17. NEW features not in cmdk (superset)
+//  18. API surface comparison summary
 // ============================================================================
 
 import {
@@ -419,7 +419,7 @@ describe('3. CSS Custom Properties', () => {
 // ============================================================================
 // Both cmdk and modern-cmdk follow the combobox + listbox ARIA pattern.
 // modern-cmdk adds: aria-label on root, role="status" on empty/loading,
-//   aria-labelledby on groups, aria-busy on loading.
+//   aria-busy on loading. (aria-labelledby on groups is NOT an addition: cmdk has it too.)
 // ============================================================================
 
 describe('4. ARIA / Accessibility', () => {
@@ -663,8 +663,9 @@ describe('5. Filtering & Sorting', () => {
 // ============================================================================
 // 6. KEYBOARD NAVIGATION
 // ============================================================================
-// cmdk: ArrowDown/ArrowUp to navigate, Enter to select, Home/End
-// modern-cmdk: identical, plus configurable vim bindings
+// cmdk: ArrowDown/ArrowUp to navigate, Enter to select, Home/End, plus the
+//   vimBindings option (default true): Ctrl+N/Ctrl+J = next, Ctrl+P/Ctrl+K = previous
+// modern-cmdk: ArrowDown/ArrowUp/Home/End/Enter only — it has no vim bindings
 // ============================================================================
 
 describe('6. Keyboard Navigation', () => {
@@ -1231,12 +1232,12 @@ describe('14. Custom Filter / Disable Filtering', () => {
 // ============================================================================
 // 15. LOOP NAVIGATION
 // ============================================================================
-// cmdk: <Command loop> — wraps around at boundaries
-// modern-cmdk: identical, enabled by default
+// cmdk: <Command loop> — wraps around at boundaries; opt-in (loop is off unless set)
+// modern-cmdk: wraps around by default; opt out with <Command loop={false}>
 // ============================================================================
 
 describe('15. Loop Navigation', () => {
-  it('should loop from last item to first with ArrowDown (same as cmdk loop)', async () => {
+  it('should loop from last item to first with ArrowDown (default; cmdk needs loop)', async () => {
     await render(
       <Command>
         <Command.Input />
@@ -1264,7 +1265,7 @@ describe('15. Loop Navigation', () => {
     });
   });
 
-  it('should loop from first item to last with ArrowUp (same as cmdk loop)', async () => {
+  it('should loop from first item to last with ArrowUp (default; cmdk needs loop)', async () => {
     await render(
       <Command>
         <Command.Input />
@@ -1284,6 +1285,35 @@ describe('15. Loop Navigation', () => {
     await vi.waitFor(() => {
       expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
     });
+  });
+
+  it('should stop at the boundaries when loop={false} (opt-out of the default)', async () => {
+    await render(
+      <Command loop={false}>
+        <Command.Input />
+        <Command.List>
+          <Command.Item value="one" forceId="one">
+            One
+          </Command.Item>
+          <Command.Item value="two" forceId="two">
+            Two
+          </Command.Item>
+        </Command.List>
+      </Command>,
+    );
+
+    // First item is active, ArrowUp must not wrap to the last item
+    await pressKey('ArrowUp');
+    expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
+
+    // Move to the last item, then ArrowDown must not wrap to the first item
+    await pressKey('ArrowDown');
+    await vi.waitFor(() => {
+      expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
+    });
+    await pressKey('ArrowDown');
+    expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
+    expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(false);
   });
 });
 
@@ -1384,7 +1414,7 @@ describe('16. onSelect Callback', () => {
 //   - Telemetry middleware
 //   - Disposable pattern (using/await using)
 //   - Branded types (ItemId, GroupId)
-//   - ES2026 features throughout
+//   - Modern built-ins: ES2025 Iterator helpers, explicit resource management (using / await using)
 // ============================================================================
 
 describe('17. NEW Features Not In cmdk (Superset)', () => {
@@ -1704,7 +1734,7 @@ describe('17. NEW Features Not In cmdk (Superset)', () => {
 
   // ---- 17k. Disposable Pattern ----
 
-  describe('17k. Disposable Pattern (ES2026 using)', () => {
+  describe('17k. Disposable Pattern (explicit resource management: using)', () => {
     it('should support Symbol.dispose on the machine', () => {
       const machine = createCommandMachine();
       expect(typeof machine[Symbol.dispose]).toBe('function');

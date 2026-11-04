@@ -1,7 +1,7 @@
 import { createScheduler } from 'modern-cmdk';
 import { describe, expect, it, vi } from 'vitest';
 
-describe('Scheduler (0.0.3)', () => {
+describe('Scheduler', () => {
   it('should create a scheduler', () => {
     using scheduler = createScheduler();
     expect(scheduler).toBeDefined();

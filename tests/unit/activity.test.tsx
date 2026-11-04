@@ -24,7 +24,7 @@ afterEach(() => {
   container?.remove();
 });
 
-describe('CommandActivity (0.2.5)', () => {
+describe('CommandActivity', () => {
   it('should render children when mode is visible', async () => {
     await render(
       <CommandActivity mode="visible">

@@ -1,6 +1,6 @@
 // tests/unit/async.test.tsx
 // Command.AsyncItems tests — React 19 use() + Suspense with happy-dom
-// Vitest + React (experimental channel build) + TypeScript, ES2026
+// Vitest + React (experimental channel build) + TypeScript, ESNext
 
 import type { CommandItem as CommandItemType } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
@@ -84,7 +84,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 // Test helpers
 // ---------------------------------------------------------------------------
 
-// ES2026 Iterator Helpers — generate async test items via iterator pipeline
+// ES2025 Iterator helpers — generate async test items via iterator pipeline
 function createTestItems(count: number): readonly CommandItemType[] {
   return Iterator.from({
     [Symbol.iterator]: function* (): Generator<number> {

@@ -1,0 +1,227 @@
+[
+  {
+    "id": "CLI-1",
+    "test": "tests/unit/codemod-cli.test.ts::a real run rewrites, lists changed files and prints the summary line",
+    "status": "covered"
+  },
+  {
+    "id": "DAE-01",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-71",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-72",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-07",
+    "test": "tests/unit/codemod-cli.test.ts::writes usage to stdout and resolves 0",
+    "status": "covered"
+  },
+  {
+    "id": "DT-02",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DT-03",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DT-04",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "F3",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "F4",
+    "test": "tests/unit/create-cli.test.ts::an unknown template prints the valid ones, exit 1 (strict 2), writes nothing",
+    "status": "covered"
+  },
+  {
+    "id": "F6",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "P02",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "P31",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RP-06",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RP-09",
+    "test": "tests/unit/codemod-cli.test.ts::--dry-run lists would-change files and leaves the bytes alone",
+    "status": "covered"
+  },
+  {
+    "id": "RP-21",
+    "test": "tests/unit/create-cli.test.ts::--help prints usage and the template list to stdout, exit 0",
+    "status": "covered"
+  },
+  {
+    "id": "RP-26",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RP-27",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RP-33",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "SEC-08",
+    "test": "tests/unit/codemod-cli.test.ts::an unknown transform names it and the valid list, exit 1 (strict 2)",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-16",
+    "test": "tests/unit/create-cli.test.ts::no project name prints usage to stderr, exit 0 (strict 2)",
+    "status": "covered"
+  },
+  {
+    "id": "T27",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-14",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RDG-03",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RDG-05",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RDG-17",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RDG-19",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RDG-27",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RDG-33",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TEB-03",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TEB-11",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TEB-13",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TEB-19",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TEB-20",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TUB-10",
+    "test": "tests/unit/machine.test.ts::should handle ITEM_SELECT with onSelect callback",
+    "status": "covered"
+  },
+  {
+    "id": "W18",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "W19",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "W20",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CLI-7",
+    "test": "tests/unit/codemod-cli.test.ts::no arguments writes usage to stderr and resolves 0 (strict: 2)",
+    "status": "covered"
+  },
+  {
+    "id": "RDG-67",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TEB-37",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TEB-38",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TEB-39",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TUB-30",
+    "test": "tests/unit/search-incremental.test.ts::should maintain correct sort order during incremental filtering",
+    "status": "covered"
+  },
+  {
+    "id": "TUB-31",
+    "test": "tests/unit/search.test.ts::should search items and return ordered results",
+    "status": "covered"
+  }
+]

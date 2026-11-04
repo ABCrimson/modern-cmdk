@@ -1,6 +1,6 @@
 // tests/unit/cmdk-performance-accuracy.test.tsx
 // Head-to-head: modern-cmdk vs cmdk — Performance & Search Accuracy
-// Vitest — ES2026 — React 19
+// Vitest — ESNext — React 19
 
 // ── cmdk (the original) ──
 import { Command as CmdkCommand, defaultFilter as cmdkDefaultFilter } from 'cmdk';
@@ -464,7 +464,7 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
 
   for (const tc of testCases) {
     describe(`query: "${tc.query}"`, () => {
-      it('cmdk — precision (true positives found)', () => {
+      it('cmdk — recall (true positives found)', () => {
         const results = corpus
           .map((item) => ({ value: item, score: cmdkDefaultFilter(item, tc.query) }))
           .filter((r) => r.score > 0)
@@ -475,7 +475,7 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
         for (const expected of tc.expectedMatches) {
           if (resultValues.includes(expected)) foundCount++;
         }
-        const precision =
+        const recall =
           tc.expectedMatches.length > 0
             ? foundCount / tc.expectedMatches.length
             : resultValues.length === 0
@@ -484,15 +484,15 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
 
         console.log(
           `  cmdk "${tc.query}": ${foundCount}/${tc.expectedMatches.length} expected found, ` +
-            `${results.length} total results, precision=${(precision * 100).toFixed(0)}%` +
+            `${results.length} total results, recall=${(recall * 100).toFixed(0)}%` +
             (results[0] ? `, top="${results[0].value}" (${results[0].score.toFixed(4)})` : ''),
         );
 
         // Just record — don't assert (cmdk is the baseline)
-        expect(precision).toBeGreaterThanOrEqual(0);
+        expect(recall).toBeGreaterThanOrEqual(0);
       });
 
-      it('ours — precision (true positives found)', () => {
+      it('ours — recall (true positives found)', () => {
         using engine = createSearchEngine();
         engine.index(commandCorpus);
         const results = engine.search(tc.query, commandCorpus).toArray();
@@ -506,7 +506,7 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
         for (const expected of tc.expectedMatches) {
           if (resultValues.includes(expected)) foundCount++;
         }
-        const precision =
+        const recall =
           tc.expectedMatches.length > 0
             ? foundCount / tc.expectedMatches.length
             : resultValues.length === 0
@@ -515,12 +515,12 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
 
         console.log(
           `  ours "${tc.query}": ${foundCount}/${tc.expectedMatches.length} expected found, ` +
-            `${results.length} total results, precision=${(precision * 100).toFixed(0)}%` +
+            `${results.length} total results, recall=${(recall * 100).toFixed(0)}%` +
             (results[0] ? `, top="${resultValues[0]}" (${results[0].score.toFixed(4)})` : ''),
         );
 
-        // 80% minimum precision — we should find most expected matches
-        expect(precision).toBeGreaterThanOrEqual(0.8);
+        // 80% minimum recall — we should find most expected matches
+        expect(recall).toBeGreaterThanOrEqual(0.8);
       });
 
       if (tc.expectedNonMatches.length > 0) {
@@ -587,7 +587,8 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
           using engine = createSearchEngine();
           engine.index(commandCorpus);
           const results = engine.search(tc.query, commandCorpus).toArray();
-          const topItem = results[0] ? commandCorpus.find((i) => i.id === results[0].id) : null;
+          const [top] = results;
+          const topItem = top ? commandCorpus.find((i) => i.id === top.id) : null;
 
           const topCorrect = topItem?.value === tc.expectedTopResult;
           console.log(
@@ -668,7 +669,8 @@ describe('8. Edge Cases & Behavior Differences', () => {
       keywords: [],
     }));
 
-    // cmdk: empty query = score 0 (doesn't filter, shows all)
+    // cmdk: empty query scores 0.99 for a non-empty item (command-score's exhausted-query
+    // branch) and the search is skipped, so every item is shown
     const cmdkScores = items.map((item) => cmdkDefaultFilter(item, ''));
     // ours: empty query = score 1 (full match, shows all)
     const ourScores = commandItems.map((item) => scoreItem('', item)?.score ?? 0);
@@ -677,7 +679,7 @@ describe('8. Edge Cases & Behavior Differences', () => {
     console.log(`  Empty query — our scores: [${ourScores.join(', ')}]`);
 
     // Both should effectively "show all" — but scoring approach differs
-    expect(cmdkScores).toHaveLength(3);
+    expect(cmdkScores).toEqual([0.99, 0.99, 0.99]);
     expect(ourScores).toHaveLength(3);
   });
 
@@ -732,7 +734,8 @@ describe('8. Edge Cases & Behavior Differences', () => {
       `  Case test — ours: lower=${ourLower.toFixed(4)}, upper=${ourUpper.toFixed(4)}, mixed=${ourMixed.toFixed(4)}`,
     );
 
-    // Both should treat all cases equally (or very close — cmdk has minor floating-point variance)
+    // Both should be case-insensitive (cmdk applies a small 0.9999-per-character case-mismatch
+    // penalty, hence toBeCloseTo)
     expect(cmdkLower).toBeCloseTo(cmdkUpper, 2);
     expect(ourLower).toBe(ourUpper);
     expect(ourLower).toBe(ourMixed);
@@ -819,7 +822,7 @@ describe('9. Feature Comparison Summary', () => {
       'Frecency ranking': { ours: true, cmdk: false },
       'Branded type safety': { ours: true, cmdk: false },
       'Disposable pattern (using)': { ours: true, cmdk: false },
-      'ES2026 Iterator pipeline': { ours: true, cmdk: false },
+      'ES2025 Iterator helpers': { ours: true, cmdk: false },
       'Page navigation': { ours: true, cmdk: false },
       'Error boundary': { ours: true, cmdk: false },
       'Case-insensitive search': { ours: true, cmdk: true },

@@ -6,7 +6,7 @@ function makeItem(id: string, value: string, opts?: Partial<CommandItem>): Comma
   return { id: itemId(id), value, ...opts };
 }
 
-describe('Machine Integration (0.0.9)', () => {
+describe('Machine Integration', () => {
   it('should support full flow: register → search → navigate → select → frecency', async () => {
     const onSelect = vi.fn();
     using machine = createCommandMachine({
@@ -269,7 +269,7 @@ describe('Machine Integration (0.0.9)', () => {
 
   it('should handle rapid events without data loss', async () => {
     using machine = createCommandMachine({
-      // ES2026 Iterator Helpers — generate items via iterator pipeline
+      // ES2025 Iterator helpers — generate items via iterator pipeline
       items: Iterator.from({
         [Symbol.iterator]: function* (): Generator<number> {
           for (let i = 0; i < 100; i++) yield i;
