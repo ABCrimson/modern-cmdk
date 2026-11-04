@@ -1,4 +1,4 @@
-/* modern-cmdk/react — dialog transitions inert until DT-19 */
+/* modern-cmdk/react — tokens, item and list transitions; the dialog and overlay transitions are declared but inert until DT-19 */
 /* All animations respect prefers-reduced-motion */
 /* Spring easing via linear() approximation — perceptually smooth */
 /* Scroll-driven animations via animation-timeline: scroll() */
