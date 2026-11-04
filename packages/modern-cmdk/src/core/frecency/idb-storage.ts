@@ -1,7 +1,7 @@
 // packages/modern-cmdk/src/core/frecency/idb-storage.ts
 // IndexedDB-backed frecency persistence — idb-keyval (lazy-loaded)
 // Implements both Disposable and AsyncDisposable for await using support
-// ES2025: Iterator Helpers; Explicit Resource Management (using/await using, TS lib esnext.disposable)
+// ES2025: Iterator Helpers; ESNext: Explicit Resource Management (using/await using, TS lib esnext.disposable)
 
 import type { UseStore } from 'idb-keyval';
 import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';
@@ -66,7 +66,7 @@ function storageKey(namespace: string): string {
 let idbModule: Promise<typeof import('idb-keyval')> | undefined;
 
 /**
- * IndexedDB-backed frecency storage using idb-keyval 6.2.2.
+ * IndexedDB-backed frecency storage using idb-keyval.
  *
  * Persists frecency data across browser sessions. Implements both
  * `Disposable` and `AsyncDisposable` for use with `using` and `await using`.
