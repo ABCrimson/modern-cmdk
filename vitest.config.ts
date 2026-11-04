@@ -14,13 +14,39 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
-    expect: { requireAssertions: true },
     setupFiles: ['./tests/setup.ts'],
-    include: [
-      'packages/*/src/**/*.test.ts',
-      'tests/unit/**/*.test.{ts,tsx}',
-      // Built-package tests import packages/modern-cmdk/dist, so they need `pnpm build` first
-      'tests/dist/**/*.test.{ts,tsx}',
+    // vitest/dist/chunks/index.Di8au7q4.js expandBenchmarksInEntries: under `vitest bench` each project's
+    // bench variant runs its own benchmark.include, so benchmarks (which assert nothing) live in the 'perf'
+    // project, which never sets requireAssertions, and 'unit' benchmarks nothing.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          expect: { requireAssertions: true },
+          include: [
+            'packages/*/src/**/*.test.ts',
+            'tests/unit/**/*.test.{ts,tsx}',
+            // Built-package tests import packages/modern-cmdk/dist, so they need `pnpm build` first
+            'tests/dist/**/*.test.{ts,tsx}',
+          ],
+          benchmark: { include: [] },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'perf',
+          include: [],
+          benchmark: {
+            include: ['benchmarks/**/*.bench.ts'],
+            // wasm-search needs the browser-target WASM engine (createWasmSearchEngine loads
+            // a `--target web` module) — it runs via the standalone benchmarks/standalone
+            // harness, not the Node-based `vitest bench` runner.
+            exclude: ['benchmarks/wasm-search.bench.ts'],
+          },
+        },
+      },
     ],
     coverage: {
       provider: 'v8',
@@ -49,13 +75,6 @@ export default defineConfig({
       // Measured honest baseline, floored to integers; scripts/coverage-ratchet.mjs
       // fails CI when a metric drops below the value on origin/main.
       thresholds,
-    },
-    benchmark: {
-      include: ['benchmarks/**/*.bench.ts'],
-      // wasm-search needs the browser-target WASM engine (createWasmSearchEngine loads
-      // a `--target web` module) — it runs via the standalone benchmarks/standalone
-      // harness, not the Node-based `vitest bench` runner.
-      exclude: ['benchmarks/wasm-search.bench.ts'],
     },
   },
 });

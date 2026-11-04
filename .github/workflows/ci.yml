@@ -370,8 +370,6 @@ jobs:
             exit 0
           fi
           exit "$code"
-      # vitest.config.ts sets expect.requireAssertions, which a benchmark (it asserts nothing) cannot meet;
-      # the `bench` script switches it off for bench runs only
       - run: pnpm bench --run
       # benchmarks/tsconfig.json resolves modern-cmdk to the downloaded dist declarations
       - run: pnpm exec tsc -p benchmarks/tsconfig.json --noEmit
