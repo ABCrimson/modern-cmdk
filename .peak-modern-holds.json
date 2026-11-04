@@ -43,6 +43,15 @@
       "field": "devDependencies",
       "reason": "vue-tsc 3.3.14 (peer typescript >=5.0.0) type-checks the docs app and drives the TypeScript 5/6 compiler API from the package's main export; the typescript 7.x package (latest 7.0.2, next 7.1.0-dev.20261104.1) exports only ./lib/version.cjs at \".\" plus the new typescript/sync, typescript/async, typescript/ast and typescript/proto API, which vue-tsc and twoslash 0.3.9 do not use. 6.0.3 is the newest 6.x release. Re-test on every sweep: the hold ends when vue-tsc runs on the typescript 7 API.",
       "evidence": "node_modules/typescript/package.json exports (root pin 7.1.0-dev.20261104.1), read 2026-11-04; pnpm view typescript versions (6.0.3 newest 6.x) and vue-tsc peerDependencies, 2026-11-04; W7-01 verifier round 2 (wf_03ff8c32-395): pnpm --filter docs exec vue-tsc --noEmit exits 0 on 6.0.3"
+    },
+    {
+      "kind": "npm",
+      "name": "mermaid",
+      "pin": "12.3.0",
+      "file": "apps/docs/package.json",
+      "field": "devDependencies",
+      "reason": "mermaid@13.0.0-alpha.0 (alpha and v13-alpha tags, published 2026-11-04T13:22Z) carries no npm attestations and was published from a user account, while 12.3.0 carries SLSA provenance; pnpm 12.17.0 with trustPolicy no-downgrade (pnpm-workspace.yaml) refuses the resolution: 'High-risk trust downgrade for \"mermaid@13.0.0-alpha.0\" (possible package takeover)'. Re-test when a 13.x build with provenance appears (pnpm view mermaid@<v> dist.attestations).",
+      "evidence": "pnpm install on 2026-11-04 at the 1.4.0 cut (scratchpad mermaid13-install.log): ERR trust downgrade; pnpm view mermaid@13.0.0-alpha.0 dist.attestations -> none, _npmUser ashishjain0512; pnpm view mermaid@12.3.0 dist.attestations -> provenance slsa.dev/provenance/v1"
     }
   ]
 }
