@@ -1,0 +1,130 @@
+name: Lanes
+# Scheduled, non-blocking lanes: React canary, TypeScript latest and rc, the xcode-27 image, and a weekly
+# dependency audit. Not a required check. A red run opens (or comments on) one `lane-red` issue.
+on:
+  schedule:
+    # Daily dependency lanes, off the top of the hour.
+    - cron: '17 4 * * *'
+    # Weekly audit (Monday): an advisory published between pushes is caught within a week.
+    - cron: '43 5 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: lanes-${{ github.event.schedule || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  react-canary:
+    name: React canary
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: node scripts/lane.mjs react-canary
+      - run: pnpm --filter modern-cmdk exec tsc --noEmit
+      - run: pnpm exec vitest run --exclude "tests/dist/**"
+
+  typescript:
+    name: TypeScript ${{ matrix.lane }}
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [ts-latest, ts-rc]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # The lane prints "skipped" and sets skipped=true when the rc tag is not newer than latest;
+      # the steps below then do not run, so a skipped lane is never reported as a tested one.
+      - id: lane
+        run: node scripts/lane.mjs ${{ matrix.lane }}
+      - if: steps.lane.outputs.skipped != 'true'
+        run: pnpm --filter modern-cmdk exec tsc --noEmit
+      - if: steps.lane.outputs.skipped != 'true'
+        run: pnpm exec vitest run --exclude "tests/dist/**"
+
+  xcode-27:
+    name: xcode-27 unit suite
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec vitest run --exclude "tests/dist/**"
+
+  audit:
+    name: Weekly audit
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '43 5 * * 1'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm audit --audit-level=high
+      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2.90.0
+        with:
+          tool: cargo-audit@0.22.2
+      - run: cargo-audit audit
+        working-directory: packages/command-search-wasm/crate
+
+  report:
+    name: Report red lanes
+    needs: [react-canary, typescript, xcode-27, audit]
+    if: failure()
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      NEEDS: ${{ toJSON(needs) }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Open or update the lane-red issue
+        run: |
+          failed=$(jq -r 'to_entries | map(select(.value.result == "failure" or .value.result == "cancelled") | .key) | join(", ")' <<<"$NEEDS")
+          body="Red lane job(s): ${failed}. Run: ${RUN_URL}"
+          if ! gh label list --limit 200 --json name --jq '.[].name' | grep -qx 'lane-red'; then
+            gh label create lane-red --color B60205 --description 'A scheduled lane in lanes.yml is red'
+          fi
+          number=$(gh issue list --label lane-red --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --label lane-red --title "Scheduled lane red: ${failed}" --body "$body"
+          fi
