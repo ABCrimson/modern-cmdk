@@ -5,8 +5,8 @@
 // Split into stable + state contexts to prevent unnecessary re-renders
 // Branded types for IDs, isolated declarations with explicit return types
 
+import type { CommandMachine, CommandState, ItemId } from 'modern-cmdk';
 import { type Context, createContext, type RefObject, use } from 'react';
-import type { CommandMachine, CommandState, ItemId } from '../core/index.js';
 
 /** Branded newtype for the root instance ID */
 export type CommandRootId = string & { readonly __brand: 'CommandRootId' };

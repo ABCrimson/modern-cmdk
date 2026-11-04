@@ -5,8 +5,8 @@
 // and disposal between <Command> and <Command.Dialog>
 // Isolated declarations: explicit return types on all exports
 
+import type { CommandMachine, CommandState } from 'modern-cmdk';
 import { useEffect, useMemo, useRef } from 'react';
-import type { CommandMachine, CommandState } from '../../core/index.js';
 import type { CommandStableContextValue, CommandStateContextValue } from '../context.js';
 import { useCommand } from './use-command.js';
 import { createKeydownHandler } from './use-keyboard.js';

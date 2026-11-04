@@ -5,7 +5,7 @@
 // Isolated declarations: explicit return types on all exports
 // Navigation keys dispatch through an object lookup; action keys (Enter/Backspace/Escape) through a switch
 
-import type { CommandMachine, CommandState } from '../../core/index.js';
+import type { CommandMachine, CommandState } from 'modern-cmdk';
 
 /** Valid navigation directions */
 type NavigationDirection = 'next' | 'prev' | 'first' | 'last';

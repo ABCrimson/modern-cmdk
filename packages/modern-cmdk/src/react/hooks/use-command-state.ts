@@ -5,8 +5,8 @@
 // Selector stabilized via ref to prevent unnecessary getSnapshot recreation
 // Isolated declarations: explicit return types on all exports
 
+import type { CommandState } from 'modern-cmdk';
 import { useCallback, useRef, useSyncExternalStore } from 'react';
-import type { CommandState } from '../../core/index.js';
 import { useStableContext } from '../context.js';
 
 /** Get the full command state with proper subscription */

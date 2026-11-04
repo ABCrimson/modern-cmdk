@@ -10,5 +10,10 @@
       "modern-cmdk/react": ["../../packages/modern-cmdk/dist/react/index.d.mts"]
     }
   },
-  "include": ["*.test.ts", "*.test.tsx", "../../packages/modern-cmdk/src/core/es2026.d.ts"]
+  "include": [
+    "*.test.ts",
+    "*.test.tsx",
+    "*.types.ts",
+    "../../packages/modern-cmdk/src/core/es2026.d.ts"
+  ]
 }

@@ -6,11 +6,11 @@
 // Focus trap via Radix built-in focus management
 // Isolated declarations: explicit return types on all exports
 
+import type { CommandMachineOptions } from 'modern-cmdk';
+import { createCommandMachine } from 'modern-cmdk';
 import { Dialog } from 'radix-ui';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef } from 'react';
-import type { CommandMachineOptions } from '../core/index.js';
-import { createCommandMachine } from '../core/index.js';
 import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommandSetup } from './hooks/use-command-setup.js';
 
