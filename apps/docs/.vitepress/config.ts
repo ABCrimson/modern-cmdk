@@ -1,46 +1,66 @@
 // import { transformerTwoslash } from '@shikijs/twoslash';
-// Disabled: twoslash 0.3.9 (peer typescript ^5.5.0 || ^6.0.0) needs the TypeScript JS compiler API,
-// and the installed typescript 7.1 entry point (lib/version.cjs) no longer exposes it
-import { defineConfig } from 'vitepress';
+// Twoslash stays disabled (checked 2026-11-04): twoslash 0.3.9, the newest release, declares peer
+// typescript ^5.5.0 || ^6.0.0 and drives the TypeScript JS compiler API, which the installed
+// typescript 7.1 entry point (lib/version.cjs, lib/tsc.js) does not expose. @shikijs/twoslash 4.6.0
+// only widens its own peer to typescript >=5.5.0; it still delegates to twoslash.
+import { defineConfig, type MarkdownRenderer } from 'vitepress';
+
+type FenceRule = NonNullable<MarkdownRenderer['renderer']['rules']['fence']>;
+
+// The site is a GitHub Pages project site. VitePress prefixes base onto its own asset and page URLs
+// but not onto `head` entries, so the favicon href below is built from these constants.
+const origin = 'https://abcrimson.github.io';
+const base = '/modern-cmdk/';
+const siteUrl = `${origin}${base}`;
+const ogImage = `${siteUrl}og-image.png`;
+const description =
+  'Headless command palette engine for React 19. Framework-agnostic core, frecency ranking, full WAI-ARIA.';
+
+// A Mermaid fence renders client-side in <MermaidDiagram> (theme/components/MermaidDiagram.vue);
+// the diagram source travels as an escaped attribute so Vue never parses it as template syntax.
+const escapeAttribute = (value: string): string =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('{', '&#123;')
+    .replaceAll('}', '&#125;');
 
 export default defineConfig({
   title: 'modern-cmdk',
   description: 'Headless command palette engine for React 19',
+  base,
 
   head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }],
     ['meta', { property: 'og:title', content: 'modern-cmdk' }],
-    [
-      'meta',
-      {
-        property: 'og:description',
-        content:
-          'Headless command palette engine for React 19. Framework-agnostic core, WASM search, frecency ranking, full WAI-ARIA.',
-      },
-    ],
-    ['meta', { property: 'og:image', content: 'https://command.crimson.dev/og-image.png' }],
-    ['meta', { property: 'og:url', content: 'https://command.crimson.dev' }],
+    ['meta', { property: 'og:description', content: description }],
+    ['meta', { property: 'og:image', content: ogImage }],
+    ['meta', { property: 'og:url', content: siteUrl }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:title', content: 'modern-cmdk' }],
-    [
-      'meta',
-      {
-        name: 'twitter:description',
-        content:
-          'Headless command palette engine for React 19. ES2026. GPU-composited. Accessible.',
-      },
-    ],
-    ['meta', { name: 'twitter:image', content: 'https://command.crimson.dev/og-image.png' }],
+    ['meta', { name: 'twitter:description', content: description }],
+    ['meta', { name: 'twitter:image', content: ogImage }],
   ],
 
-  // Twoslash stays disabled until a twoslash release supports TypeScript 7 (see the import note above)
-  // markdown: {
-  //   codeTransformers: [
-  //     transformerTwoslash({ ... }),
-  //   ],
-  // },
+  markdown: {
+    config(md: MarkdownRenderer): void {
+      const fence = md.renderer.rules.fence;
+      const render: FenceRule = (...args: Parameters<FenceRule>): ReturnType<FenceRule> => {
+        const [tokens, idx, options, , self] = args;
+        const token = tokens[idx];
+        if (token?.info.trim().split(/\s+/)[0] === 'mermaid') {
+          return `<MermaidDiagram code="${escapeAttribute(token.content)}" />\n`;
+        }
+        return fence ? fence(...args) : self.renderToken(tokens, idx, options);
+      };
+      md.renderer.rules.fence = render;
+    },
+  },
 
-  sitemap: { hostname: 'https://command.crimson.dev' },
+  sitemap: { hostname: siteUrl },
 
   themeConfig: {
     search: { provider: 'local' },
