@@ -190,11 +190,6 @@
     "status": "pending"
   },
   {
-    "id": "CLI-7",
-    "test": "tests/unit/codemod-cli.test.ts::no arguments writes usage to stderr and resolves 0 (strict: 2)",
-    "status": "covered"
-  },
-  {
     "id": "RDG-67",
     "test": null,
     "status": "pending"
@@ -222,6 +217,11 @@
   {
     "id": "TUB-31",
     "test": "tests/unit/search.test.ts::should search items and return ordered results",
+    "status": "covered"
+  },
+  {
+    "id": "T48",
+    "test": "tests/unit/input-typing.test.tsx::keeps typed characters when an optimistic active-item render lands between keystrokes",
     "status": "covered"
   }
 ]

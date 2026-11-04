@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
+import thresholds from './coverage-thresholds.json' with { type: 'json' };
 
 export default defineConfig({
   // Vitest 5.1 on Vite 8 (Rolldown) transpiles with oxc (target node22), not esbuild —
@@ -13,6 +14,7 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
+    expect: { requireAssertions: true },
     setupFiles: ['./tests/setup.ts'],
     include: [
       'packages/*/src/**/*.test.ts',
@@ -27,18 +29,26 @@ export default defineConfig({
         '**/*.test.ts',
         '**/*.test.tsx',
         '**/*.bench.ts',
-        '**/index.ts',
-        '**/primitives.ts',
-        '**/command-search-wasm/**',
-        '**/codemod/**',
-        '**/create-modern-cmdk/**',
+        // Pure barrels (re-exports only, verified): exact paths, never a glob that could hide logic.
+        'packages/modern-cmdk/src/core/index.ts',
+        'packages/modern-cmdk/src/react/index.ts',
+        'packages/command-search-wasm/src/index.ts',
+        // Not measured: dead file (JSX in a .ts file, imported by nothing, outside the tsdown
+        // entries and excluded by packages/modern-cmdk/tsconfig.json); Vite cannot transform it,
+        // so coverage-v8 cannot parse it. Deleted in the D window (ledger RA-24, ARCH-37, RDG-91).
+        'packages/modern-cmdk/src/react/primitives.ts',
+        // Not measured: these import ../pkg (wasm-pack output), which the unit-test run does not
+        // build, so vitest cannot load them (ledger W13 clause 3).
+        'packages/command-search-wasm/src/wasm-engine.ts',
+        'packages/command-search-wasm/src/worker.ts',
+        // Type declarations only, never instrumented.
+        '**/*.d.ts',
       ],
-      thresholds: {
-        lines: 80,
-        functions: 75,
-        branches: 70,
-        statements: 80,
-      },
+      reportOnFailure: true,
+      reporter: ['text', 'lcov', 'json-summary'],
+      // Measured honest baseline, floored to integers; scripts/coverage-ratchet.mjs
+      // fails CI when a metric drops below the value on origin/main.
+      thresholds,
     },
     benchmark: {
       include: ['benchmarks/**/*.bench.ts'],
