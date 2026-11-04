@@ -280,7 +280,7 @@ pnpm --filter modern-cmdk-search-wasm run build:wasm
 
 ## Code Style
 
-This project uses **Biome 2.6.4** for both linting and formatting. There is no ESLint or Prettier.
+This project uses **Biome 2.6.5** for both linting and formatting. There is no ESLint or Prettier.
 
 ### Formatter settings
 
@@ -598,7 +598,7 @@ fix(react): prevent stale activeId after unmount
 perf(core): use Set.difference for bulk item removal
 docs(architecture): add search pipeline diagram
 test(core): add frecency decay edge cases
-chore: bump Biome to 2.6.4
+chore: bump Biome to 2.6.5
 ```
 
 ### Pull request process
@@ -770,7 +770,7 @@ import { CommandState } from './types.js';
 Make sure you have the correct Biome version. It is installed as a devDependency -- do not install it globally:
 
 ```bash
-pnpm biome --version  # Should output 2.6.4
+pnpm biome --version  # Should output 2.6.5
 ```
 
 If hooks are not running, reinstall Lefthook:

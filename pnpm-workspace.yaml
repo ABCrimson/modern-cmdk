@@ -28,6 +28,18 @@ trustPolicyExclude:
 # Exact versions published less than minimumReleaseAge before the 2026-11-04 lockfile refreshes (pruned 2026-11-04 09:05 UTC);
 # pnpm 12.17.0 refuses them otherwise. Entries age out of need after a day.
 minimumReleaseAgeExclude:
+  # @biomejs/biome@2.6.5 and its ten platform binaries were published 2026-11-04T12:46Z, a few hours before this install
+  - '@biomejs/biome@2.6.5'
+  - '@biomejs/cli-android-arm64@2.6.5'
+  - '@biomejs/cli-android-x64@2.6.5'
+  - '@biomejs/cli-darwin-arm64@2.6.5'
+  - '@biomejs/cli-darwin-x64@2.6.5'
+  - '@biomejs/cli-linux-arm64@2.6.5'
+  - '@biomejs/cli-linux-arm64-musl@2.6.5'
+  - '@biomejs/cli-linux-x64@2.6.5'
+  - '@biomejs/cli-linux-x64-musl@2.6.5'
+  - '@biomejs/cli-win32-arm64@2.6.5'
+  - '@biomejs/cli-win32-x64@2.6.5'
   - '@playwright/test@1.66.0-alpha-2026-11-04'
   - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261104.1'
   - '@typescript/typescript-darwin-x64@7.1.0-dev.20261104.1'
