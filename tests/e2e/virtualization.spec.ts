@@ -421,19 +421,18 @@ test.describe('Virtualization — Large Item Set', () => {
     const input = page.getByRole('combobox');
     await input.focus();
 
-    // Navigate down — use fewer steps and verify active item settles between presses
+    // Five ArrowDown presses move the active item from virt-item-0 to virt-item-5
     for (let i = 0; i < 5; i++) {
       await input.press('ArrowDown');
     }
 
-    // Wait for the active item to stabilize (auto-retrying assertion)
+    // Assert the settled end state: a count of 1 alone also holds mid-navigation
     const activeItem = page.locator('[data-command-item][data-active]');
+    await expect(activeItem).toHaveId('virt-item-5');
     await expect(activeItem).toHaveCount(1);
 
-    // aria-activedescendant should match the active item's ID
-    const activeId = await activeItem.getAttribute('id');
-    expect(activeId).toBeTruthy();
-    await expect(input).toHaveAttribute('aria-activedescendant', activeId as string);
+    // aria-activedescendant must name that same active item
+    await expect(input).toHaveAttribute('aria-activedescendant', 'virt-item-5');
   });
 
   // ---------- Edge Cases ----------
