@@ -6,9 +6,10 @@
 
 import { createCommandMachine } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
+import { CommandDialog } from 'modern-cmdk/react/dialog';
 import 'modern-cmdk/styles.css';
 import type { ReactNode } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface PaletteItem {
   readonly id: string;
@@ -16,6 +17,7 @@ export interface PaletteItem {
 }
 
 export function Palette({ items }: { readonly items: readonly PaletteItem[] }): ReactNode {
+  const [open, setOpen] = useState(false);
   useEffect((): (() => void) => {
     const machine = createCommandMachine({ items: [] });
     document.body.dataset.hydrated = 'true';
@@ -25,18 +27,30 @@ export function Palette({ items }: { readonly items: readonly PaletteItem[] }): 
   }, []);
 
   return (
-    <Command label="Consumer palette">
-      <Command.Input placeholder="Search commands" />
-      <Command.List>
-        {items.map(
-          (item: PaletteItem): ReactNode => (
-            <Command.Item key={item.id} value={item.label}>
-              {item.label}
-            </Command.Item>
-          ),
-        )}
-        <Command.Empty>No results</Command.Empty>
-      </Command.List>
-    </Command>
+    <>
+      <Command label="Consumer palette">
+        <Command.Input placeholder="Search commands" />
+        <Command.List>
+          {items.map(
+            (item: PaletteItem): ReactNode => (
+              <Command.Item key={item.id} value={item.label}>
+                {item.label}
+              </Command.Item>
+            ),
+          )}
+          <Command.Empty>No results</Command.Empty>
+        </Command.List>
+      </Command>
+      <button type="button" onClick={(): void => setOpen(true)}>
+        Open palette
+      </button>
+      <CommandDialog open={open} onOpenChange={setOpen} label="Dialog palette">
+        <Command.Input placeholder="Search commands" />
+        <Command.List>
+          <Command.Item value="Dialog item">Dialog item</Command.Item>
+          <Command.Empty>No results</Command.Empty>
+        </Command.List>
+      </CommandDialog>
+    </>
   );
 }

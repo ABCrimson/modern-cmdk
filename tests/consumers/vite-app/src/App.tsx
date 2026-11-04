@@ -3,9 +3,10 @@
 
 import { createCommandMachine, itemId } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
+import { CommandDialog } from 'modern-cmdk/react/dialog';
 import 'modern-cmdk/styles.css';
 import type { ReactNode } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface PaletteItem {
   readonly id: string;
@@ -21,6 +22,7 @@ const items: readonly PaletteItem[] = Array.from(
 );
 
 export function App(): ReactNode {
+  const [open, setOpen] = useState(false);
   // A core export the adapter also uses internally: with one core copy both resolve to the same
   // module; with two, the core code appears twice in the client output.
   useEffect((): (() => void) => {
@@ -47,6 +49,18 @@ export function App(): ReactNode {
             <Command.Empty>No results</Command.Empty>
           </Command.List>
         </Command>
+      </section>
+      <section data-palette="dialog">
+        <button type="button" onClick={(): void => setOpen(true)}>
+          Open palette
+        </button>
+        <CommandDialog open={open} onOpenChange={setOpen} label="Dialog palette">
+          <Command.Input placeholder="Search commands" />
+          <Command.List>
+            <Command.Item value="Dialog item">Dialog item</Command.Item>
+            <Command.Empty>No results</Command.Empty>
+          </Command.List>
+        </CommandDialog>
       </section>
     </main>
   );

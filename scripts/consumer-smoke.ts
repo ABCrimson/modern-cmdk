@@ -16,12 +16,18 @@
 //      and gets dependencies['modern-cmdk'] = file:<tarball>;
 //   3. pnpm-workspace.yaml in the copy: packages ['.'], the root file's supply-chain keys read now
 //      (never packages or overrides) and the app's release-age-exclude.json entries;
-//   4. pnpm install, then the build (next build | next build --webpack | two vite builds);
+//   4. pnpm install; then `require.resolve('modern-cmdk/package.json')` in the copy (the './package.json'
+//      export; it must print a path inside node_modules/modern-cmdk); for vite the app's pinned
+//      TypeScript, `tsc --noEmit -p .` (next type-checks inside `next build`); then the build
+//      (next build | next build --webpack | two vite builds, run directly, never the app's build script);
 //   5. core copies, counted in client JS only (.next/static/**/*.js; vite: dist/client/assets/**/*.js);
 //   6. serve (next start on a free port; vite: a node:http server in this process that renders
 //      dist/server/entry-server.js into dist/client/index.html) and fetch the HTML;
-//   7. chromium (root @playwright/test): hydrate, type 'zz' for the empty state, clear, collect the
-//      console errors and warnings, compare the hydration count to tests/consumers/hydration-baseline.json.
+//   7. chromium (root @playwright/test): hydrate, type 'zz' for the empty state, clear, click the
+//      'Open palette' button (the CommandDialog from modern-cmdk/react/dialog), expect
+//      [data-command-dialog] visible, press Escape, expect it gone (visibility only: the dialog
+//      animation waits for DT-19, 1.8.0), collect the console errors and warnings, compare the
+//      hydration count to tests/consumers/hydration-baseline.json.
 //
 // No lockfile is committed for the apps: the tarball's integrity changes with every build, so a
 // committed lockfile would be stale on the next pack. Every install resolves fresh under the
@@ -110,6 +116,22 @@ export function countHydrationMessages(messages: readonly ConsoleMessage[]): num
     if (named || minified) count += 1;
   }
   return count;
+}
+
+/**
+ * True when `printed` (stdout of `require.resolve('modern-cmdk/package.json')`) is a path to the
+ * package manifest inside an installed modern-cmdk: the last non-empty line ends with
+ * node_modules/modern-cmdk/package.json (pnpm prints the real path under node_modules/.pnpm, which
+ * keeps that tail).
+ */
+export function isInstalledPackageJsonPath(printed: string): boolean {
+  const lines = printed
+    .split(/\r?\n/)
+    .map((line: string): string => line.trim())
+    .filter((line: string): boolean => line !== '');
+  const last = lines.at(-1);
+  if (last === undefined) return false;
+  return last.replaceAll('\\', '/').endsWith('/node_modules/modern-cmdk/package.json');
 }
 
 /** A ratchet: equal passes, higher is a regression, lower demands the baseline be lowered. */
@@ -533,6 +555,8 @@ export interface VariantResult {
   coreCopies: number | null;
   ssr: boolean;
   ssrFirstItem: boolean;
+  dialog: boolean;
+  packageJsonResolves: boolean;
   workarounds: string[];
   hydrationCount: number | null;
   messages: ConsoleMessage[];
@@ -598,6 +622,17 @@ async function checkPage(result: VariantResult, url: string): Promise<void> {
     // Hydration reports surface asynchronously after the first render; let the page settle.
     await page.waitForLoadState('networkidle', { timeout: 10_000 });
 
+    // The dialog subpath: closed by default (nothing in the DOM), opens on the button, Escape closes it.
+    const dialog = page.locator('[data-command-dialog]');
+    if ((await dialog.count()) !== 0) {
+      result.failures.push('[data-command-dialog] is in the DOM before the button was clicked');
+    }
+    await page.getByRole('button', { name: 'Open palette' }).click({ timeout: 10_000 });
+    await dialog.waitFor({ state: 'visible', timeout: 10_000 });
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
+    result.dialog = true;
+
     if (pageErrors.length > 0) {
       result.failures.push(`${pageErrors.length} pageerror(s): ${pageErrors[0]}`);
     }
@@ -620,6 +655,8 @@ async function runVariant(
     coreCopies: null,
     ssr: false,
     ssrFirstItem: false,
+    dialog: false,
+    packageJsonResolves: false,
     workarounds: [],
     hydrationCount: null,
     messages: [],
@@ -639,7 +676,38 @@ async function runVariant(
     const node = process.execPath;
     const nextBin = join(dir, 'node_modules', 'next', 'dist', 'bin', 'next');
     const viteBin = join(dir, 'node_modules', 'vite', 'bin', 'vite.js');
+
+    // The './package.json' export, resolved the way a consumer's tooling does. A failure is recorded
+    // and the variant goes on, so one run reports every broken surface.
+    const resolved = await run(
+      node,
+      ['-e', "console.log(require.resolve('modern-cmdk/package.json'))"],
+      { cwd: dir, timeoutMs: 60_000 },
+    );
+    if (resolved.code === 0 && !resolved.timedOut && isInstalledPackageJsonPath(resolved.output)) {
+      result.packageJsonResolves = true;
+      process.stdout.write(
+        `  package.json resolves: ${resolved.output.trim().split(/\r?\n/).at(-1)}\n`,
+      );
+    } else {
+      result.failures.push(
+        `require.resolve('modern-cmdk/package.json') ${resolved.timedOut ? 'timed out' : `exited with ${resolved.code}`} or printed no path inside node_modules/modern-cmdk\n${tail(resolved.output)}`,
+      );
+    }
+
     if (variant === 'vite') {
+      // The app's pinned TypeScript, before the builds (vite build never type-checks). Next
+      // type-checks inside `next build`.
+      try {
+        await runStep(
+          'tsc --noEmit -p .',
+          node,
+          [join(dir, 'node_modules', 'typescript', 'bin', 'tsc'), '--noEmit', '-p', '.'],
+          { cwd: dir, timeoutMs: 5 * 60_000 },
+        );
+      } catch (error) {
+        result.failures.push(error instanceof Error ? error.message : String(error));
+      }
       const clientSeconds = await runStep(
         'vite build (client)',
         node,
@@ -863,7 +931,7 @@ async function main(argv: readonly string[]): Promise<number> {
     const status = result.failures.length === 0 ? 'PASS' : 'FAIL';
     if (status === 'FAIL') failed = true;
     process.stdout.write(
-      `  ${status} ${result.variant}: install ${result.installSeconds?.toFixed(1) ?? '-'} s, build ${result.buildSeconds?.toFixed(1) ?? '-'} s, core copies ${result.coreCopies ?? '-'}, ssr ${result.ssr}, hydration ${result.hydrationCount ?? '-'}\n`,
+      `  ${status} ${result.variant}: install ${result.installSeconds?.toFixed(1) ?? '-'} s, build ${result.buildSeconds?.toFixed(1) ?? '-'} s, core copies ${result.coreCopies ?? '-'}, ssr ${result.ssr}, dialog ${result.dialog}, package.json ${result.packageJsonResolves}, hydration ${result.hydrationCount ?? '-'}\n`,
     );
     for (const failure of result.failures) {
       process.stdout.write(`    ${failure.split('\n').join('\n    ')}\n`);
