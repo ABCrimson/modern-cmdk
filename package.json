@@ -79,6 +79,35 @@
       ]
     },
     {
+      "name": "modern-cmdk/react/dialog (adapter only)",
+      "path": "packages/modern-cmdk/dist/react/dialog.mjs",
+      "limit": "1.5 kB",
+      "gzip": true,
+      "ignore": [
+        "modern-cmdk",
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "radix-ui"
+      ]
+    },
+    {
+      "name": "modern-cmdk/react: CommandSeparator only",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
+      "import": "{ CommandSeparator }",
+      "limit": "5 kB",
+      "gzip": true,
+      "ignore": [
+        "modern-cmdk",
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "radix-ui"
+      ]
+    },
+    {
       "name": "modern-cmdk + modern-cmdk/react",
       "path": "packages/modern-cmdk/dist/react/index.mjs",
       "limit": "9.9 kB",
