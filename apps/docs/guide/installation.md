@@ -4,7 +4,7 @@
 
 | | Version | Notes |
 |---|---|---|
-| **Node.js** | >= 26.4.0 | Only for building/developing. The published package runs anywhere ES2026 does. |
+| **Node.js** | >= 26.4.0 | Only for building/developing. The published package runs on runtimes with ES2025 iterator helpers and `Symbol.dispose`. |
 | **TypeScript** | >= 7.0 | Recommended. Types are emitted with `isolatedDeclarations`. |
 
 ## Peer dependencies
@@ -63,13 +63,13 @@ pnpm add modern-cmdk-search-wasm
 
 ## TypeScript Configuration
 
-Ensure your `tsconfig.json` targets ES2026:
+Ensure your `tsconfig.json` targets ESNext (the package's `Symbol.dispose` types need the ESNext lib):
 
 ```json
 {
   "compilerOptions": {
-    "target": "ES2026",
-    "lib": ["ES2026", "DOM"],
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM"],
     "moduleResolution": "bundler"
   }
 }

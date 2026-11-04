@@ -12,7 +12,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 - [Development Commands](#development-commands)
 - [Code Style](#code-style)
 - [TypeScript Guidelines](#typescript-guidelines)
-- [ES2026 Feature Usage](#es2026-feature-usage)
+- [Language Feature Usage](#language-feature-usage)
 - [Testing](#testing)
   - [Unit Tests](#unit-tests)
   - [Integration Tests](#integration-tests)
@@ -33,7 +33,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261104d36e9ba1f8) | Required for ES2026 features (Iterator Helpers, Explicit Resource Management) |
+| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261104d36e9ba1f8) | Iterator Helpers (ES2025) and `Symbol.dispose` / `using` (ESNext explicit resource management) run natively |
 | pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
 | TypeScript | 7.1.0-dev.20261104.1 | Installed via devDependencies -- do not install globally |
 | Rust + wasm-pack | Pinned nightly (`rust-toolchain.toml`) + wasm-pack 0.15.1 | Only needed if working on `command-search-wasm` |
@@ -77,7 +77,7 @@ Lefthook installs its git hooks via its own postinstall script, which pnpm is pe
 modern-cmdk/
   package.json                    Root workspace config
   pnpm-workspace.yaml            Workspace members, version overrides, build allowlist
-  tsconfig.base.json              Shared TypeScript config (ES2026 target)
+  tsconfig.base.json              Shared TypeScript config (ESNext target, ESNext + DOM libs)
   biome.json                      Biome linter + formatter config
   lefthook.yml                    Git hooks (pre-commit, pre-push)
   vitest.config.ts                Unit/integration test config
@@ -197,14 +197,14 @@ modern-cmdk/
   |
   tests/
     setup.ts                      Vitest setup (registered via setupFiles)
-    unit/                         28 test files: machine, machine-integration, registry,
+    unit/                         29 test files: machine, machine-integration, registry,
                                   search, search-incremental, keyboard, frecency, frecency-idb,
                                   scheduler, event-emitter, types, command, activity, async,
                                   virtualization, memory-leak, stress, exports-validation,
                                   cmdk-comparison, cmdk-performance-accuracy, bug-matrix,
-                                  input-typing, create-cli, codemod-* (5)
+                                  input-typing, create-cli, bench-compare-rules, codemod-* (5)
     dist/                         Tests against the built packages (cli-smoke, devtools)
-    docs/                         Playwright render tests for the built docs site (pages.spec.ts)
+    docs/                         Playwright render tests for the built docs site (pages.spec.ts; links.spec.ts for routes and #fragments)
     e2e/
       basic.spec.ts
       keyboard.spec.ts
@@ -228,7 +228,8 @@ modern-cmdk/
   .github/
     workflows/
       ci.yml                     Lint & typecheck, build, tests, React lanes, built-package tests, coverage,
-                                 Rust & WASM, e2e, docs, size, audit, benchmarks; "CI Summary" gates them
+                                 Rust & WASM, e2e, docs, phantom claims (`scripts/check-claims.mjs`), links (lychee 0.24.2 over the shipped
+                                 Markdown, `lychee.toml`), size, audit, benchmarks; "CI Summary" gates them
       release.yml                Wait for CI, then changeset version / publish; backfill task
       docs.yml                   VitePress deploy
       codeql.yml                 CodeQL static analysis
@@ -388,18 +389,18 @@ These are set in `tsconfig.base.json` and must not be overridden:
 
 ---
 
-## ES2026 Feature Usage
+## Language Feature Usage
 
-Use native ES2026 features that are supported in target browsers. Features not yet available in browsers use cross-browser helper functions.
+Use native features that the target browsers ship; the ones listed under helpers go through helper functions or a direct fallback.
 
-### Native ES2026 (use directly)
+### Native (use directly)
 
 | Feature | Where Used | Example |
 |---|---|---|
 | Iterator Helpers (ES2025) | Machine, registry, search, WASM engines | `items.values().map(fn)`, `.toArray()` |
 | `toSorted` / `toSpliced` (ES2023) | Machine, registry, fuzzy scorer, `<Command.Highlight>` | `results.toSorted((a, b) => b.score - a.score)` |
-| `Symbol.dispose` / `using` | Machine, registry, search engine, keyboard, emitter, scheduler, frecency, WASM engines (consumers write `using` / `await using`) | `[Symbol.dispose]() { ... }` |
-| `??=` lazy import | Frecency IndexedDB adapter | `idbModule ??= import('idb-keyval')` |
+| `Symbol.dispose` / `using` (ESNext) | Machine, registry, search engine, keyboard, emitter, scheduler, frecency, WASM engines (consumers write `using` / `await using`) | `[Symbol.dispose]() { ... }` |
+| `??=` (ES2021) lazy import | Frecency IndexedDB adapter | `idbModule ??= import('idb-keyval')` |
 | `Promise.withResolvers` | WASM worker engine (`command-search-wasm`) | `const { promise, resolve } = Promise.withResolvers<void>()` |
 
 ### Cross-browser helpers (use helpers, not native)
@@ -739,7 +740,7 @@ The changeset config (`.changeset/config.json`):
 
 ## Troubleshooting
 
-### `.toArray is not a function`, `Symbol.dispose` undefined, or other missing ES2026 features
+### `.toArray is not a function`, `Symbol.dispose` undefined, or another missing language feature
 
 The codebase uses Iterator Helpers (`.map`/`.filter`/`.toArray`), Explicit Resource
 Management (`Symbol.dispose` / `using`) and `Promise.withResolvers` natively -- no polyfills.
@@ -750,10 +751,7 @@ node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly2
 ```
 
 > [!NOTE]
-> Only features that actually shipped are used directly. Proposals that have **not**
-> landed in browsers -- `Set` methods, `Map.groupBy`/`Object.groupBy`, `Promise.try`,
-> `Temporal`, `Math.sumPrecise` -- are routed through the helpers in `core/utils/`
-> instead. See [ES2026 Feature Usage](#es2026-feature-usage).
+> Standard features that the core does not call natively, so it does not depend on a runtime that ships them: Set methods (ES2025) and `Map.groupBy`/`Object.groupBy` (ES2024) go through the helpers in `core/utils/` (`set-ops.ts`, `group-by.ts`); `Promise.try` (ES2025) is written as `Promise.resolve().then(fn)`, `Math.sumPrecise` (ES2026) as a `+=` loop, and `Temporal` is not used (`Date.now()`). See [Language Feature Usage](#language-feature-usage).
 
 ### Biome reports `useImportType` errors
 

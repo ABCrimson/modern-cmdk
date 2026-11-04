@@ -60,7 +60,7 @@ machine.subscribe(() => console.log(machine.getState()));
 | `open` | `boolean` | `false` | Initial open state |
 | `frecency` | `FrecencyOptions` | `undefined` | Frecency ranking configuration |
 | `loop` | `boolean` | `true` | Whether keyboard navigation wraps around |
-| `virtualizeThreshold` | `number` | `100` | Item count threshold for automatic virtualization |
+| `virtualizeThreshold` | `number` | `100` | Accepted but not read yet; `Command.List` virtualizes above a fixed 100 matches (off again at 50 or fewer) |
 | `onSelect` | `(id: ItemId) => void` | -- | Callback when an item is selected |
 | `onActiveChange` | `(id: ItemId \| null) => void` | -- | Callback when the active item changes |
 | `onOpenChange` | `(open: boolean) => void` | -- | Callback when open state changes |

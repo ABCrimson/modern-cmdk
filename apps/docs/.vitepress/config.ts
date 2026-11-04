@@ -3,7 +3,8 @@
 // ^5.5.0 || ^6.0.0 and drives the TypeScript 6 compiler API. The docs app pins typescript 6.0.3
 // (apps/docs/package.json, for vue-tsc), which has that API and which @shikijs/twoslash 4.6.0
 // resolves here, so turning twoslash on is now possible. The root typescript 7.1 does not have
-// it: its package exports only the new typescript/sync and typescript/async API.
+// it: its package exports (node_modules/typescript/package.json) are "." = ./lib/version.cjs, ./package.json, the tsconfig and jsconfig schemas,
+// and the new API entry points sync and async (each with /transport), ast (/is, /factory, /utils, /scanner, /visitor, /clone), fs, path, proto, wasm and vscode.
 import { defineConfig, type MarkdownRenderer } from 'vitepress';
 
 type FenceRule = NonNullable<MarkdownRenderer['renderer']['rules']['fence']>;
