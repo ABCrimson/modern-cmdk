@@ -56,7 +56,7 @@ A ground-up rewrite of `cmdk` for **React 19** and **TypeScript 7**, written in 
 
 - **Framework-agnostic core** -- Pure TypeScript state machine. No React. No hard DOM dependency; DOM APIs are feature-detected and SSR-safe. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
 - **React 19 adapter** -- `useSyncExternalStore`, `useTransition`, `useOptimistic`, `useId`, `use()` for Suspense. React Compiler compatible.
-- **Automatic virtualization** -- Variable-height virtual scrolling above a configurable threshold (`virtualizeThreshold`, default 100); off-screen items use `content-visibility: auto`.
+- **Automatic virtualization** -- Variable-height virtual scrolling turns on when more than 100 items match and off again at 50 or fewer (fixed thresholds; force it either way with `<Command.List virtualize>` / `virtualize={false}`); off-screen items use `content-visibility: auto`. The `virtualizeThreshold` option is accepted but not read yet.
 - **Fuzzy search** -- Built-in TS scorer with incremental filtering. Experimental Rust/WASM engine (`modern-cmdk-search-wasm`, unpublished and not benchmarked here).
 - **Frecency ranking** -- Frequency x recency with bucketed recency weights (hour/day/week/month/older) and pluggable persistence (memory, IndexedDB).
 - **Keyboard shortcuts** -- Built-in registry with cross-platform `Mod` key, conflict detection.
@@ -186,7 +186,7 @@ flowchart TB
         REG --> SCH
     end
 
-    WASM["modern-cmdk-search-wasm<br/>Rust trigram index + scorer<br/>Graceful TS fallback on failure"]
+    WASM["modern-cmdk-search-wasm<br/>Rust trigram index (experimental)<br/>today always falls back to the TS scorer"]
 
     App --> react
     App -.-> Future
@@ -227,10 +227,10 @@ const unsubscribe = machine.subscribe(() => {
   <Command.Input />    {/* Search input */}
   <Command.List>       {/* Scrollable list -- auto-virtualization */}
     <Command.Empty />  {/* filteredCount === 0 */}
-    <Command.Loading />{/* state.loading === true */}
+    <Command.Loading />{/* renders when the `loading` prop is true (or while the active-item transition is pending) */}
     <Command.Group>    {/* Heading + items */}
       <Command.Item>   {/* Selectable item */}
-        <Command.Highlight />   {/* Fuzzy match highlight */}
+        <Command.Highlight text={label} ranges={ranges} />   {/* Fuzzy match highlight */}
         <Command.Badge />       {/* Status badge */}
         <Command.Shortcut />    {/* Keyboard shortcut */}
       </Command.Item>
