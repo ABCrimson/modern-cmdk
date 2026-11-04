@@ -15,7 +15,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:docs": "playwright test -c playwright.docs.config.ts",
-    "bench": "vitest bench --expect.requireAssertions=false",
+    "bench": "vitest bench",
     "bench:compare": "node benchmarks/standalone/compare-baseline.ts",
     "lint": "biome check . --error-on-warnings",
     "lint:fix": "biome check . --write",
