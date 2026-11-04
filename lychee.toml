@@ -24,6 +24,13 @@ max_concurrency = 8
 # Unauthenticated GitHub calls are rate-limited hard; lychee reads GITHUB_TOKEN from the job
 # environment (ci.yml passes the workflow token), so no token appears in this file.
 
+# Remapped URLs: a regular expression and its replacement, separated by one space. www.npmjs.com's
+# bot protection answers non-browser clients 403 (CI run 41825096076 on 2026-11-04: all nine
+# package-page links; a local run saw 403 and 200 for sibling pages in one pass), so the package
+# pages are checked through the registry API instead. It has no bot protection and answers 404 for
+# a package that does not exist (probed 2026-11-04 with a made-up name), so a wrong name still fails.
+remap = ['https://www\.npmjs\.com/package/(.+) https://registry.npmjs.org/$1']
+
 # Excluded URLs (regular expressions), each with its reason:
 exclude = [
   # a local dev-server address in the contributing guide, reachable only on the reader's machine
