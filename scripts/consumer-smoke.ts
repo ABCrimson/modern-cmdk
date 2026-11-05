@@ -15,7 +15,7 @@
 //   2. the app under tests/consumers/<app> is copied into os.tmpdir()/modern-cmdk-consumer-<variant>-*
 //      and gets dependencies['modern-cmdk'] = file:<tarball>;
 //   3. pnpm-workspace.yaml in the copy: packages ['.'], the root file's supply-chain keys read now
-//      (never packages or overrides) and the app's release-age-exclude.json entries;
+//      (never packages or overrides) and the app's release-age-exclude.json entries, each spec once;
 //   4. pnpm install; then `require.resolve('modern-cmdk/package.json')` in the copy (the './package.json'
 //      export; it must print a path inside node_modules/modern-cmdk); for vite the app's pinned
 //      TypeScript, `tsc --noEmit -p .` (next type-checks inside `next build`); then the build
@@ -299,7 +299,10 @@ export function buildWorkspaceYaml(
       const base: readonly YamlScalar[] = Array.isArray(value)
         ? (value as readonly YamlScalar[])
         : [];
-      value = [...base, ...excludes.map((entry: ReleaseAgeExclude): string => entry.spec)];
+      // A Set keeps each spec once, in first-seen order (the root list first).
+      value = [
+        ...new Set([...base, ...excludes.map((entry: ReleaseAgeExclude): string => entry.spec)]),
+      ];
       if (value.length === 0) continue;
     }
     if (value === undefined) continue;
@@ -587,6 +590,8 @@ async function prepareApp(variant: Variant, tarball: string, tempDirs: string[])
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   const rootYaml = parseWorkspaceYaml(await readFile(join(ROOT, 'pnpm-workspace.yaml'), 'utf8'));
+  // The app list is empty: next is a root devDependency, so its canary specs are already in the root
+  // minimumReleaseAgeExclude (D57); an entry here is for a spec only this app installs.
   const excludes = (await readJson(join(dir, 'release-age-exclude.json'))) as ReleaseAgeExclude[];
   await writeFile(join(dir, 'pnpm-workspace.yaml'), buildWorkspaceYaml(rootYaml, excludes));
   return dir;
