@@ -9,7 +9,7 @@ Package integrity, consumer integration, public record: one copy of the core, a 
 
 - `modern-cmdk/react` no longer bundles its own copy of the core: it imports `modern-cmdk`, so apps using both entries ship the core once, and core types such as `ItemId` are assignable across entries.
 - Sizes, gzip, measured by size-limit 14.3.0 and recorded in `benchmarks/size-history/1.4.0.json` (commit `6e7c04d`): core 6355 B, `modern-cmdk/react` adapter only 5403 B, core + React 9830 B (1.3.0 measured 16199 B, the sum of 6355 B and a 9844 B React entry that inlined the core), `modern-cmdk/react/dialog` 1425 B, `styles.css` 3932 B. The `modern-cmdk` 1.2.0 entry's "the adapter's own gzipped size (~10.2 KB)" measured a file that inlined the core, so it was not the adapter's own size.
-- New `modern-cmdk/react/dialog` entry exporting `CommandDialog`. `modern-cmdk/react` still imports `radix-ui` in 1.x, so install `radix-ui` whenever you use the React entry. It is a required peer (`>=1.4.0 <2.0.0`); `react` and `react-dom` stay optional peers.
+- New `modern-cmdk/react/dialog` entry exporting `CommandDialog`. `modern-cmdk/react` still imports `radix-ui` in 1.x, so install `radix-ui` whenever you use the React entry. It is a required peer (`>=1.4.0 <2.0.0`); `react` and `react-dom` stay optional peers. This applies to core-only installs too: `npm install modern-cmdk` (npm 7+) and pnpm now also install `radix-ui` and, through its required peers, `react` and `react-dom`, even if you never import `modern-cmdk/react`; package managers with strict peers warn instead. `radix-ui` becomes optional again when the barrel drops `Command.Dialog` in 2.0.
 - `exports` gains `./package.json` and drops the duplicate `import` conditions; no import resolves differently.
 - `sideEffects` lists only `styles.css`.
 - `modern-cmdk` declares no `engines` field. The codemod bin and `create-modern-cmdk` are supported on Node >=26.4.0 (`create-modern-cmdk` declares it in `engines`; the codemod no longer does, from 1.4.0, D14). `npx modern-cmdk --help` states the same floor.
@@ -27,7 +27,7 @@ Package integrity, consumer integration, public record: one copy of the core, a 
 
 - The installation page has the peer table and the `radix-ui` requirement, and the measured TypeScript floor: 5.6 with `"lib": ["ESNext", "DOM"]`. 5.5.4 fails with `Cannot find name 'IteratorObject'`; 5.6.2, 5.7.3, 5.8.3, 5.9.3 and 6.0.3 pass, with the method written out.
 - The npm README is the canonical README; the repository README points to it. Sizes in the docs cite the record above.
-- Every fenced `ts` and `tsx` sample in the docs and READMEs is type-checked against the built package in CI, apart from five deliberate fragments.
+- Every fenced `ts` and `tsx` sample in the docs site and in the root, `modern-cmdk` and `create-modern-cmdk` READMEs is type-checked against the built package in CI, apart from five deliberate fragments.
 
 **Errata**
 
