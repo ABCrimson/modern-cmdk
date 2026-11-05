@@ -7,6 +7,9 @@
 Pass `open` and `onOpenChange` to control the dialog state:
 
 ```tsx
+import { Command } from 'modern-cmdk/react';
+import { useState } from 'react';
+
 function App() {
   const [open, setOpen] = useState(false);
 
@@ -31,7 +34,8 @@ Sync dialog state with URL search params:
 ```tsx
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { Command } from 'modern-cmdk/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 function CommandPalette() {
   const router = useRouter();
@@ -41,14 +45,15 @@ function CommandPalette() {
   return (
     <Command.Dialog
       open={open}
-      onOpenChange={(isOpen) => {
+      onOpenChange={(isOpen: boolean) => {
         const next = new URLSearchParams(params);
         if (isOpen) next.set('cmd', '1');
         else next.delete('cmd');
         router.replace(`?${next.toString()}`);
       }}
     >
-      ...
+      <Command.Input placeholder="Search commands..." />
+      <Command.List>{/* command items */}</Command.List>
     </Command.Dialog>
   );
 }
@@ -59,13 +64,25 @@ function CommandPalette() {
 Use separate `Command.Dialog` components, each with its own `open` state — each creates its own state machine:
 
 ```tsx
-<Command.Dialog open={commandsOpen} onOpenChange={setCommandsOpen}> {/* Main palette */}
-  <Command.Input placeholder="Search commands..." />
-  ...
-</Command.Dialog>
+import { Command } from 'modern-cmdk/react';
+import { useState } from 'react';
 
-<Command.Dialog open={settingsOpen} onOpenChange={setSettingsOpen}> {/* Settings palette */}
-  <Command.Input placeholder="Search settings..." />
-  ...
-</Command.Dialog>
+function Palettes() {
+  const [commandsOpen, setCommandsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  return (
+    <>
+      <Command.Dialog open={commandsOpen} onOpenChange={setCommandsOpen}> {/* Main palette */}
+        <Command.Input placeholder="Search commands..." />
+        <Command.List>{/* command items */}</Command.List>
+      </Command.Dialog>
+
+      <Command.Dialog open={settingsOpen} onOpenChange={setSettingsOpen}> {/* Settings palette */}
+        <Command.Input placeholder="Search settings..." />
+        <Command.List>{/* settings items */}</Command.List>
+      </Command.Dialog>
+    </>
+  );
+}
 ```

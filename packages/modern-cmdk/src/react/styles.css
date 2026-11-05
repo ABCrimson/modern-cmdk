@@ -1,4 +1,4 @@
-/* modern-cmdk/react — GPU-composited animations */
+/* modern-cmdk/react — tokens, item and list transitions; the dialog and overlay transitions are declared but inert until DT-19 */
 /* All animations respect prefers-reduced-motion */
 /* Spring easing via linear() approximation — perceptually smooth */
 /* Scroll-driven animations via animation-timeline: scroll() */
@@ -341,7 +341,7 @@
   }
 
   /* ─── Dialog Animations ─── */
-  /* GPU-composited dialog animation — zero layout thrash */
+  /* Dialog transitions: inert until DT-19 */
   /* Spring easing via linear() approximation */
 
   [data-command-dialog][data-state="open"] {

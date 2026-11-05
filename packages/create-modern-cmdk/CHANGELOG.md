@@ -18,27 +18,30 @@
 
 - **chore: bleeding-edge evergreen upgrade** — Updated the scaffold template to the newest installable versions (`modern-cmdk` ^1.1.5, `react`/`react-dom` ^19.2.0, `vite` ^8.0.0, `@vitejs/plugin-react` ^6.0.0) and fixed the generated `tsconfig.json` (ESNext target/module/lib). Raised `engines.node` to `>=26.4.0` and bumped the build toolchain (TypeScript 7.0.1-rc, tsdown 0.22.3).
 
+## 1.1.5
+
+Backfilled from the git history of `packages/create-modern-cmdk` between the tags `create-modern-cmdk@1.1.4` and `create-modern-cmdk@1.1.5` (published 2026-03-13). The GitHub release body of this version is a copy of the library's 1.0.0 notes and describes none of this.
+
+### Patch Changes
+
+- [`42b9df4`](https://github.com/ABCrimson/modern-cmdk/commit/42b9df4) **chore: bump version to 1.1.5** — Version-only change (`package.json`), aligning the release with the library's 1.1.5; no scaffolder source changed.
+
+## 1.1.4
+
+Backfilled from the git history of `packages/create-modern-cmdk` between the tags `create-modern-cmdk@1.0.0` and `create-modern-cmdk@1.1.4` (published 2026-03-13). The GitHub release body of this version is a copy of the library's 1.0.0 notes and describes none of this.
+
+### Patch Changes
+
+- [`c2cca4e`](https://github.com/ABCrimson/modern-cmdk/commit/c2cca4e) **fix: typecheck** — Added `@types/node` (`^22.15.0`) as a dev dependency, set `"types": ["node"]` in the package `tsconfig.json`, and added a `return` after `process.exit(0)` in `src/index.ts` so TypeScript narrows the parsed arguments.
+
+- [`dbd6e7b`](https://github.com/ABCrimson/modern-cmdk/commit/dbd6e7b) **docs: npm README** — Rewrote the package README for the npm page.
+
+- [`8ead89f`](https://github.com/ABCrimson/modern-cmdk/commit/8ead89f) **chore: tsdown target** — The tsdown build target changed from `es2026` to `esnext`.
+
+- [`394652f`](https://github.com/ABCrimson/modern-cmdk/commit/394652f) **chore: version sync** — `package.json` version moved from 1.0.0 to 1.1.4 to match the library.
+
 ## 1.0.0
 
-### Major Changes
+Initial release: `npm create modern-cmdk` scaffolds a Vite + React project wired to modern-cmdk (templates selectable via --template=<name>). The templates at this tag are `react-basic`, `react-dialog` and `react-full` (`src/index.ts` at `create-modern-cmdk@1.0.0`).
 
-- [`f00ac85`](https://github.com/ABCrimson/modern-cmdk/commit/f00ac85f23a9823234f507015c423d0aa066a12c) Thanks [@ABCrimson](https://github.com/ABCrimson)! - modern-cmdk 1.0.0 — consolidated package replacing @crimson_dev/command + @crimson_dev/command-react + @crimson_dev/command-codemod.
-
-  ### Import paths
-
-  - `import { createCommandMachine } from 'modern-cmdk'` — core engine
-  - `import { Command } from 'modern-cmdk/react'` — React 19 adapter
-  - `import 'modern-cmdk/styles.css'` — default styles
-  - `npx modern-cmdk <transform> <glob>` — codemods
-
-  ### Highlights
-
-  - Pure TypeScript state machine with zero DOM dependencies
-  - 14 React 19 compound components with Radix UI Dialog
-  - Built-in fuzzy search with incremental filtering
-  - Frecency ranking with time-based decay
-  - Keyboard shortcut registry
-  - GPU-composited CSS animations
-  - Full WAI-ARIA combobox pattern
-  - Automatic virtualization at 100+ items
-  - ES2026: Iterator Helpers, Explicit Resource Management, cross-browser helpers
+Changeset commit: [`f00ac85`](https://github.com/ABCrimson/modern-cmdk/commit/f00ac85f23a9823234f507015c423d0aa066a12c); release commit: [`d95b6b9`](https://github.com/ABCrimson/modern-cmdk/commit/d95b6b9).

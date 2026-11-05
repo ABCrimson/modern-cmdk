@@ -1,0 +1,18 @@
+[
+  "LICENSE",
+  "README.md",
+  "dist/codemod/cli.mjs",
+  "dist/codemod/transforms/data-attrs.mjs",
+  "dist/codemod/transforms/forward-ref.mjs",
+  "dist/codemod/transforms/import-rewrite.mjs",
+  "dist/codemod/transforms/should-filter.mjs",
+  "dist/core/index.d.mts",
+  "dist/core/index.mjs",
+  "dist/react/chunk-dialog.mjs",
+  "dist/react/dialog.d.mts",
+  "dist/react/dialog.mjs",
+  "dist/react/index.d.mts",
+  "dist/react/index.mjs",
+  "dist/react/styles.css",
+  "package.json"
+]

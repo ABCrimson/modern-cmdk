@@ -1,0 +1,42 @@
+[
+  {
+    "spec": "next@16.5.0-canary.41",
+    "reason": "the canary dist-tag of next (16.5.0-canary.41) was published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05 bump from canary.40; the law picks the highest next across all dist-tags. Drop the entries once a day has passed and the pin is re-resolved."
+  },
+  {
+    "spec": "@next/env@16.5.0-canary.41",
+    "reason": "the canary dist-tag of next (16.5.0-canary.41) was published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05 bump from canary.40; the law picks the highest next across all dist-tags. Drop the entries once a day has passed and the pin is re-resolved."
+  },
+  {
+    "spec": "@next/swc-darwin-arm64@16.5.0-canary.41",
+    "reason": "the canary dist-tag of next (16.5.0-canary.41) was published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05 bump from canary.40; the law picks the highest next across all dist-tags. Drop the entries once a day has passed and the pin is re-resolved."
+  },
+  {
+    "spec": "@next/swc-darwin-x64@16.5.0-canary.41",
+    "reason": "the canary dist-tag of next (16.5.0-canary.41) was published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05 bump from canary.40; the law picks the highest next across all dist-tags. Drop the entries once a day has passed and the pin is re-resolved."
+  },
+  {
+    "spec": "@next/swc-linux-arm64-gnu@16.5.0-canary.41",
+    "reason": "the canary dist-tag of next (16.5.0-canary.41) was published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05 bump from canary.40; the law picks the highest next across all dist-tags. Drop the entries once a day has passed and the pin is re-resolved."
+  },
+  {
+    "spec": "@next/swc-linux-arm64-musl@16.5.0-canary.41",
+    "reason": "the canary dist-tag of next (16.5.0-canary.41) was published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05 bump from canary.40; the law picks the highest next across all dist-tags. Drop the entries once a day has passed and the pin is re-resolved."
+  },
+  {
+    "spec": "@next/swc-linux-x64-gnu@16.5.0-canary.41",
+    "reason": "the canary dist-tag of next (16.5.0-canary.41) was published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05 bump from canary.40; the law picks the highest next across all dist-tags. Drop the entries once a day has passed and the pin is re-resolved."
+  },
+  {
+    "spec": "@next/swc-linux-x64-musl@16.5.0-canary.41",
+    "reason": "the canary dist-tag of next (16.5.0-canary.41) was published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05 bump from canary.40; the law picks the highest next across all dist-tags. Drop the entries once a day has passed and the pin is re-resolved."
+  },
+  {
+    "spec": "@next/swc-win32-arm64-msvc@16.5.0-canary.41",
+    "reason": "the canary dist-tag of next (16.5.0-canary.41) was published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05 bump from canary.40; the law picks the highest next across all dist-tags. Drop the entries once a day has passed and the pin is re-resolved."
+  },
+  {
+    "spec": "@next/swc-win32-x64-msvc@16.5.0-canary.41",
+    "reason": "the canary dist-tag of next (16.5.0-canary.41) was published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05 bump from canary.40; the law picks the highest next across all dist-tags. Drop the entries once a day has passed and the pin is re-resolved."
+  }
+]

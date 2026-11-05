@@ -113,20 +113,27 @@ export function PersistentFrecencyExample() {
 Tune the decay weights to match your usage patterns:
 
 ```tsx
-<Command
-  frecency={{
-    enabled: true,
-    decayConfig: {
-      hourWeight: 6.0,    // Very strong boost for items used in the last hour
-      dayWeight: 3.0,     // Strong boost for today
-      weekWeight: 1.5,    // Moderate boost for this week
-      monthWeight: 0.8,   // Slight boost for this month
-      olderWeight: 0.2,   // Minimal boost for older items
-    },
-  }}
->
-  {/* ... */}
-</Command>
+import { Command } from 'modern-cmdk/react';
+
+export function TunedFrecencyExample() {
+  return (
+    <Command
+      label="Tuned Frecency"
+      frecency={{
+        enabled: true,
+        decayConfig: {
+          hourWeight: 6.0, // Very strong boost for items used in the last hour
+          dayWeight: 3.0, // Strong boost for today
+          weekWeight: 1.5, // Moderate boost for this week
+          monthWeight: 0.8, // Slight boost for this month
+          olderWeight: 0.2, // Minimal boost for older items
+        },
+      }}
+    >
+      {/* ... */}
+    </Command>
+  );
+}
 ```
 
 ## Core Engine Usage

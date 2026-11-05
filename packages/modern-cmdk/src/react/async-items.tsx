@@ -5,9 +5,9 @@
 // React 19: use() for both context and promise resolution
 // Isolated declarations: explicit return types on all exports
 
+import type { CommandItem } from 'modern-cmdk';
 import type { ReactNode } from 'react';
 import { Suspense, use, useLayoutEffect, useRef } from 'react';
-import type { CommandItem } from '../core/index.js';
 import { useStableContext } from './context.js';
 
 export interface CommandAsyncItemsProps {

@@ -11,13 +11,23 @@
   },
   {
     "id": "DG-71",
-    "test": null,
-    "status": "pending"
+    "test": ".github/workflows/ci.yml::pnpm check:doc-samples --skip-wasm",
+    "status": "gate"
   },
   {
     "id": "DG-72",
-    "test": null,
-    "status": "pending"
+    "test": ".github/workflows/ci.yml::pnpm check:doc-samples --skip-wasm",
+    "status": "gate"
+  },
+  {
+    "id": "DG-113",
+    "test": "tests/unit/docs-async-fallbacks.test.ts::DG-113: no Suspense boundary wraps Command.AsyncItems directly",
+    "status": "covered"
+  },
+  {
+    "id": "DG-114",
+    "test": "tests/unit/docs-async-fallbacks.test.ts::DG-114: every Command.Loading used as a fallback carries the loading prop",
+    "status": "covered"
   },
   {
     "id": "ARCH-07",
@@ -233,5 +243,30 @@
     "id": "RDG-103",
     "test": ".github/workflows/lanes.yml::contains(needs.*.result, 'cancelled')",
     "status": "gate"
+  },
+  {
+    "id": "ARCH-01",
+    "test": "tests/dist/one-core.test.ts::dist/react defines no core export",
+    "status": "covered"
+  },
+  {
+    "id": "RP-02",
+    "test": "tests/dist/dialog-subpath.test.tsx::modern-cmdk/react/dialog exports the same CommandDialog as modern-cmdk/react",
+    "status": "covered"
+  },
+  {
+    "id": "CV-66",
+    "test": "tests/dist/create-tarball.test.ts::the packed create-modern-cmdk tarball holds only the bin, the manifest, README and LICENSE",
+    "status": "covered"
+  },
+  {
+    "id": "CV-08",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RDG-68",
+    "test": null,
+    "status": "pending"
   }
 ]

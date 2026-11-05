@@ -63,27 +63,56 @@ function App() {
 Items can register global keyboard shortcuts:
 
 ```tsx
-<Command.Item
-  value="copy"
-  shortcut="Mod+C"
-  onSelect={handleCopy}
->
-  Copy
-  <Command.Shortcut shortcut="Mod+C" />
-</Command.Item>
+import { Command } from 'modern-cmdk/react';
+
+export function CopyPalette() {
+  return (
+    <Command>
+      <Command.Input placeholder="Search..." />
+      <Command.List>
+        <Command.Item
+          value="copy"
+          shortcut="Mod+C"
+          onSelect={() => void navigator.clipboard.writeText(window.location.href)}
+        >
+          Copy
+          <Command.Shortcut shortcut="Mod+C" />
+        </Command.Item>
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 ## Search Match Highlighting
 
-Use `Command.Highlight` to show where the search query matched:
+Use `Command.Highlight` to show where the search query matched. `ranges` takes half-open `[start, end)` tuples; the core's `scoreItem(query, item)` returns them as `matches`. They index the item's `value` unless one of its `keywords` scores higher, in which case they index that keyword; this item has no keywords, so they always index its label:
 
 ```tsx
-<Command.Item value="application settings">
-  <Command.Highlight
-    text="Application Settings"
-    ranges={[/* match ranges from scorer */]}
-  />
-</Command.Item>
+import { itemId, scoreItem } from 'modern-cmdk';
+import { Command, useCommandState } from 'modern-cmdk/react';
+
+const settings = { id: itemId('settings'), value: 'Application Settings' };
+
+function HighlightedLabel() {
+  const query = useCommandState((state) => state.search);
+  const ranges = scoreItem(query, settings)?.matches ?? [];
+
+  return <Command.Highlight text={settings.value} ranges={ranges} />;
+}
+
+export function HighlightedItem() {
+  return (
+    <Command>
+      <Command.Input placeholder="Search..." />
+      <Command.List>
+        <Command.Item value={settings.value}>
+          <HighlightedLabel />
+        </Command.Item>
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 ## Component Reference

@@ -2,7 +2,7 @@
 
 // packages/modern-cmdk/src/react/hooks/use-virtualizer.ts
 // Virtualization hook — ResizeObserver + requestIdleCallback for measurement
-// GPU-composited transforms via translateY, content-visibility: auto for off-screen items
+// Item offsets that item.tsx applies with the `translate` property; content-visibility: auto comes from styles.css ([data-command-item]), not this hook
 // Isolated declarations: explicit return types on all exports
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

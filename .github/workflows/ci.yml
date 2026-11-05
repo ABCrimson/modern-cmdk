@@ -17,7 +17,8 @@ permissions:
 
 # Job graph: lint gates build, test, react-lanes, coverage, rust-wasm and docs; claims, links and security have no `needs:`
 # and start beside lint. build runs once (after lint) and shares packages/*/dist as the `dist`
-# artifact with dist-tests, e2e, bench and size, which need build. summary needs all 14 jobs.
+# artifact with dist-tests, e2e, bench, size, package and consumers, which need build; package also
+# uploads the packed tarballs, which node24-install (needs package) installs. summary needs all 17 jobs.
 # test, react-lanes, coverage, rust-wasm and docs do not
 # need that build: the unit suites resolve `modern-cmdk` to src through the aliases in
 # vitest.config.ts, and rust-wasm and docs build what they need themselves. Every job that installs
@@ -41,7 +42,7 @@ jobs:
       # Zero warnings: the `lint` script is `biome check . --error-on-warnings`
       - run: pnpm lint
       # modern-cmdk, create-modern-cmdk, tests/, tests/e2e, tests/docs and the docs app (vue-tsc): none needs build output.
-      # The projects that import built packages are checked after the build: tests/dist (dist-tests),
+      # The projects that import built packages are checked after the build: tests/dist and the docs samples (dist-tests),
       # benchmarks (bench), the playground (e2e) and the wasm package (rust-wasm).
       - run: pnpm typecheck
 
@@ -144,7 +145,10 @@ jobs:
           name: dist
           path: packages
       - run: pnpm exec tsc -p tests/dist/tsconfig.json --noEmit
-      # The devtools dist test and the CLI smoke test import the built packages
+      # Docs-samples gate (TEB-84): every fenced ts/tsx sample of apps/docs and the READMEs type-checks against the downloaded dist.
+      # The dist artifact (packages/*/dist from the build job) has no wasm build, so the wasm-importing samples are skipped here and checked in the Rust & WASM job.
+      - run: pnpm check:doc-samples --skip-wasm
+      # tests/dist runs against the built packages: the CLI smoke test, the create-modern-cmdk tarball, the devtools and dialog subpaths, the exports map, the manifest and the one-core invariant
       - run: pnpm exec vitest run tests/dist
 
   coverage:
@@ -191,7 +195,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2.90.0
+      - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
         with:
           tool: wasm-pack@0.15.1,cargo-deny@0.20.2,cargo-audit@0.22.2
       # With no argument, `rustup toolchain install` installs the toolchain that crate/rust-toolchain.toml
@@ -226,6 +230,8 @@ jobs:
       - run: pnpm exec vitest run packages/command-search-wasm
       - run: pnpm --filter modern-cmdk-search-wasm exec tsc --noEmit
       - run: pnpm --filter modern-cmdk-search-wasm run build
+      # Docs-samples gate (TEB-84), the one run with both dists present: the wasm-importing samples type-check here (the modern-cmdk dist is built earlier in this job)
+      - run: pnpm check:doc-samples
 
   e2e:
     name: E2E Tests
@@ -428,9 +434,152 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  # Required through CI Summary (roadmap 1.4.0 exit gates). Packs both packages from the downloaded dist
+  # (`pnpm pack` never builds), then scripts/check-package.ts runs publint (strict), attw (esm-only), the
+  # committed tarball file list and the `use client` check on every react chunk, and scripts/check-licenses.ts
+  # audits the lockfile licence census against its policy. The SBOM is syft's SPDX JSON over the unpacked
+  # tarballs, with javascript-package-cataloger added (syft's directory defaults leave it out, and a scan of
+  # the .tgz files themselves lists no package), so it records modern-cmdk and create-modern-cmdk at their
+  # packed versions. The tarballs are kept as an artifact for the node24-install job.
+  package:
+    name: Package integrity
+    needs: build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: packages
+      - run: pnpm check:package --pack-dir "$RUNNER_TEMP/pack"
+      - run: pnpm check:licenses
+      - name: Unpack the tarballs for the SBOM scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/sbom" "$RUNNER_TEMP/sbom-src"
+          for tarball in "$RUNNER_TEMP"/pack/*.tgz; do
+            name="$(basename "$tarball" .tgz)"
+            mkdir "$RUNNER_TEMP/sbom-src/$name"
+            tar -xzf "$tarball" -C "$RUNNER_TEMP/sbom-src/$name"
+          done
+          printf 'select-catalogers:\n  - "+javascript-package-cataloger"\n' > "$RUNNER_TEMP/syft.yaml"
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: ${{ runner.temp }}/sbom-src
+          format: spdx-json
+          config: ${{ runner.temp }}/syft.yaml
+          output-file: ${{ runner.temp }}/sbom/sbom.spdx.json
+          upload-artifact: 'false'
+          upload-release-assets: 'false'
+          # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
+          syft-version: v1.56.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom
+          path: ${{ runner.temp }}/sbom/sbom.spdx.json
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tarballs
+          path: ${{ runner.temp }}/pack/*.tgz
+          if-no-files-found: error
+          retention-days: 30
+
+  # Required through CI Summary: scripts/consumer-smoke.ts packs modern-cmdk from the downloaded dist, copies the
+  # consumer app from tests/consumers into a temp dir (the Next canary pinned in tests/consumers/next-app for both
+  # Next variants, Vite for the third), installs the tarball, builds, serves, and checks the package.json export,
+  # the core copy count, server rendering, the dialog subpath and the hydration count in Chromium. The report is
+  # uploaded whenever the script wrote one; a failure before the first variant (such as a missing dist) writes none,
+  # and the upload step then fails too.
+  consumers:
+    name: Consumer app (${{ matrix.variant }})
+    needs: build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [next-turbopack, next-webpack, vite]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: packages
+      - run: pnpm playwright install --with-deps chromium
+      - run: node scripts/consumer-smoke.ts --app ${{ matrix.variant }} --report consumers-${{ matrix.variant }}.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: consumers-${{ matrix.variant }}
+          path: consumers-${{ matrix.variant }}.json
+          if-no-files-found: error
+          retention-days: 14
+
+  # Required through CI Summary: the packed modern-cmdk tarball, alone, installs under `npm --engine-strict`
+  # on the newest Node 24. It needs `package` (not build) because it installs the tarball that job packed.
+  # modern-cmdk's required peer is radix-ui (>=1.4.0 <2.0.0, DECISIONS D55); react and react-dom are optional
+  # peers; idb-keyval is its only dependency. npm 7+ installs the required peer on its own and, through it,
+  # radix-ui's react and react-dom peers (the newest stable 19.x), and skips the optional ones: the install
+  # lets it, and `npm ls --depth=1` writes modern-cmdk's resolved dependency and peers into the log. Never add the root's experimental
+  # react or the rc radix-ui pins here: they fall outside modern-cmdk's peer ranges and npm stops with
+  # ERESOLVE before it reaches the engines check (the 1.2.3 verifier run).
+  node24-install:
+    name: Node 24 install (engine-strict)
+    needs: package
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tarballs
+          path: ${{ runner.temp }}/pack
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          # The newest 24.x on 2026-11-04. Re-resolve with:
+          #   node -e "fetch('https://nodejs.org/dist/index.json').then(r=>r.json()).then(j=>console.log(j.find(x=>x.version.startsWith('v24.')).version))"
+          node-version: '24.22.2'
+      - name: Install the tarball alone under --engine-strict
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/n24"
+          mkdir "$dir"
+          cd "$dir"
+          npm init -y
+          tarballs=("$RUNNER_TEMP"/pack/modern-cmdk-*.tgz)
+          [ "${#tarballs[@]}" -eq 1 ] && [ -f "${tarballs[0]}" ] || { echo "::error::expected exactly one modern-cmdk tarball, found: ${tarballs[*]}"; exit 1; }
+          node --version | tee -a install.log
+          npm install --engine-strict --no-audit --no-fund "${tarballs[0]}" 2>&1 | tee -a install.log
+          npm ls --depth=1 2>&1 | tee -a install.log
+          if grep -q EBADENGINE install.log; then
+            echo "::error::npm reported EBADENGINE under Node 24"
+            exit 1
+          fi
+          node -e "console.log(require.resolve('modern-cmdk/package.json'))"
+
   summary:
     name: CI Summary
-    needs: [lint, build, test, react-lanes, dist-tests, coverage, rust-wasm, e2e, docs, claims, links, size, security, bench]
+    needs: [lint, build, test, react-lanes, dist-tests, coverage, rust-wasm, e2e, docs, claims, links, size, security, bench, package, consumers, node24-install]
     if: always()
     runs-on: ubuntu-26.04
     timeout-minutes: 2
@@ -470,6 +619,9 @@ jobs:
             "size|Bundle Size"
             "security|Security Audit"
             "bench|Benchmarks"
+            "package|Package integrity"
+            "consumers|Consumer apps"
+            "node24-install|Node 24 install"
           )
           for row in "${rows[@]}"; do
             IFS='|' read -r id label <<< "$row"

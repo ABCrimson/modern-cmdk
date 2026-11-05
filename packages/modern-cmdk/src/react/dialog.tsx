@@ -6,11 +6,11 @@
 // Focus trap via Radix built-in focus management
 // Isolated declarations: explicit return types on all exports
 
+import type { CommandMachineOptions } from 'modern-cmdk';
+import { createCommandMachine } from 'modern-cmdk';
 import { Dialog } from 'radix-ui';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef } from 'react';
-import type { CommandMachineOptions } from '../core/index.js';
-import { createCommandMachine } from '../core/index.js';
 import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommandSetup } from './hooks/use-command-setup.js';
 
@@ -94,13 +94,13 @@ export function CommandDialog({
   return (
     <Dialog.Root open={state.open} onOpenChange={handleRadixOpenChange}>
       <Dialog.Portal container={container}>
-        {/* Overlay — GPU-composited @starting-style animation */}
+        {/* Overlay — tint set by data-state; its transition and @starting-style entry are inert until DT-19 */}
         <Dialog.Overlay
           data-command-overlay=""
           data-state={state.open ? 'open' : 'closed'}
           className={overlayClassName}
         />
-        {/* Content — focus trap via Radix, @starting-style animation */}
+        {/* Content — focus trap via Radix; its @starting-style entry is inert until DT-19 */}
         <Dialog.Content
           data-command-dialog=""
           data-state={state.open ? 'open' : 'closed'}

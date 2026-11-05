@@ -52,28 +52,44 @@ export function VirtualizedExample() {
 Tune the virtualizer for your specific use case:
 
 ```tsx
-<Command.List
-  estimateSize={64}  // Taller items (64px estimated height)
-  overscan={15}      // More overscan for fast scrolling
->
-  {/* items */}
-</Command.List>
+import { Command } from 'modern-cmdk/react';
+
+export function TunedList() {
+  return (
+    <Command label="Tuned virtualizer">
+      <Command.List
+        estimateSize={64} // Taller items (64px estimated height)
+        overscan={15} // More overscan for fast scrolling
+      >
+        {/* items */}
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `estimateSize` | `number` | `44` | Estimated item height (px) before measurement |
 | `overscan` | `number` | `8` | Extra items rendered beyond the viewport |
-| `virtualize` | `boolean` | `true` (auto) | Set to `false` to disable |
+| `virtualize` | `boolean` | unset (auto) | Unset: virtualizes above 100 filtered items and stops again at 50 or fewer. `true` forces it on; `false` disables it |
 
 ## Opting Out
 
 If you need all items in the DOM (e.g., for custom scroll behavior):
 
 ```tsx
-<Command.List virtualize={false}>
-  {/* All items render in the DOM */}
-</Command.List>
+import { Command } from 'modern-cmdk/react';
+
+export function UnvirtualizedList() {
+  return (
+    <Command label="All items in the DOM">
+      <Command.List virtualize={false}>
+        {/* All items render in the DOM */}
+      </Command.List>
+    </Command>
+  );
+}
 ```
 
 ::: warning
@@ -107,11 +123,20 @@ import { Command } from 'modern-cmdk/react';
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 import { useEffect, useState } from 'react';
 
+// The factory resolves to the WASM engine or the TypeScript fallback engine
+type WasmEngine = Awaited<ReturnType<typeof createWasmSearchEngine>>;
+
+const items = Array.from({ length: 10_000 }, (_, i) => ({
+  id: `item-${i}`,
+  label: `Item ${i}`,
+  value: `item-${i}`,
+}));
+
 export function WasmVirtualizedExample() {
-  const [engine, setEngine] = useState(null);
+  const [engine, setEngine] = useState<WasmEngine | null>(null);
 
   useEffect(() => {
-    let wasmEngine: Awaited<ReturnType<typeof createWasmSearchEngine>> | null = null;
+    let wasmEngine: WasmEngine | null = null;
     async function init() {
       wasmEngine = await createWasmSearchEngine();
       setEngine(wasmEngine);

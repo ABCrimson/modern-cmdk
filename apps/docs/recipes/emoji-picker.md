@@ -5,7 +5,16 @@ Build a high-performance emoji picker with 5000+ items using virtualization.
 ```tsx
 import { Command } from 'modern-cmdk/react';
 
-const EMOJIS = loadEmojis(); // Array of { emoji, name, keywords }
+interface EmojiEntry {
+  readonly emoji: string;
+  readonly name: string;
+  readonly keywords: readonly string[];
+}
+
+// App-owned: your emoji dataset
+declare function loadEmojis(): readonly EmojiEntry[];
+
+const EMOJIS = loadEmojis();
 
 function EmojiPicker({ onSelect }: { onSelect: (emoji: string) => void }) {
   return (
@@ -37,11 +46,16 @@ Virtualization activates automatically when more than 100 items match (a fixed t
 The WASM engine does not work yet (see [WASM Search](/guide/wasm-search)), so this sample shows the intended API, not today's behaviour:
 
 ```tsx
+import { Command } from 'modern-cmdk/react';
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
 
 const wasmEngine = await createWasmSearchEngine();
 
-<Command search={wasmEngine}>
-  ...
-</Command>
+export function WasmEmojiPicker() {
+  return (
+    <Command label="Emoji picker" search={wasmEngine}>
+      {/* Command.Input and Command.List as above */}
+    </Command>
+  );
+}
 ```

@@ -8,7 +8,7 @@ The command palette follows the ARIA combobox with listbox popup pattern:
 
 ```html
 <!-- Rendered HTML structure -->
-<div data-command-root>
+<div data-command-root role="search" aria-label="Command palette">
   <input
     role="combobox"
     aria-expanded="true"
@@ -54,10 +54,31 @@ The command palette follows the ARIA combobox with listbox popup pattern:
 </div>
 ```
 
+### Announcing the result count
+
+`Command.List` renders a visually hidden `aria-live="polite"` region (`role="status"`, `data-command-aria-live`) that announces the filtered count. Its `announceResults` prop is `(count: number) => string`, optional; unset, the text is `"<count> result(s) available."` in English. Pass it to localize or reword the announcement:
+
+```tsx
+import { Command } from 'modern-cmdk/react';
+
+export function LocalizedList() {
+  return (
+    <Command>
+      <Command.Input placeholder="Buscar..." />
+      <Command.List announceResults={(count: number) => `${count} resultados`}>
+        {/* ... */}
+      </Command.List>
+    </Command>
+  );
+}
+```
+
 ### Key ARIA Attributes
 
 | Attribute | Element | Purpose |
 |---|---|---|
+| `role="search"` | Root | Marks the palette as a search landmark |
+| `aria-label` | Root | The `label` prop, default `"Command palette"` |
 | `role="combobox"` | Input | Identifies the input as a combobox control |
 | `aria-expanded` | Input | Whether the listbox popup is visible |
 | `aria-controls` | Input | Points to the listbox element ID |
@@ -117,15 +138,19 @@ When no results match the query, `<Command.Empty>` renders with `role="status"` 
 
 ## Loading State
 
-During async data loading, `<Command.Loading>` sets `aria-busy="true"` on the list:
+`<Command.Loading loading>` renders its own element and announces the loading state there: `role="status"`, `aria-live="assertive"` and `aria-busy` on that element, not on the list. Without the `loading` prop it renders only while the machine reports loading or a React transition is pending:
 
 ```html
-<div role="listbox" aria-busy="true" data-command-list>
-  <div role="status" data-command-loading>
-    Searching...
+<div role="listbox" aria-busy="false" data-command-list>
+  <div data-command-list-inner>
+    <div role="status" aria-live="assertive" aria-busy="true" data-command-loading>
+      Searching...
+    </div>
   </div>
 </div>
 ```
+
+The list's own `aria-busy` mirrors `state.loading`, which nothing sets to `true` in 1.4.0 (ARCH-59 tracks the core change), so it stays `"false"`.
 
 ## `forced-colors: active` Support
 
@@ -235,9 +260,15 @@ Full keyboard navigation support:
 By default, navigation loops — pressing `ArrowDown` on the last item wraps to the first item, and vice versa. Disable with `loop={false}`:
 
 ```tsx
-<Command loop={false}>
-  {/* Navigation stops at first/last item */}
-</Command>
+import { Command } from 'modern-cmdk/react';
+
+export function NoLoopPalette() {
+  return (
+    <Command loop={false}>
+      {/* Navigation stops at first/last item */}
+    </Command>
+  );
+}
 ```
 
 ### Focus Management in Dialog Mode
@@ -249,26 +280,33 @@ When `<Command.Dialog>` opens:
 4. Pressing `Escape` closes the dialog and returns focus to the previously focused element
 
 ```tsx
-<Command.Dialog open={open} onOpenChange={setOpen}>
-  {/* Focus is trapped here */}
-  <Command.Input placeholder="Search..." />
-  <Command.List>
-    {/* ... */}
-  </Command.List>
-</Command.Dialog>
+import { useState } from 'react';
+import { Command } from 'modern-cmdk/react';
+
+export function FocusTrappedDialog() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Command.Dialog open={open} onOpenChange={setOpen}>
+      {/* Focus is trapped here */}
+      <Command.Input placeholder="Search..." />
+      <Command.List>
+        {/* ... */}
+      </Command.List>
+    </Command.Dialog>
+  );
+}
 ```
 
 ## Visible Focus Indicators
 
-The active item has a visible focus indicator styled via `[data-command-item][data-active]`. This is GPU-composited for smooth transitions:
+The active item has a visible focus indicator styled via `[data-command-item][data-active]`:
 
 ```css
 [data-command-item][data-active] {
   background: var(--color-primary-subtle);
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
-  /* GPU layer promotion */
-  transform: translate3d(0, 0, 0);
 }
 
 [data-command-item]:focus-visible {

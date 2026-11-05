@@ -34,6 +34,14 @@ Creates a headless command palette state machine with search, frecency, and keyb
 ```ts
 import { createCommandMachine, itemId } from 'modern-cmdk';
 
+// Clipboard helpers; the palette itself does not provide them.
+function copy(): void {
+  void navigator.clipboard.writeText(window.getSelection()?.toString() ?? '');
+}
+function paste(): void {
+  void navigator.clipboard.readText().then((text) => console.log('pasted', text));
+}
+
 using machine = createCommandMachine({
   items: [
     { id: itemId('copy'), value: 'Copy', shortcut: 'Mod+C', onSelect: () => copy() },
@@ -180,7 +188,13 @@ const gid = groupId('navigation');  // type: GroupId (not string)
 Creates a pluggable search engine with fuzzy scoring, incremental filtering, and Iterator Helpers pipeline.
 
 ```ts
-import { createSearchEngine } from 'modern-cmdk';
+import { createSearchEngine, itemId } from 'modern-cmdk';
+import type { CommandItem } from 'modern-cmdk';
+
+const items: CommandItem[] = [
+  { id: itemId('settings'), value: 'Settings' },
+  { id: itemId('profile'), value: 'Profile' },
+];
 
 using engine = createSearchEngine();
 engine.index(items);
@@ -212,6 +226,8 @@ for (const result of results) {
 ### `ScorerFn`
 
 ```ts
+import type { CommandItem, SearchResult } from 'modern-cmdk';
+
 type ScorerFn = (query: string, item: CommandItem) => SearchResult | null;
 ```
 
@@ -234,10 +250,10 @@ Custom scoring function. Return `null` for no match, or a `SearchResult` with sc
 Frequency x recency ranking with bucketed recency weights (hour, day, week, month, older). Items used recently and frequently get a bonus that is added to their match score for non-empty queries; an empty query keeps registry order.
 
 ```ts
-import { FrecencyEngine, MemoryFrecencyStorage } from 'modern-cmdk';
+import { FrecencyEngine, MemoryFrecencyStorage, itemId } from 'modern-cmdk';
 
 using storage = new MemoryFrecencyStorage();
-using frecency = new FrecencyEngine({ storage, namespace: 'my-app' });
+using frecency = new FrecencyEngine({ enabled: true, storage, namespace: 'my-app' });
 
 frecency.recordSelection(itemId('settings'));
 const bonus = frecency.getBonus(itemId('settings')); // e.g., 4.0
@@ -279,6 +295,8 @@ await using storage = new IdbFrecencyStorage('my-db', 'frecency-store');
 ### `FrecencyStorage` Interface
 
 ```ts
+import type { FrecencyData } from 'modern-cmdk';
+
 interface FrecencyStorage extends Disposable {
   load(namespace: string): FrecencyData | Promise<FrecencyData>;
   save(namespace: string, data: FrecencyData): void | Promise<void>;
@@ -295,6 +313,14 @@ Built-in keyboard shortcut management with cross-platform `Mod` key, and conflic
 
 ```ts
 import { KeyboardShortcutRegistry, itemId } from 'modern-cmdk';
+
+// Clipboard helpers; the palette itself does not provide them.
+function copy(): void {
+  void navigator.clipboard.writeText(window.getSelection()?.toString() ?? '');
+}
+function paste(): void {
+  void navigator.clipboard.readText().then((text) => console.log('pasted', text));
+}
 
 using registry = new KeyboardShortcutRegistry();
 registry.register('Mod+C', itemId('copy'), () => copy());
@@ -358,6 +384,9 @@ Creates opt-in telemetry middleware for enterprise observability. Zero overhead 
 
 ```ts
 import { createTelemetryMiddleware } from 'modern-cmdk';
+
+// Your analytics client (app-owned).
+declare const analytics: { track(event: string, properties?: Record<string, unknown>): void };
 
 const telemetry = createTelemetryMiddleware({
   onPaletteOpen: () => analytics.track('palette_opened'),
@@ -424,6 +453,7 @@ Batched update scheduler with `requestAnimationFrame`, `scheduler.yield()`, and 
 import { createScheduler } from 'modern-cmdk';
 
 const scheduler = createScheduler();
+const expensiveWork = (): void => console.log('batched');
 scheduler.schedule(() => expensiveWork());
 // Work is batched and yields to browser when input is pending
 ```

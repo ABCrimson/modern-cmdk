@@ -2,14 +2,38 @@
   "name": "vscode-modern-cmdk",
   "displayName": "Modern CMDK",
   "version": "1.0.0",
+  "private": true,
   "description": "Snippets for modern-cmdk",
   "publisher": "crimson-dev",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ABCrimson/modern-cmdk.git",
+    "directory": "packages/vscode-modern-cmdk"
+  },
+  "homepage": "https://github.com/ABCrimson/modern-cmdk/tree/main/packages/vscode-modern-cmdk#readme",
+  "bugs": {
+    "url": "https://github.com/ABCrimson/modern-cmdk/issues"
+  },
+  "keywords": [
+    "modern-cmdk",
+    "cmdk",
+    "command-palette",
+    "snippets",
+    "react"
+  ],
+  "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.96.0"
   },
   "categories": [
     "Snippets"
+  ],
+  "files": [
+    "README.md",
+    "LICENSE",
+    "images/icon.png",
+    "src/snippets.json"
   ],
   "contributes": {
     "snippets": [
@@ -22,5 +46,11 @@
         "path": "./src/snippets.json"
       }
     ]
+  },
+  "scripts": {
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "4.1.1-0"
   }
 }

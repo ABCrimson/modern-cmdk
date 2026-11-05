@@ -1,0 +1,23 @@
+{
+  "name": "consumer-vite-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Vite 8 SSR consumer of the packed modern-cmdk tarball; built and driven by scripts/consumer-smoke.ts. The harness adds dependencies['modern-cmdk'] = file:<tarball>.",
+  "scripts": {
+    "build": "vite build --outDir dist/client && vite build --ssr src/entry-server.tsx --outDir dist/server",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "radix-ui": "1.8.2-rc.1791984254107",
+    "react": "0.0.0-experimental-e84e1492-20261031",
+    "react-dom": "0.0.0-experimental-e84e1492-20261031"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "typescript": "7.1.0-dev.20261104.1",
+    "vite": "8.3.5"
+  }
+}

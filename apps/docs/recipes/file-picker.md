@@ -5,6 +5,18 @@ Build a Notion/Linear-style file picker with fuzzy search and recent files.
 ```tsx
 import { Command } from 'modern-cmdk/react';
 
+interface FileEntry {
+  readonly path: string;
+  readonly name: string;
+  readonly extension: string;
+  readonly directory: string;
+  readonly recent: boolean;
+}
+
+function FileIcon({ extension }: { extension: string }) {
+  return <span aria-hidden="true">{extension}</span>;
+}
+
 function FilePicker({ files, onSelect }: { files: FileEntry[]; onSelect: (file: FileEntry) => void }) {
   return (
     <Command label="File picker">
@@ -50,34 +62,46 @@ Add automatic learning — files you open frequently rise to the top:
 
 ```tsx
 import { IdbFrecencyStorage } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
 
-<Command frecency={{ enabled: true, storage: new IdbFrecencyStorage() }}>
-  ...
-</Command>
+const storage = new IdbFrecencyStorage();
+
+export function FrecentFilePicker() {
+  return (
+    <Command label="File picker" frecency={{ enabled: true, storage }}>
+      {/* Command.Input and Command.List as above */}
+    </Command>
+  );
+}
 ```
 
 ## With Keyboard Shortcut
 
 ```tsx
+import { Command } from 'modern-cmdk/react';
 import { useEffect, useState } from 'react';
 
-const [open, setOpen] = useState(false);
+export function FilePickerDialog() {
+  const [open, setOpen] = useState(false);
 
-useEffect(() => {
-  const onKeyDown = (e: KeyboardEvent): void => {
-    if (e.key === 'p' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      setOpen((o) => !o);
-    }
-  };
-  document.addEventListener('keydown', onKeyDown);
-  return () => document.removeEventListener('keydown', onKeyDown);
-}, []);
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === 'p' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((o) => !o);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
-<Command.Dialog open={open} onOpenChange={setOpen}>
-  <Command.Input placeholder="Find a file (Ctrl+P)..." />
-  ...
-</Command.Dialog>
+  return (
+    <Command.Dialog open={open} onOpenChange={setOpen}>
+      <Command.Input placeholder="Find a file (Ctrl+P)..." />
+      {/* Command.List as above */}
+    </Command.Dialog>
+  );
+}
 ```
 
 Register `Ctrl+P` globally to open the file picker.

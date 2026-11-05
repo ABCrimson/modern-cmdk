@@ -3,7 +3,7 @@
   "license": "MIT",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.17.0",
+  "packageManager": "pnpm@12.18.0",
   "engines": {
     "node": ">=26.4.0",
     "pnpm": ">=12.0.0"
@@ -22,6 +22,10 @@
     "format": "biome format . --write",
     "typecheck": "pnpm --filter modern-cmdk --filter create-modern-cmdk exec tsc --noEmit && tsc -p tests/tsconfig.json --noEmit && tsc -p tests/e2e/tsconfig.json --noEmit && tsc -p tests/docs/tsconfig.json --noEmit && pnpm --filter docs exec vue-tsc --noEmit",
     "size": "pnpm build && size-limit",
+    "check:package": "node scripts/check-package.ts",
+    "check:licenses": "node scripts/check-licenses.ts",
+    "check:doc-samples": "node scripts/check-doc-samples.ts",
+    "test:consumers": "node scripts/consumer-smoke.ts",
     "docs:dev": "pnpm --filter docs run dev",
     "docs:build": "pnpm --filter docs run build",
     "changeset": "changeset",
@@ -29,6 +33,7 @@
     "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
     "@axe-core/playwright": "4.14.1-e9cf392.0.sha-e9cf392",
     "@biomejs/biome": "2.6.5",
     "@changesets/changelog-github": "1.0.1",
@@ -40,8 +45,8 @@
     "@testing-library/user-event": "14.6.8",
     "@types/jscodeshift": "17.3.0",
     "@types/node": "26.6.6",
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@vitest/coverage-v8": "5.1.0",
     "cmdk": "1.1.1",
     "fake-indexeddb": "6.2.7",
@@ -49,12 +54,14 @@
     "idb-keyval": "6.3.0",
     "jscodeshift": "17.4.0",
     "lefthook": "2.2.2",
-    "react": "0.0.0-experimental-e84e1492-20261031",
-    "react-dom": "0.0.0-experimental-e84e1492-20261031",
+    "next": "16.5.0-canary.41",
+    "publint": "0.3.25",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "size-limit": "14.3.0",
     "tinybench": "6.2.3",
     "tsdown": "0.23.5",
-    "typescript": "7.1.0-dev.20261104.1",
+    "typescript": "catalog:",
     "vitest": "5.1.0"
   },
   "size-limit": [
@@ -65,9 +72,52 @@
       "gzip": true
     },
     {
-      "name": "modern-cmdk/react",
+      "name": "modern-cmdk/react (adapter only)",
       "path": "packages/modern-cmdk/dist/react/index.mjs",
-      "limit": "12 kB",
+      "limit": "5.5 kB",
+      "gzip": true,
+      "ignore": [
+        "modern-cmdk",
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "radix-ui"
+      ]
+    },
+    {
+      "name": "modern-cmdk/react/dialog (adapter only)",
+      "path": "packages/modern-cmdk/dist/react/dialog.mjs",
+      "limit": "1.5 kB",
+      "gzip": true,
+      "ignore": [
+        "modern-cmdk",
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "radix-ui"
+      ]
+    },
+    {
+      "name": "modern-cmdk/react: CommandSeparator only",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
+      "import": "{ CommandSeparator }",
+      "limit": "5 kB",
+      "gzip": true,
+      "ignore": [
+        "modern-cmdk",
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "radix-ui"
+      ]
+    },
+    {
+      "name": "modern-cmdk + modern-cmdk/react",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
+      "limit": "9.9 kB",
       "gzip": true,
       "ignore": [
         "react",
@@ -76,6 +126,24 @@
         "react/jsx-runtime",
         "radix-ui"
       ]
+    },
+    {
+      "name": "modern-cmdk/styles.css",
+      "path": "packages/modern-cmdk/dist/react/styles.css",
+      "limit": "4 kB",
+      "gzip": true,
+      "rolldown": false
+    },
+    {
+      "name": "modern-cmdk codemod bin (installed size)",
+      "path": [
+        "packages/modern-cmdk/dist/codemod/cli.mjs",
+        "packages/modern-cmdk/dist/codemod/transforms/*.mjs"
+      ],
+      "limit": "3.4 MB",
+      "gzip": false,
+      "brotli": false,
+      "rolldown": false
     }
   ]
 }

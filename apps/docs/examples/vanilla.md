@@ -7,12 +7,40 @@ The core engine (`modern-cmdk`) is framework-agnostic. Use it directly with vani
 ```ts
 import { createCommandMachine, itemId } from 'modern-cmdk';
 
+// The focused text field, if any: Paste and Cut act on it through the Clipboard API
+// (document.execCommand is deprecated). Selecting an item from the palette itself acts on
+// the palette's own input while it keeps focus, so move focus to your field first.
+function activeField(): HTMLInputElement | HTMLTextAreaElement | null {
+  const el = document.activeElement;
+  // selectionStart is null on input types without a text selection (email, number, checkbox...)
+  return (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) && el.selectionStart !== null ? el : null;
+}
+
+// Replace the field's selection (or insert at the caret) with the given text
+function insertIntoActiveField(text: string): void {
+  const field = activeField();
+  if (!field) return;
+  const start = field.selectionStart ?? field.value.length;
+  const end = field.selectionEnd ?? field.value.length;
+  field.setRangeText(text, start, end, 'end');
+}
+
+// Copy the field's selection, then remove it
+async function cutFromActiveField(): Promise<void> {
+  const field = activeField();
+  const start = field?.selectionStart ?? 0;
+  const end = field?.selectionEnd ?? 0;
+  if (!field || start === end) return;
+  await navigator.clipboard.writeText(field.value.slice(start, end));
+  field.setRangeText('', start, end, 'end');
+}
+
 // Create machine with Explicit Resource Management
 using machine = createCommandMachine({
   items: [
-    { id: itemId('copy'), value: 'Copy', onSelect: () => navigator.clipboard.writeText(selection) },
-    { id: itemId('paste'), value: 'Paste', onSelect: () => document.execCommand('insertText') },
-    { id: itemId('cut'), value: 'Cut', onSelect: () => document.execCommand('cut') },
+    { id: itemId('copy'), value: 'Copy', onSelect: () => navigator.clipboard.writeText(getSelection()?.toString() ?? '') },
+    { id: itemId('paste'), value: 'Paste', onSelect: () => navigator.clipboard.readText().then((text) => insertIntoActiveField(text)) },
+    { id: itemId('cut'), value: 'Cut', onSelect: () => cutFromActiveField() },
   ],
   loop: true,
 });
@@ -50,6 +78,9 @@ document.addEventListener('keydown', (e) => {
 ## With Keyboard Shortcuts
 
 ```ts
+import { createCommandMachine, itemId } from 'modern-cmdk';
+
+using machine = createCommandMachine();
 const keyboard = machine.getKeyboardRegistry();
 
 // Register global shortcuts
@@ -66,7 +97,12 @@ The core machine's `subscribe`/`getState` pattern maps directly to Svelte 5 rune
 <script>
   import { createCommandMachine, itemId } from 'modern-cmdk';
 
-  const machine = createCommandMachine({ items: [...] });
+  const machine = createCommandMachine({
+    items: [
+      { id: itemId('open'), value: 'Open File' },
+      { id: itemId('save'), value: 'Save File' },
+    ],
+  });
   let state = $state(machine.getState());
 
   $effect(() => {

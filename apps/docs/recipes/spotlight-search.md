@@ -3,8 +3,19 @@
 Build a macOS Spotlight-style global search across your entire app.
 
 ```tsx
+import type { CommandItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
-import { Suspense, useState } from 'react';
+import { useState } from 'react';
+
+// App-owned actions and data source
+declare function createDoc(): void;
+declare function createFolder(): void;
+declare function fetchRecentItems(): Promise<readonly CommandItem[]>;
+
+// A real platform API in place of a router; swap in your router's navigate
+function navigate(path: string): void {
+  window.location.assign(path);
+}
 
 function SpotlightSearch() {
   const [open, setOpen] = useState(false);
@@ -23,15 +34,16 @@ function SpotlightSearch() {
         </Command.Group>
 
         <Command.Group heading="Recent">
-          <Suspense fallback={<Command.Loading>Loading recents...</Command.Loading>}>
-            <Command.AsyncItems items={fetchRecentItems()}>
-              {(items) => items.map((item) => (
-                <Command.Item key={item.id} value={item.value} onSelect={() => console.log(item)}>
-                  {item.value}
-                </Command.Item>
-              ))}
-            </Command.AsyncItems>
-          </Suspense>
+          <Command.AsyncItems
+            items={fetchRecentItems()}
+            fallback={<Command.Loading loading>Loading recents...</Command.Loading>}
+          >
+            {(items) => items.map((item) => (
+              <Command.Item key={item.id} value={item.value} onSelect={() => console.log(item)}>
+                {item.value}
+              </Command.Item>
+            ))}
+          </Command.AsyncItems>
         </Command.Group>
 
         <Command.Group heading="Navigation">
@@ -51,20 +63,29 @@ function SpotlightSearch() {
 Register `Cmd+K` / `Ctrl+K` to open from anywhere with a document-level listener (the dialog does not bind this for you):
 
 ```tsx
-const [open, setOpen] = useState(false);
+import { Command } from 'modern-cmdk/react';
+import { useEffect, useState } from 'react';
 
-useEffect(() => {
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      setOpen((prev) => !prev);
-    }
-  };
-  document.addEventListener('keydown', handleKeyDown);
-  return () => document.removeEventListener('keydown', handleKeyDown);
-}, []);
+export function GlobalSpotlight() {
+  const [open, setOpen] = useState(false);
 
-<Command.Dialog open={open} onOpenChange={setOpen}>...</Command.Dialog>
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((prev) => !prev);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return (
+    <Command.Dialog open={open} onOpenChange={setOpen}>
+      {/* Command.Input and Command.List as above */}
+    </Command.Dialog>
+  );
+}
 ```
 
 ## With Frecency + WASM
@@ -72,11 +93,19 @@ useEffect(() => {
 Items you use frequently appear first. The WASM engine does not work yet (see [WASM Search](/guide/wasm-search)), so this sample shows the intended API, not today's behaviour:
 
 ```tsx
+import { Command } from 'modern-cmdk/react';
 import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
+import { useState } from 'react';
 
 const engine = await createWorkerSearchEngine();
 
-<Command.Dialog open={open} onOpenChange={setOpen} search={engine} frecency={{ enabled: true }}>
-  ...
-</Command.Dialog>
+export function WasmSpotlight() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Command.Dialog open={open} onOpenChange={setOpen} search={engine} frecency={{ enabled: true }}>
+      {/* Command.Input and Command.List as above */}
+    </Command.Dialog>
+  );
+}
 ```

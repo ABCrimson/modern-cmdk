@@ -100,14 +100,13 @@ async function withFrecencyStorage() {
 When used with the core state machine directly:
 
 ```typescript
-import { createCommandMachine } from 'modern-cmdk';
-import { IdbFrecencyStorage } from 'modern-cmdk';
+import { createCommandMachine, IdbFrecencyStorage, itemId } from 'modern-cmdk';
 
 async function createMachineWithFrecency() {
   await using storage = new IdbFrecencyStorage();
 
   using machine = createCommandMachine({
-    items: [...],
+    items: [{ id: itemId('save'), value: 'Save' }],
     frecency: {
       enabled: true,
       storage,
@@ -144,39 +143,50 @@ Where `frequency` is the total number of selections and `recencyWeight` is deter
 Override the default decay configuration with `decayConfig`:
 
 ```tsx
-<Command
-  frecency={{
-    enabled: true,
-    decayConfig: {
-      hourWeight: 5.0,   // Used within the last hour
-      dayWeight: 3.0,    // Used within the last day
-      weekWeight: 2.0,   // Used within the last week
-      monthWeight: 1.5,  // Used within the last month
-      olderWeight: 0.3,  // Anything older than a month
-    },
-  }}
->
-  {/* ... */}
-</Command>
+import { Command } from 'modern-cmdk/react';
+
+export function FrecencyPalette() {
+  return (
+    <Command
+      frecency={{
+        enabled: true,
+        decayConfig: {
+          hourWeight: 5.0,   // Used within the last hour
+          dayWeight: 3.0,    // Used within the last day
+          weekWeight: 2.0,   // Used within the last week
+          monthWeight: 1.5,  // Used within the last month
+          olderWeight: 0.3,  // Anything older than a month
+        },
+      }}
+    >
+      {/* ... */}
+    </Command>
+  );
+}
 ```
 
 ::: details How Decay Weights Are Evaluated
 The elapsed time since an item was last used is computed in hours using `Date.now()`. The weight corresponding to the matching time bucket is applied. If the item is older than a month, `olderWeight` is used.
 
 ```typescript
+import { DEFAULT_FRECENCY_DECAY } from 'modern-cmdk';
+import type { FrecencyDecayConfig, FrecencyRecord } from 'modern-cmdk';
+
 // Internal implementation using Date.now()
 export function computeFrecencyBonus(
   history: FrecencyRecord,
   now: number = Date.now(),
+  config: FrecencyDecayConfig = DEFAULT_FRECENCY_DECAY,
 ): number {
   const hours = (now - history.lastUsed) / 3_600_000;
+  const { hourWeight = 4, dayWeight = 2, weekWeight = 1.5, monthWeight = 1, olderWeight = 0.5 } = config;
 
   const recencyWeight =
-    hours < 1    ? 4.0 :
-    hours < 24   ? 2.0 :
-    hours < 168  ? 1.5 :   // 1 week
-    hours < 720  ? 1.0 :   // 1 month
-                   0.5;
+    hours < 1    ? hourWeight :
+    hours < 24   ? dayWeight :
+    hours < 168  ? weekWeight :   // 1 week
+    hours < 720  ? monthWeight :  // 1 month
+                   olderWeight;
 
   return history.frequency * recencyWeight;
 }

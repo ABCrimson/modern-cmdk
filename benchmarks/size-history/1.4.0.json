@@ -1,0 +1,62 @@
+{
+  "sha": "07bfe79",
+  "date": "2026-11-05T01:17:44.435Z",
+  "sizeLimit": "14.3.0",
+  "node": "v28.0.0-nightly20261104d36e9ba1f8",
+  "unit": "bytes (gzip for the js and css entries; the codemod bin is the installed size of cli.mjs plus transforms/*.mjs, no compression)",
+  "entries": [
+    {
+      "name": "modern-cmdk (core)",
+      "path": "packages/modern-cmdk/dist/core/index.mjs",
+      "size": 6355,
+      "limit": 6500
+    },
+    {
+      "name": "modern-cmdk/react (adapter only)",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
+      "size": 5403,
+      "limit": 5500
+    },
+    {
+      "name": "modern-cmdk/react/dialog (adapter only)",
+      "path": "packages/modern-cmdk/dist/react/dialog.mjs",
+      "size": 1425,
+      "limit": 1500
+    },
+    {
+      "name": "modern-cmdk/react: CommandSeparator only",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
+      "size": 4767,
+      "limit": 5000
+    },
+    {
+      "name": "modern-cmdk + modern-cmdk/react",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
+      "size": 9830,
+      "limit": 9900
+    },
+    {
+      "name": "modern-cmdk/styles.css",
+      "path": "packages/modern-cmdk/dist/react/styles.css",
+      "size": 3959,
+      "limit": 4000
+    },
+    {
+      "name": "modern-cmdk codemod bin (installed size)",
+      "path": [
+        "packages/modern-cmdk/dist/codemod/cli.mjs",
+        "packages/modern-cmdk/dist/codemod/transforms/*.mjs"
+      ],
+      "size": 3325793,
+      "limit": 3400000
+    }
+  ],
+  "baseline_1_3": {
+    "sha": "85a33bf",
+    "core": 6355,
+    "react": 9844,
+    "sum": 16199,
+    "note": "1.3 measured dist/react/index.mjs with the core inlined",
+    "source": "DECISIONS.md G-25 (the 1.4.0 plan, the one-core mechanism paragraph): 'Size baseline for the exit gate, measured by size-limit --json at 85a33bf: core 6355 B + react 9844 B = 16199 B'; repeated in G-26's W1-01 row: 'against 1.3's 16199 B sum (6355 + 9844)'"
+  }
+}

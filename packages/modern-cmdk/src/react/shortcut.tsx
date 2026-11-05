@@ -5,9 +5,9 @@
 // React 19: ref as prop (no forwardRef)
 // Isolated declarations: explicit return types on all exports
 
+import { formatShortcut, parseShortcut } from 'modern-cmdk';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { useMemo } from 'react';
-import { formatShortcut, parseShortcut } from '../core/index.js';
 
 export interface CommandShortcutProps extends ComponentPropsWithRef<'kbd'> {
   /** Shortcut string to display (e.g., "Mod+K"). If not provided, reads from nearest Command.Item. */

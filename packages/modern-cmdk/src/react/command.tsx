@@ -5,10 +5,10 @@
 // Keyboard navigation is attached to document — always active (not dialog-gated)
 // Isolated declarations: explicit return types on all exports
 
+import type { CommandMachineOptions } from 'modern-cmdk';
+import { createCommandMachine } from 'modern-cmdk';
 import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
-import type { CommandMachineOptions } from '../core/index.js';
-import { createCommandMachine } from '../core/index.js';
 import { CommandActivity } from './activity.js';
 import { CommandAsyncItems } from './async-items.js';
 import { CommandBadge } from './badge.js';

@@ -75,6 +75,7 @@ my-command-palette/
 Dependencies are declared as caret ranges (`^`) of known-good versions:
 
 - [`modern-cmdk`](https://www.npmjs.com/package/modern-cmdk) -- core engine + React 19 adapter
+- [`radix-ui`](https://www.npmjs.com/package/radix-ui) -- the dialog primitive, a required peer of `modern-cmdk` in 1.x
 - React 19, TypeScript 7, Vite 8
 - Ready to `npm install && npm run dev`
 
@@ -91,4 +92,4 @@ Dependencies are declared as caret ranges (`^`) of known-good versions:
 
 ## License
 
-[MIT](https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE) -- Copyright (c) 2026 Crimson Dev
+[MIT](https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE) -- Copyright (c) 2026 Albert Badalov

@@ -201,6 +201,8 @@ Without `SharedArrayBuffer`, results are transferred via structured clone (`post
 Any object implementing `SearchEngine` can replace the built-in TypeScript scorer:
 
 ```typescript
+import type { CommandItem, ItemId, SearchResult } from 'modern-cmdk';
+
 interface SearchEngine extends Disposable {
   index(items: readonly CommandItem[]): void;
   search(query: string, items: readonly CommandItem[]): IteratorObject<SearchResult>;
@@ -221,6 +223,8 @@ where you release indexes, workers, or WASM instances.
 Custom storage backends implement `FrecencyStorage`:
 
 ```typescript
+import type { FrecencyData } from 'modern-cmdk';
+
 interface FrecencyStorage extends Disposable {
   load(namespace: string): FrecencyData | Promise<FrecencyData>;
   save(namespace: string, data: FrecencyData): void | Promise<void>;
@@ -265,6 +269,16 @@ class RedisFrecencyStorage implements FrecencyStorage {
 }
 ```
 
+## Build Output
+
+`packages/modern-cmdk/tsdown.config.ts` holds three tsdown configs:
+
+1. **The core** (`dist/core/index.mjs`, with declarations).
+2. **The React adapter**: two entries, `modern-cmdk/react` and `modern-cmdk/react/dialog`, in one config so the code both use (context, hooks, `CommandDialog`) is emitted once as a shared chunk in `dist/react`. The core is external: the adapter imports it as `modern-cmdk`, so a bundle holds one core, not a second copy inlined into the adapter. `radix-ui` stays external too, and every output carries a `'use client'` banner. `styles.css` is copied to `dist/react/styles.css`.
+3. **The codemod** (`dist/codemod`): the CLI and its transforms, bundled with their dependencies, without declarations because it is a CLI and not an importable API.
+
+`sideEffects` in `packages/modern-cmdk/package.json` is `["./dist/react/styles.css"]` only. `Command.Dialog` is a member of the `Command` compound, so every `modern-cmdk/react` import loads `radix-ui`, and `radix-ui` is a required peer dependency (`>=1.4.0 <2.0.0`) through 1.x. See [Server-Side Rendering](/guide/ssr#tree-shaking) for the measured consequence for bundle size.
+
 ## Language Features & Editions
 
 | Feature | Edition | Where Used | Native/Helper |
@@ -273,9 +287,9 @@ class RedisFrecencyStorage implements FrecencyStorage {
 | `Symbol.dispose` / `Symbol.asyncDispose` (`using` / `await using`) | ESNext (TS `lib` `esnext.disposable`) | Machine, engine and storage lifecycle implement the protocol, so consumers can write `using` | Native |
 | `Promise.withResolvers()` | ES2024 | Worker request tracking in the unpublished `modern-cmdk-search-wasm` package | Native |
 | `RegExp.escape` | ES2025 | Not used | -- |
-| `mapGroupBy` / `objectGroupBy` | Shortcut conflict detection, item grouping | Helper functions |
-| `Date.now()` | Frecency timestamps, state `lastUpdated` | Native (replaces Temporal) |
-| Set operations (`setIntersection`, etc.) | Registry bulk operations | Helper functions |
-| `ensureWellFormed` | Branded ID creation | Helper function |
-| Branded types (`ItemId`, `GroupId`) | Type-safe ID handling | TypeScript |
-| `satisfies` | Default configuration validation | TypeScript |
+| `Map.groupBy` / `Object.groupBy` | ES2024 | Shortcut conflict detection, item grouping | Helper functions |
+| `Date.now()` | ES5 | Frecency timestamps, state `lastUpdated` | Native (replaces Temporal) |
+| Set methods (`setIntersection`, etc. are the helpers) | ES2025 | Registry bulk operations | Helper functions |
+| `String.prototype.toWellFormed` | ES2024 | Branded ID creation | Helper function |
+| Branded types (`ItemId`, `GroupId`) | TypeScript | Type-safe ID handling | Compile-time (erased) |
+| `satisfies` | TypeScript | Default configuration validation | Compile-time (erased) |

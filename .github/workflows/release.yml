@@ -18,9 +18,9 @@ concurrency:
 # Reset permissions; each job declares only what it needs.
 permissions: {}
 
-# Job graph. On a push to main: ci-gate -> select-mode -> version | pack -> publish.
+# Job graph. On a push to main: ci-gate -> select-mode -> version | pack -> attest -> publish.
 # On a manual dispatch: ci-gate -> backfill. A job whose `needs` ancestor is skipped is
-# skipped too, so a dispatch never reaches select-mode, version, pack or publish and a push
+# skipped too, so a dispatch never reaches select-mode, version, pack, attest or publish and a push
 # never reaches backfill.
 #
 # ci-gate holds every other job until the ci.yml run for the same commit has completed and
@@ -35,8 +35,12 @@ permissions: {}
 # changesets/action v2.1.2 split into sub-actions, following the trusted-publishing
 # setup in its README and https://changesets.dev/guide/automating: select-mode decides
 # whether to version or publish; version opens/updates the release PR; pack builds the
-# tarballs without any write permission; publish uploads those tarballs and is the only
-# job holding id-token: write. publish runs in the `npm` environment, whose deployment
+# tarballs without any write permission; attest makes an SPDX SBOM, a build-provenance attestation
+# and an SBOM attestation for each packed tarball; publish needs attest, so a failed attestation stops
+# the release before npm has the version, and uploads those same tarballs. publish and attest are the
+# only jobs holding id-token: write; attest takes it for Sigstore with attestations: write and
+# artifact-metadata: write, and holds no npm credential and no contents permission, while publish
+# holds contents: write and the npm OIDC publish. publish runs in the `npm` environment, whose deployment
 # branches are restricted to main.
 #
 # Publish via npm OIDC Trusted Publishing — no long-lived token. An empty NPM_TOKEN /
@@ -177,8 +181,122 @@ jobs:
         with:
           publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
 
+  # Supply chain: every tarball that pack produced gets an SPDX SBOM, a build-provenance attestation and
+  # an SBOM attestation, over the exact bytes publish uploads (same artifact id, never re-packed).
+  # publish needs this job, so an attestation failure stops the release before npm has the version.
+  # Permissions follow the actions/attest README ("Ensure that the following permissions are set"):
+  # id-token (Sigstore signing certificate), attestations (persist the attestation) and artifact-metadata
+  # (artifact storage record). No contents, no checkout, no pnpm cache and no npm credential here.
+  attest:
+    if: needs.select-mode.outputs.mode == 'publish'
+    needs: [select-mode, pack]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      id-token: write # Sigstore signing certificate (actions/attest)
+      attestations: write # persist the attestations (actions/attest)
+      artifact-metadata: write # artifact storage record (actions/attest)
+    steps:
+      - name: Download the packed tarballs
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+          path: pack
+      # Fails loudly unless the tarball set is exactly the publish plan, every tarball is one of the two
+      # published packages and its sha256 equals the plan's integrity (the bytes publish will upload).
+      # Each tarball is also unpacked under sbom-src/<package> for the SBOM scan. Syft's directory defaults leave out
+      # javascript-package-cataloger (it reads package.json only for installed/image sources) and a tarball holds no
+      # lockfile, so syft.yaml adds that cataloger; without it the SBOM lists no package.
+      - name: Check the pack layout and unpack for the SBOM scan
+        id: tarballs
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan=pack/publish-plan.json
+          [ -f "$plan" ] || { echo "::error::$plan is missing from the pack artifact"; exit 1; }
+          mapfile -t releases < <(jq -r '.plan[][] | select(.kind == "publish") | [.name, .tarball.path, .tarball.integrity] | @tsv' "$plan")
+          echo "count=${#releases[@]}" >> "$GITHUB_OUTPUT"
+          if [ "${#releases[@]}" -eq 0 ]; then
+            echo "::notice::The publish plan holds no package to publish; nothing to attest"
+            exit 0
+          fi
+          mapfile -t on_disk < <(cd pack && printf '%s\n' packages/*.tgz | sort)
+          mapfile -t planned < <(printf '%s\n' "${releases[@]}" | cut -f2 | sort)
+          if [ "${on_disk[*]}" != "${planned[*]}" ]; then
+            echo "::error::Tarballs on disk (${on_disk[*]}) differ from the publish plan (${planned[*]})"
+            exit 1
+          fi
+          mkdir sbom sbom-src
+          printf 'select-catalogers:\n  - "+javascript-package-cataloger"\n' > syft.yaml
+          for release in "${releases[@]}"; do
+            IFS=$'\t' read -r name tarball integrity <<< "$release"
+            case "$name" in
+              modern-cmdk) key=modern_cmdk ;;
+              create-modern-cmdk) key=create_modern_cmdk ;;
+              *) echo "::error::No attestation steps for published package $name; add them to the attest job"; exit 1 ;;
+            esac
+            actual="sha256-$(openssl dgst -sha256 -binary "pack/$tarball" | base64)"
+            if [ "$actual" != "$integrity" ]; then
+              echo "::error::$tarball digest $actual differs from the plan's $integrity"
+              exit 1
+            fi
+            mkdir "sbom-src/$key"
+            tar -xzf "pack/$tarball" -C "sbom-src/$key"
+            echo "$key=pack/$tarball" >> "$GITHUB_OUTPUT"
+          done
+      - name: SBOM for modern-cmdk
+        if: steps.tarballs.outputs.modern_cmdk != ''
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: sbom-src/modern_cmdk
+          format: spdx-json
+          config: syft.yaml
+          output-file: sbom/modern-cmdk.spdx.json
+          upload-artifact: "false"
+          upload-release-assets: "false"
+          # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
+          syft-version: v1.56.0
+      - name: SBOM for create-modern-cmdk
+        if: steps.tarballs.outputs.create_modern_cmdk != ''
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: sbom-src/create_modern_cmdk
+          format: spdx-json
+          config: syft.yaml
+          output-file: sbom/create-modern-cmdk.spdx.json
+          upload-artifact: "false"
+          upload-release-assets: "false"
+          # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
+          syft-version: v1.56.0
+      - name: Build provenance attestation
+        if: steps.tarballs.outputs.count != '0'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: pack/packages/*.tgz
+      # sbom-path takes one SBOM, so each tarball has its own SBOM attestation step.
+      - name: SBOM attestation for modern-cmdk
+        if: steps.tarballs.outputs.modern_cmdk != ''
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.tarballs.outputs.modern_cmdk }}
+          sbom-path: sbom/modern-cmdk.spdx.json
+      - name: SBOM attestation for create-modern-cmdk
+        if: steps.tarballs.outputs.create_modern_cmdk != ''
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.tarballs.outputs.create_modern_cmdk }}
+          sbom-path: sbom/create-modern-cmdk.spdx.json
+      - name: Upload the SBOMs
+        if: steps.tarballs.outputs.count != '0'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-spdx
+          path: sbom/*.spdx.json
+          retention-days: 90
+          if-no-files-found: error
+
   publish:
-    needs: pack
+    needs: [pack, attest]
     environment: npm
     runs-on: ubuntu-26.04
     timeout-minutes: 15

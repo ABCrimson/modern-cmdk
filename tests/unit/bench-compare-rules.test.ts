@@ -68,9 +68,20 @@ describe('bench:compare classify()', () => {
     expect(r.reason).toBe('compared');
   });
 
-  it('(i) a baseline below the floor without a target_ms is a harness error, not a silent pass', () => {
+  it('(i) a baseline below the floor without a target_ms is a harness error naming the baseline.json key', () => {
+    expect(() =>
+      classify({
+        key: 'search:ts-scorer-10k',
+        baseline_ms: 0.00075166,
+        current_ms: 0.0009,
+        thresholds,
+      }),
+    ).toThrow(/^search:ts-scorer-10k: baseline median .* no target_ms/);
+  });
+
+  it('(j) without a key the harness error is still thrown, unprefixed', () => {
     expect(() => classify({ baseline_ms: 0.00075166, current_ms: 0.0009, thresholds })).toThrow(
-      /no target_ms/,
+      /^baseline median .* no target_ms/,
     );
   });
 });

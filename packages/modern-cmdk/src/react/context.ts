@@ -5,8 +5,8 @@
 // Split into stable + state contexts to prevent unnecessary re-renders
 // Branded types for IDs, isolated declarations with explicit return types
 
+import type { CommandMachine, CommandState, ItemId } from 'modern-cmdk';
 import { type Context, createContext, type RefObject, use } from 'react';
-import type { CommandMachine, CommandState, ItemId } from '../core/index.js';
 
 /** Branded newtype for the root instance ID */
 export type CommandRootId = string & { readonly __brand: 'CommandRootId' };
@@ -23,7 +23,7 @@ export interface CommandContextValue {
   readonly filteredIdSet: ReadonlySet<ItemId>;
   /** IDs currently visible in virtual viewport + overscan. null = not virtualizing (render all filtered). */
   readonly visibleIdSet: ReadonlySet<ItemId> | null;
-  /** Map of visible item IDs to their translateY pixel offsets. null = not virtualizing. */
+  /** Map of visible item IDs to their translate offsets in px. null = not virtualizing. */
   readonly virtualPositionMap: ReadonlyMap<ItemId, number> | null;
   readonly rootId: CommandRootId;
   readonly listId: string;
@@ -50,7 +50,7 @@ export interface CommandStateContextValue {
   readonly filteredIdSet: ReadonlySet<ItemId>;
   /** IDs currently visible in virtual viewport + overscan. null = not virtualizing (render all filtered). */
   readonly visibleIdSet: ReadonlySet<ItemId> | null;
-  /** Map of visible item IDs to their translateY pixel offsets. null = not virtualizing. */
+  /** Map of visible item IDs to their translate offsets in px. null = not virtualizing. */
   readonly virtualPositionMap: ReadonlyMap<ItemId, number> | null;
 }
 

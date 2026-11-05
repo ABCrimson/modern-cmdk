@@ -8,7 +8,8 @@
     "isolatedDeclarations": false,
     "paths": {
       "modern-cmdk": ["../packages/modern-cmdk/src/core/index.ts"],
-      "modern-cmdk/react": ["../packages/modern-cmdk/src/react/index.ts"]
+      "modern-cmdk/react": ["../packages/modern-cmdk/src/react/index.ts"],
+      "modern-cmdk/react/dialog": ["../packages/modern-cmdk/src/react/dialog.tsx"]
     }
   },
   "include": [

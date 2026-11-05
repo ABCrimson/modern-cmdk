@@ -35,7 +35,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 |---|---|---|
 | Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261104d36e9ba1f8) | Iterator Helpers (ES2025) and `Symbol.dispose` / `using` (ESNext explicit resource management) run natively |
 | pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
-| TypeScript | 7.1.0-dev.20261104.1 | Installed via devDependencies -- do not install globally |
+| TypeScript | 7.1.0-dev.20261104.1 | Pinned once in the `catalog:` of `pnpm-workspace.yaml` (with react, react-dom, @types/react, @types/react-dom and vite; D54); the root, create-modern-cmdk and playground manifests reference it as `catalog:`, while apps/docs keeps its own `typescript` 6.0.3 pin for vue-tsc (the scoped hold the catalog comment records). Do not install globally |
 | Rust + wasm-pack | Pinned nightly (`rust-toolchain.toml`) + wasm-pack 0.15.1 | Only needed if working on `command-search-wasm` |
 | Git | >= 2.40 | For Lefthook pre-commit/pre-push hooks |
 
@@ -86,9 +86,9 @@ modern-cmdk/
   |
   packages/
     modern-cmdk/                   The published package: core + React adapter + codemod CLI
-      package.json                Runtime dep: idb-keyval; optional peers: react, react-dom, radix-ui; sideEffects array (React entry + styles.css)
+      package.json                Runtime dep: idb-keyval; peers: radix-ui (required, >=1.4.0 <2.0.0), react and react-dom (optional); no engines; sideEffects: ["./dist/react/styles.css"] only (pinned by tests/dist/manifest.test.ts)
       tsconfig.json               Extends tsconfig.base.json
-      tsdown.config.ts            Multi-entry build (core, react, codemod)
+      tsdown.config.ts            Three configs: the core; react (two entries, react and react/dialog, sharing chunks in dist/react; the core is external as 'modern-cmdk'); the codemod (dist/codemod, no declarations)
       src/
         core/                     Framework-agnostic engine -- exported as "modern-cmdk"
           index.ts                Public exports
@@ -138,7 +138,7 @@ modern-cmdk/
           async-items.tsx         <Command.AsyncItems>
           error-boundary.tsx      <CommandErrorBoundary>
           primitives.ts           Dead file, imported by nothing (excluded from tsc and coverage; deleted in the D window)
-          styles.css              GPU-composited animations
+          styles.css              tokens, item and list transitions; dialog transitions inert until DT-19
           hooks/                  use-command, use-command-setup, use-command-state,
                                   use-register, use-virtualizer, use-keyboard, use-devtools
         codemod/                  cmdk -> modern-cmdk migration CLI (bin: modern-cmdk)
@@ -197,13 +197,15 @@ modern-cmdk/
   |
   tests/
     setup.ts                      Vitest setup (registered via setupFiles)
-    unit/                         29 test files: machine, machine-integration, registry,
-                                  search, search-incremental, keyboard, frecency, frecency-idb,
-                                  scheduler, event-emitter, types, command, activity, async,
-                                  virtualization, memory-leak, stress, exports-validation,
-                                  cmdk-comparison, cmdk-performance-accuracy, bug-matrix,
-                                  input-typing, create-cli, bench-compare-rules, codemod-* (5)
-    dist/                         Tests against the built packages (cli-smoke, devtools)
+    unit/                         Vitest unit and integration tests (machine, registry, search,
+                                  keyboard, frecency, command, async, virtualization, stress,
+                                  bug-matrix, codemod-*, create-cli, check-package, check-licenses, check-doc-samples,
+                                  consumer-smoke, playground-manifest, vscode-manifest, ...); `ls tests/unit` is the list
+    dist/                         Tests against the built packages (cli-smoke, create-tarball,
+                                  devtools, dialog-subpath, exports, manifest, one-core; run
+                                  `pnpm build` first); `ls tests/dist` is the list
+    package/                      Pinned package records: modern-cmdk.files.json (the tarball file
+                                  list) and license-policy.json (the licence audit policy)
     docs/                         Playwright render tests for the built docs site (pages.spec.ts; links.spec.ts for routes and #fragments)
     e2e/
       basic.spec.ts
@@ -229,7 +231,8 @@ modern-cmdk/
     workflows/
       ci.yml                     Lint & typecheck, build, tests, React lanes, built-package tests, coverage,
                                  Rust & WASM, e2e, docs, phantom claims (`scripts/check-claims.mjs`), links (lychee 0.24.2 over the shipped
-                                 Markdown, `lychee.toml`), size, audit, benchmarks; "CI Summary" gates them
+                                 Markdown, `lychee.toml`), size, audit, benchmarks, package integrity, the consumer
+                                 apps, the Node 24 install; "CI Summary" gates them
       release.yml                Wait for CI, then changeset version / publish; backfill task
       docs.yml                   VitePress deploy
       codeql.yml                 CodeQL static analysis
@@ -256,6 +259,10 @@ modern-cmdk/
 | `pnpm format` | Format all files (Biome) |
 | `pnpm typecheck` | `tsc --noEmit` for `modern-cmdk` and `create-modern-cmdk`, then `tests/`, `tests/e2e` and `tests/docs`; `vue-tsc --noEmit` for the docs app (`apps/docs/tsconfig.json`). The playground and `modern-cmdk-search-wasm` are type-checked only in CI, after their build inputs exist |
 | `pnpm size` | Build and check bundle size limits |
+| `pnpm check:package` | Pack `modern-cmdk` and `create-modern-cmdk` and run publint (strict) on both tarballs; on the `modern-cmdk` tarball also run @arethetypeswrong/cli (`--profile esm-only`), compare the tarball file list with `tests/package/modern-cmdk.files.json` and check the `'use client'` directive on `dist/react`. It packs but never builds: run `pnpm build` first |
+| `pnpm check:doc-samples` | Type-check every fenced `ts`/`tsx`/`typescript` sample of `apps/docs/**/*.md` and the three READMEs against the built `dist` with the repository's `tsc` (run `pnpm build` first). A fence whose info string has the word `fragment` is a deliberate excerpt and is skipped and counted. `--skip-wasm` also skips the samples that import `modern-cmdk-search-wasm` (a checkout without the wasm build). CI runs it twice: dist-tests with `--skip-wasm` (its dist artifact has no wasm build) and the Rust & WASM job in full. Exit 1 on any diagnostic |
+| `pnpm check:licenses` | Licence audit of the whole workspace lockfile against `tests/package/license-policy.json`: `allowed` (the allowed SPDX ids), `exceptions` (packages with another licence, all `ships: false`; an optional `platforms` list scopes an entry to the OSes where pnpm installs the package, so it is never stale elsewhere) and `licenseFiles` (hash-pinned declarations for a manifest without a licence field). It needs an install, not a build |
+| `pnpm test:consumers` | Consumer apps (Next.js with Turbopack and webpack, and Vite) built from the packed tarball: one core copy in the client JS, SSR output, hydration and the `CommandDialog` subpath. It packs but never builds: run `pnpm build` first |
 | `pnpm docs:dev` | Start docs dev server (VitePress) |
 | `pnpm docs:build` | Build docs for production |
 | `pnpm changeset` | Create a changeset for your changes |
@@ -480,6 +487,13 @@ pnpm vitest run tests/unit/  # Integration tests live alongside unit tests
 
 These tests render React components with `happy-dom` and assert DOM state, ARIA attributes, and user interactions.
 
+### Updating the package snapshots deliberately
+
+Two records pin what the package ships. Both change only in a commit that says so, and a diff of either is reviewed like code.
+
+- **The tarball file list** (`tests/package/modern-cmdk.files.json`): after `pnpm build`, run `node scripts/check-package.ts --update`. It rewrites the file from the packed tarball (read in-process; never run a host `tar` on a tarball path, because Git's GNU tar reads a drive letter such as `C:` as a remote host). `pnpm check:package` without `--update` compares and fails on any difference.
+- **The runtime export lists** (the expected arrays in `tests/dist/exports.test.ts`): edit them by hand, from the diff you intend. The test never writes them, and regenerating them from the test's own output would turn the check into a tautology.
+
 ### E2E Tests
 
 **Config:** `playwright.config.ts`
@@ -543,12 +557,17 @@ Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnp
 
 ### Budget constraints
 
-| Package | Size Limit |
-|---|---|
-| `modern-cmdk` (core) | 6.5 kB (minified + gzipped) |
-| `modern-cmdk/react` | 12 kB (minified + gzipped; `react`, `react-dom`, and `radix-ui` are externalized) |
+| Entry | Limit | Method |
+|---|---|---|
+| `modern-cmdk` (core) | 6.5 kB | `dist/core/index.mjs`, gzip |
+| `modern-cmdk/react` (adapter only) | 5.5 kB | `dist/react/index.mjs`, gzip; `modern-cmdk`, `react`, `react-dom` and `radix-ui` ignored |
+| `modern-cmdk` + `modern-cmdk/react` | 9.9 kB | `dist/react/index.mjs`, gzip; only the React side ignored, so the one core is counted |
+| `modern-cmdk/react/dialog` (adapter only) | 1.5 kB | `dist/react/dialog.mjs`, gzip; same ignore list as the adapter |
+| `CommandSeparator` only | 5 kB | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; still contains the whole compound |
+| `modern-cmdk/styles.css` | 4 kB | `dist/react/styles.css`, gzip |
+| Codemod bin | 3.4 MB | `dist/codemod/cli.mjs` plus `dist/codemod/transforms/*.mjs` (the whole bin), installed size (no compression) |
 
-These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job.
+These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.4.0.json` (5f1e01e, measured at 07bfe79); its codemod value (3325793 B) is the whole bin, `cli.mjs` plus the transforms.
 
 ### Performance rules
 
@@ -556,7 +575,7 @@ These limits are defined in the root `package.json` under `size-limit` and enfor
 - **No barrel re-exports** -- Biome enforces `noBarrelFile` and `noReExportAll`. Each export is explicit.
 - **Iterator Helpers over intermediate arrays** -- Use `.values().filter().map().toArray()` instead of creating temporary arrays.
 - **Set methods over manual loops** -- Use `.intersection()`, `.difference()`, `.union()` for bulk ID operations.
-- **GPU-only CSS animations** -- Only animate `opacity`, `scale`, `translate`, `background-color`. Never `width`, `height`, `top`, `left`.
+- **Animate cheap properties** -- `styles.css` animates `opacity`, `scale`, `translate` and `background-color`; the dialog and overlay transitions (`styles.css:319-380`) are declared but inert until DT-19; never `width`, `top` or `left`. The one deliberate exception is the height of `[data-command-list]`: it declares `transition: height` with `will-change: height` (`styles.css:195-196`), but the library sets only `--command-list-height` on the list (the ResizeObserver height, `list.tsx:107`), so the height animates once the app sets `height: var(--command-list-height)` on `[data-command-list]` (as ARCHITECTURE.md says); no further reason is recorded in the code.
 
 ---
 
@@ -625,6 +644,7 @@ chore: bump Biome to 2.6.5
    - Unit tests (3 OS, on Node 26.4.0 and the `.nvmrc` Node), React lanes, built-package tests, coverage with the ratchet
    - Rust & WASM, E2E tests (Chromium), docs build and render tests
    - Bundle size check (`size-limit`)
+   - Package integrity (`pnpm check:package`, `pnpm check:licenses`, an SPDX SBOM artifact `sbom` made with syft v1.56.0), the Consumer app matrix (next-turbopack, next-webpack, vite) and a Node 24 engine-strict install of the packed tarball
    - Benchmarks (`pnpm bench:compare` against `benchmarks/baseline.json`, then `pnpm bench --run`)
    - Security audit (`pnpm audit`)
 

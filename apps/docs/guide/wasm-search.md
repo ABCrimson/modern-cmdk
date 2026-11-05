@@ -170,14 +170,14 @@ Without these headers, `SharedArrayBuffer` is unavailable and the engine falls b
 
 ```typescript
 // vite.config.ts
-export default defineConfig({
+export default {
   server: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
     },
   },
-});
+};
 ```
 
 ### Next.js Configuration
@@ -204,8 +204,14 @@ export default nextConfig;
 The WASM search engine implements the `SearchEngine` interface from `modern-cmdk`. You can plug it into the core state machine directly:
 
 ```typescript
-import { createCommandMachine } from 'modern-cmdk';
+import { createCommandMachine, itemId } from 'modern-cmdk';
+import type { CommandItem } from 'modern-cmdk';
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
+
+const largeDataset: readonly CommandItem[] = Array.from({ length: 50_000 }, (_, i) => ({
+  id: itemId(`item-${i}`),
+  value: `Item ${i}`,
+}));
 
 await using searchEngine = await createWasmSearchEngine();
 
@@ -220,9 +226,16 @@ using machine = createCommandMachine({
 Or via the React adapter's `search` prop:
 
 ```tsx
-<Command search={wasmEngine}>
-  {/* All child items are indexed and searched via WASM */}
-</Command>
+import type { SearchEngine } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
+
+export function WasmPalette({ wasmEngine }: { readonly wasmEngine: SearchEngine }) {
+  return (
+    <Command search={wasmEngine}>
+      {/* All child items are indexed and searched via WASM */}
+    </Command>
+  );
+}
 ```
 
 ## Performance Characteristics

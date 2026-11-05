@@ -36,14 +36,13 @@ A VS Code extension that provides snippets for building command palettes with `m
 
 ## Install
 
-The extension is not yet published to the VS Code Marketplace; install it from source.
+The extension is not on the VS Code Marketplace; install it from source. The npm package `vscode-modern-cmdk@1.0.0` was an accidental publish and is not the extension (this package is private and is never published to npm).
 
 ### From source
 
 ```bash
-cd packages/vscode-modern-cmdk
-npx @vscode/vsce@4.1.1-0 package
-code --install-extension vscode-modern-cmdk-1.0.0.vsix
+pnpm --filter vscode-modern-cmdk run package
+code --install-extension packages/vscode-modern-cmdk/vscode-modern-cmdk-1.0.0.vsix
 ```
 
 ## Usage

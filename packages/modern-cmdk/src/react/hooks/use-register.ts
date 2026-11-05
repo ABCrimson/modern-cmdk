@@ -5,9 +5,9 @@
 // Isolated declarations: explicit return types on all exports
 // Branded types: ItemId / GroupId from core
 
+import type { CommandGroup, CommandItem, GroupId, ItemId } from 'modern-cmdk';
+import { groupId, itemId } from 'modern-cmdk';
 import { useId, useLayoutEffect, useRef } from 'react';
-import type { CommandGroup, CommandItem, GroupId, ItemId } from '../../core/index.js';
-import { groupId, itemId } from '../../core/index.js';
 import { useStableContext } from '../context.js';
 
 /** Options for item registration */

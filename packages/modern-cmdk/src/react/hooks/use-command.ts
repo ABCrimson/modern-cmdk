@@ -5,6 +5,7 @@
 // Isolated declarations: explicit return types on all exports
 // Branded CommandRootId type for type-safe ID propagation
 
+import type { CommandMachine, CommandState, ItemId } from 'modern-cmdk';
 import {
   useCallback,
   useId,
@@ -13,7 +14,6 @@ import {
   useSyncExternalStore,
   useTransition,
 } from 'react';
-import type { CommandMachine, CommandState, ItemId } from '../../core/index.js';
 import type { CommandRootId } from '../context.js';
 
 export interface UseCommandReturn {
