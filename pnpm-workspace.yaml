@@ -5,8 +5,8 @@ packages:
 # Workspace manifests reference them as catalog:; the freshness sweep checks these entries at this site
 # (dep-freshness-catalog.mjs, 2026-11-04). apps/docs keeps its own typescript pin (a scoped hold for vue-tsc) and the
 # tests/consumers apps are not workspace projects.
-# Other exact pins shared by two manifests (@types/node, tsdown, jscodeshift, @types/jscodeshift, radix-ui) are still
-# written in each manifest (RDG-117, 1.5.0).
+# Other exact pins shared by two manifests (@types/node, tsdown, jscodeshift, @types/jscodeshift, radix-ui, and idb-keyval,
+# the runtime dependency RDG-117 leaves in its manifests) are still written in each manifest (RDG-117, 1.5.0).
 catalog:
   '@types/react': 19.3.0
   '@types/react-dom': 19.3.0

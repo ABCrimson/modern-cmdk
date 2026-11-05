@@ -36,8 +36,9 @@ const RULES = [
   {
     // The stylesheet animates opacity, scale, translate, background-color and the list's height
     // (CONTRIBUTING.md's animation convention, DG-107); the last two repaint or relayout, so no blanket GPU claim holds.
-    // The claims DG-87, DG-94, DG-99, DG-107, DG-119 and DG-121 removed must not return.
-    pattern: 'GPU-(composited|only|accelerated)',
+    // The claims DG-87, DG-94, DG-99, DG-107, DG-119 and DG-121 removed must not return, nor their spaced or
+    // other variants ('GPU composited', 'GPU-optimized', 'GPU acceleration'; RDG-123).
+    pattern: 'GPU[- ](composit|only|accelerat|optimi)',
   },
   {
     // The adapter offsets virtual items with the individual `translate` property (item.tsx:79).
