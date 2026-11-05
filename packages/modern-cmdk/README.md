@@ -39,7 +39,7 @@ import { CommandDialog } from 'modern-cmdk/react/dialog';       // CommandDialog
 import 'modern-cmdk/styles.css';                                 // Default styles
 ```
 
-`modern-cmdk` is ESM-only. The core needs no peer dependency. Every import of `modern-cmdk/react` and of `modern-cmdk/react/dialog` loads `react`, `react-dom` and `radix-ui` (the `radix-ui` import is static), so these are the peers:
+`modern-cmdk` is ESM-only. The core entry imports no peer. Every import of `modern-cmdk/react` and of `modern-cmdk/react/dialog` loads `react`, `react-dom` and `radix-ui` (the `radix-ui` import is static), so these are the peers:
 
 | Peer | Range | Status |
 |---|---|---|
@@ -47,7 +47,7 @@ import 'modern-cmdk/styles.css';                                 // Default styl
 | `react-dom` | `>=19.0.0 <21.0.0` | optional (only the React entries use it) |
 | `radix-ui` | `>=1.4.0 <2.0.0` | required through 1.x |
 
-`radix-ui` is a required peer of `modern-cmdk` in 1.x, so npm 7+ and pnpm install it with `modern-cmdk` (or warn when they cannot); only `react` and `react-dom` are optional. It becomes optional again in 2.0, when the barrel drops `Command.Dialog` and only `modern-cmdk/react/dialog` needs it. For the React entries, add the React peers yourself:
+`radix-ui` is a required peer of `modern-cmdk` in 1.x, so npm 7+ and pnpm install it with `modern-cmdk` (or warn when they cannot), and with it its own required peers `react` and `react-dom`, even when you use only the core; `modern-cmdk` itself marks only `react` and `react-dom` optional. It becomes optional again in 2.0, when the barrel drops `Command.Dialog` and only `modern-cmdk/react/dialog` needs it. For the React entries, add the React peers yourself:
 
 ```bash
 npm install modern-cmdk react react-dom
