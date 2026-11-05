@@ -16,8 +16,10 @@
 // verbatim (line endings normalised to LF). Regions outside node_modules are our own code and are left out. A
 // package without a licence file takes the repository file that the `noticeFiles` pin for that exact version in
 // tests/package/license-policy.json names (flow-parser and flow-estree 0.337.0: the facebook/flow LICENSE, fetched
-// 2026-11-05 into tests/package/notices/), and its section opens with a provenance line (source URL, commit, fetch
-// date, reason) before the text; one with neither a file nor a pin is an error. The key is `noticeFiles`, not
+// 2026-11-05 into tests/package/notices/). A section prints a "File: `<name>`" line for a file inside the package; a
+// pinned section prints no File: line (the repository path is not in the published tarball) but one provenance
+// line, source URL (which carries the commit), fetch date and reason, before the text; one with neither a file nor
+// a pin is an error. The key is `noticeFiles`, not
 // `licenseFiles`: scripts/check-licenses.ts owns that key for hash-pinned files inside installed packages. The unminified comments are required: minifying dist/codemod makes
 // --check fail, never pass.
 //
@@ -45,7 +47,7 @@ export interface BundledRef {
 export interface LicenseText {
   readonly file: string;
   readonly text: string;
-  /** Set for a pinned repository file: where the text came from, rendered above it. */
+  /** Set for a pinned repository file: where the text came from, rendered above it in place of the File: line. */
   readonly provenance?: string;
 }
 
@@ -72,15 +74,14 @@ export interface LicenseFilePin {
 
 const COMMIT_IN_SOURCE: RegExp = /\/blob\/([0-9a-f]{40})\//;
 
-/** The provenance line of a pinned text: source URL, commit, fetch date and the reason for the pin. */
+/** The provenance line of a pinned text: source URL (its commit included), fetch date and the reason for the pin. */
 export function provenanceLine(pin: LicenseFilePin): string {
-  const commit: string | undefined = COMMIT_IN_SOURCE.exec(pin.source)?.[1];
-  if (commit === undefined || pin.fetched === '' || pin.reason === '') {
+  if (!COMMIT_IN_SOURCE.test(pin.source) || pin.fetched === '' || pin.reason === '') {
     throw new Error(
       `${pin.package}@${pin.version}: the noticeFiles pin needs a source URL with a 40-hex commit (/blob/<sha>/), a fetched date and a reason`,
     );
   }
-  return `Licence text pinned in this repository, not shipped by the package (${pin.reason}). Source: ${pin.source} (commit ${commit}), fetched ${pin.fetched}.`;
+  return `Licence text pinned in this repository, from ${pin.source}, fetched ${pin.fetched}, because ${pin.reason}.`;
 }
 
 // A whole comment line holding one path: `//#region <path>` or `// <path>`, the path with no whitespace.
@@ -184,9 +185,8 @@ export function renderNotices(notices: readonly Notice[]): string {
     parts.push(`## ${n.name}@${n.version}`, '', `Licence: ${n.license}`, '');
     for (const t of n.texts) {
       parts.push(
-        `File: \`${t.file}\``,
+        t.provenance ?? `File: \`${t.file}\``,
         '',
-        ...(t.provenance === undefined ? [] : [t.provenance, '']),
         '```text',
         t.text.replaceAll('\r\n', '\n').replace(/\n+$/, ''),
         '```',
