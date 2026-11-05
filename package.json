@@ -26,6 +26,7 @@
     "check:licenses": "node scripts/check-licenses.ts",
     "check:doc-samples": "node scripts/check-doc-samples.ts",
     "check:snippets": "node scripts/check-snippets.ts",
+    "check:repo-links": "node scripts/check-repo-links.ts",
     "check:notices": "node scripts/third-party-notices.ts --check",
     "test:consumers": "node scripts/consumer-smoke.ts",
     "test:templates": "node scripts/template-smoke.ts",

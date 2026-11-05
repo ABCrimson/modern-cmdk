@@ -370,6 +370,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Full history: scripts/check-repo-links.ts resolves blob/<abbreviated hash>/ links with git, and a shallow clone lacks those commits
+          fetch-depth: 0
       - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         env:
           # Authenticated GitHub API calls: unauthenticated link checks are rate-limited
@@ -379,11 +381,17 @@ jobs:
           fail: true
           # The repository's own github.com pages are excluded here (lychee 0.24.2 chains CLI --exclude onto lychee.toml's
           # exclude list; it does not replace it): a GitHub 5xx on them failed this job in run 41998415732 even with
-          # lychee.toml's max_retries = 6. The trade: no job checks those links any more, the blob/ and tree/ paths into this repository included.
+          # lychee.toml's max_retries = 6. The job's last step, node scripts/check-repo-links.ts (after setup-node), checks the blob/, tree/ and raw/ paths into
+          # this repository (and the #readme, #L<n> and heading-anchor fragments on them) against the checkout; the routes GitHub serves from
+          # repository state (the bare repository URL, /actions, /commit, /discussions, /issues, /pull, /releases, /security) stay unchecked.
           args: >-
             --config lychee.toml --no-progress
             --exclude '^https://github\.com/ABCrimson/modern-cmdk(\.git)?([/#?]|$)'
             README.md 'packages/*/README.md' CONTRIBUTING.md SECURITY.md ARCHITECTURE.md 'apps/docs/**/*.md'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/check-repo-links.ts
 
   size:
     name: Bundle Size
