@@ -1,7 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "declaration": false,
     "isolatedDeclarations": false,
     "lib": ["ESNext"],
     "types": ["node"]

@@ -87,6 +87,8 @@ function parseCli(argv: readonly string[]): {
 }
 
 const MAX_PACKAGE_NAME = 214;
+/** A valid scoped package name, kept as given (1.4 wrote `name: projectName`). */
+const SCOPED_NAME = /^@[a-z0-9-~][a-z0-9-._~]*\/[a-z0-9-~][a-z0-9-._~]*$/;
 const OUTPUT_FILES: readonly string[] = [
   'package.json',
   'tsconfig.json',
@@ -242,7 +244,11 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       fail(badTarget);
       return strict ? 2 : 1;
     }
-    const packageName = derivePackageName(directoryName);
+    const asGiven = projectName.replaceAll('\\', '/');
+    const packageName =
+      SCOPED_NAME.test(asGiven) && asGiven.length <= MAX_PACKAGE_NAME
+        ? asGiven
+        : derivePackageName(directoryName);
     if (packageName === '' || packageName.length > MAX_PACKAGE_NAME) {
       fail(
         packageName === ''
@@ -251,7 +257,7 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       );
       return strict ? 2 : 1;
     }
-    if (packageName !== directoryName) {
+    if (packageName !== directoryName && packageName !== asGiven) {
       out(`note: package name "${packageName}" (from "${directoryName}")`);
     }
 

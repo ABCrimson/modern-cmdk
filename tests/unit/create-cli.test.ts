@@ -239,6 +239,22 @@ describe('create-modern-cmdk 1.5 safety', () => {
     expect(JSON.parse(await readFile(join(escaped, 'package.json'), 'utf-8')).name).toBe('escaped');
   });
 
+  it('CV-22: a scoped project name @acme/palette stays the package name', async () => {
+    const cwd = process.cwd();
+    process.chdir(dir);
+    try {
+      const c = capture();
+      expect(await run(['@acme/palette'], c.io)).toBe(0);
+      const pkg = JSON.parse(
+        await readFile(join(dir, '@acme', 'palette', 'package.json'), 'utf-8'),
+      );
+      expect(pkg.name).toBe('@acme/palette');
+      expect(c.out()).not.toContain('note: package name');
+    } finally {
+      process.chdir(cwd);
+    }
+  });
+
   it.skipIf(process.platform === 'win32')(
     'CV-22: a name is sanitized, never refused for its characters',
     async () => {
@@ -384,7 +400,7 @@ describe('create-modern-cmdk 1.5 safety', () => {
     );
   });
 
-  it('CV-70: --help marks react-full as deprecated and documents --no-overwrite', async () => {
+  it('CV-70: --help marks react-full as deprecated', async () => {
     const c = capture();
     expect(await run(['--help'], c.io)).toBe(0);
     expect(c.out()).toMatch(/react-full\s+Deprecated alias of react-basic/);
