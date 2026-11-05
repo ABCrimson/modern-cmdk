@@ -43,8 +43,13 @@ pnpm --filter modern-cmdk-search-wasm run build
 ### Main thread
 
 ```ts
-import { createCommandMachine } from 'modern-cmdk';
+import { createCommandMachine, itemId } from 'modern-cmdk';
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
+
+const largeDataset = Array.from({ length: 10_000 }, (_, i) => ({
+  id: itemId(`item-${i}`),
+  value: `Item ${i}`,
+}));
 
 const wasmEngine = await createWasmSearchEngine();
 
@@ -59,13 +64,19 @@ using machine = createCommandMachine({
 `createCommandMachine` calls only the synchronous `search()`, which ignores its arguments and yields the results of the most recent `searchAsync()` call. Nothing calls `searchAsync()` for you, so call `await workerEngine.searchAsync(query)` yourself before the machine filters.
 
 ```ts
+import { createCommandMachine, itemId } from 'modern-cmdk';
 import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
+
+const massiveDataset = Array.from({ length: 100_000 }, (_, i) => ({
+  id: itemId(`item-${i}`),
+  value: `Item ${i}`,
+}));
 
 const workerEngine = await createWorkerSearchEngine();
 
 using machine = createCommandMachine({
   search: workerEngine,
-  items: massiveDataset, // 100K+ items
+  items: massiveDataset, // 100K items
 });
 ```
 
