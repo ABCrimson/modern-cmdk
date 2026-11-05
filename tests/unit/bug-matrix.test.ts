@@ -1,8 +1,9 @@
 // tests/unit/bug-matrix.test.ts
-// G17: every FIXED BUG ledger row of 1.3.0 and 1.4.0 maps to a vitest title ("covered") or to a gate line
+// G17: every FIXED BUG ledger row of 1.3.0, 1.4.0 and 1.5.0 maps to a vitest title ("covered") or to a gate line
 // ("gate": a CI step, script or config line), except the ids in PENDING_BY_DECISION below.
 // An entry names "path::string"; the file must exist and contain the string, so renaming or
 // deleting the test or gate line breaks the matrix instead of silently orphaning the row.
+// A row proved by a fixture-driven suite names its case's expected output or reports file, so deleting the case breaks the matrix.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -56,9 +57,9 @@ describe('BUG-to-test matrix', () => {
     }
   });
 
-  it('lists every BUG ledger row that 1.3.0 and 1.4.0 close', () => {
+  it('lists every BUG ledger row that 1.3.0, 1.4.0 and 1.5.0 close', () => {
     const closing = ledger
-      .filter((row) => row.category === 'BUG' && ['1.3.0', '1.4.0'].includes(row.release))
+      .filter((row) => row.category === 'BUG' && ['1.3.0', '1.4.0', '1.5.0'].includes(row.release))
       .map((row) => row.id)
       .toSorted();
     expect(matrix.map((entry) => entry.id).toSorted()).toEqual(closing);
