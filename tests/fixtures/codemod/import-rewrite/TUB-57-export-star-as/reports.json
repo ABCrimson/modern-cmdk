@@ -1,0 +1,3 @@
+[
+  "export * as C from 'cmdk' re-exported names that modern-cmdk/react lacks (CommandRoot, defaultFilter); re-export the modern-cmdk/react names by hand"
+]
