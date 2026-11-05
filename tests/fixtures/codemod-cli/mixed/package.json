@@ -1,0 +1,5 @@
+{
+  "name": "mixed",
+  "private": true,
+  "description": "[cmdk-root] and import Command from 'cmdk' stay: json is not a script"
+}

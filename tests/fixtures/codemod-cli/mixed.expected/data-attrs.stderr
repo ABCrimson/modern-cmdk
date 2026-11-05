@@ -1,0 +1,2 @@
+styles/theme.css: line 29: cmdk-label has no modern-cmdk equivalent: cmdk renders a visually hidden <label>; modern-cmdk puts the label on the root as aria-label and renders no label element; left unchanged
+styles/theme.scss: line 38: [data-selected="true"] under a rule whose selectors only partly hold a cmdk attribute cannot be migrated automatically; left unchanged

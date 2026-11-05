@@ -1,0 +1,22 @@
+would change src/forward.tsx
+--- a/src/forward.tsx
++++ b/src/forward.tsx
+@@ -1,5 +1,13 @@
+-import { forwardRef } from 'react';
++export const Field = (
++  {
++    ref,
++    value
++  }
++) => <input ref={ref} value={value} />;
+ 
+-export const Field = forwardRef(({ value }, ref) => <input ref={ref} value={value} />);
+-
+-export const Plain = forwardRef((props, ref) => <div ref={ref} {...props} />);
++export const Plain = (
++  {
++    ref,
++    ...props
++  }
++) => <div ref={ref} {...props} />;
+1 changed, 7 unchanged, 0 errors, 2 skipped (dry run, nothing written)

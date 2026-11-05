@@ -1,0 +1,124 @@
+would change src/quotes.ts
+--- a/src/quotes.ts
++++ b/src/quotes.ts
+@@ -1,6 +1,6 @@
+ import { items } from './items';
+ 
+-export const a = '[cmdk-item="x"]';
+-export const b = '[cmdk-group] [cmdk-input]';
+-export const c = "it's [cmdk-root]";
+-export const d = items.map((item) => `[cmdk-item="${item}"]`);
++export const a = '[data-command-item="x"]';
++export const b = '[data-command-group] [data-command-input]';
++export const c = "it's [data-command-root]";
++export const d = items.map((item) => `[data-command-item="${item}"]`);
+would change src/shell.js
+--- a/src/shell.js
++++ b/src/shell.js
+@@ -1,8 +1,8 @@
+ export const Shell = () => (
+-  <div cmdk-root="" className="[&_[cmdk-item]]:px-2">
+-    <div cmdk-item="" />
++  <div data-command-root="" className="[&_[data-command-item]]:px-2">
++    <div data-command-item="" />
+   </div>
+ );
+ 
+-export const q = '[cmdk-root] [cmdk-group-heading]';
+-export const t = "[cmdk-item][data-selected='true']";
++export const q = '[data-command-root] [data-command-group-heading]';
++export const t = "[data-command-item][data-active]";
+would change styles/theme.css
+--- a/styles/theme.css
++++ b/styles/theme.css
+@@ -1,28 +1,28 @@
+ /* [cmdk-root] stays in comments; so does --cmdk-list-height */
+-[cmdk-root] {
+-  --cmdk-list-height: 0px;
++[data-command-root] {
++  --command-list-height: 0px;
+   max-width: 640px;
+ }
+ 
+-[cmdk-list] {
+-  height: var(--cmdk-list-height);
++[data-command-list] {
++  height: var(--command-list-height);
+   max-height:300px;
+ }
+ 
+-[cmdk-group-heading]   {
++[data-command-group-heading]   {
+   padding: 4px 8px;
+ }
+ 
+-[cmdk-item][data-selected="true"],
+-[cmdk-item]:hover {
++[data-command-item][data-active],
++[data-command-item]:hover {
+   background: #eee;
+ }
+ 
+-[cmdk-item][data-disabled='true'] {
++[data-command-item][data-disabled] {
+   opacity: 0.5;
+ }
+ 
+-[cmdk-item][aria-selected="true"] > [cmdk-group-items] {
++[data-command-item][aria-selected="true"] > [data-command-group-items] {
+   content: "[cmdk-item]";
+ }
+ 
+@@ -33,4 +33,4 @@
+ [data-selected="true"] {
+   color: red;
+ }
+-[cmdk-list] { background: url( //cdn.example/a.png); height: var(--cmdk-list-height); }
++[data-command-list] { background: url( //cdn.example/a.png); height: var(--command-list-height); }
+would change styles/theme.scss
+--- a/styles/theme.scss
++++ b/styles/theme.scss
+@@ -1,18 +1,18 @@
+ // [cmdk-root] in a line comment stays
+ $gap: 4px;
+ 
+-[cmdk-root] {
+-  --cmdk-list-height: 0px;
++[data-command-root] {
++  --command-list-height: 0px;
+ 
+-  [cmdk-item] {
++  [data-command-item] {
+     padding: $gap;
+ 
+-    &[data-selected="true"] {
++    &[data-active] {
+       background: #eee;
+     }
+ 
+-    &[data-disabled="true"],
+-    &[data-disabled="false"]:hover {
++    &[data-disabled],
++    &:not([data-disabled]):hover {
+       opacity: 0.5;
+     }
+ 
+@@ -22,7 +22,7 @@
+   }
+ 
+   @media (prefers-reduced-motion: reduce) {
+-    [cmdk-group-heading] {
++    [data-command-group-heading] {
+       transition: none;
+     }
+   }
+@@ -34,7 +34,7 @@
+   }
+ }
+ 
+-[cmdk-item], .x {
++[data-command-item], .x {
+   &[data-selected="true"] {
+     color: green;
+   }
+4 changed, 6 unchanged, 0 errors, 2 reported (dry run, nothing written)

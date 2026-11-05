@@ -1,0 +1,20 @@
+would change src/filter.tsx
+--- a/src/filter.tsx
++++ b/src/filter.tsx
+@@ -3,9 +3,9 @@
+ declare const enabled: boolean;
+ declare const loading: boolean;
+ 
+-export const A = () => <Command shouldFilter label="a" />;
+-export const B = () => <Command shouldFilter={true} label="b" />;
+-export const C = () => <Command label="c" shouldFilter={false} />;
+-export const D = () => <Command shouldFilter={enabled} label="d" />;
+-export const E = () => <Command shouldFilter={!loading} label="e" />;
+-export const F = () => <Command shouldFilter={enabled || loading} label="f" />;
++export const A = () => <Command label="a" />;
++export const B = () => <Command label="b" />;
++export const C = () => <Command label="c" filter={false} />;
++export const D = () => <Command filter={enabled ? undefined : false} label="d" />;
++export const E = () => <Command filter={!loading ? undefined : false} label="e" />;
++export const F = () => <Command filter={enabled || loading ? undefined : false} label="f" />;
+1 changed, 9 unchanged, 0 errors, 2 skipped (dry run, nothing written)
