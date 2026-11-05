@@ -59,4 +59,18 @@ describe('docs wasm-search samples', () => {
       expect.soft(late).toContain('return;');
     }
   });
+
+  it('DG-133: the worker sample awaits the late disposal in init and leaves the cleanup disposal fire-and-forget', () => {
+    const worker: string | undefined = tsxFences(readFileSync(resolve(root, PAGE), 'utf8')).find(
+      (code) => code.includes('createWorkerSearchEngine'),
+    );
+    expect(worker).toBeDefined();
+    const late: string = lateBranchOf(worker ?? '');
+    expect(late).toContain('await created[Symbol.asyncDispose]()');
+    expect(late).not.toContain('void ');
+    expect(late).not.toContain('fire-and-forget');
+    const cleanup: string = cleanupOf(worker ?? '');
+    expect(cleanup).toContain('void engine?.[Symbol.asyncDispose]()');
+    expect(cleanup).toContain('fire-and-forget');
+  });
 });
