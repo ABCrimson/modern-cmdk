@@ -510,7 +510,7 @@ What resolves today:
 
 - Item background: `[data-command-item]` declares a `background-color` transition over `--command-duration-item` (120ms) with a `linear()` ease (styles.css:213); it runs on the background the app sets for `[data-active]` (the library sets one only under `forced-colors`, :570). `content-visibility: auto` skips off-screen item rendering (:215).
 - List height: `[data-command-list]` declares `transition: height` over `--command-duration-list` with `--command-spring-easing` and sets `will-change: height` (styles.css:195-196). Both tokens resolve because the list sits inside `[data-command-root]`. The library sets only `--command-list-height` on the list (list.tsx:107), not `height`, so the transition interpolates once the app sets `height: var(--command-list-height)` on `[data-command-list]` (apps/docs/guide/migration-from-cmdk.md:111).
-- Virtual positioning: items use `translateY` transforms and the virtual list sets `will-change: transform` (:234). The motion is transform-based, which keeps it off the layout path.
+- Virtual positioning: each virtual item is absolutely positioned and offset with the `translate` property (`translate: 0 <start>px`, item.tsx:79), and the virtual list sets `will-change: transform` (styles.css:234). The motion is transform-based, which keeps it off the layout path.
 - Overlay tint: `--command-overlay-opacity` is a registered property (:30) read by the overlay background (:140) and set to 0 or 0.4 by the state rules (:324, :334). The value switches with `data-state`; the `transition` declarations beside it (:326-331, :335-341) read unset tokens, so it does not interpolate.
 
 What is declared and inert until DT-19:
