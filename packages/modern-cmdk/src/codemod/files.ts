@@ -1,9 +1,10 @@
 // modern-cmdk — Codemod file discovery, parser choice and git checks.
 //
-// Discovery runs on `fs.promises.glob` (stable since Node 22.0.0) with `withFileTypes` and an
-// `exclude` function. The deprecated `modern-cmdk` bin keeps 1.4's four ignores and no .gitignore;
-// the `modern-cmdk-codemod` profile excludes more directories, applies .gitignore through
-// `git check-ignore`, and refuses to write into a dirty or untracked tree (see findDirtyFiles).
+// Discovery runs on `fs.promises.glob` (added in Node 22.0.0, stable since Node 24.0.0 and 22.17.0;
+// the bin's floor is Node >= 26.4.0) with `withFileTypes` and an `exclude` function. The
+// deprecated `modern-cmdk` bin keeps 1.4's four ignores and no .gitignore; the `modern-cmdk-codemod`
+// profile excludes more directories, applies .gitignore through `git check-ignore`, and refuses to
+// write into a dirty or untracked tree (see findDirtyFiles).
 
 import { execFile } from 'node:child_process';
 import type { Dirent } from 'node:fs';
