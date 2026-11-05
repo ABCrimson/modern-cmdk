@@ -1,0 +1,5 @@
+[
+  "line 1: [data-selected] beside a cmdk attribute cannot be migrated automatically: cmdk rendered data-selected with a \"true\" or \"false\" value, modern-cmdk sets data-active only while the state holds; left unchanged",
+  "line 2: [data-disabled] beside a cmdk attribute cannot be migrated automatically: cmdk rendered data-disabled with a \"true\" or \"false\" value, modern-cmdk sets data-disabled only while the state holds; left unchanged",
+  "line 3: [data-selected=\"maybe\"] beside a cmdk attribute cannot be migrated automatically: cmdk rendered data-selected with a \"true\" or \"false\" value, modern-cmdk sets data-active only while the state holds; left unchanged"
+]

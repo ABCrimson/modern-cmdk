@@ -1,0 +1,9 @@
+export const active = '[data-command-item][data-active]';
+export const activeSingle = "[data-command-item][data-active]";
+export const activeBare = '[data-command-item][data-active]';
+export const disabled = '[data-command-item][data-disabled]';
+export const inactive = '[data-command-item]:not([data-active])';
+export const enabled = '[data-command-item]:not([data-disabled])';
+export const both = '[data-command-item][data-active]:not([data-disabled])';
+export const negated = '[data-command-item]:not([data-active])';
+export const hover = `[data-command-item][data-active]:hover > [data-command-group-heading]`;

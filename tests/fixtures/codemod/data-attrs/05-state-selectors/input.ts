@@ -1,0 +1,9 @@
+export const active = '[cmdk-item][data-selected="true"]';
+export const activeSingle = "[cmdk-item][data-selected='true']";
+export const activeBare = '[cmdk-item][data-selected=true]';
+export const disabled = '[cmdk-item][data-disabled="true"]';
+export const inactive = '[cmdk-item][data-selected="false"]';
+export const enabled = '[cmdk-item][data-disabled="false"]';
+export const both = '[cmdk-item][data-selected="true"][data-disabled="false"]';
+export const negated = '[cmdk-item]:not([data-selected="true"])';
+export const hover = `[cmdk-item][data-selected="true"]:hover > [cmdk-group-heading]`;

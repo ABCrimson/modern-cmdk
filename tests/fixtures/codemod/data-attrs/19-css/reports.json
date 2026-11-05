@@ -1,0 +1,3 @@
+[
+  "line 29: cmdk-label has no modern-cmdk equivalent: cmdk renders a visually hidden <label>; modern-cmdk puts the label on the root as aria-label and renders no label element; left unchanged"
+]
