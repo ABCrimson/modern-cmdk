@@ -72,9 +72,16 @@ describe('check-snippets expandBody', () => {
 
   it('CV-43: the real manifest lists snippets.json as tsx and snippets-core.json as ts', () => {
     const files = snippetFiles();
-    expect(files.map((f) => [f.path.split(/[\\/]/).pop(), f.extension])).toEqual([
-      ['snippets.json', 'tsx'],
-      ['snippets-core.json', 'ts'],
+    const languagesOf = (name: string): readonly string[] | undefined =>
+      files.find((f) => f.path.split(/[\\/]/).pop() === name)?.languages;
+    expect(languagesOf('snippets.json')).toEqual(['typescriptreact', 'javascriptreact']);
+    expect(languagesOf('snippets-tsx.json')).toEqual(['typescriptreact']);
+    expect(languagesOf('snippets-jsx.json')).toEqual(['javascriptreact']);
+    expect(languagesOf('snippets-core.json')).toEqual([
+      'typescript',
+      'javascript',
+      'typescriptreact',
+      'javascriptreact',
     ]);
     expect(readFileSync(files[0]?.path ?? '', 'utf8')).toContain('cmd-basic');
   });
@@ -117,6 +124,29 @@ describe('check-snippets runs', () => {
     const result = run(bad.packageDir, bad.harness);
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/^cmd-bad:2: error TS2322/m);
+  });
+
+  it('CV-77: a snippet with TypeScript-only syntax contributed to javascriptreact fails the check', () => {
+    const bad = fixture(
+      'ts-in-jsx',
+      { Typed: { prefix: 'cmd-typed', body: ['export const f = (x: string) => x;'] } },
+      {},
+    );
+    writeFileSync(
+      join(bad.packageDir, 'package.json'),
+      JSON.stringify({
+        contributes: {
+          snippets: [
+            { language: 'typescriptreact', path: './src/s.json' },
+            { language: 'javascriptreact', path: './src/s.json' },
+          ],
+        },
+      }),
+    );
+    const result = run(bad.packageDir, bad.harness);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/^cmd-typed:1: error TS8010.*\[javascriptreact\]$/m);
+    expect(result.stderr).not.toContain('[typescriptreact]');
   });
 
   it('exits 2 on an unknown flag and on an --out outside node_modules/.cache', () => {

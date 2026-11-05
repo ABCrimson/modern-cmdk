@@ -48,7 +48,8 @@
     "declarations": [
       "import { Command } from 'modern-cmdk/react';",
       "declare function goBack(): void;"
-    ]
+    ],
+    "jsDeclarations": ["import { Command } from 'modern-cmdk/react';", "function goBack() {}"]
   },
   "Command AsyncItems": {
     "wrapper": [
@@ -64,6 +65,11 @@
       "import { Command } from 'modern-cmdk/react';",
       "import type { CommandItem } from 'modern-cmdk';",
       "declare const itemsPromise: Promise<readonly CommandItem[]>;"
+    ],
+    "jsDeclarations": [
+      "import { Command } from 'modern-cmdk/react';",
+      "/** @type {Promise<readonly import('modern-cmdk').CommandItem[]>} */",
+      "const itemsPromise = Promise.resolve([]);"
     ]
   },
   "Command with use() (React 19)": {
@@ -74,6 +80,9 @@
       "  readonly label: string;",
       "  readonly onSelect: () => void;",
       "}"
+    ],
+    "jsDeclarations": [
+      "/** @typedef {{ id: string, value: string, label: string, onSelect: () => void }} Item */"
     ]
   },
   "Command with useOptimistic (React 19)": {
@@ -84,6 +93,11 @@
       "  readonly label: string;",
       "}",
       "declare function persist(item: Item): Promise<void>;"
+    ],
+    "jsDeclarations": [
+      "/** @typedef {{ id: string, value: string, label: string }} Item */",
+      "/** @param {Item} item */",
+      "async function persist(item) {}"
     ]
   },
   "Command with useActionState (React 19)": {
@@ -94,6 +108,11 @@
       "  readonly label: string;",
       "}",
       "declare function searchItems(query: string): Promise<readonly Item[]>;"
+    ],
+    "jsDeclarations": [
+      "/** @typedef {{ id: string, value: string, label: string }} Item */",
+      "/** @param {string} query @returns {Promise<readonly Item[]>} */",
+      "async function searchItems(query) { return []; }"
     ]
   }
 }
