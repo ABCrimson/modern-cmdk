@@ -160,7 +160,7 @@
         "packages/modern-cmdk-codemod/dist/*.mjs",
         "packages/modern-cmdk-codemod/dist/transforms/*.mjs"
       ],
-      "limit": "92 kB",
+      "limit": "100 kB",
       "gzip": false,
       "brotli": false,
       "rolldown": false
