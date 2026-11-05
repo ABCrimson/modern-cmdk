@@ -1,0 +1,4 @@
+[
+  "the mock factory for 'cmdk' names CommandRoot, defaultFilter, which modern-cmdk/react does not export under that name; the factory body is not rewritten, check it by hand",
+  "the mock factory for 'cmdk' names defaultFilter, which modern-cmdk/react does not export under that name; the factory body is not rewritten, check it by hand"
+]

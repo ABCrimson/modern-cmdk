@@ -1,79 +1,117 @@
-import type { API, FileInfo } from 'jscodeshift';
-import jscodeshift from 'jscodeshift';
+// import-rewrite on exact-output fixtures: tests/fixtures/codemod/import-rewrite/<ROW-id-case>/.
+// Every case runs three ways: LF, CRLF (both sides through toCrlf), and idempotent (the output is
+// a fixed point: names left on a cmdk import stay there and are reported again, nothing else moves).
+// Every title starts with its ledger row id.
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { API } from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
-import transform from '../../packages/modern-cmdk/src/codemod/transforms/import-rewrite.js';
+import { parserFor } from '../../packages/modern-cmdk/src/codemod/files.js';
+import transform, {
+  KNOWN_EXPORTS,
+} from '../../packages/modern-cmdk/src/codemod/transforms/import-rewrite.js';
+import { applyTransform, listCases, readCase, toCrlf } from './codemod-fixtures.ts';
 
-function createApi(parser: string = 'tsx'): API {
-  return {
-    jscodeshift: jscodeshift.withParser(parser),
-    j: jscodeshift.withParser(parser),
-    stats: () => {},
-    report: () => {},
-  };
+const ROW_ID = /^(?:IR-\d+|IR-TEST|TUB-\d+)-/;
+
+function run(path: string, source: string): { output: string; reports: string[] } {
+  const parser = parserFor(path);
+  if (parser === undefined) throw new Error(`no parser for ${path}`);
+  return applyTransform(transform, { path, source }, parser);
 }
 
-function run(source: string, parser: string = 'tsx'): string {
-  const fileInfo: FileInfo = { path: 'test.tsx', source };
-  return transform(fileInfo, createApi(parser));
+/**
+ * The names modern-cmdk/react exports, read from src/react/index.ts with a regex: importing that
+ * file would pull in React and the whole adapter, and only its export clauses matter here.
+ * Value and `export type` clauses are both counted; `a as b` counts b, `type X` counts X.
+ */
+function reactExportNames(): { names: Set<string>; source: string } {
+  const source = readFileSync(
+    join(import.meta.dirname, '..', '..', 'packages', 'modern-cmdk', 'src', 'react', 'index.ts'),
+    'utf8',
+  ).replace(/\/\/[^\n]*/g, '');
+  const names = new Set<string>();
+  for (const clause of source.matchAll(/export\s+(?:type\s+)?\{([^}]*)\}\s*from/g)) {
+    for (const part of (clause[1] ?? '').split(',')) {
+      const spec = part.trim().replace(/^type\s+/, '');
+      if (spec === '') continue;
+      names.add(spec.split(/\s+as\s+/).pop() ?? spec);
+    }
+  }
+  return { names, source };
 }
 
-const importRewriteCases: readonly {
-  readonly label: string;
-  readonly input: string;
-  readonly contains: string;
-}[] = [
-  { label: 'named import', input: `import { Command } from 'cmdk';`, contains: '{ Command }' },
-  { label: 'default import', input: `import Command from 'cmdk';`, contains: 'import Command' },
-  { label: 'namespace import', input: `import * as Cmdk from 'cmdk';`, contains: '* as Cmdk' },
-  {
-    label: 'named re-export',
-    input: `export { Command } from 'cmdk';`,
-    contains: 'export { Command }',
-  },
-  { label: 'star re-export', input: `export * from 'cmdk';`, contains: 'modern-cmdk/react' },
-  { label: 'dynamic import', input: `const mod = import('cmdk');`, contains: 'modern-cmdk/react' },
-  {
-    label: 'require call',
-    input: `const Command = require('cmdk');`,
-    contains: 'modern-cmdk/react',
-  },
-];
+describe('codemod: import-rewrite fixtures', () => {
+  const names = listCases('import-rewrite');
+
+  it('IR-TEST: has fixture cases, each named after its row id', () => {
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) expect(name).toMatch(ROW_ID);
+  });
+
+  for (const name of names) {
+    const c = readCase('import-rewrite', name);
+
+    it(`${name}: exact output and reports, LF`, () => {
+      const result = run(c.inputPath, c.input);
+      expect(result.output).toBe(c.output);
+      expect(result.reports).toEqual(c.reports);
+    });
+
+    it(`${name}: exact output and reports, CRLF`, () => {
+      const result = run(c.inputPath, toCrlf(c.input));
+      expect(result.output).toBe(toCrlf(c.output));
+      expect(result.reports).toEqual(c.reports);
+    });
+
+    it(`${name}: running it on its own output changes nothing`, () => {
+      expect(run(c.inputPath, c.output).output).toBe(c.output);
+    });
+  }
+});
 
 describe('codemod: import-rewrite', () => {
-  // Data-driven rewrite tests
-  it.for(importRewriteCases)('rewrites $label from cmdk', ({ input, contains }) => {
-    const output = run(input);
-
-    expect.soft(output).toContain('modern-cmdk/react');
-    expect.soft(output).toContain(contains);
+  it('IR-TEST: KNOWN_EXPORTS equals the names exported by modern-cmdk/react', () => {
+    const { names: fromIndex, source } = reactExportNames();
+    // Any export form the clause regex does not parse (export *, export const, a local export { X })
+    // would leave KNOWN_EXPORTS stale without failing the comparison below; it fails here instead.
+    expect(
+      source.replace(/export\s+(?:type\s+)?\{[^}]*\}\s*from\s*['"][^'"]+['"];?/g, ''),
+    ).not.toMatch(/\bexport\b/);
+    expect(fromIndex.size).toBeGreaterThan(20);
+    expect([...KNOWN_EXPORTS].sort()).toEqual([...fromIndex].sort());
   });
 
-  it('does NOT modify unrelated imports', () => {
-    const input = `import React from 'react';\nimport { useState } from 'react';`;
-    const output = run(input);
-
-    expect(output).toBe(input);
+  it('IR-1: every name a rewrite writes into a modern-cmdk/react import is in KNOWN_EXPORTS', () => {
+    for (const name of listCases('import-rewrite')) {
+      const c = readCase('import-rewrite', name);
+      for (const clause of c.output.matchAll(
+        /(?:import|export)\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"]modern-cmdk\/react['"]/g,
+      )) {
+        for (const part of (clause[1] ?? '').split(',')) {
+          const spec = part.trim().replace(/^type\s+/, '');
+          if (spec === '') continue;
+          const imported = spec.split(/\s+as\s+/)[0] ?? spec;
+          expect(KNOWN_EXPORTS.has(imported), `${name}: ${imported}`).toBe(true);
+        }
+      }
+    }
   });
 
-  it('returns original source when no cmdk imports exist', () => {
-    const input = `const x = 42;\nconsole.log(x);`;
-    const output = run(input);
-
-    expect(output).toBe(input);
+  it('IR-5: a source with no cmdk in it returns before parsing', () => {
+    const source = `import { useState } from 'react';\nexport const n = useState(0);\n`;
+    const j = (() => {
+      throw new Error('parsed');
+    }) as unknown as API['jscodeshift'];
+    const api: API = { jscodeshift: j, j, stats: () => {}, report: () => {} };
+    expect(transform({ path: 'plain.tsx', source }, api)).toBe(source);
   });
 
-  it('handles multiple cmdk imports in one file', () => {
-    const input = [
-      `import { Command } from 'cmdk';`,
-      `import type { CommandProps } from 'cmdk';`,
-      `import React from 'react';`,
-    ].join('\n');
-    const output = run(input);
-
-    expect.soft(output).not.toMatch(/from\s+['"]cmdk['"]/);
-    expect.soft(output).toMatch(/from\s+['"]react['"]/);
-    // Both cmdk imports should be rewritten
-    const matches = output.match(/modern-cmdk\/react/g);
-    expect(matches).toHaveLength(2);
+  it('IR-3: a file that names modern-cmdk but not cmdk is parsed and returned byte for byte', () => {
+    const source = `import { Command } from 'modern-cmdk/react';\nexport { Command };\n`;
+    const result = run('already.tsx', source);
+    expect(result.output).toBe(source);
+    expect(result.reports).toEqual([]);
   });
 });
