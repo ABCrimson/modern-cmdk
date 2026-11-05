@@ -116,7 +116,8 @@ describe('modern-cmdk bin (PKG-1)', () => {
     () => {
       const bin = join(packageDir, 'dist/codemod/bin.mjs');
       expect(readFileSync(bin, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true);
-      // Windows has no execute bit; elsewhere tsdown grants it to a shebang entry.
+      // Windows has no execute bit; elsewhere tsdown's ShebangPlugin grants it to a shebang entry at build time, and CI's
+      // dist artifact is a tar (upload-artifact resets file modes to 644), so the bit reaches this job and the packed tarballs.
       expect(process.platform === 'win32' || (statSync(bin).mode & 0o111) !== 0).toBe(true);
     },
   );
