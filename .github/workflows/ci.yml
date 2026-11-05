@@ -646,15 +646,15 @@ jobs:
   # template that no longer installs, compiles or builds fails here (RP-36, CV-07, CV-39). It needs `package` (not
   # build) because it consumes the tarballs that job packed, and it needs no dist. Like react-lanes it installs
   # third-party pins that no lockfile vets (each template's own dependency set, the react pins), so setup-node takes
-  # no pnpm store cache. timeout-minutes: a warm local run costs about 1 s install, 0.2 s tsc and 0.5 s build per
-  # template, which says nothing about a cold runner; the budget is the root install (about 1 min), three cold
-  # template installs with the react pins fetched (about 2 min each, worst case) and their builds, plus margin. The
-  # first green run's step timings (the script logs the seconds of every step) say how far to tighten it.
+  # no pnpm store cache. timeout-minutes: the whole job (checkout, install, the tarball download and the smoke of all
+  # three templates) took 28 s in run 42013071098 and 25 s in run 42014300173 on cold ubuntu-26.04 runners
+  # (2026-11-05); 10 minutes guards a hang, the budget the other install-and-run jobs use, and the script logs the
+  # seconds of every step, so a slower run says where the time went.
   templates:
     name: Templates (scaffold, tsc, build)
     needs: package
     runs-on: ubuntu-26.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
