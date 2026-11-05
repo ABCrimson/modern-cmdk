@@ -35,7 +35,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 |---|---|---|
 | Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261104d36e9ba1f8) | Iterator Helpers (ES2025) and `Symbol.dispose` / `using` (ESNext explicit resource management) run natively |
 | pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
-| TypeScript | 7.1.0-dev.20261104.1 | Pinned once in the `catalog:` of `pnpm-workspace.yaml` (with react, react-dom, @types/react, @types/react-dom and vite; D54); the root, create-modern-cmdk and playground manifests reference it as `catalog:`, while apps/docs keeps its own `typescript` 6.0.3 pin for vue-tsc (the scoped hold the catalog comment records). Do not install globally |
+| TypeScript | 7.1.0-dev.20261105.1 | Pinned once in the `catalog:` of `pnpm-workspace.yaml` (with react, react-dom, @types/react, @types/react-dom and vite; D54); the root, create-modern-cmdk and playground manifests reference it as `catalog:`, while apps/docs keeps its own `typescript` 6.0.3 pin for vue-tsc (the scoped hold the catalog comment records). Do not install globally |
 | Rust + wasm-pack | Pinned nightly (`rust-toolchain.toml`) + wasm-pack 0.15.1 | Only needed if working on `command-search-wasm` |
 | Git | >= 2.40 | For Lefthook pre-commit/pre-push hooks |
 
@@ -361,7 +361,7 @@ All relative imports use the `.js` extension suffix. This is a house convention 
 
 ## TypeScript Guidelines
 
-This project uses **TypeScript 7.1.0-dev.20261104.1** with strict configuration.
+This project uses **TypeScript 7.1.0-dev.20261105.1** with strict configuration.
 
 ### Required tsconfig flags
 

@@ -17,7 +17,7 @@ catalog:
   react: 0.0.0-experimental-e84e1492-20261031
   react-dom: 0.0.0-experimental-e84e1492-20261031
   tsdown: 0.23.5
-  typescript: 7.1.0-dev.20261104.1
+  typescript: 7.1.0-dev.20261105.1
   vite: 8.3.6
 overrides:
   react: 'catalog:'
@@ -79,16 +79,18 @@ minimumReleaseAgeExclude:
   - '@biomejs/cli-win32-arm64@2.6.5'
   - '@biomejs/cli-win32-x64@2.6.5'
   - '@playwright/test@1.66.0-alpha-2026-11-05'
-  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-linux-arm@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-linux-x64@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-win32-x64@7.1.0-dev.20261104.1'
+  # typescript@7.1.0-dev.20261105.1 (next; published 2026-11-05T08:20:45Z) and its seven @typescript/typescript-<platform> binaries
+  # (08:15-08:20Z) were under the 24 h minimumReleaseAge at the 2026-11-05 bump from the previous day's dev build. Drop after a day.
+  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261105.1'
+  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261105.1'
+  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261105.1'
+  - '@typescript/typescript-linux-arm@7.1.0-dev.20261105.1'
+  - '@typescript/typescript-linux-x64@7.1.0-dev.20261105.1'
+  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261105.1'
+  - '@typescript/typescript-win32-x64@7.1.0-dev.20261105.1'
   - playwright-core@1.66.0-alpha-2026-11-05
   - playwright@1.66.0-alpha-2026-11-05
-  - typescript@7.1.0-dev.20261104.1
+  - typescript@7.1.0-dev.20261105.1
   # next@16.5.0-canary.41 (the root devDependency for the docs-samples gate, TEB-84 and D57, and the tests/consumers/next-app pin) was
   # published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05
   # bump from canary.40; with its @next/env and platform binaries. Drop after a day.

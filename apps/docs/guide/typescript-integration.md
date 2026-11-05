@@ -1,6 +1,6 @@
 # TypeScript Integration
 
-modern-cmdk is built with TypeScript 7.1.0-dev.20261104.1 and provides first-class type safety.
+modern-cmdk is built with TypeScript 7.1.0-dev.20261105.1 and provides first-class type safety.
 
 ## Branded IDs
 
