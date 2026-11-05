@@ -99,9 +99,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Licence: MIT
 
-File: `tests/package/notices/flow-0.337.0-LICENSE.txt`
-
-Licence text pinned in this repository, not shipped by the package (the npm tarball ships no licence file; package.json declares MIT and the flow repository). Source: https://github.com/facebook/flow/blob/741104e69c43057ebd32804dd6bcc1b5e97548ea/LICENSE (commit 741104e69c43057ebd32804dd6bcc1b5e97548ea), fetched 2026-11-05.
+Licence text pinned in this repository, from https://github.com/facebook/flow/blob/741104e69c43057ebd32804dd6bcc1b5e97548ea/LICENSE, fetched 2026-11-05, because the npm tarball ships no licence file; package.json declares MIT and the flow repository.
 
 ```text
 MIT License
@@ -131,9 +129,7 @@ SOFTWARE.
 
 Licence: MIT
 
-File: `tests/package/notices/flow-0.337.0-LICENSE.txt`
-
-Licence text pinned in this repository, not shipped by the package (the npm tarball ships no licence file; package.json declares MIT and the flow repository). Source: https://github.com/facebook/flow/blob/741104e69c43057ebd32804dd6bcc1b5e97548ea/LICENSE (commit 741104e69c43057ebd32804dd6bcc1b5e97548ea), fetched 2026-11-05.
+Licence text pinned in this repository, from https://github.com/facebook/flow/blob/741104e69c43057ebd32804dd6bcc1b5e97548ea/LICENSE, fetched 2026-11-05, because the npm tarball ships no licence file; package.json declares MIT and the flow repository.
 
 ```text
 MIT License

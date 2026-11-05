@@ -132,15 +132,14 @@ describe('third-party notices', () => {
     expect(text?.file).toBe('notices/pinned-LICENSE.txt');
     expect(text?.text).toBe('pinned text\nsecond line\n');
     expect(text?.provenance).toContain(pin.source);
-    expect(text?.provenance).toContain(`commit ${sha}`);
     expect(text?.provenance).toContain('fetched 2026-11-05');
     expect(text?.provenance).toContain(pin.reason);
-    // the rendered section puts the provenance line between the file name and the fence
+    // the rendered section carries the provenance line in place of the File: line (no repository path)
     const out = renderNotices([
       collectNotice(root, { name: 'pinned', dir: 'node_modules/pinned' }, [pin]),
     ]);
     expect(out).toMatch(
-      /## pinned@0\.1\.0\n\nLicence: MIT\n\nFile: `notices\/pinned-LICENSE\.txt`\n\nLicence text pinned in this repository.*fetched 2026-11-05\.\n\n```text\npinned text\nsecond line\n```\n/,
+      /## pinned@0\.1\.0\n\nLicence: MIT\n\nLicence text pinned in this repository, from https:\/\/example\.com\/pinned\/blob\/[0-9a-f]{40}\/LICENSE, fetched 2026-11-05, because the tarball ships no licence file\.\n\n```text\npinned text\nsecond line\n```\n/,
     );
     // a pin for another version does not apply
     expect(() =>
@@ -158,6 +157,38 @@ describe('third-party notices', () => {
         { ...pin, source: 'https://example.com/pinned/LICENSE' },
       ]),
     ).toThrow(/40-hex commit/);
+  });
+
+  it('PKG-5: a pinned package section names no repository path and states source URL, fetch date and reason once each; a shipped file keeps its File: line', () => {
+    const sha = '0123456789abcdef0123456789abcdef01234567';
+    const pin: LicenseFilePin = {
+      package: 'pinned',
+      version: '0.1.0',
+      file: 'notices/pinned-LICENSE.txt',
+      source: `https://example.com/pinned/blob/${sha}/LICENSE`,
+      fetched: '2026-11-05',
+      reason: 'the tarball ships no licence file',
+    };
+    install('node_modules/pinned', { name: 'pinned', version: '0.1.0', license: 'MIT' }, {});
+    install(
+      'node_modules/shipped',
+      { name: 'shipped', version: '1.0.0', license: 'BSD' },
+      { 'LICENSE.BSD': 'bsd text\n' },
+    );
+    mkdirSync(join(root, 'notices'), { recursive: true });
+    writeFileSync(join(root, pin.file), 'pinned text\n');
+    const out = renderNotices([
+      collectNotice(root, { name: 'pinned', dir: 'node_modules/pinned' }, [pin]),
+      collectNotice(root, { name: 'shipped', dir: 'node_modules/shipped' }, []),
+    ]);
+    const pinnedSection: string = out.slice(out.indexOf('## pinned@'), out.indexOf('## shipped@'));
+    const shippedSection: string = out.slice(out.indexOf('## shipped@'));
+    expect(pinnedSection).not.toContain('notices/pinned-LICENSE.txt');
+    expect(pinnedSection).not.toContain('File:');
+    for (const fact of [pin.source, pin.fetched, pin.reason]) {
+      expect(pinnedSection.split(fact)).toHaveLength(2);
+    }
+    expect(shippedSection).toContain('File: `LICENSE.BSD`');
   });
 
   it('PKG-5: parseBundleList reads the explicit bundle list of tsdown.config.ts', () => {
