@@ -156,7 +156,7 @@ function tail(output: string): string {
   return output.split(/\r?\n/).slice(-TAIL_LINES).join('\n');
 }
 
-function killTree(child: ChildProcess): void {
+export function killTree(child: ChildProcess): void {
   if (child.pid === undefined) return;
   if (IS_WINDOWS) {
     spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
@@ -165,11 +165,14 @@ function killTree(child: ChildProcess): void {
     });
     return;
   }
-  // The child leads its own process group (detached), so -pid reaches grandchildren holding the pipes.
+  // A detached child leads its own process group, so -pid reaches grandchildren holding the pipes.
   try {
     process.kill(-child.pid, 'SIGKILL');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+    // ESRCH means no such group: either the child is gone (nothing to kill) or it is alive but not
+    // a group leader, and then only the direct child can be killed.
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
   }
 }
 

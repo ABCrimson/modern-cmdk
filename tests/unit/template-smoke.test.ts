@@ -3,14 +3,17 @@
 // bin, installed against the packed modern-cmdk, type-checked and built). The harness itself
 // (unpack, scaffold, install, tsc, build) is exercised by running it, not here.
 
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { setTimeout as setTimeout_ } from 'node:timers/promises';
 import { describe, expect, it } from 'vitest';
 import { parseWorkspaceYaml } from '../../scripts/consumer-smoke.ts';
 import {
   buildTempWorkspaceYaml,
   discoverTarballs,
+  killTree,
   parseCli,
   rewriteDependency,
   run,
@@ -18,6 +21,21 @@ import {
 } from '../../scripts/template-smoke.ts';
 
 const root = resolve(import.meta.dirname, '../..');
+
+/** Whether a process still exists: signal 0 throws ESRCH on POSIX, tasklist filters by pid on Windows. */
+function isAlive(pid: number): boolean {
+  if (process.platform === 'win32') {
+    const listing = spawnSync('tasklist', ['/FI', `PID eq ${pid}`, '/NH'], { encoding: 'utf8' });
+    return listing.stdout.includes(String(pid));
+  }
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ESRCH') return false;
+    throw error;
+  }
+}
 
 function packDir(...names: readonly string[]): string {
   const dir = mkdtempSync(join(tmpdir(), 'template-smoke-test-'));
@@ -152,17 +170,41 @@ describe('parseCli', () => {
 });
 
 describe('run', () => {
-  it('a timeout ends the step even when a grandchild holds the pipes', async () => {
+  it('a timeout ends the step even when a grandchild holds the pipes, and the grandchild dies', async () => {
+    const script = [
+      "const { spawn } = require('node:child_process');",
+      "const grandchild = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { stdio: 'inherit' });",
+      'console.log("GRANDCHILD=" + grandchild.pid);',
+      'setTimeout(() => {}, 30000);',
+    ].join(' ');
     const started = performance.now();
-    const result = await run(
-      process.execPath,
-      [
-        '-e',
-        "require('node:child_process').spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { stdio: 'inherit' }); setTimeout(() => {}, 30000);",
-      ],
-      { cwd: tmpdir(), timeoutMs: 1000 },
-    );
+    const result = await run(process.execPath, ['-e', script], { cwd: tmpdir(), timeoutMs: 1000 });
     expect(result.timedOut).toBe(true);
     expect(performance.now() - started).toBeLessThan(10_000);
+    const pid = Number(/GRANDCHILD=(\d+)/.exec(result.output)?.[1]);
+    expect(Number.isInteger(pid) && pid > 0).toBe(true);
+    // The kill is delivered before 'close' resolves; allow the OS a moment to reap the process.
+    const deadline = performance.now() + 5000;
+    while (isAlive(pid) && performance.now() < deadline) await setTimeout_(50);
+    expect(isAlive(pid)).toBe(false);
   }, 15_000);
+});
+
+describe('killTree()', () => {
+  it('ends a child that is not a process group leader (the POSIX ESRCH fallback)', async () => {
+    const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], {
+      cwd: tmpdir(),
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    const pid = child.pid as number;
+    expect(Number.isInteger(pid) && pid > 0).toBe(true);
+    killTree(child);
+    // A survivor is killed so it cannot outlive the test.
+    const deadline = performance.now() + 5000;
+    while (isAlive(pid) && performance.now() < deadline) await setTimeout_(50);
+    const gone = !isAlive(pid);
+    if (!gone) child.kill('SIGKILL');
+    expect(gone).toBe(true);
+  }, 20_000);
 });

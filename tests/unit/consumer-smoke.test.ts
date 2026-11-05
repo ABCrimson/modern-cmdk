@@ -3,8 +3,9 @@
 // harness itself (install, build, serve, browser) is exercised by running it, not here.
 // W4-04b: run() must end a timed-out step even when a grandchild holds the stdout pipe, and must
 // leave that grandchild dead (a process group kill on POSIX, taskkill /T /F on Windows).
+// W4-04c: killTree must also end the served app (spawnServer) and a child that is not a group leader.
 
-import { spawnSync } from 'node:child_process';
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { setTimeout as setTimeout_ } from 'node:timers/promises';
 import { describe, expect, it } from 'vitest';
@@ -15,9 +16,11 @@ import {
   countCoreCopies,
   countHydrationMessages,
   isInstalledPackageJsonPath,
+  killTree,
   parseCli,
   parseWorkspaceYaml,
   run,
+  spawnServer,
   VARIANTS,
 } from '../../scripts/consumer-smoke.ts';
 
@@ -245,5 +248,44 @@ describe('run()', () => {
     const deadline = performance.now() + 5000;
     while (isAlive(pid) && performance.now() < deadline) await setTimeout_(50);
     expect(isAlive(pid)).toBe(false);
+  }, 20_000);
+});
+
+describe('killTree()', () => {
+  /** Waits for the child to disappear; a survivor is killed so it cannot outlive the test. */
+  async function ended(child: ChildProcess, pid: number): Promise<boolean> {
+    const deadline = performance.now() + 5000;
+    while (isAlive(pid) && performance.now() < deadline) await setTimeout_(50);
+    const gone = !isAlive(pid);
+    if (!gone) child.kill('SIGKILL');
+    return gone;
+  }
+
+  it('ends the served app spawned by spawnServer', async () => {
+    const child = spawnServer(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], {
+      cwd: tmpdir(),
+    });
+    const pid = child.pid as number;
+    expect(Number.isInteger(pid) && pid > 0).toBe(true);
+    killTree(child);
+    expect(await ended(child, pid)).toBe(true);
+  }, 20_000);
+
+  it('ends a child that is not a process group leader (the POSIX ESRCH fallback)', async () => {
+    const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], {
+      cwd: tmpdir(),
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    const pid = child.pid as number;
+    expect(Number.isInteger(pid) && pid > 0).toBe(true);
+    killTree(child);
+    expect(await ended(child, pid)).toBe(true);
+  }, 20_000);
+
+  it('does nothing for a child that already exited', async () => {
+    const child = spawn(process.execPath, ['-e', ''], { stdio: 'ignore', windowsHide: true });
+    await new Promise<void>((resolveClose) => child.once('close', () => resolveClose()));
+    expect(() => killTree(child)).not.toThrow();
   }, 20_000);
 });

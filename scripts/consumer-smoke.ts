@@ -41,7 +41,7 @@
 // the adapter and the apps call) reaches FrecencyEngine, so each core copy in the client output
 // carries the literal once.
 
-import type { ChildProcess } from 'node:child_process';
+import type { ChildProcess, ChildProcessByStdio } from 'node:child_process';
 import { spawn, spawnSync } from 'node:child_process';
 import type { Dirent } from 'node:fs';
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -51,6 +51,7 @@ import type { AddressInfo } from 'node:net';
 import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { extname, join, resolve, sep } from 'node:path';
+import type { Readable } from 'node:stream';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
@@ -337,7 +338,7 @@ function tail(output: string): string {
   return output.split(/\r?\n/).slice(-TAIL_LINES).join('\n');
 }
 
-function killTree(child: ChildProcess): void {
+export function killTree(child: ChildProcess): void {
   if (child.pid === undefined) return;
   if (IS_WINDOWS) {
     spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
@@ -346,12 +347,30 @@ function killTree(child: ChildProcess): void {
     });
     return;
   }
-  // The child leads its own process group (detached), so -pid reaches grandchildren holding the pipes.
+  // A detached child leads its own process group, so -pid reaches grandchildren holding the pipes.
   try {
     process.kill(-child.pid, 'SIGKILL');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+    // ESRCH means no such group: either the child is gone (nothing to kill) or it is alive but not
+    // a group leader, and then only the direct child can be killed.
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
   }
+}
+
+/** Spawns a long-lived served app with piped output; on POSIX it leads its own process group, so killTree reaches it. */
+export function spawnServer(
+  command: string,
+  args: readonly string[],
+  options: { readonly cwd: string; readonly env?: Readonly<Record<string, string | undefined>> },
+): ChildProcessByStdio<null, Readable, Readable> {
+  return spawn(command, [...args], {
+    cwd: options.cwd,
+    env: { ...process.env, ...options.env },
+    windowsHide: true,
+    detached: !IS_WINDOWS,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
 }
 
 /** Runs a command to completion with a hard timeout; output is captured, never streamed. */
@@ -773,15 +792,10 @@ async function runVariant(
       await writeFile(shim, NODE_HEADERS_SHIM);
       process.stdout.write(`  next start runs with ${NODE_HEADERS_SHIM_NOTE}\n`);
       result.workarounds.push(NODE_HEADERS_SHIM_NOTE);
-      const started = spawn(
+      const started = spawnServer(
         node,
         ['--require', shim, nextBin, 'start', '--hostname', '127.0.0.1', '--port', String(port)],
-        {
-          cwd: dir,
-          env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' },
-          windowsHide: true,
-          stdio: ['ignore', 'pipe', 'pipe'],
-        },
+        { cwd: dir, env: { NEXT_TELEMETRY_DISABLED: '1' } },
       );
       const collect = (chunk: Buffer): void => {
         serverOutput = (serverOutput + chunk.toString('utf8')).slice(-65_536);
