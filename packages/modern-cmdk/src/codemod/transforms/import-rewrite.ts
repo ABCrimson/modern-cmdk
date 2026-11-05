@@ -19,7 +19,8 @@
 //     reported site is migrated by hand.
 //   - A namespace import is rewritten; each `K.name` member access, `<K.name>` JSX tag or `K.name` type reference whose name is outside
 //     KNOWN_EXPORTS is reported. So is the qualifier of `import('cmdk').Name`, and `export * from 'cmdk'`
-//     is reported once, because the names cmdk has and modern-cmdk/react lacks no longer pass through it.
+//     and `export * as K from 'cmdk'` are each reported once, because the names cmdk has and
+//     modern-cmdk/react lacks no longer pass through them.
 //   - The same check covers the other bindings: `import k = require('cmdk')`, and a variable bound
 //     to require / import() / await import() / jest.requireActual / vi.importActual of 'cmdk'
 //     (member reads), and a destructured `const { … } = require('cmdk')` (renamed or missing names).
@@ -369,6 +370,13 @@ export default function transform(fileInfo: FileInfo, api: API): string {
     }
   };
 
+  // `export * from` and `export * as K from` both re-export every cmdk name; modern-cmdk/react lacks some.
+  const reportStarReexport = (form: string): void => {
+    api.report(
+      `${form} re-exported names that ${NEW_PACKAGE} lacks (${[...CMDK_ONLY_NAMES].join(', ')}); re-export the ${NEW_PACKAGE} names by hand`,
+    );
+  };
+
   const handleExportFrom = (path: ASTPath<import('jscodeshift').ExportNamedDeclaration>): void => {
     const node = path.node;
     if (!isCmdkSource(node.source)) {
@@ -382,7 +390,11 @@ export default function transform(fileInfo: FileInfo, api: API): string {
 
     for (const spec of node.specifiers ?? []) {
       if (spec.type !== 'ExportSpecifier') {
-        mapped.push(spec); // export * as K: the whole module moves
+        // export * as K: the whole module moves, and the namespace loses the cmdk-only names
+        if (spec.type === 'ExportNamespaceSpecifier') {
+          reportStarReexport(`export * as ${nameOf(spec.exported) ?? '*'} from '${OLD_PACKAGE}'`);
+        }
+        mapped.push(spec);
         continue;
       }
       const exportedName = nameOf(spec.local);
@@ -464,12 +476,8 @@ export default function transform(fileInfo: FileInfo, api: API): string {
         handleExportFrom(path as ASTPath<import('jscodeshift').ExportNamedDeclaration>);
         break;
       case 'ExportAllDeclaration': {
-        // `export * as K from` is an ExportNamedDeclaration; only the bare star loses names.
-        if (isCmdkSource(node.source)) {
-          api.report(
-            `export * from '${OLD_PACKAGE}' re-exported names that ${NEW_PACKAGE} lacks (${[...CMDK_ONLY_NAMES].join(', ')}); re-export the ${NEW_PACKAGE} names by hand`,
-          );
-        }
+        // `export * as K from` is an ExportNamedDeclaration (handleExportFrom); it files the same report.
+        if (isCmdkSource(node.source)) reportStarReexport(`export * from '${OLD_PACKAGE}'`);
         rewriteSite(node.source);
         break;
       }
