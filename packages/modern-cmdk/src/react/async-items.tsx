@@ -7,7 +7,7 @@
 
 import type { CommandItem } from 'modern-cmdk';
 import type { ReactNode } from 'react';
-import { Suspense, use, useLayoutEffect, useRef } from 'react';
+import { Suspense, use, useId, useLayoutEffect, useRef } from 'react';
 import { useStableContext } from './context.js';
 
 export interface CommandAsyncItemsProps {
@@ -41,6 +41,26 @@ function AsyncItemsInner({
   return <>{children(items)}</>;
 }
 
+/**
+ * Rendered next to the Suspense fallback: while it is mounted its source counts as pending,
+ * so `state.loading` (Command.Loading, the list's aria-busy) follows the suspended promise.
+ * The fallback unmounts when the items resolve, reject into an error boundary, or this
+ * AsyncItems unmounts, and the cleanup then clears the source.
+ */
+function PendingSignal(): null {
+  const stable = useStableContext('Command.AsyncItems');
+  const source = useId();
+
+  useLayoutEffect(() => {
+    stable.machine.send({ type: 'LOADING', source, pending: true });
+    return (): void => {
+      stable.machine.send({ type: 'LOADING', source, pending: false });
+    };
+  }, [stable.machine, source]);
+
+  return null;
+}
+
 /** Suspense-based async item loader that resolves a promise of items using React 19 `use()`. */
 export function CommandAsyncItems({
   items,
@@ -55,7 +75,14 @@ export function CommandAsyncItems({
   }
 
   return (
-    <Suspense fallback={fallback}>
+    <Suspense
+      fallback={
+        <>
+          {fallback}
+          <PendingSignal />
+        </>
+      }
+    >
       <AsyncItemsInner items={stableRef.current}>{children}</AsyncItemsInner>
     </Suspense>
   );
