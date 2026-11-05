@@ -5,11 +5,13 @@
 import { describe, expect, it } from 'vitest';
 import type { CliOptions } from '../../scripts/consumer-smoke.ts';
 import {
+  buildWorkspaceYaml,
   compareToBaseline,
   countCoreCopies,
   countHydrationMessages,
   isInstalledPackageJsonPath,
   parseCli,
+  parseWorkspaceYaml,
   VARIANTS,
 } from '../../scripts/consumer-smoke.ts';
 
@@ -177,5 +179,23 @@ describe('isInstalledPackageJsonPath()', () => {
     expect(isInstalledPackageJsonPath('/a/node_modules/xmodern-cmdk/package.json')).toBe(false);
     expect(isInstalledPackageJsonPath('/a/package.json')).toBe(false);
     expect(isInstalledPackageJsonPath('Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: nope')).toBe(false);
+  });
+});
+
+describe('buildWorkspaceYaml()', () => {
+  it('RDG-119: buildWorkspaceYaml lists each minimumReleaseAgeExclude entry once', () => {
+    const yaml = buildWorkspaceYaml(
+      { minimumReleaseAgeExclude: ['a@1.0.0', 'next@1.0.0-canary.1'] },
+      [
+        { spec: 'next@1.0.0-canary.1', reason: 'repeated from the root' },
+        { spec: 'b@2.0.0', reason: 'app only' },
+        { spec: 'b@2.0.0', reason: 'repeated in the app file' },
+      ],
+    );
+    expect(parseWorkspaceYaml(yaml).minimumReleaseAgeExclude).toEqual([
+      'a@1.0.0',
+      'next@1.0.0-canary.1',
+      'b@2.0.0',
+    ]);
   });
 });
