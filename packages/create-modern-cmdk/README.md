@@ -72,7 +72,7 @@ my-command-palette/
   vite.config.ts     # Vite + React plugin
 ```
 
-Dependencies are declared as caret ranges (`^`) of known-good versions:
+Dependencies are declared as exact versions: npm's `latest` of each package when this release of create-modern-cmdk was built (`src/versions.ts`), and the `modern-cmdk` version built alongside it:
 
 - [`modern-cmdk`](https://www.npmjs.com/package/modern-cmdk) -- core engine + React 19 adapter
 - [`radix-ui`](https://www.npmjs.com/package/radix-ui) -- the dialog primitive, a required peer of `modern-cmdk` in 1.x
