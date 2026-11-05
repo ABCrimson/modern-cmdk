@@ -16,7 +16,7 @@ const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
   icon?: string;
   scripts?: Record<string, string>;
   devDependencies?: Record<string, string>;
-  contributes?: { snippets?: { path: string }[] };
+  contributes?: { snippets?: { language: string; path: string }[] };
 };
 
 describe('vscode-modern-cmdk manifest', () => {
@@ -52,5 +52,53 @@ describe('vscode-modern-cmdk manifest', () => {
     const snippets = manifest.contributes?.snippets ?? [];
     expect(snippets.length).toBeGreaterThan(0);
     for (const s of snippets) expect(existsSync(resolve(root, s.path))).toBe(true);
+  });
+});
+
+describe('vscode-modern-cmdk snippets', () => {
+  const files =
+    (JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as { files?: string[] })
+      .files ?? [];
+  const snippets = manifest.contributes?.snippets ?? [];
+
+  function load(path: string): Record<string, { prefix: string; body: string[] }> {
+    return JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  }
+
+  it('CV-71: every contributes.snippets path is covered by files', () => {
+    for (const s of snippets) {
+      expect(files, s.path).toContain(s.path.replace(/^\.\//, ''));
+    }
+  });
+
+  it('CV-58: cmd-machine is contributed to typescript and javascript', () => {
+    const languagesOf = (path: string): string[] =>
+      (manifest.contributes?.snippets ?? []).filter((s) => s.path === path).map((s) => s.language);
+    expect(languagesOf('./src/snippets-core.json')).toEqual(
+      expect.arrayContaining(['typescript', 'javascript', 'typescriptreact', 'javascriptreact']),
+    );
+    const core = Object.values(load('./src/snippets-core.json'));
+    expect(core.map((s) => s.prefix)).toEqual(['cmd-machine']);
+    const body = core[0]?.body.join('\n') ?? '';
+    expect(body).toContain('machine[Symbol.dispose]()');
+    expect(body).not.toMatch(/^using /m);
+  });
+
+  it('CV-30: the cmd-dialog body toggles on a case-insensitive key and wires onOpenChange', () => {
+    const dialog = Object.values(load('./src/snippets.json')).find(
+      (s) => s.prefix === 'cmd-dialog',
+    );
+    const body = dialog?.body.join('\n') ?? '';
+    expect(body).toContain('onOpenChange');
+    expect(body).toContain('toLowerCase');
+  });
+
+  it('CV-55: cmd-action passes the action isPending to Command.Loading', () => {
+    const action = Object.values(load('./src/snippets.json')).find(
+      (s) => s.prefix === 'cmd-action',
+    );
+    const body = action?.body.join('\n') ?? '';
+    expect(body).toContain('loading={isPending}');
+    expect(body).not.toContain('{isPending && <Command.Loading>');
   });
 });

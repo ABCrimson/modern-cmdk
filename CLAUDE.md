@@ -17,6 +17,7 @@ pnpm typecheck                   # tsc --noEmit: modern-cmdk, create-modern-cmdk
 pnpm size                        # build + size-limit
 pnpm check:package               # publint (strict) on both packed tarballs; attw and the tarball file list on modern-cmdk's (run pnpm build first)
 pnpm check:doc-samples            # type-checks every fenced ts/tsx sample of the docs and READMEs against the built dist (run pnpm build first; a checkout without the wasm build passes --skip-wasm)
+pnpm check:snippets              # type-checks every VS Code snippet of packages/vscode-modern-cmdk, expanded with its defaults, against the built dist (run pnpm build first)
 pnpm check:licenses              # lockfile licence audit against tests/package/license-policy.json (needs an install, not a build)
 pnpm test:consumers              # Next (Turbopack, webpack) and Vite apps built from the packed tarball (run pnpm build first)
 ```
