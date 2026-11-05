@@ -111,14 +111,14 @@ Options:
   --strict         Exit 2 on usage errors (incl. unknown options), 1 on file errors
   --concurrency=N  Files processed at once (default: min(8, available cores))
   -h, --help       Show this help
-  --lenient        Keep the lenient exit codes below and skip the clean-git-tree check (cannot be combined with --strict)
+  --lenient        Keep the lenient exit codes below (cannot be combined with --strict) and skip the clean-git-tree check (modern-cmdk-codemod only)
   --force          Skip the clean-git-tree check (modern-cmdk-codemod only; modern-cmdk ignores it)
   -v, --version    Print the package name and version
 
 Exit codes:
   strict   0 success (reports included); 1 a file errored, no file matched or the run failed;
            2 usage error (unknown or malformed option, unknown transform, missing argument,
-           --strict with --lenient) or a refused dirty tree
+           --strict with --lenient) or a refused dirty tree (modern-cmdk-codemod only)
   lenient  0 for --help, missing arguments, usage errors and per-file errors; 1 for an unknown
            transform, no matching files and an uncaught error
 
