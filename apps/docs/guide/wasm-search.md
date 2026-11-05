@@ -102,11 +102,15 @@ For large datasets (50K+ items, by design), run the WASM module in a dedicated W
 'use client';
 
 import { Command } from 'modern-cmdk/react';
-import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
+import {
+  createWorkerSearchEngine,
+  type MainThreadSearchEngine,
+  type WorkerSearchEngine,
+} from 'modern-cmdk-search-wasm';
 import { useEffect, useState } from 'react';
 
 function WorkerSearchPalette() {
-  const [engine, setEngine] = useState<Awaited<ReturnType<typeof createWorkerSearchEngine>> | null>(null);
+  const [engine, setEngine] = useState<WorkerSearchEngine | MainThreadSearchEngine | null>(null);
 
   useEffect(() => {
     let disposed = false;
