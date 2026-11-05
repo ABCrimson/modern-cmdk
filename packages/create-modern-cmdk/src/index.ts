@@ -25,7 +25,9 @@ import basicApp from '../templates/react-basic/src/App.tsx?raw';
 import dialogApp from '../templates/react-dialog/src/App.tsx?raw';
 import sharedIndexHtml from '../templates/shared/index.html?raw';
 import sharedMain from '../templates/shared/src/main.tsx?raw';
+import sharedTsconfigApp from '../templates/shared/tsconfig.app.json?raw';
 import sharedTsconfig from '../templates/shared/tsconfig.json?raw';
+import sharedTsconfigNode from '../templates/shared/tsconfig.node.json?raw';
 import sharedViteConfig from '../templates/shared/vite.config.ts?raw';
 import { DEPENDENCIES, DEV_DEPENDENCIES, modernCmdkVersion } from './versions.js';
 
@@ -99,6 +101,8 @@ const SCOPED_NAME = /^@[a-z0-9-~][a-z0-9-._~]*\/[a-z0-9-~][a-z0-9-._~]*$/;
 const OUTPUT_FILES: readonly string[] = [
   'package.json',
   'tsconfig.json',
+  'tsconfig.app.json',
+  'tsconfig.node.json',
   'vite.config.ts',
   'index.html',
   join('src', 'main.tsx'),
@@ -333,8 +337,8 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       private: true,
       scripts: {
         dev: 'vite',
-        build: 'vite build',
-        typecheck: 'tsc',
+        build: 'tsc -b && vite build',
+        typecheck: 'tsc -b',
         preview: 'vite preview',
       },
       dependencies: { 'modern-cmdk': cmdkVersion, ...DEPENDENCIES },
@@ -346,6 +350,8 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
     const contents: ReadonlyMap<string, string> = new Map([
       ['package.json', `${JSON.stringify(pkg, null, 2)}\n`],
       ['tsconfig.json', sharedTsconfig],
+      ['tsconfig.app.json', sharedTsconfigApp],
+      ['tsconfig.node.json', sharedTsconfigNode],
       ['vite.config.ts', sharedViteConfig],
       ['index.html', sharedIndexHtml.replace('{{title}}', () => escapeHtml(directoryName))],
       [join('src', 'main.tsx'), sharedMain],
