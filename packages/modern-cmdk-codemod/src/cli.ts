@@ -11,6 +11,9 @@
 //
 // Two program profiles share this file (CliDeps.program): the deprecated `modern-cmdk` bin runs
 // lenient unless --strict is given; `modern-cmdk-codemod` runs strict unless --lenient is given.
+// Without CliDeps.program the profile follows the package this file ships in (the nearest package.json):
+// the copy bundled into the modern-cmdk tarball (dist/codemod/cli.mjs) run directly is the `modern-cmdk`
+// profile; in the modern-cmdk-codemod package (dist/cli.mjs, or this source) it is `modern-cmdk-codemod`.
 //
 // Exit codes. Lenient mode (the 1.x defaults): 0 for --help, missing arguments and per-file
 // errors; 1 for an unknown transform, no matching files and an uncaught error. An unknown option
@@ -79,7 +82,11 @@ export interface CliIo {
 /** Test seam: replace how a transform is loaded (the bundled bin imports `./transforms/<name>.mjs`). */
 export interface CliDeps {
   readonly loadTransform?: (name: string) => Promise<TransformModule>;
-  /** Which bin is running; `modern-cmdk-codemod` (strict by default) when omitted. The bundled modern-cmdk shim passes `modern-cmdk`. */
+  /**
+   * Which bin is running. When omitted, the package this file ships in decides: `modern-cmdk` (lenient by default)
+   * when the nearest package.json is named modern-cmdk, `modern-cmdk-codemod` (strict by default) otherwise. The
+   * bundled modern-cmdk shim passes `modern-cmdk` explicitly; that is its contract, and it needs no package.json.
+   */
   readonly program?: Program;
 }
 
@@ -138,11 +145,11 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
   ].join('\n');
 }
 
-async function readNameAndVersion(): Promise<string> {
+/** The name and version of the package this file ships in (the nearest package.json). */
+async function readPackage(): Promise<{ readonly name: string; readonly version: string }> {
   const path = findPackageJSON(import.meta.url);
   if (path === undefined) throw new Error("cannot find this package's package.json");
-  const pkg = JSON.parse(await readFile(path, 'utf-8')) as { name: string; version: string };
-  return `${pkg.name} ${pkg.version}`;
+  return JSON.parse(await readFile(path, 'utf-8')) as { name: string; version: string };
 }
 
 // --- Argument parsing ------------------------------------------------------
@@ -425,9 +432,12 @@ export async function run(argv: readonly string[], io: CliIo, deps: CliDeps = {}
   const err = (s: string): void => void io.stderr.write(`${s}\n`);
   const fail = (s: string): void =>
     err(`${styleText('red', 'error:', { stream: io.stderr })} ${s}`);
-  const program = deps.program ?? 'modern-cmdk-codemod';
 
   try {
+    // One read serves the default profile and --version; an explicit deps.program reads the file only for --version.
+    const pkg = deps.program === undefined ? await readPackage() : undefined;
+    const program: Program =
+      deps.program ?? (pkg?.name === 'modern-cmdk' ? 'modern-cmdk' : 'modern-cmdk-codemod');
     const parsed = parse(argv, program);
 
     if (parsed.kind === 'help') {
@@ -435,7 +445,8 @@ export async function run(argv: readonly string[], io: CliIo, deps: CliDeps = {}
       return 0;
     }
     if (parsed.kind === 'version') {
-      out(await readNameAndVersion());
+      const { name, version } = pkg ?? (await readPackage());
+      out(`${name} ${version}`);
       return 0;
     }
     if (parsed.kind === 'usage-error') {

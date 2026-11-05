@@ -11,6 +11,10 @@ const root = resolve(import.meta.dirname, '../..');
 
 const BINS = {
   'modern-cmdk (shim)': resolve(root, 'packages/modern-cmdk/dist/codemod/bin.mjs'),
+  'modern-cmdk (bundled cli.mjs, direct)': resolve(
+    root,
+    'packages/modern-cmdk/dist/codemod/cli.mjs',
+  ),
   'modern-cmdk-codemod': resolve(root, 'packages/modern-cmdk-codemod/dist/cli.mjs'),
   'create-modern-cmdk': resolve(root, 'packages/create-modern-cmdk/dist/index.mjs'),
 } as const;
@@ -18,6 +22,7 @@ const BINS = {
 /** The bins that keep the 1.x lenient exit codes by default (modern-cmdk-codemod is strict by default). */
 const LENIENT_BINS = [
   ['modern-cmdk (shim)', BINS['modern-cmdk (shim)']],
+  ['modern-cmdk (bundled cli.mjs, direct)', BINS['modern-cmdk (bundled cli.mjs, direct)']],
   ['create-modern-cmdk', BINS['create-modern-cmdk']],
 ] as const;
 
@@ -89,6 +94,43 @@ describe('PKG-1: the modern-cmdk bin is a shim over the bundled codemod', () => 
     expect(shim.stdout).toContain('Usage: modern-cmdk <transform>');
     const codemod = await runBin(BINS['modern-cmdk-codemod'], ['--help']);
     expect(codemod.stdout).toContain('Usage: modern-cmdk-codemod <transform>');
+  });
+});
+
+/** The name and version a package's package.json declares. */
+async function readPackage(dir: string): Promise<{ name: string; version: string }> {
+  return JSON.parse(await readFile(resolve(root, dir, 'package.json'), 'utf-8')) as {
+    name: string;
+    version: string;
+  };
+}
+
+describe('W3-01b: a bundled cli.mjs follows the package it ships in', () => {
+  it('W3-01b: the bundled cli.mjs run directly inside modern-cmdk uses the modern-cmdk profile: Usage: modern-cmdk, --version prints modern-cmdk and its version, an unknown option exits 0 (lenient)', async () => {
+    const bin = BINS['modern-cmdk (bundled cli.mjs, direct)'];
+    const pkg = await readPackage('packages/modern-cmdk');
+    expect(pkg.name).toBe('modern-cmdk');
+    const help = await runBin(bin, ['--help']);
+    expect(help.stdout).toContain('Usage: modern-cmdk <transform>');
+    expect(help.stdout).not.toContain('Usage: modern-cmdk-codemod');
+    const version = await runBin(bin, ['--version']);
+    expect(version.stdout).toBe(`modern-cmdk ${pkg.version}
+`);
+    const unknown = await runBin(bin, ['--bogus']);
+    expect(unknown.code).toBe(0);
+  });
+
+  it('W3-01b: the modern-cmdk-codemod dist/cli.mjs uses the modern-cmdk-codemod profile: Usage: modern-cmdk-codemod, --version prints modern-cmdk-codemod and its version, an unknown option exits 2', async () => {
+    const bin = BINS['modern-cmdk-codemod'];
+    const pkg = await readPackage('packages/modern-cmdk-codemod');
+    expect(pkg.name).toBe('modern-cmdk-codemod');
+    const help = await runBin(bin, ['--help']);
+    expect(help.stdout).toContain('Usage: modern-cmdk-codemod <transform>');
+    const version = await runBin(bin, ['--version']);
+    expect(version.stdout).toBe(`modern-cmdk-codemod ${pkg.version}
+`);
+    const unknown = await runBin(bin, ['--bogus']);
+    expect(unknown.code).toBe(2);
   });
 });
 
