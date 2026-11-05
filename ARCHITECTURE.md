@@ -677,7 +677,7 @@ Building a production-quality dialog from scratch would add significant bundle s
 
 ### Why Vite for the playground?
 
-The interactive playground (`apps/playground`) uses **Vite 8.3.5** with `@vitejs/plugin-react` 6.2.1 and `build.target: 'esnext'`, so Iterator Helpers and `using` syntax are not downleveled. Vite passes CSS nesting, `@layer` and `@starting-style` through unchanged.
+The interactive playground (`apps/playground`) uses **Vite 8.3.6** with `@vitejs/plugin-react` 6.2.1 and `build.target: 'esnext'`, so Iterator Helpers and `using` syntax are not downleveled. Vite passes CSS nesting, `@layer` and `@starting-style` through unchanged.
 
 ### Why `@starting-style` over JavaScript animations?
 

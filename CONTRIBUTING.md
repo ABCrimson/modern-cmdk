@@ -275,7 +275,7 @@ modern-cmdk/
 # Watch mode for a specific package
 pnpm --filter modern-cmdk run dev
 
-# Run the playground (Vite 8.3.5)
+# Run the playground (Vite 8.3.6)
 pnpm --filter playground run dev
 # Opens at http://localhost:5173
 
