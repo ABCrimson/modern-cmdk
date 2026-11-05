@@ -110,6 +110,8 @@ export type CommandEvent =
   | { readonly type: 'CLOSE' }
   | { readonly type: 'TOGGLE' }
   | { readonly type: 'ITEMS_LOADED'; readonly items: readonly CommandItem[] }
+  /** An async source started (pending true) or finished (pending false) loading; `state.loading` is true while any source is pending */
+  | { readonly type: 'LOADING'; readonly source: string; readonly pending: boolean }
   | { readonly type: 'REGISTER_ITEM'; readonly item: CommandItem }
   | { readonly type: 'UNREGISTER_ITEM'; readonly id: ItemId }
   | { readonly type: 'REGISTER_GROUP'; readonly group: CommandGroup }
@@ -144,7 +146,8 @@ export interface FrecencyDecayConfig {
 
 /** Frecency configuration options */
 export interface FrecencyOptions {
-  readonly enabled: boolean;
+  /** Turns frecency tracking and re-ranking on. Default false. */
+  readonly enabled?: boolean | undefined;
   readonly storage?: FrecencyStorage | undefined;
   readonly namespace?: string | undefined;
   readonly decayConfig?: FrecencyDecayConfig | undefined;

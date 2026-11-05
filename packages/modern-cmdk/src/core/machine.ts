@@ -84,6 +84,9 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   const emitter = new TypedEmitter<MachineEvents>();
   const keyboardRegistry = new KeyboardShortcutRegistry();
 
+  // Sources with an outstanding load — state.loading is true while the set is non-empty
+  const pendingSources = new Set<string>();
+
   let frecencyEngine: FrecencyEngine | null = null;
   if (options.frecency?.enabled) {
     frecencyEngine = new FrecencyEngine(options.frecency);
@@ -305,10 +308,16 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       case 'ITEMS_LOADED':
         registry.registerItems(event.items);
         searchEngine.index(event.items);
-        // Single refilter handles both loading:false and filter — no double setState
-        state = { ...state, loading: false };
         refilter(state.search);
         break;
+
+      case 'LOADING': {
+        if (event.pending) pendingSources.add(event.source);
+        else pendingSources.delete(event.source);
+        const loading = pendingSources.size > 0;
+        if (loading !== state.loading) setState({ ...state, loading, lastUpdated: Date.now() });
+        break;
+      }
 
       case 'REGISTER_ITEM':
         registry.registerItem(event.item);
