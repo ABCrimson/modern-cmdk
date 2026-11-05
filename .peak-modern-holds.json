@@ -55,15 +55,6 @@
     },
     {
       "kind": "npm",
-      "name": "@playwright/test",
-      "pin": "1.66.0-alpha-2026-11-04",
-      "file": "package.json",
-      "field": "devDependencies",
-      "reason": "The newest alpha 1.66.0-alpha-2026-11-05 (dist-tag next, published 2026-11-05T05:19:59Z) depends on playwright@1.66.0-alpha-2026-11-05, which depends on playwright-core@1.66.0-alpha-2026-11-05, and that version is absent from the registry (the day before, playwright-core published first at 05:18:50Z); pnpm cannot resolve the chain, so the bump is uninstallable until playwright-core lands. Re-tested at every sweep; the hold goes the moment `pnpm view playwright-core@1.66.0-alpha-2026-11-05 version` answers.",
-      "evidence": "curl https://registry.npmjs.org/playwright-core at 2026-11-05T05:36Z: newest 1.66.0-alpha-2026-11-04 (2026-11-04T05:18:50Z), dist-tag next 1.66.0-alpha-2026-11-04; registry.npmjs.org/playwright/1.66.0-alpha-2026-11-05 dependencies {playwright-core: 1.66.0-alpha-2026-11-05}; pnpm view playwright-core@1.66.0-alpha-2026-11-05 version -> ERR_PNPM_PACKAGE_NOT_FOUND; run dir dep-freshness-2026-11-05-resume4.log (1 behind)"
-    },
-    {
-      "kind": "npm",
       "name": "create-modern-cmdk scaffold pins",
       "pin": "react 19.3.1, react-dom 19.3.1, radix-ui 1.8.1, typescript 7.0.2, vite 8.3.6, @vitejs/plugin-react 6.2.1, @types/react 19.3.0, @types/react-dom 19.3.0",
       "file": "packages/create-modern-cmdk/src/versions.ts",
