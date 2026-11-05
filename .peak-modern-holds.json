@@ -56,11 +56,11 @@
     {
       "kind": "npm",
       "name": "create-modern-cmdk scaffold pins",
-      "pin": "react 19.3.1, react-dom 19.3.1, radix-ui 1.8.1, typescript 7.0.2, vite 8.3.6, @vitejs/plugin-react 6.2.1, @types/react 19.3.0, @types/react-dom 19.3.0",
+      "pin": "react 19.3.1, react-dom 19.3.1, radix-ui 1.8.1, typescript 7.0.2, vite 8.3.6, @vitejs/plugin-react 6.2.1, @types/node 26.6.6, @types/react 19.3.0, @types/react-dom 19.3.0",
       "file": "packages/create-modern-cmdk/src/versions.ts",
       "field": "DEPENDENCIES, DEV_DEPENDENCIES",
       "reason": "A scaffolded consumer app pins the npm latest dist-tag of each dependency, never a pre-release channel: the workspace catalog pins experimental React (0.0.0-experimental-e84e1492-20261031) and a TypeScript dev build (7.1.0-dev.20261105.1), which a consumer app must not inherit (SEC-13). This deviates from newest-on-any-channel on purpose. W6-01 re-resolves the pins at the release candidate.",
-      "evidence": "pnpm view <pkg> dist-tags.latest on 2026-11-05: react 19.3.1 (experimental 0.0.0-experimental-e84e1492-20261031, canary 19.3.0-canary-e84e1492-20261031), react-dom 19.3.1 (same channels), radix-ui 1.8.1 (next 1.8.2-rc.1791984254107), typescript 7.0.2 (next 7.1.0-dev.20261105.1, beta 7.1.0-beta), vite 8.3.6 (beta 8.3.0-beta.1), @vitejs/plugin-react 6.2.1, @types/react 19.3.0, @types/react-dom 19.3.0"
+      "evidence": "pnpm view <pkg> dist-tags.latest on 2026-11-05: react 19.3.1 (experimental 0.0.0-experimental-e84e1492-20261031, canary 19.3.0-canary-e84e1492-20261031), react-dom 19.3.1 (same channels), radix-ui 1.8.1 (next 1.8.2-rc.1791984254107), typescript 7.0.2 (next 7.1.0-dev.20261105.1, beta 7.1.0-beta), vite 8.3.6 (beta 8.3.0-beta.1), @vitejs/plugin-react 6.2.1, @types/node 26.6.6 (ts6.0 26.6.6; latest published 2026-10-28T18:36:36Z), @types/react 19.3.0, @types/react-dom 19.3.0"
     },
     {
       "kind": "npm",

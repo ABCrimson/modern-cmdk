@@ -148,7 +148,14 @@ describe('create-modern-cmdk CLI', () => {
     const target = join(dir, 'app');
     const c = capture();
     expect(await run([target], c.io)).toBe(0);
-    for (const f of ['package.json', 'tsconfig.json', 'vite.config.ts', 'index.html']) {
+    for (const f of [
+      'package.json',
+      'tsconfig.json',
+      'tsconfig.app.json',
+      'tsconfig.node.json',
+      'vite.config.ts',
+      'index.html',
+    ]) {
       expect(c.out()).toContain(f);
     }
     expect(c.out()).toContain('src/main.tsx');
@@ -448,19 +455,46 @@ describe('create-modern-cmdk 1.5 safety', () => {
     const main = await readFile(join(target, 'src', 'main.tsx'), 'utf-8');
     expect(main).toContain("import 'modern-cmdk/styles.css';");
     expect(main.indexOf('react-dom/client')).toBeLessThan(main.indexOf('modern-cmdk/styles.css'));
-    const tsconfig = JSON.parse(await readFile(join(target, 'tsconfig.json'), 'utf-8')) as {
+    const tsconfig = JSON.parse(await readFile(join(target, 'tsconfig.app.json'), 'utf-8')) as {
       compilerOptions: { types: string[] };
     };
     expect(tsconfig.compilerOptions.types).toEqual(['vite/client']);
+    const solution = JSON.parse(await readFile(join(target, 'tsconfig.json'), 'utf-8')) as {
+      files: string[];
+      references: { path: string }[];
+    };
+    expect(solution.files).toEqual([]);
+    expect(solution.references).toEqual([
+      { path: './tsconfig.app.json' },
+      { path: './tsconfig.node.json' },
+    ]);
   });
 
-  it('CV-64: the scaffold has a typecheck script tsc', async () => {
+  it('CV-25: the scaffold type-checks vite.config.ts: tsconfig.node.json includes it and the typecheck script is tsc -b', async () => {
+    const target = join(dir, 'node-project');
+    expect(await run([target], capture().io)).toBe(0);
+    const node = JSON.parse(await readFile(join(target, 'tsconfig.node.json'), 'utf-8')) as {
+      compilerOptions: { types: string[] };
+      include: string[];
+    };
+    expect(node.include).toEqual(['vite.config.ts']);
+    expect(node.compilerOptions.types).toEqual(['node']);
+    const pkg = JSON.parse(await readFile(join(target, 'package.json'), 'utf-8')) as {
+      scripts: Record<string, string>;
+      devDependencies: Record<string, string>;
+    };
+    expect(pkg.scripts.typecheck).toBe('tsc -b');
+    expect(pkg.scripts.build).toBe('tsc -b && vite build');
+    expect(pkg.devDependencies['@types/node']).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it('CV-64: the scaffold has a typecheck script tsc -b', async () => {
     const target = join(dir, 'typecheck');
     expect(await run([target], capture().io)).toBe(0);
     const pkg = JSON.parse(await readFile(join(target, 'package.json'), 'utf-8')) as {
       scripts: Record<string, string>;
     };
-    expect(pkg.scripts.typecheck).toBe('tsc');
+    expect(pkg.scripts.typecheck).toBe('tsc -b');
   });
 
   it('CV-25: every scaffolded file equals its template file byte for byte', async () => {
@@ -470,6 +504,8 @@ describe('create-modern-cmdk 1.5 safety', () => {
       expect(await run([target, `--template=${template}`], capture().io)).toBe(0);
       const expected = new Map<string, string>([
         ['tsconfig.json', 'shared/tsconfig.json'],
+        ['tsconfig.app.json', 'shared/tsconfig.app.json'],
+        ['tsconfig.node.json', 'shared/tsconfig.node.json'],
         ['vite.config.ts', 'shared/vite.config.ts'],
         [join('src', 'main.tsx'), 'shared/src/main.tsx'],
         [join('src', 'App.tsx'), `${template}/src/App.tsx`],

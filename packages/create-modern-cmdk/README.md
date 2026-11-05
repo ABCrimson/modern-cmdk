@@ -68,7 +68,9 @@ my-command-palette/
     main.tsx         # Entry point
   index.html
   package.json       # Dependencies pre-configured
-  tsconfig.json      # TypeScript strict mode
+  tsconfig.json      # Solution file: references the two projects below, checked with `tsc -b`
+  tsconfig.app.json  # TypeScript strict mode for src/
+  tsconfig.node.json # TypeScript strict mode for vite.config.ts
   vite.config.ts     # Vite + React plugin
 ```
 

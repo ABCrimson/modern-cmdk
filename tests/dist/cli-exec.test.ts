@@ -682,7 +682,9 @@ describe.skipIf(!built)('CLI-TEST: built bins over temp copies', () => {
       'package.json',
       'src/App.tsx',
       'src/main.tsx',
+      'tsconfig.app.json',
       'tsconfig.json',
+      'tsconfig.node.json',
       'vite.config.ts',
     ];
 

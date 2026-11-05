@@ -10,6 +10,7 @@ export const DEPENDENCIES = {
 } as const;
 
 export const DEV_DEPENDENCIES = {
+  '@types/node': '26.6.6',
   '@types/react': '19.3.0',
   '@types/react-dom': '19.3.0',
   '@vitejs/plugin-react': '6.2.1',
