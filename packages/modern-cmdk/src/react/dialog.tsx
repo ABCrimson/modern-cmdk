@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/dialog.tsx
 // <Command.Dialog> — Radix Dialog.Root + Dialog.Portal + Dialog.Overlay + Dialog.Content
 // @starting-style CSS animations, transition-behavior: allow-discrete, background hidden with aria-hidden through Radix hideOthers

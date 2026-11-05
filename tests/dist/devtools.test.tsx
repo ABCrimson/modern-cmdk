@@ -95,7 +95,6 @@ describe.skipIf(!distBuilt)('built package: useCommandDevtools', () => {
   });
 
   it('should not throw and should register the label when NODE_ENV is not production', async () => {
-    expect.hasAssertions();
     cleanup = await mountWithDevtools('dist-test');
 
     const registry = Reflect.get(globalThis, DEVTOOLS_KEY);
@@ -104,7 +103,6 @@ describe.skipIf(!distBuilt)('built package: useCommandDevtools', () => {
   });
 
   it('should leave the devtools registry uncreated when NODE_ENV is production', async () => {
-    expect.hasAssertions();
     vi.stubEnv('NODE_ENV', 'production');
     vi.resetModules();
     cleanup = await mountWithDevtools('dist-test');

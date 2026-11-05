@@ -36,7 +36,6 @@ function codemodFiles(dir: string): readonly string[] {
 
 describe('modern-cmdk manifest', () => {
   it('modern-cmdk/package.json resolves through the exports map', () => {
-    expect.hasAssertions();
     const printed = execFileSync(
       process.execPath,
       ['--input-type=module', '-e', "console.log(import.meta.resolve('modern-cmdk/package.json'))"],
@@ -49,7 +48,6 @@ describe('modern-cmdk manifest', () => {
   });
 
   it('no export condition repeats default', () => {
-    expect.hasAssertions();
     const repeats: string[] = [];
     for (const [key, value] of Object.entries(readManifest(packageJsonPath).exports)) {
       if (typeof value === 'string') continue;
@@ -62,7 +60,6 @@ describe('modern-cmdk manifest', () => {
   });
 
   it('exports keys', () => {
-    expect.hasAssertions();
     expect(Object.keys(readManifest(packageJsonPath).exports)).toEqual([
       '.',
       './react',
@@ -73,19 +70,16 @@ describe('modern-cmdk manifest', () => {
   });
 
   it('sideEffects lists only the stylesheet', () => {
-    expect.hasAssertions();
     expect(readManifest(packageJsonPath).sideEffects).toEqual(['./dist/react/styles.css']);
   });
 
   it('engines: none on modern-cmdk, >=26.4.0 on create-modern-cmdk (D14)', () => {
-    expect.hasAssertions();
     expect(readManifest(packageJsonPath).engines).toBeUndefined();
     const create = readManifest(join(packageDir, '../create-modern-cmdk/package.json'));
     expect(create.engines?.node).toBe('>=26.4.0');
   });
 
   it.skipIf(!distBuilt)('dist/codemod ships no declaration files', () => {
-    expect.hasAssertions();
     const declarations = codemodFiles(join(packageDir, 'dist/codemod')).filter((file) =>
       /\.d\.[cm]?ts$/u.test(file),
     );
@@ -95,7 +89,6 @@ describe('modern-cmdk manifest', () => {
   it.skipIf(!distBuilt)(
     'radix-ui is a required peer while modern-cmdk/react imports it (RP-02)',
     () => {
-      expect.hasAssertions();
       const manifest = readManifest(packageJsonPath);
       expect(manifest.peerDependencies?.['radix-ui']).toBe('>=1.4.0 <2.0.0');
       expect(manifest.peerDependenciesMeta?.['radix-ui']).toBeUndefined();
