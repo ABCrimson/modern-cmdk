@@ -22,6 +22,13 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     setupFiles: ['./tests/setup.ts'],
+    // 30 s per test and per hook in every project (Vitest 5.1.0 defaults: 5 s and 10 s). The git-spawning suites
+    // (codemod-cli, codemod-files, codemod-submodule, create-cli, cli-exec) make up to a dozen git calls per test, each
+    // a process spawn that costs hundreds of milliseconds on Windows: CI run 42009255255 (windows-2025, Node 28,
+    // 2026-11-05) timed out SEC-07 at 5024 ms and this host under load timed out SEC-59 at 6809 ms, both pass when run
+    // alone. A hang still fails: the CI jobs carry their own timeout-minutes.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
     // Vitest 5.1.0, expandBenchmarksInEntries in its node bundle: under `vitest bench` each project's
     // bench variant runs its own benchmark.include, so benchmarks (which assert nothing) live in the 'perf'
     // project, which never sets requireAssertions, and 'unit' benchmarks nothing.
