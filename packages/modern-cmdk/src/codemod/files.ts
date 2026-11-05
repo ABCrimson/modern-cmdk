@@ -139,6 +139,34 @@ async function relativeToRoot(
 
 const key = (path: string): string => (process.platform === 'win32' ? path.toLowerCase() : path);
 
+/**
+ * Root-relative paths of the gitlinks (mode 160000: submodules) in the repository at `root`. One
+ * level is enough: a submodule nested inside a submodule is not looked for.
+ */
+async function gitlinksOf(root: string): Promise<string[]> {
+  const { code, stdout, stderr } = await runGit(['ls-files', '-s', '-z'], root);
+  if (code !== 0) throw new Error(`git ls-files failed (exit ${code}): ${stderr.trim()}`);
+  // Entries are `<mode> <object> <stage>\t<path>`.
+  return stdout
+    .split('\0')
+    .filter((entry) => entry.startsWith('160000 '))
+    .map((entry) => entry.slice(entry.indexOf('\t') + 1));
+}
+
+/** The paths of `rels` that `git check-ignore` run in `owner` reports as ignored. */
+async function ignoredIn(owner: string, rels: readonly string[]): Promise<Set<string>> {
+  const { code, stdout, stderr } = await runGit(
+    ['check-ignore', '-z', '--stdin'],
+    owner,
+    rels.join('\0'),
+  );
+  // Exit 0: some paths are ignored; 1: none are. Anything else is a failure, never "nothing ignored".
+  if (code !== 0 && code !== 1) {
+    throw new Error(`git check-ignore failed (exit ${code}): ${stderr.trim()}`);
+  }
+  return new Set(stdout.split('\0').filter((p) => p !== ''));
+}
+
 async function dropGitIgnored(
   files: string[],
   cwd: string,
@@ -152,22 +180,33 @@ async function dropGitIgnored(
   if (repo.kind === 'none') return files;
 
   const rels = await relativeToRoot(files, cwd, repo.root);
-  const inside = rels.filter((rel): rel is string => rel !== undefined);
-  if (inside.length === 0) return files;
-  const { code, stdout, stderr } = await runGit(
-    ['check-ignore', '-z', '--stdin'],
-    repo.root,
-    inside.join('\0'),
-  );
-  // Exit 0: some paths are ignored; 1: none are. Anything else is a failure, never "nothing ignored".
-  if (code !== 0 && code !== 1) {
-    throw new Error(`git check-ignore failed (exit ${code}): ${stderr.trim()}`);
-  }
-  const ignored = new Set(stdout.split('\0').filter((p) => p !== ''));
-  return files.filter((_, index) => {
-    const rel = rels[index];
-    return rel === undefined || !ignored.has(rel);
+  if (!rels.some((rel) => rel !== undefined)) return files;
+  // git refuses a path inside a submodule (exit 128), so each file is checked by the repository
+  // that owns it: the deepest gitlink above it, else the parent. Paths go in relative to the owner.
+  const gitlinks = (await gitlinksOf(repo.root)).map(key);
+  const groups = new Map<string, { root: string; indexes: number[]; paths: string[] }>();
+  rels.forEach((rel, index) => {
+    if (rel === undefined) return;
+    const link = gitlinks
+      .filter((g) => key(rel).startsWith(`${g}/`))
+      .reduce<string>((deepest, g) => (g.length > deepest.length ? g : deepest), '');
+    const group = groups.get(link) ?? {
+      root: link === '' ? repo.root : join(repo.root, rel.slice(0, link.length)),
+      indexes: [],
+      paths: [],
+    };
+    group.indexes.push(index);
+    group.paths.push(link === '' ? rel : rel.slice(link.length + 1));
+    groups.set(link, group);
   });
+  const drop = new Set<number>();
+  for (const group of groups.values()) {
+    const ignored = await ignoredIn(group.root, group.paths);
+    group.paths.forEach((path, i) => {
+      if (ignored.has(path)) drop.add(group.indexes[i] as number);
+    });
+  }
+  return files.filter((_, index) => !drop.has(index));
 }
 
 /** realpath of a file; for one deleted since discovery, its parent's realpath plus its name. */
@@ -192,9 +231,10 @@ export type DirtyResult =
 
 /**
  * `git status --porcelain -z` in `cwd`, intersected with `files`. Untracked files count as dirty
- * (a codemod write to one cannot be undone); ignored files were already dropped by discovery. An
- * untracked directory entry (a nested repository, which git never descends into, or any untracked
- * directory) makes every matched file under it dirty.
+ * (a codemod write to one cannot be undone); ignored files were already dropped by discovery. A
+ * modified submodule (status runs with `--ignore-submodules=none`, so modified or untracked files in
+ * it count) or an untracked directory entry (a nested repository, which git never descends into, or
+ * any untracked directory) makes every matched file under it dirty.
  */
 export async function findDirtyFiles(files: readonly string[], cwd: string): Promise<DirtyResult> {
   const repo = await locateRepo(cwd);
@@ -202,7 +242,14 @@ export async function findDirtyFiles(files: readonly string[], cwd: string): Pro
   if (repo.kind === 'none') return { kind: 'no-repo' };
 
   const { code, stdout, stderr } = await runGit(
-    ['--no-optional-locks', 'status', '--porcelain', '-z', '--untracked-files=all'],
+    [
+      '--no-optional-locks',
+      'status',
+      '--porcelain',
+      '-z',
+      '--untracked-files=all',
+      '--ignore-submodules=none',
+    ],
     cwd,
   );
   if (code !== 0) throw new Error(`git status failed (exit ${code}): ${stderr.trim()}`);
@@ -216,7 +263,13 @@ export async function findDirtyFiles(files: readonly string[], cwd: string): Pro
     if (entry.length < 4) continue;
     const path = entry.slice(3);
     if (path.endsWith('/')) dirtyDirs.push(key(path));
-    else dirty.add(key(path));
+    else {
+      dirty.add(key(path));
+      // A modified submodule prints as ` M sub`, no trailing '/': a directory on disk is a gitlink
+      // (or a path replaced by one), and every file under it is dirty.
+      const stats = await lstat(join(repo.root, path)).catch(() => undefined);
+      if (stats?.isDirectory()) dirtyDirs.push(`${key(path)}/`);
+    }
     if (/[RC]/.test(entry.slice(0, 2))) {
       const origin = entries[++i];
       if (origin !== undefined) dirty.add(key(origin));
@@ -291,6 +344,9 @@ export async function discoverFiles(
   // `exclude` prunes the walk under `**` only: a wildcard or literal segment (`src/*/x.ts`,
   // `dist/x.ts`) still reaches an excluded directory, so the paths are checked again below.
   const exclude = (d: Dirent): boolean => excluded.has(d.name);
+  // fs.glob's followSymlinks (v26.1.0) already defaults to false and governs only `**`: the same four
+  // symlink tests pass with it set, but an explicit pattern through a link and the strict drop below
+  // still need the manual handling, so it is not passed.
   // A directory argument globs from inside that directory, so glob syntax in its own name
   // (app/[slug], app/{a,b}) is a literal path, as 1.4's directory expansion treated it.
   const entries = [

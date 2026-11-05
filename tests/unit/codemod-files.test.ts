@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -352,10 +352,11 @@ describe('codemod files: discovery', () => {
     await git(join(dir, 'sub'), ['add', '-A']);
     await git(join(dir, 'sub'), ['commit', '-q', '-m', 'inner']);
     await git(dir, ['init', '-q']);
-    // A gitlink: git check-ignore refuses a path inside it (exit 128), and discovery must not swallow that.
     await git(dir, ['add', 'sub']);
+    // The submodule's own check-ignore (SEC-55) fails on a broken config (exit 128): discovery must not swallow that.
+    await appendFile(join(dir, 'sub', '.git', 'config'), '[broken\n');
     await expect(find(['sub/*.ts'], 'modern-cmdk-codemod')).rejects.toThrow(
-      /^git check-ignore failed \(exit 128\): .*submodule/is,
+      /^git check-ignore failed \(exit 128\): .*config/is,
     );
     expect(await find(['sub/*.ts'], 'modern-cmdk')).toEqual(['sub/x.ts']);
   });
@@ -410,5 +411,49 @@ describe('codemod files: findDirtyFiles', () => {
     await touch('pkg/src/a.ts', 'export const x = 2;\n');
     const result = await findDirtyFiles([resolve(sub, 'src/a.ts')], sub);
     expect(result.kind).toBe('dirty');
+  });
+});
+
+describe('codemod files: git submodules (SEC-55)', () => {
+  let origin: string;
+
+  /** A parent repository with src/a.tsx and a submodule at inner/ (n.tsx tracked, skip.tsx ignored). */
+  const makeParent = async (): Promise<void> => {
+    origin = await mkdtemp(join(tmpdir(), 'modern-cmdk-files-sub-'));
+    await git(origin, ['init', '-q']);
+    await writeFile(join(origin, 'n.tsx'), 'export const n = 1;\n');
+    await writeFile(join(origin, '.gitignore'), 'skip.tsx\n');
+    await git(origin, ['add', '.']);
+    await git(origin, ['commit', '-q', '-m', 'inner']);
+    await git(dir, ['init', '-q']);
+    await touch('src/a.tsx');
+    await git(dir, ['add', '.']);
+    await git(dir, ['commit', '-q', '-m', 'parent']);
+    await git(dir, ['-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', origin, 'inner']);
+    await git(dir, ['commit', '-q', '-m', 'submodule']);
+    await touch('inner/skip.tsx');
+  };
+
+  afterEach(async () => {
+    await rm(origin, { recursive: true, force: true });
+  });
+
+  it('SEC-55: findDirtyFiles treats a modified submodule as a dirty directory', async () => {
+    await makeParent();
+    expect(await findDirtyFiles([resolve(dir, 'inner/n.tsx')], dir)).toEqual({ kind: 'clean' });
+    await touch('inner/n.tsx', 'export const n = 2;\n');
+    expect(await findDirtyFiles([resolve(dir, 'inner/n.tsx')], dir)).toEqual({
+      kind: 'dirty',
+      paths: [resolve(dir, 'inner/n.tsx')],
+    });
+  });
+
+  it("SEC-55: strict discovery of a submodule directory honours the submodule's own .gitignore and never fails on check-ignore", async () => {
+    await makeParent();
+    expect(await find(['inner'], 'modern-cmdk-codemod')).toEqual(['inner/n.tsx']);
+    expect(await find(['inner', 'src'], 'modern-cmdk-codemod')).toEqual([
+      'inner/n.tsx',
+      'src/a.tsx',
+    ]);
   });
 });
