@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { parserFor } from '../../packages/modern-cmdk/src/codemod/files.js';
+import { parserFor } from '../../packages/modern-cmdk-codemod/src/files.js';
 import transform, {
   ATTR_MAP,
   CSS_VAR_MAP,
   transformStylesheet,
   UNMAPPED_ATTRS,
-} from '../../packages/modern-cmdk/src/codemod/transforms/data-attrs.js';
+} from '../../packages/modern-cmdk-codemod/src/transforms/data-attrs.js';
 import type { Parser } from './codemod-fixtures.ts';
 import {
   applyStylesheet,

@@ -7,10 +7,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { API } from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
-import { parserFor } from '../../packages/modern-cmdk/src/codemod/files.js';
+import { parserFor } from '../../packages/modern-cmdk-codemod/src/files.js';
 import transform, {
   KNOWN_EXPORTS,
-} from '../../packages/modern-cmdk/src/codemod/transforms/import-rewrite.js';
+} from '../../packages/modern-cmdk-codemod/src/transforms/import-rewrite.js';
 import { applyTransform, listCases, readCase, toCrlf } from './codemod-fixtures.ts';
 
 const ROW_ID = /^(?:IR-\d+|IR-TEST|TUB-\d+)-/;

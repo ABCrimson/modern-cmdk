@@ -1,6 +1,6 @@
 import { diff } from 'node:util';
 import { describe, expect, it } from 'vitest';
-import { unifiedDiff } from '../../packages/modern-cmdk/src/codemod/diff.js';
+import { unifiedDiff } from '../../packages/modern-cmdk-codemod/src/diff.js';
 
 const numbered = (count: number): string =>
   `${Array.from({ length: count }, (_, i) => `line ${i + 1}`).join('\n')}\n`;

@@ -1,7 +1,8 @@
 // scripts/check-licenses.ts
 // G4: lockfile licence audit. Runs `pnpm licenses list --json --recursive` over the whole workspace (dev
-// dependencies included: tsdown inlines the codemod's devDependencies into dist/codemod/cli.mjs, which
-// ships in the modern-cmdk tarball) and evaluates the report against tests/package/license-policy.json.
+// dependencies included: jscodeshift's closure is a dependency of modern-cmdk-codemod, which npm installs for its
+// users, and tsdown also inlines part of it into modern-cmdk's dist/codemod/cli.mjs until 2.0, which ships in the
+// modern-cmdk tarball) and evaluates the report against tests/package/license-policy.json.
 // Prints every violation and a census (licence -> count); exits 1 on any violation.
 // The policy file is untrusted JSON with two sections. `exceptions`: every entry must be {package, license:
 // non-empty strings, ships: boolean, reason: non-empty string}. `licenseFiles`: a package whose manifest has

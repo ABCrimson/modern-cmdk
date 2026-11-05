@@ -10,6 +10,7 @@ const COPYRIGHT_LINE = /^Copyright \(c\) \d{4} .+$/m;
 const packageLicenses = [
   'packages/modern-cmdk/LICENSE',
   'packages/create-modern-cmdk/LICENSE',
+  'packages/modern-cmdk-codemod/LICENSE',
   'packages/vscode-modern-cmdk/LICENSE',
   'packages/command-search-wasm/LICENSE',
 ] as const;
@@ -18,6 +19,7 @@ const readmes = [
   'README.md',
   'packages/modern-cmdk/README.md',
   'packages/create-modern-cmdk/README.md',
+  'packages/modern-cmdk-codemod/README.md',
 ] as const;
 
 describe('licence holder', () => {

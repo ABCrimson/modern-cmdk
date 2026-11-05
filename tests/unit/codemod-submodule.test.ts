@@ -8,8 +8,8 @@ import {
   type CliDeps,
   run,
   type TransformModule,
-} from '../../packages/modern-cmdk/src/codemod/cli.js';
-import importRewrite from '../../packages/modern-cmdk/src/codemod/transforms/import-rewrite.js';
+} from '../../packages/modern-cmdk-codemod/src/cli.js';
+import importRewrite from '../../packages/modern-cmdk-codemod/src/transforms/import-rewrite.js';
 import { git, gitEnv } from './git-fixture.js';
 
 const deps: CliDeps = {

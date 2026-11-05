@@ -11,7 +11,7 @@ import type { Dirent } from 'node:fs';
 import { glob, lstat, realpath, stat } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path';
 
-/** Which bin is running. `modern-cmdk` is the deprecated bundled bin; the default until W3-01. */
+/** Which bin is running. `modern-cmdk` is the deprecated bundled bin that the modern-cmdk shim runs; `modern-cmdk-codemod` is the default of run(). */
 export type Program = 'modern-cmdk' | 'modern-cmdk-codemod';
 
 /** The jscodeshift parser names the CLI uses. */

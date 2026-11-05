@@ -2,10 +2,11 @@
 
 /// <reference types="node" />
 // The package tsconfig loads no @types implicitly; this types the node: imports below.
-// modern-cmdk — Codemod CLI entry point
-// Usage: modern-cmdk <transform> <glob|dir> [--dry-run] [--strict|--lenient] [--force] [--concurrency=N]
-//        modern-cmdk --help | --version
-//   e.g. npx modern-cmdk import-rewrite "./src/**/*.tsx"   or   npx modern-cmdk import-rewrite ./src
+// modern-cmdk-codemod — Codemod CLI entry point
+// Usage: modern-cmdk-codemod <transform> <glob|dir> [--dry-run] [--strict|--lenient] [--force] [--concurrency=N]
+//        modern-cmdk-codemod --help | --version
+//   e.g. npx modern-cmdk-codemod import-rewrite "./src/**/*.tsx"   or   npx modern-cmdk-codemod import-rewrite ./src
+// This file is also bundled into the modern-cmdk tarball (dist/codemod/cli.mjs) behind the deprecated modern-cmdk bin shim (bin.mjs) until 2.0.
 // Available transforms: import-rewrite, data-attrs, forward-ref, should-filter
 //
 // Two program profiles share this file (CliDeps.program): the deprecated `modern-cmdk` bin runs
@@ -78,7 +79,7 @@ export interface CliIo {
 /** Test seam: replace how a transform is loaded (the bundled bin imports `./transforms/<name>.mjs`). */
 export interface CliDeps {
   readonly loadTransform?: (name: string) => Promise<TransformModule>;
-  /** Which bin is running; `modern-cmdk` until W3-01 flips the default. */
+  /** Which bin is running; `modern-cmdk-codemod` (strict by default) when omitted. The bundled modern-cmdk shim passes `modern-cmdk`. */
   readonly program?: Program;
 }
 
@@ -86,8 +87,7 @@ const NODE_FLOOR_LINES: Record<Program, string> = {
   // A documented fact, not an engines field: modern-cmdk declares none (D14), so the bin cannot refuse an older Node.
   'modern-cmdk':
     "Node >= 26.4.0 (the floor modern-cmdk's toolchain and create-modern-cmdk declare; modern-cmdk itself declares no engines)",
-  'modern-cmdk-codemod':
-    'Node >= 26.4.0 (the floor of the modern-cmdk toolchain and create-modern-cmdk)',
+  'modern-cmdk-codemod': 'Node >= 26.4.0 (the engines.node of modern-cmdk-codemod)',
 };
 
 function usageText(stream: NodeJS.WritableStream, program: Program): string {
@@ -425,7 +425,7 @@ export async function run(argv: readonly string[], io: CliIo, deps: CliDeps = {}
   const err = (s: string): void => void io.stderr.write(`${s}\n`);
   const fail = (s: string): void =>
     err(`${styleText('red', 'error:', { stream: io.stderr })} ${s}`);
-  const program = deps.program ?? 'modern-cmdk';
+  const program = deps.program ?? 'modern-cmdk-codemod';
 
   try {
     const parsed = parse(argv, program);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runPool } from '../../packages/modern-cmdk/src/codemod/pool.js';
+import { runPool } from '../../packages/modern-cmdk-codemod/src/pool.js';
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 

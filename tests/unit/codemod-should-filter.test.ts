@@ -4,8 +4,8 @@
 // Every title starts with its ledger row id.
 
 import { describe, expect, it } from 'vitest';
-import { parserFor } from '../../packages/modern-cmdk/src/codemod/files.js';
-import transform from '../../packages/modern-cmdk/src/codemod/transforms/should-filter.js';
+import { parserFor } from '../../packages/modern-cmdk-codemod/src/files.js';
+import transform from '../../packages/modern-cmdk-codemod/src/transforms/should-filter.js';
 import { applyTransform, listCases, readCase, toCrlf } from './codemod-fixtures.ts';
 
 const ROW_ID = /^(?:SF-\d+|SF-DOC|SF-TEST|SEC-\d+|TUB-\d+|ARCH-\d+)-/;

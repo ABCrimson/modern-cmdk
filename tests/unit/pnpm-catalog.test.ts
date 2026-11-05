@@ -85,6 +85,8 @@ function lockCatalogDefault(text: string): Map<string, { specifier: string; vers
 }
 
 const SIX = ['@types/react', '@types/react-dom', 'react', 'react-dom', 'typescript', 'vite'];
+// RDG-117 (1.5.0): the five exact pins two or more manifests shared, widened into the catalog.
+const RDG_117 = ['@types/jscodeshift', '@types/node', 'jscodeshift', 'radix-ui', 'tsdown'];
 const EXACT = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 // scripts/lane.mjs rewrites the pnpm-workspace.yaml overrides (react, react-dom or typescript) and reinstalls without
 // --frozen-lockfile in the lane jobs (ci.yml react-lanes; lanes.yml react-canary and typescript) before they run this
@@ -110,8 +112,8 @@ function specsIn(path: string): Map<string, string> {
 }
 
 describe('pnpm catalog (RDG-66, D54)', () => {
-  it('the default catalog holds exactly the six shared dev pins, each an exact version', () => {
-    expect([...catalog.keys()].sort()).toEqual(SIX);
+  it('the default catalog holds exactly the six RDG-66 pins and the five RDG-117 pins, each an exact version', () => {
+    expect([...catalog.keys()].sort()).toEqual([...SIX, ...RDG_117].sort());
     for (const [name, spec] of catalog) {
       expect(spec, name).toMatch(EXACT);
       expect(spec, name).not.toMatch(/[\^~<>*|]| - /);
@@ -182,11 +184,13 @@ describe('pnpm catalog (RDG-66, D54)', () => {
   });
 
   it.skipIf(IN_LANE)(
-    'pnpm-lock.yaml records the catalog: catalogs.default for the four non-overridden names, the overrides for react and react-dom',
+    'pnpm-lock.yaml records the catalog: catalogs.default for the nine non-overridden names, the overrides for react and react-dom',
     () => {
       const lock = read('pnpm-lock.yaml');
       const locked = lockCatalogDefault(lock);
-      const viaCatalog = SIX.filter((name) => name !== 'react' && name !== 'react-dom');
+      const viaCatalog = [...SIX, ...RDG_117]
+        .filter((name) => name !== 'react' && name !== 'react-dom')
+        .sort();
       expect([...locked.keys()].sort()).toEqual(viaCatalog);
       for (const name of viaCatalog)
         expect(locked.get(name)?.specifier, name).toBe(catalog.get(name));
@@ -195,4 +199,65 @@ describe('pnpm catalog (RDG-66, D54)', () => {
         expect(overrides.get(name), name).toBe(catalog.get(name));
     },
   );
+});
+
+// RDG-117 (1.5.0): the five exact pins that two or more manifests wrote out (@types/node, tsdown, jscodeshift,
+// @types/jscodeshift, radix-ui) join the catalog. Only dependencies and devDependencies sites switch: radix-ui's
+// peer range in packages/modern-cmdk keeps its range (a consumer-facing contract), idb-keyval stays written out in
+// its manifests, and the tests/consumers apps are not workspace projects (they install from packed tarballs).
+const RDG_117_SITES: Record<string, readonly string[]> = {
+  'package.json': ['@types/jscodeshift', '@types/node', 'jscodeshift', 'tsdown'],
+  'packages/create-modern-cmdk/package.json': ['@types/node', 'tsdown'],
+  'packages/modern-cmdk/package.json': ['radix-ui'],
+  'packages/modern-cmdk-codemod/package.json': [
+    '@types/jscodeshift',
+    '@types/node',
+    'jscodeshift',
+    'tsdown',
+  ],
+  'apps/playground/package.json': ['radix-ui'],
+};
+
+describe('RDG-117: the catalog also holds the shared build and codemod pins', () => {
+  it('RDG-117: each of the five catalog entries is present as an exact version', () => {
+    for (const name of RDG_117) {
+      expect(catalog.get(name), name).toMatch(EXACT);
+    }
+  });
+
+  it('RDG-117: every dependencies or devDependencies site of the five reads catalog:', () => {
+    for (const [path, names] of Object.entries(RDG_117_SITES)) {
+      const json = manifest(path);
+      for (const name of names) {
+        const spec = json.dependencies?.[name] ?? json.devDependencies?.[name];
+        expect(spec, `${path} ${name}`).toBe('catalog:');
+      }
+    }
+  });
+
+  it('RDG-117: no workspace manifest writes any of the five as an exact version in dependencies or devDependencies', () => {
+    const manifests = [
+      ...Object.keys(RDG_117_SITES),
+      'packages/vscode-modern-cmdk/package.json',
+      'apps/docs/package.json',
+    ];
+    const written: string[] = [];
+    for (const path of manifests) {
+      const json = manifest(path);
+      for (const field of ['dependencies', 'devDependencies']) {
+        for (const name of RDG_117) {
+          const spec = json[field]?.[name];
+          if (spec !== undefined && spec !== 'catalog:')
+            written.push(`${path} ${field} ${name} ${spec}`);
+        }
+      }
+    }
+    expect(written).toEqual([]);
+  });
+
+  it('RDG-117: peerDependencies keep the radix-ui range, never catalog:', () => {
+    expect(manifest('packages/modern-cmdk/package.json').peerDependencies?.['radix-ui']).toBe(
+      '>=1.4.0 <2.0.0',
+    );
+  });
 });

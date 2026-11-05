@@ -1,17 +1,22 @@
 packages:
   - 'packages/*'
   - 'apps/*'
-# Single source of the six pins RDG-66 named (react, react-dom, @types/react, @types/react-dom, typescript, vite; D54).
-# Workspace manifests reference them as catalog:; the freshness sweep checks these entries at this site
-# (dep-freshness-catalog.mjs, 2026-11-04). apps/docs keeps its own typescript pin (a scoped hold for vue-tsc) and the
-# tests/consumers apps are not workspace projects.
-# Other exact pins shared by two manifests (@types/node, tsdown, jscodeshift, @types/jscodeshift, radix-ui, and idb-keyval,
-# the runtime dependency RDG-117 leaves in its manifests) are still written in each manifest (RDG-117, 1.5.0).
+# Single source of the exact pins that two or more workspace manifests share: the six RDG-66 pins (react, react-dom,
+# @types/react, @types/react-dom, typescript, vite; D54) and the five RDG-117 pins (@types/node, tsdown, jscodeshift,
+# @types/jscodeshift, radix-ui; 1.5.0). Workspace manifests reference them as catalog:; the freshness sweep checks these
+# entries at this site (dep-freshness-catalog.mjs, 2026-11-04). apps/docs keeps its own typescript pin (a scoped hold for
+# vue-tsc) and the tests/consumers apps are not workspace projects. Peer ranges (modern-cmdk's radix-ui >=1.4.0 <2.0.0)
+# and idb-keyval, a runtime dependency written out in its manifests, stay outside the catalog.
 catalog:
+  '@types/jscodeshift': 17.3.0
+  '@types/node': 26.6.6
   '@types/react': 19.3.0
   '@types/react-dom': 19.3.0
+  jscodeshift: 17.4.0
+  radix-ui: 1.8.2-rc.1791984254107
   react: 0.0.0-experimental-e84e1492-20261031
   react-dom: 0.0.0-experimental-e84e1492-20261031
+  tsdown: 0.23.5
   typescript: 7.1.0-dev.20261104.1
   vite: 8.3.6
 overrides:

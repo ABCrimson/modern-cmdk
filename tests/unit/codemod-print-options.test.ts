@@ -1,7 +1,7 @@
 import type { API, FileInfo } from 'jscodeshift';
 import jscodeshift from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
-import { printOptions } from '../../packages/modern-cmdk/src/codemod/print-options.js';
+import { printOptions } from '../../packages/modern-cmdk-codemod/src/print-options.js';
 
 describe('codemod: printOptions', () => {
   it('RP-18: printOptions gives CRLF only when the source contains CRLF', () => {

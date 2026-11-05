@@ -113,7 +113,7 @@
       }
     },
     {
-      "includes": ["packages/modern-cmdk/src/codemod/**"],
+      "includes": ["packages/modern-cmdk-codemod/src/**"],
       "linter": {
         "rules": {
           "suspicious": {

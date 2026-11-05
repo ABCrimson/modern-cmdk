@@ -1,9 +1,9 @@
 // tests/dist/manifest.test.ts
 // 1.4.0 package integrity: the library manifest and the built dist tell the truth.
-// Reads packages/modern-cmdk/package.json and the BUILT dist, so it needs `pnpm build` first.
+// Reads packages/modern-cmdk/package.json, packages/modern-cmdk-codemod/package.json and the BUILT dist, so it needs `pnpm build` first.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 const packageDir: string = resolve(import.meta.dirname, '../../packages/modern-cmdk');
 const packageJsonPath: string = join(packageDir, 'package.json');
+const codemodDir: string = resolve(import.meta.dirname, '../../packages/modern-cmdk-codemod');
 const distBuilt: boolean = existsSync(join(packageDir, 'dist/core/index.mjs'));
 
 if (!distBuilt && process.env.CI) {
@@ -19,8 +20,15 @@ if (!distBuilt && process.env.CI) {
 }
 
 interface Manifest {
+  readonly name?: string;
+  readonly version?: string;
+  readonly bin?: Record<string, string>;
+  readonly files?: readonly string[];
+  readonly exports?: Record<string, string | Record<string, string>>;
+  readonly dependencies?: Record<string, string>;
+  readonly devDependencies?: Record<string, string>;
+  readonly publishConfig?: Record<string, string>;
   readonly engines?: { readonly node?: string };
-  readonly exports: Record<string, string | Record<string, string>>;
   readonly sideEffects: readonly string[];
   readonly peerDependencies?: Record<string, string>;
   readonly peerDependenciesMeta?: Record<string, { readonly optional?: boolean }>;
@@ -49,7 +57,7 @@ describe('modern-cmdk manifest', () => {
 
   it('no export condition repeats default', () => {
     const repeats: string[] = [];
-    for (const [key, value] of Object.entries(readManifest(packageJsonPath).exports)) {
+    for (const [key, value] of Object.entries(readManifest(packageJsonPath).exports ?? {})) {
       if (typeof value === 'string') continue;
       for (const [condition, target] of Object.entries(value)) {
         if (condition !== 'default' && target === value.default)
@@ -60,7 +68,7 @@ describe('modern-cmdk manifest', () => {
   });
 
   it('exports keys', () => {
-    expect(Object.keys(readManifest(packageJsonPath).exports)).toEqual([
+    expect(Object.keys(readManifest(packageJsonPath).exports ?? {})).toEqual([
       '.',
       './react',
       './react/dialog',
@@ -94,6 +102,75 @@ describe('modern-cmdk manifest', () => {
       expect(manifest.peerDependenciesMeta?.['radix-ui']).toBeUndefined();
       const dialogChunk = readFileSync(join(packageDir, 'dist/react/chunk-dialog.mjs'), 'utf8');
       expect(dialogChunk).toContain('from "radix-ui"');
+    },
+  );
+});
+
+describe('modern-cmdk bin (PKG-1)', () => {
+  it('PKG-1: the modern-cmdk bin is the shim dist/codemod/bin.mjs', () => {
+    expect(readManifest(packageJsonPath).bin).toEqual({ 'modern-cmdk': './dist/codemod/bin.mjs' });
+  });
+
+  it.skipIf(!distBuilt)(
+    'PKG-1: the bin path exists, starts with a node shebang and is executable',
+    () => {
+      const bin = join(packageDir, 'dist/codemod/bin.mjs');
+      expect(readFileSync(bin, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true);
+      // Windows has no execute bit; elsewhere tsdown grants it to a shebang entry.
+      expect(process.platform === 'win32' || (statSync(bin).mode & 0o111) !== 0).toBe(true);
+    },
+  );
+
+  it('PKG-1: modern-cmdk has no runtime dependency on jscodeshift or on modern-cmdk-codemod, and no jscodeshift devDependency', () => {
+    const manifest = readManifest(packageJsonPath);
+    expect(Object.keys(manifest.dependencies ?? {})).toEqual(['idb-keyval']);
+    for (const name of ['jscodeshift', '@types/jscodeshift', 'globby', 'modern-cmdk-codemod']) {
+      expect(manifest.devDependencies?.[name], name).toBeUndefined();
+    }
+  });
+});
+
+describe('modern-cmdk-codemod manifest (PKG-1, D17)', () => {
+  const manifest = readManifest(join(codemodDir, 'package.json'));
+
+  it('PKG-1: name, version, type and publish settings', () => {
+    expect(manifest.name).toBe('modern-cmdk-codemod');
+    // changesets bumps it: 0.0.0 plus a major changeset gives 1.0.0 (D62)
+    expect(manifest.version).toBe('0.0.0');
+    expect((manifest as { type?: string }).type).toBe('module');
+    expect((manifest as { license?: string }).license).toBe('MIT');
+    expect(manifest.publishConfig).toEqual({ access: 'public' });
+  });
+
+  it('PKG-1: a bin-only package: bin is dist/cli.mjs, there are no exports', () => {
+    expect(manifest.bin).toEqual({ 'modern-cmdk-codemod': './dist/cli.mjs' });
+    expect(manifest.exports).toBeUndefined();
+  });
+
+  it('PKG-1: engines.node >=26.4.0 (D14) and files dist and LICENSE', () => {
+    expect(manifest.engines).toEqual({ node: '>=26.4.0' });
+    expect(manifest.files).toEqual(['dist', 'LICENSE']);
+  });
+
+  it('PKG-1: jscodeshift is the one runtime dependency, taken from the catalog; globby is not used', () => {
+    expect(manifest.dependencies).toEqual({ jscodeshift: 'catalog:' });
+    expect(manifest.devDependencies?.globby).toBeUndefined();
+    expect(Object.keys(manifest.devDependencies ?? {}).sort()).toEqual([
+      '@types/jscodeshift',
+      '@types/node',
+      'tsdown',
+      'typescript',
+    ]);
+  });
+
+  it.skipIf(!existsSync(join(codemodDir, 'dist/cli.mjs')))(
+    'PKG-1: the bin path exists, starts with a node shebang and the dist ships no declaration files',
+    () => {
+      const bin = join(codemodDir, 'dist/cli.mjs');
+      expect(readFileSync(bin, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true);
+      expect(
+        codemodFiles(join(codemodDir, 'dist')).filter((f) => /\.d\.[cm]?ts$/u.test(f)),
+      ).toEqual([]);
     },
   );
 });

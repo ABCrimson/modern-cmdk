@@ -1,5 +1,21 @@
 import { defineConfig } from 'tsdown';
 
+// The packages from node_modules that dist/codemod bundles (tsdown 0.23.5 listed them as "Detected dependencies in bundle"):
+// jscodeshift and the parts of its closure it reaches at run time. The dependency-free @babel/parser, flow-parser and
+// flow-estree are inlined parsers; @babel/core and its tree are not reached (tests/package/license-policy.json).
+const BUNDLED_FOR_CODEMOD: string[] = [
+  '@babel/parser',
+  'ast-types',
+  'esprima',
+  'flow-estree',
+  'flow-parser',
+  'jscodeshift',
+  'recast',
+  'source-map',
+  'tiny-invariant',
+  'tslib',
+];
+
 export default defineConfig([
   // Core entry — no banner needed (pure TS, no React)
   {
@@ -32,23 +48,36 @@ export default defineConfig([
       js: "'use client';",
     },
   },
-  // Codemod CLI + worker + transforms — separate outDir, bundles jscodeshift and its recast/babel tree (no other runtime dependency). dts is off, written out:
-  // package.json's "types" field would auto-enable it, and the codemod is a CLI, not an importable API.
+  // The deprecated `modern-cmdk` bin: dist/codemod/bin.mjs is a shim (src/codemod/bin.ts) over dist/codemod/cli.mjs, which
+  // bundles the CLI, the worker and the transforms of the sibling package modern-cmdk-codemod, built from its src (never from
+  // that package's dist, whose files import jscodeshift as an undeclared dependency here) and jscodeshift with its
+  // recast/babel tree, so modern-cmdk has no runtime dependency on the new package or on jscodeshift. The bundle leaves in 2.0
+  // (PKG-1). dts is off, written out: package.json's "types" field would auto-enable it, and the codemod is a CLI, not an importable API.
+  // The bundled set is an explicit list (RP-28, tsdown 0.23.5 DepsConfig): deps.onlyBundle throws if a node_modules package outside it is
+  // bundled, so a new dependency of the codemod fails this build until it is listed here and checked for its licence
+  // (tests/package/license-policy.json). deps.onlyImport: [] lets the emitted files import node: builtins and nothing else.
   {
     entry: {
-      cli: 'src/codemod/cli.ts',
-      worker: 'src/codemod/worker.ts',
-      'transforms/data-attrs': 'src/codemod/transforms/data-attrs.ts',
-      'transforms/forward-ref': 'src/codemod/transforms/forward-ref.ts',
-      'transforms/import-rewrite': 'src/codemod/transforms/import-rewrite.ts',
-      'transforms/should-filter': 'src/codemod/transforms/should-filter.ts',
+      bin: 'src/codemod/bin.ts',
+      cli: '../modern-cmdk-codemod/src/cli.ts',
+      worker: '../modern-cmdk-codemod/src/worker.ts',
+      'transforms/data-attrs': '../modern-cmdk-codemod/src/transforms/data-attrs.ts',
+      'transforms/forward-ref': '../modern-cmdk-codemod/src/transforms/forward-ref.ts',
+      'transforms/import-rewrite': '../modern-cmdk-codemod/src/transforms/import-rewrite.ts',
+      'transforms/should-filter': '../modern-cmdk-codemod/src/transforms/should-filter.ts',
     },
     format: 'esm',
+    platform: 'node',
     dts: false,
     outDir: 'dist/codemod',
     hash: false,
-    // cli.mjs starts worker.mjs as a worker thread, which loads transforms/<name>.mjs next to itself.
+    // bin.mjs imports cli.mjs, which starts worker.mjs as a worker thread, which loads transforms/<name>.mjs next to itself.
     // The entries share code (print-options, jscodeshift), so rolldown may emit chunks: keep them in dist/codemod.
     outputOptions: { chunkFileNames: 'chunk-[name].mjs' },
+    deps: {
+      alwaysBundle: ['jscodeshift'],
+      onlyBundle: BUNDLED_FOR_CODEMOD,
+      onlyImport: [],
+    },
   },
 ]);
