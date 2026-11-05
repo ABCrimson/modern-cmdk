@@ -281,8 +281,8 @@
   },
   {
     "id": "ARCH-59",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/loading-state.test.tsx::ARCH-59: a pending AsyncItems shows Command.Loading and aria-busy, both clear after it resolves",
+    "status": "covered"
   },
   {
     "id": "CLI-2",
@@ -601,8 +601,8 @@
   },
   {
     "id": "RP-19",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/codemod-cli.test.ts::RP-19, SEC-07: --dry under modern-cmdk-codemod exits 2 and writes nothing",
+    "status": "covered"
   },
   {
     "id": "RP-20",
@@ -616,8 +616,8 @@
   },
   {
     "id": "SEC-07",
-    "test": null,
-    "status": "pending"
+    "test": "tests/dist/cli-exec.test.ts::CLI-TEST: a dirty tree makes the strict bin exit 2 and write nothing; --force writes",
+    "status": "covered"
   },
   {
     "id": "SEC-09",
@@ -672,6 +672,11 @@
   {
     "id": "TUB-01",
     "test": "tests/unit/codemod-data-attrs.test.ts::DA-1, RC-1, TUB-01, RP-07, DG-05, DA-9, ARCH-10: cmdk-root maps to data-command-root in JSX",
+    "status": "covered"
+  },
+  {
+    "id": "DG-132",
+    "test": "tests/unit/docs-wasm-samples.test.ts::DG-132: both wasm-search.md engine samples dispose the engine in the cleanup and when init resolves after it",
     "status": "covered"
   }
 ]
