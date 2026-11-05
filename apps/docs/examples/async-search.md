@@ -5,7 +5,7 @@ description: Async data loading with Command.Loading, Command.Empty, and React S
 
 # Async Search
 
-Demonstrates async data loading from an API, loading states, and error handling using React 19 Suspense.
+Demonstrates async data loading from an API, loading states, and error handling using React 19 Suspense; each `Command.AsyncItems` suspends through its own boundary and shows its own `fallback`.
 
 ## Basic Async Search
 
@@ -15,7 +15,6 @@ Demonstrates async data loading from an API, loading states, and error handling 
 import type { CommandItem } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
 import { Command, useCommandState } from 'modern-cmdk/react';
-import { Suspense } from 'react';
 
 interface ApiResult {
   id: string;
@@ -99,9 +98,7 @@ export function AsyncSearchExample() {
       <Command.Input placeholder="Search anything..." />
       <Command.List>
         <Command.Empty>No results found.</Command.Empty>
-        <Suspense fallback={<Command.Loading loading>Searching...</Command.Loading>}>
-          <SearchResults />
-        </Suspense>
+        <SearchResults />
       </Command.List>
     </Command>
   );
@@ -121,7 +118,7 @@ Setting `filter={false}` on `<Command>` disables client-side filtering. All filt
 
 import type { CommandItem } from 'modern-cmdk';
 import { Command, CommandErrorBoundary, useCommandState } from 'modern-cmdk/react';
-import { Suspense, useState } from 'react';
+import { useState } from 'react';
 
 // App-owned: the cache and cachedSearch from the example above.
 declare const cache: Map<string, Promise<readonly CommandItem[]>>;
@@ -131,7 +128,10 @@ function SearchResults() {
   const query = useCommandState((state) => state.search);
 
   return (
-    <Command.AsyncItems items={cachedSearch(query)}>
+    <Command.AsyncItems
+      items={cachedSearch(query)}
+      fallback={<Command.Loading loading>Searching...</Command.Loading>}
+    >
       {(results) =>
         results.map((item) => (
           <Command.Item key={item.id} value={item.value}>
@@ -170,9 +170,7 @@ export function ResilientSearchExample() {
             </div>
           )}
         >
-          <Suspense fallback={<Command.Loading loading>Searching...</Command.Loading>}>
-            <SearchResults />
-          </Suspense>
+          <SearchResults />
         </CommandErrorBoundary>
       </Command.List>
     </Command>
@@ -187,7 +185,6 @@ Load items from multiple sources with independent Suspense boundaries:
 ```tsx
 import type { CommandItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
-import { Suspense } from 'react';
 
 // App-owned data sources. Create the promises where they can be cached
 // (a framework loader or a cache); a promise created in render restarts on every render.
@@ -200,31 +197,33 @@ export function MultiSourceExample() {
       <Command.Input placeholder="Search..." />
       <Command.List>
         <Command.Group heading="Recent">
-          <Suspense fallback={<Command.Loading loading>Loading recent...</Command.Loading>}>
-            <Command.AsyncItems items={recent}>
-              {(items) =>
-                items.map((item) => (
-                  <Command.Item key={item.id} value={item.value}>
-                    {item.value}
-                  </Command.Item>
-                ))
-              }
-            </Command.AsyncItems>
-          </Suspense>
+          <Command.AsyncItems
+            items={recent}
+            fallback={<Command.Loading loading>Loading recent...</Command.Loading>}
+          >
+            {(items) =>
+              items.map((item) => (
+                <Command.Item key={item.id} value={item.value}>
+                  {item.value}
+                </Command.Item>
+              ))
+            }
+          </Command.AsyncItems>
         </Command.Group>
 
         <Command.Group heading="All Commands">
-          <Suspense fallback={<Command.Loading loading>Loading commands...</Command.Loading>}>
-            <Command.AsyncItems items={allCommands}>
-              {(items) =>
-                items.map((item) => (
-                  <Command.Item key={item.id} value={item.value}>
-                    {item.value}
-                  </Command.Item>
-                ))
-              }
-            </Command.AsyncItems>
-          </Suspense>
+          <Command.AsyncItems
+            items={allCommands}
+            fallback={<Command.Loading loading>Loading commands...</Command.Loading>}
+          >
+            {(items) =>
+              items.map((item) => (
+                <Command.Item key={item.id} value={item.value}>
+                  {item.value}
+                </Command.Item>
+              ))
+            }
+          </Command.AsyncItems>
         </Command.Group>
       </Command.List>
     </Command>
