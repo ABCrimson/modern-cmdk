@@ -12,23 +12,24 @@
 import type { API, FileInfo } from 'jscodeshift';
 import { printOptions } from '../print-options.js';
 
-// Targets, from what packages/modern-cmdk/src/react renders (found by name, not by line):
-//   cmdk-root          -> data-command-root           (command.tsx, `data-command-root=""`; dialog.tsx renders it too)
-//   cmdk-dialog        -> data-command-dialog         (dialog.tsx, the Dialog.Content element)
-//   cmdk-overlay       -> data-command-overlay        (dialog.tsx, the Dialog.Overlay element)
-//   cmdk-input         -> data-command-input          (input.tsx)
-//   cmdk-list          -> data-command-list           (list.tsx)
-//   cmdk-list-sizer    -> data-command-list-inner     (list.tsx: the element behind innerRef, which a ResizeObserver
-//                                                      measures into --command-list-height; cmdk's sizer does the
-//                                                      same for --cmdk-list-height. Not rendered while the list is
-//                                                      virtualized, where data-command-list-virtual replaces it)
-//   cmdk-item          -> data-command-item           (item.tsx)
-//   cmdk-group         -> data-command-group          (group.tsx)
-//   cmdk-group-heading -> data-command-group-heading  (group.tsx)
-//   cmdk-group-items   -> data-command-group-items    (group.tsx)
-//   cmdk-separator     -> data-command-separator      (separator.tsx)
-//   cmdk-empty         -> data-command-empty          (empty.tsx)
-//   cmdk-loading       -> data-command-loading        (loading.tsx)
+// Targets, from what packages/modern-cmdk/src/react renders:
+//   cmdk-root          -> data-command-root           (command.tsx:68; dialog.tsx:114 renders it on the root inside the dialog)
+//   cmdk-dialog        -> data-command-dialog         (dialog.tsx:103, the Dialog.Content element)
+//   cmdk-overlay       -> data-command-overlay        (dialog.tsx:97, the Dialog.Overlay element)
+//   cmdk-input         -> data-command-input          (input.tsx:68)
+//   cmdk-list          -> data-command-list           (list.tsx:158)
+//   cmdk-list-sizer    -> data-command-list-inner     (list.tsx:174: the innerRef element, which the ResizeObserver at
+//                                                      list.tsx:58-73 measures into --command-list-height, set at
+//                                                      list.tsx:105; cmdk's sizer does the same for --cmdk-list-height.
+//                                                      Not rendered while the list is virtualized, where
+//                                                      data-command-list-virtual at list.tsx:168 replaces it)
+//   cmdk-item          -> data-command-item           (item.tsx:84; data-active at :85, data-disabled at :86)
+//   cmdk-group         -> data-command-group          (group.tsx:64)
+//   cmdk-group-heading -> data-command-group-heading  (group.tsx:70)
+//   cmdk-group-items   -> data-command-group-items    (group.tsx:74)
+//   cmdk-separator     -> data-command-separator      (separator.tsx:12)
+//   cmdk-empty         -> data-command-empty          (empty.tsx:24)
+//   cmdk-loading       -> data-command-loading        (loading.tsx:28)
 // The cmdk side is node_modules/cmdk/dist/index.mjs (cmdk 1.1.1), which renders exactly these and cmdk-label.
 // Tailwind: in v4 `data-active:` is the presence variant of [data-active], and `data-[selected=true]:`
 // the value variant of [data-selected="true"] (https://tailwindcss.com/docs/hover-focus-and-other-states#data-attributes,
@@ -96,9 +97,23 @@ const ATTRIBUTE_SELECTOR =
  */
 const PARTIAL_ATTRIBUTE_SELECTOR = /\[\s*([A-Za-z_][\w-]*)(?=\s*[~|^$*]?=|\s*$)/dy;
 
+/** Tailwind presence form of the two state attributes: data-[selected]:, data-[disabled]/name:. */
+const TAILWIND_PRESENCE = /(?<!\w)data-\[(selected|disabled)\](?=[:/])/g;
+
 /** Tailwind value variants of the two state attributes: data-[selected=true]:, data-[disabled='false']/name:. */
 const TAILWIND_STATE =
   /(?<!\w)data-\[(selected|disabled)=(?:(["'])(true|false)\2|(true|false))\](?=[:/])/g;
+
+/** Whitespace that only pads a closing parenthesis, a comma or a combinator inside parentheses. */
+const ARGUMENT_PADDING = /\s*[),>+~]/y;
+
+/** Tailwind's `*:` and `**:` variants, which move a class to the element's children or descendants. */
+const CHILD_VARIANT = /(?:^|:)\*\*?:/;
+
+function parentMatchOf(flags: readonly boolean[]): ParentMatch {
+  if (flags.every(Boolean)) return 'all';
+  return flags.some(Boolean) ? 'some' : 'none';
+}
 
 /** Reports a site at an index of the text being rewritten. */
 type SiteReport = (index: number, message: string) => void;
@@ -144,23 +159,55 @@ function unquote(value: string): string {
  * A compound that holds a cmdk attribute also has its data-selected / data-disabled value
  * attributes rewritten: ="true" to the presence attribute, ="false" to :not(presence); any other
  * form is reported. In a stylesheet, a compound starting with `&` counts as holding a cmdk
- * attribute when the enclosing rule's selectors all end in one.
+ * attribute when the enclosing rule's selectors all end in one; under a rule where only some do,
+ * each state attribute of such a compound is reported. Inside the parentheses of :not() / :is() /
+ * :where() / :matches(), the compound after an argument's last combinator (its subject) joins the
+ * outer compound, and the compounds before it stand alone, rewritten only if they hold a cmdk
+ * attribute themselves. Inside any other parentheses (:has(), :nth-child(), url(), var(), ...)
+ * every compound stands alone. `tailwind` marks a class value of a cmdk-bound element, where an
+ * arbitrary variant `[&[data-selected=true]_svg]` holds the bound element's own attributes up to
+ * its first `_`, `>`, `+` or `~`. Inside the parentheses of such a variant, `_` is a combinator too. A `[&...]` after a `*:` or `**:` variant, or after an earlier
+ * `[&...]` variant, is not taken as the bound element.
  */
-function rewriteSelectors(text: string, css: boolean, report: SiteReport): string {
-  return applyEdits(text, selectorEdits(text, css, report));
+function rewriteSelectors(
+  text: string,
+  css: boolean,
+  report: SiteReport,
+  tailwind: boolean,
+): string {
+  return applyEdits(text, selectorEdits(text, css, report, tailwind));
+}
+
+/** How many selectors of a rule's prelude end in a compound that holds a cmdk attribute. */
+type ParentMatch = 'all' | 'some' | 'none';
+
+/** One open parenthesis: the outer compound is parked here while the compounds inside collect. */
+interface ParenFrame {
+  /** The bracket depth at the `(`: 1 for the parentheses of a `[&...]` arbitrary variant. */
+  brackets: number;
+  /** The argument has produced a character since the last combinator or comma. */
+  hasContent: boolean;
+  /** The compound that was current at the `(`. */
+  outer: { attrs: AttributeSite[]; start: number; ampStart: number; ampDescendant: number };
+  /** The function is :not / :is / :where / :matches: an argument's subject compound joins the outer one. */
+  subject: boolean;
 }
 
 /** The edits rewriteSelectors applies, as ranges of `text`; reports are made while collecting. */
-function selectorEdits(text: string, css: boolean, report: SiteReport): Edit[] {
+function selectorEdits(text: string, css: boolean, report: SiteReport, tailwind: boolean): Edit[] {
   const edits: Edit[] = [];
-  const ruleStack: boolean[] = [];
+  const ruleStack: ParentMatch[] = [];
   let selectorFlags: boolean[] = [];
   let lastFlag = false;
   let preludeFresh = true;
   let preludeIsAtRule = false;
   let attrs: AttributeSite[] = [];
   let compoundStart = -1;
-  let parens = 0;
+  /** Index of the first `[&` arbitrary variant of the current class token, at its start or after a `:` of a variant prefix that holds no `*:` or `**:` variant. */
+  let ampStart = -1;
+  /** Index of the first `_`, `>`, `+` or `~` at bracket depth 1, outside parentheses, of a `[&...` arbitrary variant: where the part on another element starts. */
+  let ampDescendant = -1;
+  const frames: ParenFrame[] = [];
   let brackets = 0;
 
   if (!css) {
@@ -181,11 +228,13 @@ function selectorEdits(text: string, css: boolean, report: SiteReport): Edit[] {
     }
   }
 
-  const endCompound = (): void => {
+  const endCompound = (isArgument = false): void => {
     if (compoundStart === -1) return;
     const holds = attrs.some((a) => CMDK_NAMES.has(a.name));
-    const viaParent = text[compoundStart] === '&' && (ruleStack.at(-1) ?? false);
-    const migrateState = holds || viaParent;
+    const parentMatch = text[compoundStart] === '&' ? (ruleStack.at(-1) ?? 'none') : 'none';
+    const viaParent = parentMatch === 'all';
+    const partialParent = parentMatch === 'some' && !holds;
+    const ampBound = tailwind && ampStart !== -1;
     for (const a of attrs) {
       const target = ATTR_MAP.get(a.name);
       if (target !== undefined) {
@@ -198,7 +247,16 @@ function selectorEdits(text: string, css: boolean, report: SiteReport): Edit[] {
         continue;
       }
       const presence = STATE_ATTRS.get(a.name);
-      if (presence === undefined || !migrateState || a.partial) continue;
+      if (presence === undefined || a.partial) continue;
+      if (partialParent) {
+        report(
+          a.start,
+          `${text.slice(a.start, a.end)} under a rule whose selectors only partly hold a cmdk attribute cannot be migrated automatically; left unchanged`,
+        );
+        continue;
+      }
+      const onBound = ampBound && (ampDescendant === -1 || a.start < ampDescendant);
+      if (!(holds || viaParent || onBound)) continue;
       const value = a.operator === '=' && a.value !== undefined ? unquote(a.value) : undefined;
       if (value === 'true') {
         edits.push({ start: a.start, end: a.end, text: `[${presence}]` });
@@ -211,9 +269,28 @@ function selectorEdits(text: string, css: boolean, report: SiteReport): Edit[] {
         );
       }
     }
-    lastFlag = holds || viaParent;
+    if (!isArgument) lastFlag = holds || viaParent;
     attrs = [];
     compoundStart = -1;
+    ampStart = -1;
+    ampDescendant = -1;
+  };
+
+  /** End the compound collected since the last combinator or comma: an argument's subject joins the outer compound. */
+  const endArgumentSubject = (frame: ParenFrame): void => {
+    if (!frame.subject) {
+      endCompound(true);
+      return;
+    }
+    frame.outer.attrs.push(...attrs);
+    if (frame.outer.start === -1) frame.outer.start = compoundStart;
+    attrs = [];
+    compoundStart = -1;
+  };
+
+  const padsArgument = (at: number): boolean => {
+    ARGUMENT_PADDING.lastIndex = at;
+    return ARGUMENT_PADDING.test(text);
   };
 
   const startPrelude = (): void => {
@@ -232,8 +309,11 @@ function selectorEdits(text: string, css: boolean, report: SiteReport): Edit[] {
       i = close === -1 ? text.length : close + 2;
       continue;
     }
+    // Plain CSS has no line comments: only SCSS's `//`, at the start of a line or after a
+    // statement or block boundary, outside parentheses (a `url( //cdn/a.png)` stays a value).
     if (
       css &&
+      frames.length === 0 &&
       c === '/' &&
       text[i + 1] === '/' &&
       (i === 0 || /[\s;{}]/.test(text[i - 1] as string))
@@ -245,7 +325,24 @@ function selectorEdits(text: string, css: boolean, report: SiteReport): Edit[] {
     }
 
     if (brackets > 0 && /\s/.test(c)) brackets = 0;
-    if (parens === 0 && brackets === 0 && /[\s>+~,{};]/.test(c)) {
+    const frame = frames.at(-1);
+    if (
+      frame !== undefined &&
+      ((brackets === 0 && /[\s>+~,]/.test(c)) ||
+        (tailwind && frame.brackets > 0 && brackets === frame.brackets && /[_>+~,]/.test(c)))
+    ) {
+      if (c === ',') {
+        endArgumentSubject(frame);
+        frame.hasContent = false;
+      } else if (!/\s/.test(c) || (frame.hasContent && !padsArgument(i))) {
+        // A combinator ends an ancestor or sibling compound: it stands alone.
+        endCompound(true);
+        frame.hasContent = false;
+      }
+      i++;
+      continue;
+    }
+    if (frame === undefined && brackets === 0 && /[\s>+~,{};]/.test(c)) {
       endCompound();
       if (c === ',') {
         selectorFlags.push(lastFlag);
@@ -253,7 +350,7 @@ function selectorEdits(text: string, css: boolean, report: SiteReport): Edit[] {
       } else if (c === '{') {
         selectorFlags.push(lastFlag);
         ruleStack.push(
-          preludeIsAtRule ? (ruleStack.at(-1) ?? false) : selectorFlags.every(Boolean),
+          preludeIsAtRule ? (ruleStack.at(-1) ?? 'none') : parentMatchOf(selectorFlags),
         );
         startPrelude();
       } else if (c === '}') {
@@ -273,6 +370,8 @@ function selectorEdits(text: string, css: boolean, report: SiteReport): Edit[] {
         preludeIsAtRule = c === '@';
       }
     }
+
+    if (frame !== undefined) frame.hasContent = true;
 
     if (css && (c === '"' || c === "'") && brackets === 0) {
       let j = i + 1;
@@ -316,13 +415,49 @@ function selectorEdits(text: string, css: boolean, report: SiteReport): Edit[] {
         i = PARTIAL_ATTRIBUTE_SELECTOR.lastIndex;
         continue;
       }
+      if (
+        tailwind &&
+        brackets === 0 &&
+        ampStart === -1 &&
+        text.startsWith('[&', i) &&
+        (i === compoundStart ||
+          (text[i - 1] === ':' && !CHILD_VARIANT.test(text.slice(compoundStart, i))))
+      ) {
+        ampStart = i;
+        ampDescendant = -1;
+      }
       brackets++;
     } else if (c === ']') {
       if (brackets > 0) brackets--;
+    } else if (
+      tailwind &&
+      brackets === 1 &&
+      frames.length === 0 &&
+      ampStart !== -1 &&
+      ampDescendant === -1 &&
+      /[_>+~]/.test(c)
+    ) {
+      ampDescendant = i;
     } else if (c === '(') {
-      parens++;
+      frames.push({
+        brackets,
+        hasContent: false,
+        outer: { attrs, start: compoundStart, ampStart, ampDescendant },
+        subject: /:(?:not|is|where|matches)$/i.test(text.slice(Math.max(0, i - 8), i)),
+      });
+      attrs = [];
+      compoundStart = -1;
+      ampStart = -1;
+      ampDescendant = -1;
     } else if (c === ')') {
-      if (parens > 0) parens--;
+      const closing = frames.pop();
+      if (closing !== undefined) {
+        endArgumentSubject(closing);
+        attrs = closing.outer.attrs;
+        compoundStart = closing.outer.start;
+        ampStart = closing.outer.ampStart;
+        ampDescendant = closing.outer.ampDescendant;
+      }
     } else if (c === '-' && text.startsWith('--cmdk-', i) && !/[\w-]/.test(text[i - 1] ?? '')) {
       const name = CSS_VARS_LONGEST_FIRST.find(
         (v) => text.startsWith(v, i) && !/[\w-]/.test(text[i + v.length] ?? ''),
@@ -335,12 +470,20 @@ function selectorEdits(text: string, css: boolean, report: SiteReport): Edit[] {
     }
     i++;
   }
+  // An unclosed parenthesis ends the text: unwind it as ')' would, so the outer compound is still processed.
+  for (let open = frames.pop(); open !== undefined; open = frames.pop()) {
+    endArgumentSubject(open);
+    attrs = open.outer.attrs;
+    compoundStart = open.outer.start;
+    ampStart = open.outer.ampStart;
+    ampDescendant = open.outer.ampDescendant;
+  }
   endCompound();
 
   return edits;
 }
 
-/** Rewrite the Tailwind value variants of the two state attributes in a class list. */
+/** Rewrite the Tailwind value variants of the two state attributes in a class list, reporting the presence form. */
 function rewriteTailwind(text: string, report: SiteReport): string {
   return applyEdits(text, tailwindEdits(text, report));
 }
@@ -348,6 +491,14 @@ function rewriteTailwind(text: string, report: SiteReport): string {
 /** The edits rewriteTailwind applies, as ranges of `text`. */
 function tailwindEdits(text: string, report: SiteReport): Edit[] {
   const edits: Edit[] = [];
+  for (const m of text.matchAll(TAILWIND_PRESENCE)) {
+    const name = `data-${m[1]}`;
+    const presence = STATE_ATTRS.get(name) as string;
+    report(
+      m.index,
+      `${m[0]}: on a cmdk element cannot be migrated automatically: cmdk rendered ${name} with a "true" or "false" value, modern-cmdk sets ${presence} only while the state holds; left unchanged`,
+    );
+  }
   for (const m of text.matchAll(TAILWIND_STATE)) {
     const presence = STATE_ATTRS.get(`data-${m[1]}`) as string;
     const value = m[3] ?? m[4];
@@ -376,9 +527,14 @@ function lineAt(text: string, index: number, firstLine: number): number {
  * Each site left for manual migration is reported once with its line.
  */
 export function transformStylesheet(source: string, report: (message: string) => void): string {
-  return rewriteSelectors(source, true, (index, message) => {
-    report(`line ${lineAt(source, index, 1)}: ${message}`);
-  });
+  return rewriteSelectors(
+    source,
+    true,
+    (index, message) => {
+      report(`line ${lineAt(source, index, 1)}: ${message}`);
+    },
+    false,
+  );
 }
 
 // Loose views of the AST nodes this transform touches; jscodeshift's node types differ between the
@@ -597,7 +753,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
         const hasQuotes = quote === '"' || quote === "'";
         if (!hasQuotes) {
           const report = reportAt(original, node.loc?.start?.line);
-          let rewritten = rewriteSelectors(original, false, report);
+          let rewritten = rewriteSelectors(original, false, report, useTailwind);
           if (useTailwind) rewritten = rewriteTailwind(rewritten, report);
           if (rewritten === original) return;
           changed = true;
@@ -616,7 +772,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
             }
           : decodeRaw(inner);
         const report = reportAt(decoded.cooked, node.loc?.start?.line);
-        const edits = selectorEdits(decoded.cooked, false, report);
+        const edits = selectorEdits(decoded.cooked, false, report, useTailwind);
         if (useTailwind) edits.push(...tailwindEdits(decoded.cooked, report));
         if (edits.length === 0) return;
         const edited = applyCookedEdits(inner, decoded, edits);
@@ -659,7 +815,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
           }
           api.report(line + message.replaceAll(PLACEHOLDER, PLACEHOLDER_TEXT));
         };
-        let rewritten = rewriteSelectors(original, false, report);
+        let rewritten = rewriteSelectors(original, false, report, useTailwind);
         if (useTailwind) rewritten = rewriteTailwind(rewritten, report);
         if (rewritten === original) return;
         const parts = rewritten.split(PLACEHOLDER);

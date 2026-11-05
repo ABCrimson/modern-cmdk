@@ -7,3 +7,6 @@ export const enabled = '[data-command-item]:not([data-disabled])';
 export const both = '[data-command-item][data-active]:not([data-disabled])';
 export const negated = '[data-command-item]:not([data-active])';
 export const hover = `[data-command-item][data-active]:hover > [data-command-group-heading]`;
+export const wrapped = ':is(.dark [data-command-item])[data-active]';
+export const open = '[data-command-item][data-active]:not(' + rest + ')';
+export const spaced = ':is( [data-command-item] )[data-active]';
