@@ -586,7 +586,7 @@ jobs:
           mkdir "$dir"
           cd "$dir"
           npm init -y
-          tarballs=("$RUNNER_TEMP"/pack/modern-cmdk-*.tgz)
+          tarballs=("$RUNNER_TEMP"/pack/modern-cmdk-[0-9]*.tgz)
           [ "${#tarballs[@]}" -eq 1 ] && [ -f "${tarballs[0]}" ] || { echo "::error::expected exactly one modern-cmdk tarball, found: ${tarballs[*]}"; exit 1; }
           node --version | tee -a install.log
           npm install --engine-strict --no-audit --no-fund "${tarballs[0]}" 2>&1 | tee -a install.log
