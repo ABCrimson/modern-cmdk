@@ -567,7 +567,7 @@ Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnp
 | `modern-cmdk/styles.css` | 4 kB | `dist/react/styles.css`, gzip |
 | Codemod bin | 3.4 MB | `dist/codemod/cli.mjs` plus `dist/codemod/transforms/*.mjs` (the whole bin), installed size (no compression) |
 
-These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.4.0.json` (6e7c04d); its codemod value (3318819 B) is `cli.mjs` alone, measured at 9827e1f. The whole bin (`cli.mjs` plus the transforms) measured 3325793 B on 2026-11-04 by size-limit (the raw bytes of the five files on disk, no bundling or compression), and the record is re-measured at the RC.
+These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.4.0.json` (5f1e01e, measured at 07bfe79); its codemod value (3325793 B) is the whole bin, `cli.mjs` plus the transforms.
 
 ### Performance rules
 

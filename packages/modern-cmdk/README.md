@@ -153,7 +153,7 @@ Theming (CSS custom properties, `@layer command`) is covered in the [theming gui
 
 ## Sizes
 
-Figures come from [`benchmarks/size-history/1.4.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/6e7c04d/benchmarks/size-history/1.4.0.json) (committed in `6e7c04d`, measured at `9827e1f` with size-limit 14.3.0) and the `size-limit` entries in the root `package.json`. Method: size-limit, gzip, peers (`react`, `react-dom`, `radix-ui`) ignored; the codemod bin is raw installed size.
+Figures come from [`benchmarks/size-history/1.4.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/5f1e01e/benchmarks/size-history/1.4.0.json) (committed in `5f1e01e`, measured at `07bfe79` with size-limit 14.3.0) and the `size-limit` entries in the root `package.json`. Method: size-limit, gzip, peers (`react`, `react-dom`, `radix-ui`) ignored; the codemod bin is raw installed size.
 
 | Entry | Bytes | Method |
 |---|---|---|
@@ -162,8 +162,8 @@ Figures come from [`benchmarks/size-history/1.4.0.json`](https://github.com/ABCr
 | `modern-cmdk` + `modern-cmdk/react` | 9830 | gzip, core included |
 | `modern-cmdk/react/dialog`, adapter only | 1425 | gzip, `modern-cmdk` ignored |
 | `modern-cmdk/react`, `CommandSeparator` only | 4767 | gzip, `modern-cmdk` ignored; still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (tree-shaking of the barrel is a 2.0 item) |
-| `modern-cmdk/styles.css` | 3932 | gzip |
-| codemod bin (`dist/codemod/cli.mjs`, `cli.mjs` alone) | 3318819 | raw, not gzip; the enforced budget covers `cli.mjs` plus `dist/codemod/transforms/*.mjs` (whole bin 3325793 B on 2026-11-04, re-measured at the RC) |
+| `modern-cmdk/styles.css` | 3959 | gzip |
+| codemod bin (`dist/codemod/cli.mjs` plus `dist/codemod/transforms/*.mjs`) | 3325793 | raw installed size, not gzip |
 
 1.3's 9844 B React figure measured `dist/react/index.mjs` with the core inlined, so it was core plus adapter, not the adapter.
 
