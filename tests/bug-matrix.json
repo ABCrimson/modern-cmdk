@@ -21,13 +21,13 @@
   },
   {
     "id": "DG-113",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-async-fallbacks.test.ts::DG-113: no Suspense boundary wraps Command.AsyncItems directly",
+    "status": "covered"
   },
   {
     "id": "DG-114",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-async-fallbacks.test.ts::DG-114: every Command.Loading used as a fallback carries the loading prop",
+    "status": "covered"
   },
   {
     "id": "ARCH-07",
