@@ -1,10 +1,11 @@
 // modern-cmdk/codemod — Transform: data-attrs
 // Renames cmdk's `cmdk-*` attributes to the `data-command-*` attributes modern-cmdk renders, in
 // two passes:
-//   - the script pass (default export, .ts/.tsx/.js/.jsx/.mjs/.cjs): JSX attribute names such as
-//     <div cmdk-root="" /> -> <div data-command-root="" />, selectors inside string and template
-//     literals such as querySelector('[cmdk-root] [cmdk-item]'), and the Tailwind data-variants
-//     of className/class values on JSX elements bound to a 'cmdk' or 'modern-cmdk/react' import;
+//   - the script pass (default export, .ts/.mts/.cts/.tsx/.js/.jsx/.mjs/.cjs): JSX attribute names
+//     such as <div cmdk-root="" /> -> <div data-command-root="" />, selectors inside string and
+//     template literals such as querySelector('[cmdk-root] [cmdk-item]'), and the Tailwind
+//     data-variants of className/class values on JSX elements bound to a 'cmdk' or
+//     'modern-cmdk/react' import;
 //   - the stylesheet pass (transformStylesheet, .css/.scss): the same selector rewrite, with
 //     comments, strings outside attribute selectors and formatting left alone.
 // Every site it cannot migrate is reported once and left unchanged.

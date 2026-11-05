@@ -15,17 +15,20 @@
 // `forwardRef as fr`, or `<namespace>.forwardRef` for a default or namespace import), including
 // inside `memo(...)`, when the argument is an arrow function or function expression with at most
 // two parameters. The ref parameter keeps its name (`ref` stays shorthand, any other name becomes
-// `ref: name`). The parameters' own annotations, or else the call's type arguments, become the annotation of
-// the new props pattern: `Props & { ref?: Ref<T> }`, spelled `<Namespace>.Ref` when a default or
-// namespace import of react exists and otherwise through a type-only `Ref` specifier added to the
-// react named import. A forwardRef import specifier is removed only when nothing else refers to
-// it, and its declaration only when no specifier remains. A single-parameter render function with a
-// ref type argument or an annotated props parameter also gets `{ ref?: Ref<T> }` (`Ref<unknown>` without
-// a type argument) so callers can still pass `ref`. A props spread in such a function now forwards that
-// ref, where forwardRef dropped it. A render function with neither type arguments nor annotations stays
-// untyped: under strict TypeScript forwardRef inferred the ref as ForwardedRef<unknown>, which cannot be
-// attached to a DOM element, so the input was not type-safe either, and the implicit-any error on the
-// output asks for the annotation the author never wrote (`Ref<unknown>` is not assignable to a DOM ref).
+// `ref: name`). The parameters' own annotations, or else the call's type arguments, become the
+// annotation of the new props pattern: `Props & { ref?: Ref<T> }`, spelled `<Namespace>.Ref` when a
+// default or namespace import of react exists and otherwise through a type-only `Ref` specifier
+// added to the react named import. A forwardRef import specifier is removed only when nothing else
+// refers to it, and its declaration only when no specifier remains. A single-parameter render
+// function with a ref type argument or an annotated props parameter also gets `{ ref?: Ref<T> }`
+// (`Ref<unknown>` without a type argument) so callers can still pass `ref`. A props spread in any
+// single-parameter render function, typed or untyped, now forwards that ref where forwardRef
+// dropped it; the typed form without a ref type argument is reported instead, the untyped form
+// unwraps without a report. A render function with neither type arguments nor annotations stays
+// untyped: under strict TypeScript forwardRef inferred the ref as ForwardedRef<unknown>, which
+// cannot be attached to a DOM element, so the input was not type-safe either, and the implicit-any
+// error on the output asks for the annotation the author never wrote (`Ref<unknown>` is not
+// assignable to a DOM ref).
 //
 // What it leaves unchanged, each with one report: an argument that is not a function literal
 // (`forwardRef(Inner)`), `forwardRef()` with no argument, a render function without parameters when the
