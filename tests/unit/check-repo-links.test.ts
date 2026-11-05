@@ -4,7 +4,7 @@
 // git repository (--root) and asserts the exit code, the dead line and the summary counts.
 
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -16,6 +16,7 @@ import {
   classifyLink,
   extractLinks,
   headingAnchors,
+  isRefName,
   slugify,
 } from '../../scripts/check-repo-links.ts';
 
@@ -165,6 +166,17 @@ describe('fragment rules', () => {
   });
 });
 
+describe('ref names', () => {
+  it('SEC-61: the accepted ref names', () => {
+    for (const name of ['main-2', 'v1.5.0', 'feature_x', '1.5']) {
+      expect(isRefName(name), name).toBe(true);
+    }
+    for (const name of ['-x', '--upload-pack=x', 'a..b', 'v1@{0}', 'x.lock', 'a/b', '']) {
+      expect(isRefName(name), name).toBe(false);
+    }
+  });
+});
+
 describe('check-repo-links runs', () => {
   const dirs: string[] = [];
   afterAll(async () => {
@@ -174,10 +186,14 @@ describe('check-repo-links runs', () => {
   const git = (cwd: string, ...args: string[]): Promise<{ stdout: string; stderr: string }> =>
     run('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.com', ...args], { cwd });
 
-  async function scan(root: string): Promise<{ code: number; stdout: string; stderr: string }> {
+  async function scan(
+    root: string,
+    env?: Record<string, string>,
+  ): Promise<{ code: number; stdout: string; stderr: string }> {
     try {
       const { stdout, stderr } = await run(process.execPath, [SCRIPT, '--root', root], {
         cwd: root,
+        env: { ...process.env, ...env },
       });
       return { code: 0, stdout, stderr };
     } catch (error) {
@@ -243,7 +259,51 @@ describe('check-repo-links runs', () => {
 
     const result = await scan(b);
     expect(result.code).toBe(0);
+    expect(result.stdout).toContain('ran git fetch --no-tags --end-of-options origin side (ok)');
     expect((await git(b, 'rev-parse', '--is-shallow-repository')).stdout.trim()).toBe('false');
+  });
+
+  it("SEC-61: a link's ref that is not a hash or a plain name is dead before any git call, and no option reaches git", async () => {
+    const root: string = await mkdtemp(join(tmpdir(), 'check-repo-links-sec61-'));
+    dirs.push(root);
+    await git(root, 'init', '-q');
+    const links: string[] = [
+      `${BASE}/blob/--upload-pack=touch%20pwned/README.md`,
+      `${BASE}/blob/a..b/README.md`,
+      `${BASE}/blob/v1@{0}/README.md`,
+    ];
+    await writeFile(join(root, 'README.md'), `${links.join('\n')}\n`);
+    await git(root, 'add', '.');
+    await git(root, 'commit', '-q', '-m', 'first');
+
+    // git writes the GIT_TRACE file on its first invocation, so no file means the script never ran git.
+    const traceDir: string = await mkdtemp(join(tmpdir(), 'check-repo-links-trace-'));
+    dirs.push(traceDir);
+    const trace: string = join(traceDir, 'trace');
+    const result = await scan(root, { GIT_TRACE: trace });
+    expect(result.code).toBe(1);
+    expect(await stat(trace).catch(() => undefined)).toBeUndefined();
+    const lines: string[] = result.stderr.trim().split('\n');
+    expect(lines).toHaveLength(3);
+    for (const link of links) {
+      const line: string | undefined = lines.find((l) => l.includes(link));
+      expect(line, link).toContain('is not a ref this check accepts');
+    }
+    expect(result.stdout).not.toContain('ran git');
+    expect(await readdir(root, { recursive: true })).not.toContain('pwned');
+  });
+
+  it('SEC-62: a path with .. segments is dead without being read, so a link cannot reach outside the root', async () => {
+    const base: string = await mkdtemp(join(tmpdir(), 'check-repo-links-sec62-'));
+    dirs.push(base);
+    const root: string = join(base, 'root');
+    await mkdir(root);
+    await writeFile(join(base, 'outside.md'), '# Outside\n');
+    await writeFile(join(root, 'README.md'), `[out](${BASE}/blob/main/../outside.md)\n`);
+
+    const result = await scan(root);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain('../outside.md leaves the repository');
   });
 
   it('exits 2 on an unknown flag', async () => {
