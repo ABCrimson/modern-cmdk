@@ -3,10 +3,10 @@ import fs from 'node:fs';
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join, sep } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { Writable } from 'node:stream';
 import { stripVTControlCharacters } from 'node:util';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { escapeHtml, run, validateTarget } from '../../packages/create-modern-cmdk/src/index.js';
 
 interface Captured {
@@ -35,10 +35,12 @@ function capture(): Captured {
 let dir: string;
 
 beforeEach(async () => {
+  vi.stubEnv('MODERN_CMDK_VERSION', '1.9.9');
   dir = await mkdtemp(join(tmpdir(), 'create-modern-cmdk-'));
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await rm(dir, { recursive: true, force: true });
 });
 
@@ -165,7 +167,7 @@ describe('create-modern-cmdk CLI', () => {
     expect(app).toContain('useState(false)');
     expect(app).toContain("addEventListener('keydown'");
     expect(app).toContain('event.metaKey || event.ctrlKey');
-    expect(app).toContain("event.key === 'k'");
+    expect(app).toContain("event.key.toLowerCase() === 'k'");
   });
 });
 
@@ -406,5 +408,83 @@ describe('create-modern-cmdk 1.5 safety', () => {
     expect(c.out()).toMatch(/react-full\s+Deprecated alias of react-basic/);
     expect(c.out()).toContain('--no-overwrite');
     expect(c.out()).toContain('--force');
+  });
+
+  it('SEC-13, DT-07, RP-23, F31: every generated dependency is an exact version', async () => {
+    const target = join(dir, 'exact-pins');
+    expect(await run([target], capture().io)).toBe(0);
+    const pkg = JSON.parse(await readFile(join(target, 'package.json'), 'utf-8')) as {
+      dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
+    };
+    const all = { ...pkg.dependencies, ...pkg.devDependencies };
+    expect(Object.keys(all).length).toBeGreaterThanOrEqual(9);
+    for (const [name, range] of Object.entries(all)) {
+      expect(range, name).toMatch(/^\d+\.\d+\.\d+$/);
+    }
+  });
+
+  it('SEC-13: modern-cmdk is the build-time version', async () => {
+    const target = join(dir, 'build-version');
+    expect(await run([target], capture().io)).toBe(0);
+    const pkg = JSON.parse(await readFile(join(target, 'package.json'), 'utf-8')) as {
+      dependencies: Record<string, string>;
+    };
+    expect(pkg.dependencies['modern-cmdk']).toBe('1.9.9');
+  });
+
+  it('SEC-13: a missing MODERN_CMDK_VERSION fails loudly', async () => {
+    vi.stubEnv('MODERN_CMDK_VERSION', undefined);
+    const target = join(dir, 'no-version');
+    const c = capture();
+    expect(await run([target], c.io)).toBe(1);
+    expect(c.err()).toContain('MODERN_CMDK_VERSION');
+    await expect(readFile(join(target, 'package.json'))).rejects.toThrow();
+  });
+
+  it('CV-48, CV-73, DT-06: main.tsx imports modern-cmdk/styles.css and tsconfig has types vite/client', async () => {
+    const target = join(dir, 'styles-types');
+    expect(await run([target], capture().io)).toBe(0);
+    const main = await readFile(join(target, 'src', 'main.tsx'), 'utf-8');
+    expect(main).toContain("import 'modern-cmdk/styles.css';");
+    expect(main.indexOf('react-dom/client')).toBeLessThan(main.indexOf('modern-cmdk/styles.css'));
+    const tsconfig = JSON.parse(await readFile(join(target, 'tsconfig.json'), 'utf-8')) as {
+      compilerOptions: { types: string[] };
+    };
+    expect(tsconfig.compilerOptions.types).toEqual(['vite/client']);
+  });
+
+  it('CV-64: the scaffold has a typecheck script tsc', async () => {
+    const target = join(dir, 'typecheck');
+    expect(await run([target], capture().io)).toBe(0);
+    const pkg = JSON.parse(await readFile(join(target, 'package.json'), 'utf-8')) as {
+      scripts: Record<string, string>;
+    };
+    expect(pkg.scripts.typecheck).toBe('tsc');
+  });
+
+  it('CV-25: every scaffolded file equals its template file byte for byte', async () => {
+    const templates = resolve(import.meta.dirname, '../../packages/create-modern-cmdk/templates');
+    for (const template of ['react-basic', 'react-dialog']) {
+      const target = join(dir, `bytes-${template}`);
+      expect(await run([target, `--template=${template}`], capture().io)).toBe(0);
+      const expected = new Map<string, string>([
+        ['tsconfig.json', 'shared/tsconfig.json'],
+        ['vite.config.ts', 'shared/vite.config.ts'],
+        [join('src', 'main.tsx'), 'shared/src/main.tsx'],
+        [join('src', 'App.tsx'), `${template}/src/App.tsx`],
+      ]);
+      for (const [file, source] of expected) {
+        expect(await readFile(join(target, file), 'utf-8'), file).toBe(
+          await readFile(join(templates, source), 'utf-8'),
+        );
+      }
+      // index.html differs from its template in the {{title}} placeholder alone.
+      const html = await readFile(join(templates, 'shared/index.html'), 'utf-8');
+      expect(await readFile(join(target, 'index.html'), 'utf-8')).toBe(
+        html.replace('{{title}}', `bytes-${template}`),
+      );
+      expect(html.match(/\{\{[^}]*\}\}/g)).toEqual(['{{title}}']);
+    }
   });
 });

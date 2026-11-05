@@ -21,6 +21,13 @@
 import { lstat, mkdir, rm, rmdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { parseArgs, styleText } from 'node:util';
+import basicApp from '../templates/react-basic/src/App.tsx?raw';
+import dialogApp from '../templates/react-dialog/src/App.tsx?raw';
+import sharedIndexHtml from '../templates/shared/index.html?raw';
+import sharedMain from '../templates/shared/src/main.tsx?raw';
+import sharedTsconfig from '../templates/shared/tsconfig.json?raw';
+import sharedViteConfig from '../templates/shared/vite.config.ts?raw';
+import { DEPENDENCIES, DEV_DEPENDENCIES, modernCmdkVersion } from './versions.js';
 
 const TEMPLATES: Map<string, string> = new Map([
   ['react-basic', 'Basic inline command palette (React)'],
@@ -237,6 +244,12 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       );
     }
 
+    // Injected by tsdown.config.ts at build time; there is no fallback.
+    const cmdkVersion = modernCmdkVersion();
+    if (cmdkVersion === undefined || cmdkVersion === '') {
+      throw new Error('MODERN_CMDK_VERSION was not set at build time; rebuild create-modern-cmdk');
+    }
+
     const projectDir = resolve(projectName);
     const directoryName = basename(projectDir);
     const badTarget = validateTarget(directoryName, process.platform);
@@ -312,7 +325,7 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
 
     // --- Generate files concurrently using Promise.allSettled ---
 
-    // package.json
+    // package.json: the one generated file; the other pins are in versions.ts.
     const pkg = {
       name: packageName,
       version: '0.1.0',
@@ -321,145 +334,21 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       scripts: {
         dev: 'vite',
         build: 'vite build',
+        typecheck: 'tsc',
         preview: 'vite preview',
       },
-      dependencies: {
-        'modern-cmdk': '^1.2.2',
-        'radix-ui': '^1.8.1',
-        react: '^19.3.1',
-        'react-dom': '^19.3.1',
-      },
-      devDependencies: {
-        '@types/react': '^19.3.0',
-        '@types/react-dom': '^19.3.0',
-        '@vitejs/plugin-react': '^6.2.1',
-        typescript: '^7.0.2',
-        vite: '^8.3.5',
-      },
+      dependencies: { 'modern-cmdk': cmdkVersion, ...DEPENDENCIES },
+      devDependencies: DEV_DEPENDENCIES,
     };
 
-    // tsconfig.json
-    const tsconfig = {
-      compilerOptions: {
-        target: 'ESNext',
-        module: 'ESNext',
-        moduleResolution: 'bundler',
-        lib: ['ESNext', 'DOM', 'DOM.Iterable'],
-        jsx: 'react-jsx',
-        strict: true,
-        noEmit: true,
-        erasableSyntaxOnly: true,
-        verbatimModuleSyntax: true,
-        skipLibCheck: true,
-      },
-      include: ['src'],
-    };
-
-    // vite.config.ts
-    const viteConfig = `import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-
-export default defineConfig({
-  plugins: [react()],
-});
-`;
-
-    // index.html
-    const indexHtml = `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${escapeHtml(directoryName)}</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
-`;
-
-    // src/main.tsx
-    const mainTsx = `import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { App } from './App.js';
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
-`;
-
-    // src/App.tsx — varies by template
-    const appContent =
-      template === 'react-dialog'
-        ? `import { Command } from 'modern-cmdk/react';
-import { useEffect, useState } from 'react';
-
-export function App() {
-  const [open, setOpen] = useState(false);
-
-  // Mod+K: Cmd+K on macOS, Ctrl+K elsewhere
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-        event.preventDefault();
-        setOpen((current) => !current);
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, []);
-
-  return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-      <h1>Command Palette</h1>
-      <p>Press <kbd>Ctrl+K</kbd> (<kbd>Cmd+K</kbd> on macOS) to open.</p>
-      <Command.Dialog open={open} onOpenChange={setOpen}>
-        <Command.Input placeholder="Search commands..." />
-        <Command.List>
-          <Command.Empty>No results found.</Command.Empty>
-          <Command.Item value="home" onSelect={() => alert('Home!')}>Home</Command.Item>
-          <Command.Item value="settings" onSelect={() => alert('Settings!')}>Settings</Command.Item>
-          <Command.Item value="profile" onSelect={() => alert('Profile!')}>Profile</Command.Item>
-        </Command.List>
-      </Command.Dialog>
-    </div>
-  );
-}
-`
-        : `import { Command } from 'modern-cmdk/react';
-
-export function App() {
-  return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-      <h1>Command Palette</h1>
-      <Command label="Command menu">
-        <Command.Input placeholder="Search..." />
-        <Command.List>
-          <Command.Empty>No results found.</Command.Empty>
-          <Command.Group heading="Actions">
-            <Command.Item value="copy" onSelect={() => alert('Copied!')}>Copy</Command.Item>
-            <Command.Item value="paste" onSelect={() => alert('Pasted!')}>Paste</Command.Item>
-          </Command.Group>
-          <Command.Group heading="Navigation">
-            <Command.Item value="home" onSelect={() => alert('Home!')}>Home</Command.Item>
-            <Command.Item value="settings" onSelect={() => alert('Settings!')}>Settings</Command.Item>
-          </Command.Group>
-        </Command.List>
-      </Command>
-    </div>
-  );
-}
-`;
+    const appContent = template === 'react-dialog' ? dialogApp : basicApp;
 
     const contents: ReadonlyMap<string, string> = new Map([
       ['package.json', `${JSON.stringify(pkg, null, 2)}\n`],
-      ['tsconfig.json', `${JSON.stringify(tsconfig, null, 2)}\n`],
-      ['vite.config.ts', viteConfig],
-      ['index.html', indexHtml],
-      [join('src', 'main.tsx'), mainTsx],
+      ['tsconfig.json', sharedTsconfig],
+      ['vite.config.ts', sharedViteConfig],
+      ['index.html', sharedIndexHtml.replace('{{title}}', () => escapeHtml(directoryName))],
+      [join('src', 'main.tsx'), sharedMain],
       [join('src', 'App.tsx'), appContent],
     ]);
     const preExisting = new Set(collisions);
