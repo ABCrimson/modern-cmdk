@@ -43,10 +43,15 @@ function WasmSearchPalette() {
     let engine: WasmSearchEngine | FallbackSearchEngine | null = null;
 
     async function init() {
-      engine = await createWasmSearchEngine();
-      if (!disposed) setEngine(engine);
+      const created = await createWasmSearchEngine();
+      if (disposed) {
+        created[Symbol.dispose]();
+        return;
+      }
+      engine = created;
+      setEngine(created);
     }
-    init();
+    void init();
 
     return () => {
       disposed = true;
@@ -114,14 +119,24 @@ function WorkerSearchPalette() {
 
   useEffect(() => {
     let disposed = false;
+    let engine: WorkerSearchEngine | MainThreadSearchEngine | null = null;
 
     async function init() {
-      const workerEngine = await createWorkerSearchEngine({ maxResults: 100 });
-      if (!disposed) setEngine(workerEngine);
+      const created = await createWorkerSearchEngine({ maxResults: 100 });
+      if (disposed) {
+        // An effect cleanup cannot await, so the disposal is fire-and-forget.
+        void created[Symbol.asyncDispose]();
+        return;
+      }
+      engine = created;
+      setEngine(created);
     }
+    void init();
 
-    Promise.resolve().then(() => init());
-    return () => { disposed = true; };
+    return () => {
+      disposed = true;
+      void engine?.[Symbol.asyncDispose]();
+    };
   }, []);
 
   if (!engine) return <div>Initializing worker...</div>;
