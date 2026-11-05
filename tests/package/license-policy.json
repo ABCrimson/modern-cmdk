@@ -15,19 +15,19 @@
       "package": "axe-core",
       "license": "MPL-2.0",
       "ships": false,
-      "reason": "Accessibility engine used only by the Playwright axe tests; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Accessibility engine used only by the Playwright axe tests; not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "@axe-core/playwright",
       "license": "MPL-2.0",
       "ships": false,
-      "reason": "Test-only axe adapter for Playwright; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Test-only axe adapter for Playwright; not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "lightningcss",
       "license": "MPL-2.0",
       "ships": false,
-      "reason": "Build-time CSS transformer pulled in by the tooling (vite); not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Build-time CSS transformer pulled in by the tooling (vite); not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "lightningcss-*",
@@ -38,70 +38,70 @@
     {
       "package": "caniuse-lite",
       "license": "CC-BY-4.0",
-      "ships": false,
-      "reason": "Reached only through jscodeshift 17.4.0 (a devDependency of modern-cmdk and of the workspace root) via @babel/core -> @babel/helper-compilation-targets -> browserslist. tsdown inlines only @babel/parser from that tree into dist/codemod/cli.mjs; caniuse-lite, browserslist and @babel/core are absent from every built dist file (checked 2026-11-04), so it does not ship. Re-check if the codemod bundle starts inlining @babel/core."
+      "ships": true,
+      "reason": "CC-BY-4.0 browser-support data (an attribution licence, not copyleft). Reached through jscodeshift 17.4.0 via @babel/core -> @babel/helper-compilation-targets -> browserslist. jscodeshift is a dependency of modern-cmdk-codemod (1.5.0), so npm installs this package, with browserslist and @babel/core, into every consumer's node_modules; no tarball of ours contains it, and its own package carries the licence text and attribution. In modern-cmdk, jscodeshift is bundled into dist/codemod until 2.0 and tsdown inlines only @babel/parser from that tree: caniuse-lite, browserslist and @babel/core are absent from every built dist file (checked 2026-11-05), and modern-cmdk has no dependency on jscodeshift. Re-check if the codemod bundle starts inlining @babel/core."
     },
     {
       "package": "@vscode/vsce-sign",
       "license": "Unknown",
       "ships": false,
-      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "@vscode/vsce-sign-*",
       "license": "Unknown",
       "ships": false,
-      "reason": "Platform binaries of @vscode/vsce-sign; Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Platform binaries of @vscode/vsce-sign; Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "binaryextensions",
       "license": "Artistic-2.0",
       "ships": false,
-      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "editions",
       "license": "Artistic-2.0",
       "ships": false,
-      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "istextorbinary",
       "license": "Artistic-2.0",
       "ships": false,
-      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "textextensions",
       "license": "Artistic-2.0",
       "ships": false,
-      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "version-range",
       "license": "Artistic-2.0",
       "ships": false,
-      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Dependency of @vscode/vsce 4.1.1-0, a devDependency of the private packages/vscode-modern-cmdk; not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "elkjs",
       "license": "EPL-2.0 OR GPL-3.0-or-later",
       "ships": false,
-      "reason": "Dependency of mermaid 12.3.0 in apps/docs, used only by the docs site; not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Dependency of mermaid 12.3.0 in apps/docs, used only by the docs site; not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "@img/sharp-libvips-*",
       "license": "LGPL-3.0-or-later",
       "ships": false,
       "platforms": ["linux", "darwin"],
-      "reason": "The libvips build that @img/sharp-linux-* and @img/sharp-darwin-* load on Linux and macOS (@img/sharp-libvips-linux-x64 1.3.4 on the ubuntu x64 CI runners; the darwin builds are LGPL-3.0-or-later too); an optional platform binary of sharp, an optional dependency of next 16.5.0-canary.40, a root devDependency since 2026-11-04 for the docs-samples gate (TEB-84); not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "The libvips build that @img/sharp-linux-* and @img/sharp-darwin-* load on Linux and macOS (@img/sharp-libvips-linux-x64 1.3.4 on the ubuntu x64 CI runners; the darwin builds are LGPL-3.0-or-later too); an optional platform binary of sharp, an optional dependency of next 16.5.0-canary.40, a root devDependency since 2026-11-04 for the docs-samples gate (TEB-84); not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     },
     {
       "package": "@img/sharp-win32-*",
       "license": "Apache-2.0 AND LGPL-3.0-or-later",
       "ships": false,
       "platforms": ["win32"],
-      "reason": "The Windows platform binary of sharp, which bundles libvips (@img/sharp-win32-x64 0.35.5); an optional platform binary of sharp, an optional dependency of next 16.5.0-canary.40, a root devDependency since 2026-11-04 for the docs-samples gate (TEB-84); not a dependency of modern-cmdk or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "The Windows platform binary of sharp, which bundles libvips (@img/sharp-win32-x64 0.35.5); an optional platform binary of sharp, an optional dependency of next 16.5.0-canary.40, a root devDependency since 2026-11-04 for the docs-samples gate (TEB-84); not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
     }
   ],
   "licenseFiles": [

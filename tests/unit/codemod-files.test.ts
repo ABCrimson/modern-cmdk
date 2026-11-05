@@ -8,7 +8,7 @@ import {
   normalizePattern,
   parserFor,
   routeFor,
-} from '../../packages/modern-cmdk/src/codemod/files.js';
+} from '../../packages/modern-cmdk-codemod/src/files.js';
 import { git, gitEnv } from './git-fixture.js';
 
 let dir: string;

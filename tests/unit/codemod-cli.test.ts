@@ -11,13 +11,15 @@ import {
   defaultConcurrency,
   run,
   type TransformModule,
-} from '../../packages/modern-cmdk/src/codemod/cli.js';
-import importRewrite from '../../packages/modern-cmdk/src/codemod/transforms/import-rewrite.js';
+} from '../../packages/modern-cmdk-codemod/src/cli.js';
+import importRewrite from '../../packages/modern-cmdk-codemod/src/transforms/import-rewrite.js';
 import { git, gitEnv } from './git-fixture.js';
 
 // The bundled bin imports ./transforms/<name>.mjs next to itself; from source there is no such
 // file, so the tests inject the real transform (dist/codemod is covered by tests/dist/cli-smoke).
 const deps: CliDeps = {
+  // The deprecated bin's profile (the bundled shim passes it): the lenient 1.x titles below keep their meaning. run() without a program is the strict modern-cmdk-codemod (PKG-1 below).
+  program: 'modern-cmdk',
   loadTransform: async (name: string): Promise<TransformModule> => {
     if (name === 'should-filter') {
       return {
@@ -32,6 +34,9 @@ const deps: CliDeps = {
 
 /** The new bin's profile: strict by default, dirty-tree refusal, gitignore-aware discovery. */
 const codemodDeps: CliDeps = { ...deps, program: 'modern-cmdk-codemod' };
+
+/** Deps with a loader and no program: what run() defaults to. */
+const { program: _program, ...defaultProgramDeps }: CliDeps = deps;
 
 const SOURCE = `import { Command } from 'cmdk';\n`;
 
@@ -106,6 +111,21 @@ describe('codemod CLI: help and usage', () => {
     expect(lines).toEqual([
       "Node >= 26.4.0 (the floor modern-cmdk's toolchain and create-modern-cmdk declare; modern-cmdk itself declares no engines)",
     ]);
+  });
+
+  it('PKG-1: run() without deps.program is strict (modern-cmdk-codemod)', async () => {
+    const help = capture();
+    expect(await run(['--help'], help.io, defaultProgramDeps)).toBe(0);
+    expect(help.out()).toContain('Usage: modern-cmdk-codemod <transform>');
+    expect(help.out()).not.toContain('is deprecated');
+    expect(help.out()).toContain('Node >= 26.4.0 (the engines.node of modern-cmdk-codemod)');
+
+    const unknown = capture();
+    expect(await run(['--bogus'], unknown.io, defaultProgramDeps)).toBe(2);
+    expect(unknown.err()).toContain('unknown option --bogus');
+
+    expect(await run([], capture().io, defaultProgramDeps)).toBe(2);
+    expect(await run(['--lenient', '--bogus'], capture().io, defaultProgramDeps)).toBe(0);
   });
 
   it('no arguments writes usage to stderr and resolves 0 (strict: 2)', async () => {
@@ -506,7 +526,10 @@ describe('codemod CLI: dry-run diff', () => {
 describe('codemod CLI: program profiles', () => {
   it('CLI-ARGS: --version and -v print "<name> <version>" from the package.json', async () => {
     const pkg = JSON.parse(
-      await readFile(join(import.meta.dirname, '../../packages/modern-cmdk/package.json'), 'utf-8'),
+      await readFile(
+        join(import.meta.dirname, '../../packages/modern-cmdk-codemod/package.json'),
+        'utf-8',
+      ),
     ) as { name: string; version: string };
     for (const flag of ['--version', '-v']) {
       const c = capture();

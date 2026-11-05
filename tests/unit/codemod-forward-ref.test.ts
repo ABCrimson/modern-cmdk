@@ -3,8 +3,8 @@
 // directory is named after the ledger row it closes, so each title starts with its row id.
 
 import { describe, expect, it } from 'vitest';
-import { parserFor } from '../../packages/modern-cmdk/src/codemod/files.js';
-import transform from '../../packages/modern-cmdk/src/codemod/transforms/forward-ref.js';
+import { parserFor } from '../../packages/modern-cmdk-codemod/src/files.js';
+import transform from '../../packages/modern-cmdk-codemod/src/transforms/forward-ref.js';
 import {
   applyTransform,
   listCases,
