@@ -33,6 +33,16 @@ const RULES = [
   { pattern: 'sub-1ms|sub-millisecond' },
   { pattern: String.raw`command\.crimson\.dev` },
   { pattern: 'ES2026 Iterator' },
+  {
+    // The stylesheet animates opacity, scale, translate, background-color and the list's height
+    // (CONTRIBUTING.md's animation convention, DG-107); the last two repaint or relayout, so no blanket GPU claim holds.
+    // The claims DG-87, DG-94, DG-99, DG-107, DG-119 and DG-121 removed must not return.
+    pattern: 'GPU-(composited|only|accelerated)',
+  },
+  {
+    // The adapter offsets virtual items with the individual `translate` property (item.tsx:79).
+    pattern: 'translateY',
+  },
 ];
 
 let values;

@@ -627,8 +627,8 @@ Factory for the root `keydown` handler — `ArrowUp`/`ArrowDown`/`Home`/`End` na
 | `[data-command-shortcut]` | `Command.Shortcut` |
 | `[data-command-badge]` | `Command.Badge` |
 | `[data-command-page]` | `Command.Page` |
-| `[data-command-virtual-item]` | `Command.List` (virtual items) |
-| `[data-command-scroll-indicator]` | Scroll progress indicator |
+| `[data-command-virtual-item]` | Reserved hook; no component emits it (for custom rows built on `useVirtualizer`, see the [Theming guide](/guide/theming)) |
+| `[data-command-scroll-indicator]` | Reserved hook; no component emits it (see the [Theming guide](/guide/theming)) |
 | `[data-command-aria-live]` | Live region (screen reader only) |
 
 ## All CSS Custom Properties

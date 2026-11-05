@@ -562,7 +562,7 @@ No JavaScript scroll event listeners. Zero main-thread cost.
 
 ### Content Visibility
 
-All items (and virtualized items) use `content-visibility: auto` with `contain-intrinsic-size`:
+Every item (`[data-command-item]`) uses `content-visibility: auto` with `contain-intrinsic-size`. The `[data-command-virtual-item]` selector below is a reserved hook for custom rows built on `useVirtualizer`; no component emits that attribute.
 
 ```css
 [data-command-item],
