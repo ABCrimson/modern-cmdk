@@ -1,25 +1,41 @@
 #!/usr/bin/env node
 
+/// <reference types="node" />
+// The package tsconfig loads no @types implicitly; this types the node: imports below.
 // modern-cmdk — Codemod CLI entry point
-// Usage: modern-cmdk <transform> <glob> [--dry-run] [--strict] [--concurrency=N]
-//        modern-cmdk --help
-//   e.g. npx modern-cmdk import-rewrite "./src/**/*.tsx"
+// Usage: modern-cmdk <transform> <glob|dir> [--dry-run] [--strict|--lenient] [--force] [--concurrency=N]
+//        modern-cmdk --help | --version
+//   e.g. npx modern-cmdk import-rewrite "./src/**/*.tsx"   or   npx modern-cmdk import-rewrite ./src
 // Available transforms: import-rewrite, data-attrs, forward-ref, should-filter
 //
-// Exit codes. Without --strict (the 1.x defaults): 0 for --help, missing arguments and per-file
+// Two program profiles share this file (CliDeps.program): the deprecated `modern-cmdk` bin runs
+// lenient unless --strict is given; `modern-cmdk-codemod` runs strict unless --lenient is given.
+//
+// Exit codes. Lenient mode (the 1.x defaults): 0 for --help, missing arguments and per-file
 // errors; 1 for an unknown transform, no matching files and an uncaught error. An unknown option
 // is ignored with a warning on stderr when both positionals are present (the run carries on as in
 // 1.2.2); without them it is a usage error that exits 0. A malformed known option (a flag given a
 // value, --concurrency with no value or a dash-led space-form value) is a usage error that exits 0
-// and writes nothing, even beside an unknown option. With --strict: 2 for any usage error,
-// including an unknown option, and 1 when any file errored.
+// and writes nothing, even beside an unknown option. Strict mode (--strict, or the
+// modern-cmdk-codemod default): 0 on success, reports included; 1 when any file errored, no file
+// matched or the run failed; 2 for any usage error, including an unknown option, and for a refused
+// dirty tree. --strict together with --lenient is a usage error that exits 2.
 
 import { readFile, writeFile } from 'node:fs/promises';
+import { findPackageJSON } from 'node:module';
 import { relative } from 'node:path';
 import { parseArgs, styleText } from 'node:util';
-import { globby } from 'globby';
-import type { API, FileInfo } from 'jscodeshift';
+import type { API, FileInfo, JSCodeshift } from 'jscodeshift';
 import jscodeshift from 'jscodeshift';
+import { unifiedDiff } from './diff.js';
+import {
+  discoverFiles,
+  findDirtyFiles,
+  type ParserName,
+  type Program,
+  parserFor,
+  routeFor,
+} from './files.js';
 
 // --- Transform registry ---------------------------------------------------
 
@@ -32,14 +48,20 @@ const AVAILABLE_TRANSFORMS: Map<string, string> = new Map<string, string>([
 
 type TransformFn = (fileInfo: FileInfo, api: API) => string;
 
+/** What a transform module exports: the script transform, and optionally one for .css/.scss files. */
+export interface TransformModule {
+  readonly default: TransformFn;
+  readonly transformStylesheet?: (source: string, report: (message: string) => void) => string;
+}
+
 /**
- * Dynamically import a transform module by name and return its default export.
+ * Dynamically import a transform module by name.
  */
-async function loadTransform(name: string): Promise<TransformFn> {
+async function loadTransform(name: string): Promise<TransformModule> {
   // @vite-ignore: the bundled bin resolves this next to itself; Vite's dynamic-import-vars
   // rewrite would otherwise prepend a helper import above the shebang when tests load this file.
   const mod = await import(/* @vite-ignore */ `./transforms/${name}.mjs`);
-  return mod.default as TransformFn;
+  return mod as TransformModule;
 }
 
 // --- I/O -------------------------------------------------------------------
@@ -52,14 +74,36 @@ export interface CliIo {
 
 /** Test seam: replace how a transform is loaded (the bundled bin imports `./transforms/<name>.mjs`). */
 export interface CliDeps {
-  readonly loadTransform?: (name: string) => Promise<TransformFn>;
+  readonly loadTransform?: (name: string) => Promise<TransformModule>;
+  /** Which bin is running; `modern-cmdk` until W3-01 flips the default. */
+  readonly program?: Program;
 }
 
-function usageText(stream: NodeJS.WritableStream): string {
+const NODE_FLOOR_LINES: Record<Program, string> = {
+  // A documented fact, not an engines field: modern-cmdk declares none (D14), so the bin cannot refuse an older Node.
+  'modern-cmdk':
+    "Node >= 26.4.0 (the floor modern-cmdk's toolchain and create-modern-cmdk declare; modern-cmdk itself declares no engines)",
+  'modern-cmdk-codemod':
+    'Node >= 26.4.0 (the floor of the modern-cmdk toolchain and create-modern-cmdk)',
+};
+
+function usageText(stream: NodeJS.WritableStream, program: Program): string {
   const bold = (s: string): string => styleText('bold', s, { stream });
   const opt = (s: string): string => styleText('cyan', s.padEnd(17), { stream });
+  const profile =
+    program === 'modern-cmdk'
+      ? [
+          'modern-cmdk (this bin) is deprecated. It runs with --lenient unless --strict is given.',
+          'Use: npx modern-cmdk-codemod <transform> <glob|dir>',
+        ]
+      : [
+          'modern-cmdk-codemod runs with --strict unless --lenient is given. A strict run without --dry-run',
+          'refuses to write into a git tree with uncommitted changes (or outside a git tree) unless --force is given.',
+        ];
   return [
-    `${bold('Usage:')} modern-cmdk <transform> <glob> [options]`,
+    `${bold('Usage:')} ${program} <transform> <glob|dir> [options]`,
+    '',
+    ...profile,
     '',
     bold('Transforms:'),
     ...AVAILABLE_TRANSFORMS.entries()
@@ -71,17 +115,37 @@ function usageText(stream: NodeJS.WritableStream): string {
     `  ${opt('--strict')}Exit 2 on usage errors (incl. unknown options), 1 on file errors`,
     `  ${opt('--concurrency=N')}Files processed at once (default 8)`,
     `  ${opt('-h, --help')}Show this help`,
+    `  ${opt('--lenient')}Keep the lenient exit codes below (cannot be combined with --strict)`,
+    `  ${opt('--force')}Skip the clean-git-tree check (modern-cmdk-codemod only; modern-cmdk ignores it)`,
+    `  ${opt('-v, --version')}Print the package name and version`,
     '',
-    // A documented fact, not an engines field: modern-cmdk declares none (D14), so the bin cannot refuse an older Node.
-    "Node >= 26.4.0 (the floor modern-cmdk's toolchain and create-modern-cmdk declare; modern-cmdk itself declares no engines)",
+    bold('Exit codes:'),
+    '  strict   0 success (reports included); 1 a file errored, no file matched or the run failed;',
+    '           2 usage error (unknown or malformed option, unknown transform, missing argument,',
+    '           --strict with --lenient) or a refused dirty tree',
+    '  lenient  0 for --help, missing arguments, usage errors and per-file errors; 1 for an unknown',
+    '           transform, no matching files and an uncaught error',
+    '',
+    'A directory argument covers its .ts .tsx .mts .cts .js .jsx .mjs .cjs .css .scss files.',
+    '--dry-run also prints a unified diff of every file that would change.',
+    '',
+    NODE_FLOOR_LINES[program],
     '',
   ].join('\n');
+}
+
+async function readNameAndVersion(): Promise<string> {
+  const path = findPackageJSON(import.meta.url);
+  if (path === undefined) throw new Error("cannot find this package's package.json");
+  const pkg = JSON.parse(await readFile(path, 'utf-8')) as { name: string; version: string };
+  return `${pkg.name} ${pkg.version}`;
 }
 
 // --- Argument parsing ------------------------------------------------------
 
 type Parsed =
   | { readonly kind: 'help' }
+  | { readonly kind: 'version' }
   | {
       readonly kind: 'usage-error';
       /** `undefined` for missing arguments: usage alone, no error line. */
@@ -93,28 +157,53 @@ type Parsed =
       readonly transformName: string;
       readonly fileGlob: string;
       readonly dryRun: boolean;
+      readonly force: boolean;
       readonly strict: boolean;
       readonly concurrency: number;
-      /** Unknown options that were ignored (never with --strict); run() warns about each. */
+      /** Unknown options that were ignored (never when strict); run() warns about each. */
       readonly ignored: readonly string[];
     };
 
 const OPTIONS = {
   help: { type: 'boolean', short: 'h' },
+  version: { type: 'boolean', short: 'v' },
   strict: { type: 'boolean' },
+  lenient: { type: 'boolean' },
+  force: { type: 'boolean' },
   'dry-run': { type: 'boolean' },
   concurrency: { type: 'string' },
 } as const;
 
-function parse(argv: readonly string[]): Parsed {
+interface CliValues {
+  readonly help?: string | boolean | undefined;
+  readonly version?: string | boolean | undefined;
+  readonly strict?: string | boolean | undefined;
+  readonly lenient?: string | boolean | undefined;
+  readonly force?: string | boolean | undefined;
+  readonly 'dry-run'?: string | boolean | undefined;
+  readonly concurrency?: string | boolean | undefined;
+}
+
+function parse(argv: readonly string[], program: Program): Parsed {
+  // Flags before a lone `--`; a parse failure yields no values, so argv is the only source then.
+  const terminator = argv.indexOf('--');
+  const head = terminator === -1 ? argv : argv.slice(0, terminator);
+  if (head.includes('--strict') && head.includes('--lenient')) {
+    return {
+      kind: 'usage-error',
+      message: '--strict and --lenient cannot be combined',
+      strict: true,
+    };
+  }
+  const codemodProfile = program === 'modern-cmdk-codemod';
+  const strictArg = head.includes('--strict') || (codemodProfile && !head.includes('--lenient'));
+
   let values: CliValues;
   let positionals: string[];
   let ignored: string[] = [];
   try {
     ({ values, positionals } = parseCli(argv));
   } catch (err) {
-    // A parse failure yields no values, so look at argv for --strict.
-    const strictArg = argv.includes('--strict');
     if ((err as NodeJS.ErrnoException).code !== 'ERR_PARSE_ARGS_UNKNOWN_OPTION') {
       return {
         kind: 'usage-error',
@@ -153,17 +242,30 @@ function parse(argv: readonly string[]): Parsed {
     if (badMessage !== undefined) {
       return { kind: 'usage-error', message: badMessage, strict: strictArg };
     }
-    if (strictArg || loose.values.help === true || loose.positionals.length < 2) {
+    if (
+      strictArg ||
+      loose.values.help === true ||
+      loose.values.version === true ||
+      loose.positionals.length < 2
+    ) {
       return { kind: 'usage-error', message: `unknown option ${ignored[0]}`, strict: strictArg };
     }
     values = loose.values;
     positionals = loose.positionals;
   }
 
-  const strict = values.strict === true;
+  const strict = values.strict === true || (values.lenient !== true && codemodProfile);
   if (values.help) return { kind: 'help' };
+  if (values.version) return { kind: 'version' };
   if (positionals.length < 2) {
     return { kind: 'usage-error', message: undefined, strict };
+  }
+  if (strict && positionals.length > 2) {
+    return {
+      kind: 'usage-error',
+      message: `unexpected argument "${positionals[2]}" (quote the glob so the shell does not expand it)`,
+      strict,
+    };
   }
 
   let concurrency = 8;
@@ -183,17 +285,11 @@ function parse(argv: readonly string[]): Parsed {
     transformName: positionals[0] as string,
     fileGlob: positionals[1] as string,
     dryRun: values['dry-run'] === true,
+    force: values.force === true,
     strict,
     concurrency,
     ignored,
   };
-}
-
-interface CliValues {
-  readonly help?: string | boolean | undefined;
-  readonly strict?: string | boolean | undefined;
-  readonly 'dry-run'?: string | boolean | undefined;
-  readonly concurrency?: string | boolean | undefined;
 }
 
 function parseCli(argv: readonly string[]): {
@@ -213,40 +309,71 @@ async function* chunked<T>(items: T[], size: number): AsyncGenerator<T[]> {
 
 interface TransformResult {
   readonly filePath: string;
-  readonly changed: boolean;
+  readonly status: 'changed' | 'unchanged' | 'skipped' | 'error';
+  /** The unified diff, for a changed file under --dry-run. */
+  readonly diff?: string;
+  /** One entry per `api.report` call (or stylesheet `report`) the transform made. */
+  readonly reports: readonly string[];
   readonly error?: Error;
 }
 
 async function processFile(
   filePath: string,
-  transformFn: TransformFn,
-  apiForParser: (parser: string) => API,
+  mod: TransformModule,
+  apiForParser: (parser: ParserName, report: (message: string) => void) => API,
   dryRun: boolean,
+  rel: (path: string) => string,
 ): Promise<TransformResult> {
+  const reports: string[] = [];
+  const report = (message: string): void => void reports.push(message);
   try {
-    const source = await readFile(filePath, 'utf-8');
-    const parser = filePath.endsWith('.tsx') || filePath.endsWith('.jsx') ? 'tsx' : 'ts';
-
-    const fileInfo: FileInfo = { path: filePath, source };
-    const result = transformFn(fileInfo, apiForParser(parser));
-
-    if (result !== source) {
-      if (!dryRun) {
-        await writeFile(filePath, result, 'utf-8');
-      }
-      return { filePath, changed: true };
+    const route = routeFor(filePath);
+    if (route === 'skip' || (route === 'stylesheet' && mod.transformStylesheet === undefined)) {
+      return { filePath, status: 'skipped', reports };
     }
-    return { filePath, changed: false };
+    const source = await readFile(filePath, 'utf-8');
+    const result =
+      route === 'script'
+        ? mod.default(
+            { path: filePath, source },
+            apiForParser(parserFor(filePath) as ParserName, report),
+          )
+        : (mod.transformStylesheet as NonNullable<TransformModule['transformStylesheet']>)(
+            source,
+            report,
+          );
+
+    if (result === source) return { filePath, status: 'unchanged', reports };
+    if (!dryRun) await writeFile(filePath, result, 'utf-8');
+    return {
+      filePath,
+      status: 'changed',
+      ...(dryRun ? { diff: unifiedDiff(rel(filePath), source, result) } : {}),
+      reports,
+    };
   } catch (err) {
     return {
       filePath,
-      changed: false,
+      status: 'error',
+      reports,
       error: err instanceof Error ? err : new Error(String(err)),
     };
   }
 }
 
 // --- Main ------------------------------------------------------------------
+
+/** The message for a refused dirty-tree run: up to 10 paths, the count, and the way out. */
+function dirtyMessage(paths: readonly string[], rel: (path: string) => string): string {
+  const shown = paths.slice(0, 10).map((p) => `  ${rel(p)}`);
+  const more = paths.length > shown.length ? [`  ... and ${paths.length - shown.length} more`] : [];
+  return [
+    `refusing to write: ${paths.length} matched file${paths.length === 1 ? ' has' : 's have'} uncommitted changes:`,
+    ...shown,
+    ...more,
+    'Commit or stash them, or pass --force to write anyway (--dry-run previews without writing).',
+  ].join('\n');
+}
 
 /**
  * Run the codemod CLI. Resolves to the process exit code; writes only to `io`.
@@ -256,23 +383,27 @@ export async function run(argv: readonly string[], io: CliIo, deps: CliDeps = {}
   const err = (s: string): void => void io.stderr.write(`${s}\n`);
   const fail = (s: string): void =>
     err(`${styleText('red', 'error:', { stream: io.stderr })} ${s}`);
+  const program = deps.program ?? 'modern-cmdk';
 
   try {
-    const parsed = parse(argv);
+    const parsed = parse(argv, program);
 
     if (parsed.kind === 'help') {
-      out(usageText(io.stdout));
+      out(usageText(io.stdout, program));
+      return 0;
+    }
+    if (parsed.kind === 'version') {
+      out(await readNameAndVersion());
       return 0;
     }
     if (parsed.kind === 'usage-error') {
-      // Missing arguments (and an unknown option without both positionals) keep exiting 0 in
-      // 1.x; --strict makes them 2.
+      // Lenient: missing arguments (and an unknown option without both positionals) exit 0; strict: 2.
       if (parsed.message !== undefined) fail(parsed.message);
-      err(usageText(io.stderr));
+      err(usageText(io.stderr, program));
       return parsed.strict ? 2 : 0;
     }
 
-    const { transformName, fileGlob, dryRun, strict, concurrency, ignored } = parsed;
+    const { transformName, fileGlob, dryRun, force, strict, concurrency, ignored } = parsed;
     for (const name of ignored) {
       err(`warning: unknown option ${name} ignored (--strict makes this exit 2)`);
     }
@@ -284,57 +415,90 @@ export async function run(argv: readonly string[], io: CliIo, deps: CliDeps = {}
       return strict ? 2 : 1;
     }
 
-    // Resolve files — globby 16 API (ESM-only, same function signature)
-    const files = await globby([fileGlob], {
-      absolute: true,
-      ignore: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/.next/**'],
-    });
+    const cwd = process.cwd();
+    const files = await discoverFiles([fileGlob], { program, cwd, warn: err });
 
     if (files.length === 0) {
       fail(`no files matched "${fileGlob}"`);
       return 1;
     }
 
-    const transformFn = await (deps.loadTransform ?? loadTransform)(transformName);
+    const rel = (p: string): string => relative(cwd, p).replaceAll('\\', '/');
 
-    // Build jscodeshift API object for each parser variant
-    const apiForParser = (parser: string): API => ({
-      jscodeshift: jscodeshift.withParser(parser),
-      j: jscodeshift.withParser(parser),
-      stats: (): void => {},
-      report: (): void => {},
-    });
+    if (program === 'modern-cmdk-codemod' && strict && !dryRun && !force) {
+      const dirty = await findDirtyFiles(files, cwd);
+      if (dirty.kind === 'outside') {
+        const n = dirty.paths.length;
+        const shown = dirty.paths.slice(0, 10).map((p) => `  ${rel(p)}`);
+        fail(
+          [
+            `refusing to write: ${n} matched file${n === 1 ? ' lies' : 's lie'} outside this git work tree:`,
+            ...shown,
+            ...(n > shown.length ? [`  ... and ${n - shown.length} more`] : []),
+            'Run the codemod from that tree, or pass --force to write anyway.',
+          ].join('\n'),
+        );
+        return 2;
+      }
+      if (dirty.kind === 'dirty') {
+        fail(dirtyMessage(dirty.paths, rel));
+        return 2;
+      }
+      if (dirty.kind !== 'clean') {
+        fail(
+          dirty.kind === 'no-git'
+            ? 'refusing to write: git not found, so a clean tree cannot be confirmed. Pass --force to write anyway.'
+            : 'refusing to write outside a git work tree: nothing could undo it. Pass --force to write anyway.',
+        );
+        return 2;
+      }
+    }
+
+    const mod = await (deps.loadTransform ?? loadTransform)(transformName);
+
+    // One jscodeshift API per parser per run; the API object itself is per file so reports carry the file.
+    const parsers = new Map<ParserName, JSCodeshift>();
+    const apiForParser = (parser: ParserName, report: (message: string) => void): API => {
+      let j = parsers.get(parser);
+      if (j === undefined) {
+        j = jscodeshift.withParser(parser);
+        parsers.set(parser, j);
+      }
+      return { jscodeshift: j, j, stats: (): void => {}, report };
+    };
 
     const results: TransformResult[] = [];
     for await (const batch of chunked(files, concurrency)) {
       results.push(
         ...(await Promise.all(
-          batch.map((filePath) => processFile(filePath, transformFn, apiForParser, dryRun)),
+          batch.map((filePath) => processFile(filePath, mod, apiForParser, dryRun, rel)),
         )),
       );
     }
 
-    const rel = (p: string): string => relative(process.cwd(), p).replaceAll('\\', '/');
-    let changed = 0;
-    let errors = 0;
+    const counts = { changed: 0, unchanged: 0, skipped: 0, error: 0, reported: 0 };
     for (const r of results) {
+      counts[r.status]++;
+      counts.reported += r.reports.length;
+      for (const message of r.reports) err(`${rel(r.filePath)}: ${message}`);
       if (r.error) {
-        errors++;
         err(`${rel(r.filePath)}: ${r.error.message}`);
-      } else if (r.changed) {
-        changed++;
+      } else if (r.status === 'changed') {
         const verb = styleText('green', dryRun ? 'would change' : 'changed', {
           stream: io.stdout,
         });
         out(`${verb} ${rel(r.filePath)}`);
+        if (r.diff) out(r.diff);
       }
     }
-    const unchanged = results.length - changed - errors;
     out(
-      `${changed} changed, ${unchanged} unchanged, ${errors} errors${dryRun ? ' (dry run, nothing written)' : ''}`,
+      `${counts.changed} changed, ${counts.unchanged} unchanged, ${counts.error} errors` +
+        (counts.skipped > 0 ? `, ${counts.skipped} skipped` : '') +
+        (counts.reported > 0 ? `, ${counts.reported} reported` : '') +
+        (dryRun ? ' (dry run, nothing written)' : ''),
     );
 
-    return strict && errors > 0 ? 1 : 0;
+    return strict && counts.error > 0 ? 1 : 0;
   } catch (e) {
     fail(e instanceof Error ? e.message : String(e));
     return 1;
