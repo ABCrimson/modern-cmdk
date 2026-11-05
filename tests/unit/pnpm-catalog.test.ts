@@ -261,3 +261,42 @@ describe('RDG-117: the catalog also holds the shared build and codemod pins', ()
     );
   });
 });
+
+// RDG-117 (1.5.0): the catalog `typescript` pin is the truth source for every doc that names the nightly. The
+// README badge writes it with shields.io's escape (each `-` doubled), so a plain-version grep misses it; these
+// tests read both spellings. The tests/consumers manifests are not workspace projects (they install from packed
+// tarballs), so the catalog cannot reach their exact pin and it is checked here too.
+describe('the TypeScript nightly named in docs follows the catalog', () => {
+  const pin = catalog.get('typescript') ?? '';
+  const badgePin = pin.replaceAll('-', '--');
+  const NIGHTLY = /\d+\.\d+\.\d+-+dev\.\d{8}\.\d+/g;
+  const DOC_SITES = [
+    'CONTRIBUTING.md',
+    'apps/docs/guide/typescript-integration.md',
+    'apps/docs/guide/installation.md',
+    '.github/ISSUE_TEMPLATE/bug_report.yml',
+    'tests/consumers/next-app/package.json',
+    'tests/consumers/vite-app/package.json',
+  ];
+
+  it('RDG-117: README.md carries the shields badge for the catalog pin once, and the typecheck row', () => {
+    expect(pin).toMatch(EXACT);
+    const readme = read('README.md');
+    expect(readme.split(`TypeScript-${badgePin}-`)).toHaveLength(2);
+    expect(readme).toContain(`(TypeScript ${pin})`);
+  });
+
+  it('RDG-117: every other doc site names the catalog pin', () => {
+    for (const path of DOC_SITES) expect(read(path), path).toContain(pin);
+  });
+
+  it('RDG-117: no doc site names any other TypeScript nightly', () => {
+    for (const path of ['README.md', ...DOC_SITES]) {
+      const named = read(path).match(NIGHTLY) ?? [];
+      expect(
+        named.filter((v) => v !== pin && v !== badgePin),
+        path,
+      ).toEqual([]);
+    }
+  });
+});
