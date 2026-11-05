@@ -12,7 +12,7 @@
 
 import { execFile } from 'node:child_process';
 import type { Dirent } from 'node:fs';
-import { access, constants, glob, lstat, realpath, stat } from 'node:fs/promises';
+import { access, constants, glob, lstat, readFile, realpath, stat } from 'node:fs/promises';
 import {
   basename,
   delimiter,
@@ -101,6 +101,19 @@ interface GitResult {
 }
 
 /**
+ * The directory that holds the `.git/modules` a gitdir target lies under, else `undefined`. A
+ * submodule's `.git` file reads `gitdir: <super>/.git/modules/<name>`; a linked worktree's reads
+ * `gitdir: <main>/.git/worktrees/<name>`. `target` is a realpath.
+ */
+function superprojectOf(target: string): string | undefined {
+  const segments = target.split(sep);
+  const at = segments.findLastIndex(
+    (segment, index) => segment === '.git' && segments[index + 1] === 'modules',
+  );
+  return at < 1 ? undefined : segments.slice(0, at).join(sep);
+}
+
+/**
  * The trust boundary of one operation: the realpath of the nearest directory, from `realpath(cwd)`
  * upward, that holds a `.git` entry (a directory, or the file a worktree or submodule has), else
  * `realpath(cwd)` when no ancestor holds one. It is the work tree `git rev-parse --show-toplevel`
@@ -109,19 +122,39 @@ interface GitResult {
  * cwd, which may be a subdirectory of the tree whose other directories a planted git can sit in.
  * Not the outermost work tree either: a dotfiles repository at the home directory would exclude
  * every PATH entry under the home (shims, `~/.local/bin`) and leave the user with no git.
+ * Three cases make a `.git` entry reach further. A `.git` directory (an ordinary repository, a
+ * nested one included) stops the climb. A `.git` file whose `gitdir:` target lies under a
+ * `.git/modules` directory is a submodule: the superproject around it came from the same clone,
+ * so the climb goes on from there, and again while that superproject is itself a submodule. A `.git`
+ * file for a linked worktree (target under `.git/worktrees`), or one that cannot be read or
+ * resolved, stops the climb: the main repository of a worktree is the user's own.
  */
 export async function trustBoundary(cwd: string): Promise<string> {
   const start = await realpath(cwd);
-  for (let at = start; ; at = dirname(at)) {
-    if (
-      await lstat(join(at, '.git')).then(
-        () => true,
-        () => false,
-      )
-    ) {
-      return at;
+  let at = start;
+  for (;;) {
+    const entry = await lstat(join(at, '.git')).catch(() => undefined);
+    if (entry === undefined) {
+      if (dirname(at) === at) return start;
+      at = dirname(at);
+      continue;
     }
-    if (dirname(at) === at) return start;
+    const superproject = entry.isFile() ? await superprojectAbove(at) : undefined;
+    if (superproject === undefined) return at;
+    at = superproject;
+  }
+}
+
+/** The superproject of the submodule checked out at `at`, from its `.git` file; `undefined` if it is not one. */
+async function superprojectAbove(at: string): Promise<string | undefined> {
+  try {
+    const link = /^gitdir:\s*(.+?)\s*$/m.exec(await readFile(join(at, '.git'), 'utf8'));
+    return link?.[1] === undefined
+      ? undefined
+      : superprojectOf(await realpath(resolve(at, link[1])));
+  } catch {
+    // Unreadable or dangling: the submodule itself is the boundary, as for any other `.git` file.
+    return undefined;
   }
 }
 

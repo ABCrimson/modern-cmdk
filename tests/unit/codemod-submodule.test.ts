@@ -1,4 +1,13 @@
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { Writable } from 'node:stream';
@@ -9,6 +18,7 @@ import {
   run,
   type TransformModule,
 } from '../../packages/modern-cmdk-codemod/src/cli.js';
+import { findDirtyFiles, trustBoundary } from '../../packages/modern-cmdk-codemod/src/files.js';
 import importRewrite from '../../packages/modern-cmdk-codemod/src/transforms/import-rewrite.js';
 import { git, gitEnv } from './git-fixture.js';
 
@@ -41,8 +51,10 @@ let dir: string;
 let origin: string;
 let configDir: string;
 let inner: string;
+let scratch: string[];
 
 beforeEach(async () => {
+  scratch = [];
   dir = await mkdtemp(join(tmpdir(), 'modern-cmdk-sub-'));
   origin = await mkdtemp(join(tmpdir(), 'modern-cmdk-sub-origin-'));
   configDir = await mkdtemp(join(tmpdir(), 'modern-cmdk-sub-git-'));
@@ -66,7 +78,8 @@ beforeEach(async () => {
 afterEach(async () => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
-  for (const d of [dir, origin, configDir]) await rm(d, { recursive: true, force: true });
+  for (const d of [dir, origin, configDir, ...scratch])
+    await rm(d, { recursive: true, force: true });
 });
 
 describe('codemod CLI: git submodules', () => {
@@ -106,5 +119,66 @@ describe('codemod CLI: git submodules', () => {
       /^import \{ Command \} from ['"]modern-cmdk\/react['"];\r?\n$/,
     );
     expect(await readFile(join(dir, 'inner', 'skip.tsx'), 'utf-8')).toBe(SOURCE);
+  });
+});
+
+/** A planted git: a copy of this process's executable named as the platform's git, in `where`. */
+async function plantGit(where: string): Promise<void> {
+  await mkdir(where, { recursive: true });
+  const target = join(where, process.platform === 'win32' ? 'git.exe' : 'git');
+  await copyFile(process.execPath, target);
+  await chmod(target, 0o755);
+}
+
+/** A new committed repository in a scratch directory that afterEach removes. */
+async function scratchRepo(prefix: string): Promise<string> {
+  const repo = await mkdtemp(join(tmpdir(), prefix));
+  scratch.push(repo);
+  await git(repo, ['init', '-q']);
+  await writeFile(join(repo, 'f.tsx'), SOURCE);
+  await git(repo, ['add', '.']);
+  await git(repo, ['commit', '-q', '-m', 'first']);
+  return repo;
+}
+
+describe('codemod files: the trust boundary of a submodule, a worktree and a nested repository', () => {
+  it('SEC-59: inside a submodule the boundary is the superproject', async () => {
+    const real = await realpath(dir);
+    await mkdir(join(dir, 'inner', 'deep'));
+    expect(await trustBoundary(join(dir, 'inner'))).toBe(real);
+    expect(await trustBoundary(join(dir, 'inner', 'deep'))).toBe(real);
+  });
+
+  it('SEC-59: a submodule of a submodule climbs to the outermost superproject', async () => {
+    const leafOrigin = await scratchRepo('modern-cmdk-sub-leaf-');
+    const midOrigin = await scratchRepo('modern-cmdk-sub-mid-');
+    const allowFile = ['-c', 'protocol.file.allow=always'];
+    await git(midOrigin, [...allowFile, 'submodule', 'add', '-q', leafOrigin, 'leaf']);
+    await git(midOrigin, ['commit', '-q', '-m', 'leaf']);
+    await git(dir, [...allowFile, 'submodule', 'add', '-q', midOrigin, 'mid']);
+    await git(join(dir, 'mid'), [...allowFile, 'submodule', 'update', '--init', '-q']);
+    expect(await trustBoundary(join(dir, 'mid', 'leaf'))).toBe(await realpath(dir));
+  });
+
+  it('SEC-59: a planted git beside the superproject is skipped when cwd is the submodule', async () => {
+    await plantGit(join(dir, 'bin'));
+    vi.stubEnv('PATH', `${join(dir, 'bin')}${delimiter}${process.env.PATH}`);
+    expect(await findDirtyFiles([inner], join(dir, 'inner'))).toEqual({ kind: 'clean' });
+  });
+
+  it('SEC-59: a linked worktree is its own boundary, not the repository it was added from', async () => {
+    const main = await scratchRepo('modern-cmdk-wt-main-');
+    const wt = await mkdtemp(join(tmpdir(), 'modern-cmdk-wt-'));
+    scratch.push(wt);
+    await git(main, ['worktree', 'add', '-q', '-b', 'linked', wt]);
+    expect(await trustBoundary(wt)).toBe(await realpath(wt));
+  });
+
+  it('SEC-59: an ordinary nested repository is its own boundary', async () => {
+    const outer = await scratchRepo('modern-cmdk-nest-');
+    const nested = join(outer, 'nested');
+    await mkdir(nested);
+    await git(nested, ['init', '-q']);
+    expect(await trustBoundary(nested)).toBe(await realpath(nested));
   });
 });
