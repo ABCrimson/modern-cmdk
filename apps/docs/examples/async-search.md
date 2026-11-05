@@ -111,7 +111,7 @@ Setting `filter={false}` on `<Command>` disables client-side filtering. All filt
 
 ## With Error Boundary
 
-`modern-cmdk/react` exports `CommandErrorBoundary`. Wrap async items in it so a failed request renders a fallback instead of unmounting the palette. Its `fallback` prop takes a node or a function of the caught `Error`, and `onError` receives the error and React's `ErrorInfo`. The boundary has no reset method: to retry, change its `key` so React mounts a fresh boundary. The search promises are cached per query, so a rejected one would be reused: the Retry button clears the cache before it changes the key, so the retry fetches again.
+`modern-cmdk/react` exports `CommandErrorBoundary`. Wrap async items in it so a failed request renders a fallback instead of unmounting the palette. Its `fallback` prop takes a node or a function `(error, reset)`, and `onError` receives the error and React's `ErrorInfo`. The sample retries by changing the boundary's `key` so React mounts a fresh boundary; `reset` and `resetKeys` are the alternative (see below). The search promises are cached per query, so a rejected one would be reused: the Retry button clears the cache before it changes the key, so the retry fetches again.
 
 ```tsx
 'use client';
@@ -178,6 +178,45 @@ export function ResilientSearchExample() {
 }
 ```
 
+### Reset and resetKeys
+
+The fallback's second argument `reset` clears the caught error so the children render again, and `resetKeys` resets the boundary on its own when any entry changes. A reset re-renders the same children, so `onError` clears the promise cache when the error is caught: a Retry click and a `resetKeys` change both fetch again.
+
+```tsx
+'use client';
+
+import type { CommandItem } from 'modern-cmdk';
+import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
+
+// App-owned: the cache from the example above.
+declare const cache: Map<string, Promise<readonly CommandItem[]>>;
+declare function SearchResults(): React.ReactNode;
+
+export function ResettableSearch({ tenant }: { tenant: string }) {
+  return (
+    <Command label="Search" filter={false}>
+      <Command.Input placeholder="Search..." />
+      <Command.List>
+        <CommandErrorBoundary
+          resetKeys={[tenant]}
+          onError={() => cache.clear()}
+          fallback={(error, reset) => (
+            <div role="alert">
+              <p>Search failed: {error.message}</p>
+              <button type="button" onClick={reset}>
+                Retry
+              </button>
+            </div>
+          )}
+        >
+          <SearchResults />
+        </CommandErrorBoundary>
+      </Command.List>
+    </Command>
+  );
+}
+```
+
 ## Multiple Async Sources
 
 Load items from multiple sources with independent Suspense boundaries:
@@ -231,4 +270,4 @@ export function MultiSourceExample() {
 }
 ```
 
-Each group loads independently and shows its own loading state. The first group to resolve renders immediately.
+Each group loads independently and shows its own loading state. `state.loading` is `true` while any of them is pending; the `loading` prop on a fallback `<Command.Loading>` is an override, kept so the element renders on the fallback's first render. The first group to resolve renders immediately.

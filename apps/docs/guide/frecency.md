@@ -32,7 +32,7 @@ function FrecencyPalette() {
 }
 ```
 
-When enabled, each time a user selects an item via `onSelect`, the frecency engine records the selection with a `Date.now()` timestamp. Future searches re-rank results by applying a frecency bonus to the search score.
+Frecency is off by default: `enabled` is optional and defaults to `false`, so ranking applies only with `enabled: true` (the default flips to `true` in 2.0). When enabled, each time a user selects an item via `onSelect`, the frecency engine records the selection with a `Date.now()` timestamp. Future searches re-rank results by applying a frecency bonus to the search score.
 
 ::: tip
 Frecency only affects the **order** of results, not whether they appear. An item must still match the search query to be shown. The frecency bonus is added to the search score to promote frequently/recently used items.
@@ -197,7 +197,7 @@ export function computeFrecencyBonus(
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | `boolean` | `false` | Enable frecency ranking |
+| `enabled` | `boolean` (optional) | `false` | Enable frecency ranking; the machine ranks by frecency only with `enabled: true`. `new FrecencyEngine({ storage, namespace })` needs no `enabled` field |
 | `storage` | `FrecencyStorage` | `MemoryFrecencyStorage` | Storage adapter (memory or IndexedDB) |
 | `namespace` | `string` | `'default'` | Namespace for storage isolation (useful for multiple palettes) |
 | `decayConfig` | `FrecencyDecayConfig` | See table above | Custom decay curve configuration |

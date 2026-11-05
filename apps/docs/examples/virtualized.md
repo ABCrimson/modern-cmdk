@@ -120,11 +120,11 @@ The WASM search engine is an unpublished, build-from-source package (see [modern
 'use client';
 
 import { Command } from 'modern-cmdk/react';
-import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
+import { createWasmSearchEngine, type FallbackSearchEngine, type WasmSearchEngine } from 'modern-cmdk-search-wasm';
 import { useEffect, useState } from 'react';
 
-// The factory resolves to the WASM engine or the TypeScript fallback engine
-type WasmEngine = Awaited<ReturnType<typeof createWasmSearchEngine>>;
+// The factory resolves to the WASM engine or the TypeScript fallback engine (both types are exported)
+type WasmEngine = WasmSearchEngine | FallbackSearchEngine;
 
 const items = Array.from({ length: 10_000 }, (_, i) => ({
   id: `item-${i}`,

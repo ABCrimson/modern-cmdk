@@ -32,19 +32,21 @@ The relative margin of error (tinybench `rme`, averaged over the three runs) of 
 
 ### Bundle size
 
-The figures come from [`benchmarks/size-history/1.4.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/5f1e01e/benchmarks/size-history/1.4.0.json) (git blob `4687fa7`, committed in `5f1e01e`), measured at commit `07bfe79` with size-limit 14.3.0 on Node v28.0.0-nightly20261104d36e9ba1f8 by `pnpm size` (`pnpm build && size-limit`). Each row is one entry of `size-limit` in the root `package.json`. Sizes are gzip bytes unless the method says otherwise; `react`, `react-dom`, `react/jsx-runtime`, `radix-ui` and, where listed, `modern-cmdk` are externals that size-limit ignores. Run `pnpm size` for a reading from your own checkout.
+The figures come from [`benchmarks/size-history/1.5.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/8eb1557/benchmarks/size-history/1.5.0.json) (git blob `b041367`, committed in `8eb1557`), measured at commit `056ab43` on 2026-11-05 with size-limit 14.3.0 on Node v28.0.0-nightly20261104d36e9ba1f8 by `pnpm size` (`pnpm build && size-limit`). Each row is one entry of `size-limit` in the root `package.json`. Sizes are gzip bytes unless the method says otherwise; `react`, `react-dom`, `react/jsx-runtime`, `radix-ui` and, where listed, `modern-cmdk` are externals that size-limit ignores. The 1.4.0 record had one codemod row, 3325793 B for the whole bin. Run `pnpm size` for a reading from your own checkout.
 
 | Entry | Size | Limit | Method |
 |-------|------|-------|--------|
-| `modern-cmdk` (core) | 6355 B | 6.5 kB | `dist/core/index.mjs`, minified and gzipped |
-| `modern-cmdk/react` (adapter only) | 5403 B | 5.5 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is ignored, so the core is not counted |
-| `modern-cmdk` + `modern-cmdk/react` | 9830 B | 9.9 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is not ignored, so the one core is counted once |
-| `modern-cmdk/react/dialog` (adapter only) | 1425 B | 1.5 kB | `dist/react/dialog.mjs`, gzip; the `radix-ui` import is ignored |
-| `modern-cmdk/react`: `CommandSeparator` only | 4767 B | 5 kB | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import because `Command` is a compound (see [SSR](/guide/ssr#tree-shaking)) |
+| `modern-cmdk` (core) | 6399 B | 6.5 kB | `dist/core/index.mjs`, minified and gzipped |
+| `modern-cmdk/react` (adapter only) | 5558 B | 5.6 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is ignored, so the core is not counted |
+| `modern-cmdk` + `modern-cmdk/react` | 10019 B | 10.1 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is not ignored, so the one core is counted once |
+| `modern-cmdk/react/dialog` (adapter only) | 1422 B | 1.5 kB | `dist/react/dialog.mjs`, gzip; the `radix-ui` import is ignored |
+| `modern-cmdk/react`: `CommandSeparator` only | 4830 B | 5 kB | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import because `Command` is a compound (see [SSR](/guide/ssr#tree-shaking)) |
 | `modern-cmdk/styles.css` | 3959 B | 4 kB | `dist/react/styles.css`, gzip |
-| `modern-cmdk` codemod bin | 3325793 B (raw) | 3.4 MB | `dist/codemod/cli.mjs` plus `dist/codemod/transforms/*.mjs` installed size, no compression |
+| `modern-cmdk` codemod bin (bundled) | 3150191 B (raw) | 3.4 MB | `dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs` installed size, no compression; includes the 897 B shim |
+| `modern-cmdk` codemod shim (`bin.mjs`) | 897 B (raw) | 1000 B | `dist/codemod/bin.mjs` installed size, no compression |
+| `modern-cmdk-codemod` (own files) | 97921 B (raw) | 100000 B | `dist/*.mjs` plus `dist/transforms/*.mjs` of `packages/modern-cmdk-codemod`, jscodeshift excluded, no compression |
 
-For comparison, 1.3 (commit `85a33bf`, size-limit at that commit, quoted from the same record's `baseline_1_3` block) measured `modern-cmdk` at 6355 B and `modern-cmdk/react` at 9844 B, where the React figure was `dist/react/index.mjs` with the core inlined: the pair summed to 16199 B because the core was counted twice. The 1.4.0 build keeps the core external to the adapter (`modern-cmdk` is imported by name), so the adapter alone is 5403 B and the core plus the adapter together is 9830 B.
+For comparison, 1.3 (commit `85a33bf`, size-limit at that commit, quoted from the `baseline_1_3` block of [`benchmarks/size-history/1.4.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/5f1e01e/benchmarks/size-history/1.4.0.json) (git blob `4687fa7`)) measured `modern-cmdk` at 6355 B and `modern-cmdk/react` at 9844 B, where the React figure was `dist/react/index.mjs` with the core inlined: the pair summed to 16199 B because the core was counted twice. The 1.4.0 build keeps the core external to the adapter (`modern-cmdk` is imported by name): in 1.4.0 the adapter alone was 5403 B and the core plus the adapter together 9830 B (1.4.0 record), and 1.5.0 measures 5558 B and 10019 B.
 
 ## Why It's Fast
 
