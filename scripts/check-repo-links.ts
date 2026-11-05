@@ -8,7 +8,8 @@
 //
 // Files (default): README.md, packages/*/README.md, CONTRIBUTING.md, SECURITY.md, ARCHITECTURE.md,
 // apps/docs/**/*.md (node_modules, cache, dist and .git excluded), CHANGELOG.md, packages/*/CHANGELOG.md and
-// .changeset/*.md. --root <dir> scans the *.md files under <dir> (node_modules, cache, dist and .git excluded) instead and resolves paths against <dir>.
+// .changeset/*.md. --root <dir> scans the *.md files under <dir> (node_modules, cache, dist and .git excluded) instead
+// and resolves paths against <dir>.
 //
 // A link https://github.com/ABCrimson/modern-cmdk/(blob|tree|raw)/<ref>/<path>[#fragment] is checked as follows
 // (the ref is the first path segment after blob/tree/raw, so a branch name containing a slash is not supported):
@@ -16,9 +17,13 @@
 //   - any other ref (a hex commit of 7 to 40 characters, a branch or a tag): the ref must resolve to a commit and the
 //     path must exist in it. A branch is looked up under refs/remotes/origin and refs/tags before anything is
 //     fetched. A ref the local object database still does not know is fetched once with
-//     `git fetch --no-tags origin <ref>` and the fetch is announced on stdout; the fetch adds --depth=1 only in a
-//     shallow clone, so a full clone stays full. An abbreviated hash cannot be fetched, so the Links job checks out
-//     the full history.
+//     `git fetch --no-tags --end-of-options origin <ref>` and the fetch is announced on stdout; the fetch adds
+//     --depth=1 only in a shallow clone, so a full clone stays full. An abbreviated hash cannot be fetched, so the
+//     Links job checks out the full history. A ref that is neither a hash nor a plain name (letters, digits, '.',
+//     '_' and '-', starting with a letter, digit or '_', with no '..' and no '.lock' ending) is reported dead before
+//     any git call, and every git call places `--end-of-options` before the arguments a link supplies, so a crafted
+//     link in a pull request's Markdown cannot pass options to git. A path that leaves the root (`..` segments) is
+//     reported dead without being read.
 //   - fragments: `#readme` on a tree link needs a README.md in that directory (case-insensitive); `#L<n>` and
 //     `#L<n>-L<m>` on a blob link need 1 <= n <= m <= the file's line count; any other fragment on a blob link to a
 //     .md file must match one of GitHub's heading anchors (lowercase, spaces to hyphens, punctuation other than
@@ -34,7 +39,7 @@
 
 import { execFile } from 'node:child_process';
 import { readdir, readFile, stat } from 'node:fs/promises';
-import { join, relative, resolve, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
 
 const run = promisify(execFile);
@@ -42,6 +47,16 @@ const ROOT: string = resolve(import.meta.dirname, '..');
 const SKIP_DIRS: ReadonlySet<string> = new Set(['node_modules', 'cache', 'dist', '.git']);
 const REPO_URL = 'https://github.com/ABCrimson/modern-cmdk';
 const HEX_REF = /^[0-9a-f]{7,40}$/i;
+// A branch or tag name this check accepts: the first URL path segment after blob/tree/raw, so it carries no '/';
+// letters, digits, '.', '_' and '-'; never starting with '-' (git would read an option) or '.'; '..' (git's range
+// syntax) and a '.lock' ending excluded; '@', '{', '~', '^' and ':' are outside the character set, so git's revision
+// syntax cannot appear. Anything else is reported dead before git sees it.
+const REF_NAME = /^(?!.*\.\.)(?!.*\.lock$)[A-Za-z0-9_][A-Za-z0-9._-]*$/;
+
+/** Whether a link's ref is a branch or tag name this check hands to git. */
+export function isRefName(ref: string): boolean {
+  return REF_NAME.test(ref);
+}
 // Paired underscore emphasis delimiters, as GitHub renders them, removed before slugging; intraword and unpaired underscores are literal text.
 const EMPHASIS = /(?<![\p{L}\p{N}_])(_+)(?![\s_])(.+?)(?<![\s_])\1(?![\p{L}\p{N}_])/gu;
 
@@ -264,7 +279,7 @@ class Checkout {
 
   async #resolve(ref: string): Promise<string | undefined> {
     const verify = (rev: string): Promise<string | undefined> =>
-      git(this.#root, ['rev-parse', '--verify', '--quiet', `${rev}^{commit}`]);
+      git(this.#root, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${rev}^{commit}`]);
     for (const candidate of HEX_REF.test(ref)
       ? [ref]
       : [ref, `refs/remotes/origin/${ref}`, `refs/tags/${ref}`]) {
@@ -277,6 +292,7 @@ class Checkout {
       'fetch',
       '--no-tags',
       ...(this.#shallow ? ['--depth=1'] : []),
+      '--end-of-options',
       'origin',
       ref,
     ];
@@ -289,11 +305,22 @@ class Checkout {
   }
 
   async lookup(ref: string, path: string): Promise<Lookup> {
-    return ref === 'main' || ref === 'HEAD' ? this.#inWorkingTree(path) : this.#inCommit(ref, path);
+    if (ref === 'main' || ref === 'HEAD') return this.#inWorkingTree(path);
+    if (!HEX_REF.test(ref) && !isRefName(ref)) {
+      return {
+        entry: undefined,
+        reason: `${ref} is not a ref this check accepts (main, HEAD, a hex hash of 7 to 40 characters, or a branch or tag name of letters, digits, '.', '_' and '-' that starts with a letter, digit or '_', has no '..' and does not end in '.lock')`,
+      };
+    }
+    return this.#inCommit(ref, path);
   }
 
   async #inWorkingTree(path: string): Promise<Lookup> {
     const full: string = join(this.#root, path);
+    const rel: string = relative(this.#root, full);
+    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+      return { entry: undefined, reason: `${path} leaves the repository` };
+    }
     const info = await stat(full).catch(() => undefined);
     if (info === undefined)
       return { entry: undefined, reason: `${path || '.'} does not exist in the working tree` };
@@ -318,13 +345,15 @@ class Checkout {
       };
     }
     const spec = `${commit}:./${path}`;
-    const type: string | undefined = (await git(this.#root, ['cat-file', '-t', spec]))?.trim();
+    const type: string | undefined = (
+      await git(this.#root, ['cat-file', '-t', '--end-of-options', spec])
+    )?.trim();
     if (type === 'blob') {
       return {
         entry: {
           type: 'file',
           text: async (): Promise<string> =>
-            (await git(this.#root, ['cat-file', 'blob', spec])) ?? '',
+            (await git(this.#root, ['cat-file', 'blob', '--end-of-options', spec])) ?? '',
         },
         reason: '',
       };
@@ -334,7 +363,7 @@ class Checkout {
         entry: {
           type: 'dir',
           entries: async (): Promise<string[]> =>
-            ((await git(this.#root, ['ls-tree', '--name-only', spec])) ?? '')
+            ((await git(this.#root, ['ls-tree', '--name-only', '--end-of-options', spec])) ?? '')
               .split('\n')
               .filter((n) => n !== ''),
         },
