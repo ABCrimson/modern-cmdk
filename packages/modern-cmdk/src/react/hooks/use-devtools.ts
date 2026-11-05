@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/hooks/use-devtools.ts
 // Development-only devtools bridge — gated on NODE_ENV, inert in production builds
 // Isolated declarations: explicit return types on all exports

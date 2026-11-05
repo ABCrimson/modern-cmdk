@@ -80,6 +80,18 @@ describe.skipIf(!distBuilt)('built package: one core', () => {
     }
   });
 
+  it('ARCH-61: no src/react module carries a module-level use client directive (the tsdown banner is the single source)', () => {
+    const srcReact: string = resolve(import.meta.dirname, '../../packages/modern-cmdk/src/react');
+    const carriers = readdirSync(srcReact, { recursive: true, encoding: 'utf8' })
+      .filter((name) => /\.tsx?$/u.test(name))
+      .filter((name) =>
+        /^['"]use client['"];?\s*$/mu.test(readFileSync(join(srcReact, name), 'utf8')),
+      )
+      .map((name) => name.replaceAll('\\', '/'))
+      .sort();
+    expect(carriers).toEqual([]);
+  });
+
   it('dist/react declarations import the core types from modern-cmdk', () => {
     const declarations = distFiles(reactDir, '.d.mts');
     expect(declarations.some((file) => /\bfrom\s*["']modern-cmdk["']/u.test(read(file)))).toBe(

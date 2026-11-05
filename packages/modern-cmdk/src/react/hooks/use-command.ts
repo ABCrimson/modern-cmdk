@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/hooks/use-command.ts
 // Core hook — useSyncExternalStore (native React 19), useTransition (optimistic active item only), useOptimistic, useId
 // Isolated declarations: explicit return types on all exports
