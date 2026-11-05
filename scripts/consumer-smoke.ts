@@ -463,7 +463,7 @@ async function waitForOk(
 // --- next start on Node 27+ ------------------------------------------------------------------
 
 // Node 27 and 28 create http.IncomingMessage#headers with a null prototype (verified on
-// v27.0.0-alpha.0 and v28.0.0-nightly20261104). Next 16.5.0-canary.40 calls
+// v27.0.0-alpha.0 and v28.0.0-nightly20261104). Next 16.5.0-canary.40 and canary.41 (the pin; re-checked 2026-11-05) call
 // `headers.hasOwnProperty(...)` on it in app-page-turbo.runtime.prod.js, so every request to
 // `next start` answers 500 'TypeError: e.hasOwnProperty is not a function'. That is a Next-on-Node
 // fault, not a modern-cmdk one, but it would end the Next variants before any modern-cmdk check

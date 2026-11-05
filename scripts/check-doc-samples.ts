@@ -1,6 +1,6 @@
 // scripts/check-doc-samples.ts
-// TEB-84: type-checks every fenced ts, tsx and typescript sample of the docs and the READMEs against
-// the built package, so a broken sample cannot ship. Runs with Node's native type stripping:
+// TEB-84: type-checks every fenced ts, tsx and typescript sample of the docs and the three READMEs listed in DEFAULT_FILES
+// against the built package, so a broken sample cannot ship. Runs with Node's native type stripping:
 //
 //   node scripts/check-doc-samples.ts [--root <dir>] [--out <dir>] [--skip-wasm]
 //
@@ -241,6 +241,4 @@ function main(): number {
   return diagnostics.length > 0 || result.status !== 0 ? 1 : 0;
 }
 
-if (process.argv[1] !== undefined && resolve(process.argv[1]) === import.meta.filename) {
-  process.exitCode = main();
-}
+if (import.meta.main) process.exitCode = main();
