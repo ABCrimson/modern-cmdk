@@ -148,6 +148,9 @@ jobs:
       # Docs-samples gate (TEB-84): every fenced ts/tsx sample of apps/docs and the READMEs type-checks against the downloaded dist.
       # The dist artifact (packages/*/dist from the build job) has no wasm build, so the wasm-importing samples are skipped here and checked in the Rust & WASM job.
       - run: pnpm check:doc-samples --skip-wasm
+      # Snippet gate (CV-43, RP-13): every VS Code snippet of packages/vscode-modern-cmdk, expanded with its defaults, type-checks
+      # against the downloaded dist (scripts/check-snippets.ts); the unit test covers only fixture packages.
+      - run: pnpm check:snippets
       # tests/dist runs against the built packages: the CLI smoke test, the create-modern-cmdk tarball, the devtools and dialog subpaths, the exports map, the manifest and the one-core invariant
       - run: pnpm exec vitest run tests/dist
 
