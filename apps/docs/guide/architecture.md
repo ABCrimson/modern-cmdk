@@ -96,7 +96,7 @@ The list component auto-virtualizes when filtered items exceed a threshold. The 
 
 - `ResizeObserver` for dynamic item height measurement
 - `requestIdleCallback` for deferred measurement
-- `translateY` transforms for GPU-composited positioning
+- the `translate` property for transform-based positioning, off the layout path
 - `content-visibility: auto` for off-screen rendering skip
 
 ## WASM Search (`modern-cmdk-search-wasm`)

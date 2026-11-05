@@ -5,7 +5,7 @@ Build a macOS Spotlight-style global search across your entire app.
 ```tsx
 import type { CommandItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
-import { Suspense, useState } from 'react';
+import { useState } from 'react';
 
 // App-owned actions and data source
 declare function createDoc(): void;
@@ -34,15 +34,16 @@ function SpotlightSearch() {
         </Command.Group>
 
         <Command.Group heading="Recent">
-          <Suspense fallback={<Command.Loading>Loading recents...</Command.Loading>}>
-            <Command.AsyncItems items={fetchRecentItems()}>
-              {(items) => items.map((item) => (
-                <Command.Item key={item.id} value={item.value} onSelect={() => console.log(item)}>
-                  {item.value}
-                </Command.Item>
-              ))}
-            </Command.AsyncItems>
-          </Suspense>
+          <Command.AsyncItems
+            items={fetchRecentItems()}
+            fallback={<Command.Loading loading>Loading recents...</Command.Loading>}
+          >
+            {(items) => items.map((item) => (
+              <Command.Item key={item.id} value={item.value} onSelect={() => console.log(item)}>
+                {item.value}
+              </Command.Item>
+            ))}
+          </Command.AsyncItems>
         </Command.Group>
 
         <Command.Group heading="Navigation">

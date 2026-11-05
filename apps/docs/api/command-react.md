@@ -485,7 +485,7 @@ async function fetchItems(): Promise<CommandItem[]> {
 const asyncItems = (
   <Command.AsyncItems
     items={fetchItems()}
-    fallback={<Command.Loading>Loading...</Command.Loading>}
+    fallback={<Command.Loading loading>Loading...</Command.Loading>}
   >
     {(items) => items.map((item) => (
       <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>

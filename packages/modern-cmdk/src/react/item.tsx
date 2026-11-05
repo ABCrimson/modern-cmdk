@@ -72,7 +72,7 @@ export function CommandItem({
   // Items must still register (useRegisterItem above) but don't render DOM if filtered out or off-screen
   if (!isFiltered || !isVisible) return null;
 
-  // Virtual positioning — absolute + translateY when virtualizing
+  // Virtual positioning — absolute + the `translate` property when virtualizing
   const virtualStart = stateCtx.virtualPositionMap?.get(id);
   const virtualStyle: CSSProperties | undefined =
     virtualStart !== undefined
