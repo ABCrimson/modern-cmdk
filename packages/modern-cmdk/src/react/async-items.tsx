@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/async-items.tsx
 // <Command.AsyncItems> — use() hook for resolving async item sources with Suspense
 // React 19: use() for both context and promise resolution

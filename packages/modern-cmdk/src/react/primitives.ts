@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/primitives.ts
 // Minimal Primitive/Slot — replaces @radix-ui/react-primitive
 // Proper ref merging for Slot pattern

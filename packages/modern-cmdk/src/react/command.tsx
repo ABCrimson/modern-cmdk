@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/command.tsx
 // <Command.Root> — compound component root, delegates setup to useCommandSetup
 // Keyboard navigation is attached to document — always active (not dialog-gated)

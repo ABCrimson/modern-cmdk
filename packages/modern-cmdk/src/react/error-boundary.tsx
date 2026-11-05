@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/error-boundary.tsx
 // Error boundary — class component (required by React for componentDidCatch)
 // Isolated declarations: explicit return types on all exports

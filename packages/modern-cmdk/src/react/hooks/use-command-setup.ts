@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/hooks/use-command-setup.ts
 // Shared setup hook — deduplicates machine init, context creation, keyboard handler,
 // and disposal between <Command> and <Command.Dialog>

@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/highlight.tsx
 // <Command.Highlight> — renders search query match highlighting
 // Isolated declarations: explicit return types on all exports

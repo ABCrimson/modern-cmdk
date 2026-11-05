@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/hooks/use-command-state.ts
 // Derived state selectors — useSyncExternalStore for proper render optimization
 // Selector stabilized via ref to prevent unnecessary getSnapshot recreation
