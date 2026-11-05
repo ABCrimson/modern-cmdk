@@ -590,8 +590,8 @@ async function prepareApp(variant: Variant, tarball: string, tempDirs: string[])
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   const rootYaml = parseWorkspaceYaml(await readFile(join(ROOT, 'pnpm-workspace.yaml'), 'utf8'));
-  // Both app lists are empty: next is a root devDependency (D57), so a next spec under the 24 h
-  // minimumReleaseAgeExclude goes in the root minimumReleaseAgeExclude; an entry here is for a spec only this app installs.
+  // Both app lists are empty: next is a root devDependency (D57), so a next spec younger than the 24 h
+  // minimumReleaseAge goes in the root minimumReleaseAgeExclude; an entry here is for a spec only this app installs.
   const excludes = (await readJson(join(dir, 'release-age-exclude.json'))) as ReleaseAgeExclude[];
   await writeFile(join(dir, 'pnpm-workspace.yaml'), buildWorkspaceYaml(rootYaml, excludes));
   return dir;
