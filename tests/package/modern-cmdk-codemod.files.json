@@ -1,0 +1,13 @@
+[
+  "LICENSE",
+  "README.md",
+  "dist/chunk-print-options.mjs",
+  "dist/chunk-worker.mjs",
+  "dist/cli.mjs",
+  "dist/transforms/data-attrs.mjs",
+  "dist/transforms/forward-ref.mjs",
+  "dist/transforms/import-rewrite.mjs",
+  "dist/transforms/should-filter.mjs",
+  "dist/worker.mjs",
+  "package.json"
+]
