@@ -1,12 +1,23 @@
-import { appendFile, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+  appendFile,
+  chmod,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { delimiter, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   discoverFiles,
   findDirtyFiles,
+  gitSearchDirs,
   normalizePattern,
   parserFor,
+  resolveGit,
   routeFor,
 } from '../../packages/modern-cmdk-codemod/src/files.js';
 import { git, gitEnv } from './git-fixture.js';
@@ -455,5 +466,82 @@ describe('codemod files: git submodules (SEC-55)', () => {
       'inner/n.tsx',
       'src/a.tsx',
     ]);
+  });
+});
+
+describe('codemod files: the git search path (SEC-57)', () => {
+  const repoRoot = join(tmpdir(), 'sec57-repo');
+  const outside = join(tmpdir(), 'sec57-elsewhere');
+  const outsideToo = join(tmpdir(), 'sec57-elsewhere-two');
+
+  it.each([
+    ['an empty value', '', []],
+    ['an undefined PATH', undefined, []],
+    ['empty entries', ['', outside, ''], [outside]],
+    ['relative entries', ['.', 'bin', outside, join('..', 'bin')], [outside]],
+    ['an entry equal to the root', [repoRoot, outside], [outside]],
+    ['an entry under the root', [join(repoRoot, 'node_modules', '.bin'), outside], [outside]],
+    ['the root spelled with a dot segment', [join(repoRoot, '.'), outside], [outside]],
+    [
+      'a sibling whose name starts with the root name',
+      [`${repoRoot}-tools`],
+      [`${repoRoot}-tools`],
+    ],
+    ['absolute entries outside the root, in order', [outsideToo, outside], [outsideToo, outside]],
+  ] as const)(
+    'SEC-57: gitSearchDirs keeps absolute entries outside the root: %s',
+    (_name, entries, kept) => {
+      const value = typeof entries === 'string' ? entries : entries?.join(delimiter);
+      expect(gitSearchDirs(value, repoRoot)).toEqual(kept);
+    },
+  );
+
+  /** Copy this Node binary where git would be looked up: `git.exe` on win32, an executable `git` elsewhere. */
+  const plantFakeGit = async (folder: string): Promise<void> => {
+    await mkdir(folder, { recursive: true });
+    const target = join(folder, process.platform === 'win32' ? 'git.exe' : 'git');
+    await copyFile(process.execPath, target);
+    await chmod(target, 0o755);
+  };
+
+  const commitSources = async (): Promise<void> => {
+    await touch('src/a.ts');
+    await touch('src/skip.ts');
+    await touch('.gitignore', 'skip.ts\n');
+    await git(dir, ['init', '-q']);
+    await git(dir, ['add', '-A']);
+    await git(dir, ['commit', '-q', '-m', 'base']);
+  };
+
+  it('SEC-57: a git planted at the repository root does not answer discovery or the dirty check', async () => {
+    await commitSources();
+    await plantFakeGit(dir);
+    expect(await find(['src'], 'modern-cmdk-codemod')).toEqual(['src/a.ts']);
+    expect(await findDirtyFiles([resolve(dir, 'src/a.ts')], dir)).toEqual({ kind: 'clean' });
+  });
+
+  it('SEC-57: a relative PATH entry does not run a git planted in the repository', async () => {
+    await commitSources();
+    await plantFakeGit(dir);
+    vi.stubEnv('PATH', `.${delimiter}${process.env.PATH}`);
+    expect(await findDirtyFiles([resolve(dir, 'src/a.ts')], dir)).toEqual({ kind: 'clean' });
+    expect(await find(['src'], 'modern-cmdk-codemod')).toEqual(['src/a.ts']);
+  });
+
+  it('SEC-57: a PATH entry inside the repository is skipped and the real git answers', async () => {
+    await commitSources();
+    const planted = join(dir, 'bin');
+    await plantFakeGit(planted);
+    vi.stubEnv('PATH', `${planted}${delimiter}${process.env.PATH}`);
+    const resolved = await resolveGit(dir);
+    expect(isAbsolute(resolved)).toBe(true);
+    expect(relative(planted, resolved).startsWith('..')).toBe(true);
+    expect(await findDirtyFiles([resolve(dir, 'src/a.ts')], dir)).toEqual({ kind: 'clean' });
+    expect(await find(['src'], 'modern-cmdk-codemod')).toEqual(['src/a.ts']);
+  });
+
+  it('SEC-57: resolveGit names the root when no PATH entry outside it holds git', async () => {
+    vi.stubEnv('PATH', `${join(dir, 'bin')}${delimiter}`);
+    await expect(resolveGit(dir)).rejects.toThrow(`git was not found on PATH outside ${dir}`);
   });
 });

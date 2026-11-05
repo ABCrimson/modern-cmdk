@@ -4,12 +4,25 @@
 // the bin's floor is Node >= 26.4.0) with `withFileTypes` and an `exclude` function. The
 // deprecated `modern-cmdk` bin keeps 1.4's four ignores and no .gitignore; the `modern-cmdk-codemod`
 // profile excludes more directories, applies .gitignore through `git check-ignore`, and refuses to
-// write into a dirty or untracked tree (see findDirtyFiles).
+// write into a dirty or untracked tree (see findDirtyFiles). Git is spawned by an absolute path that
+// resolveGit finds on PATH outside the tree being migrated: a bare `git` is searched for by libuv,
+// and a git planted in a cloned repository (a relative or empty PATH entry, an entry inside the
+// tree) would run with the user's rights (CWE-426, the review of 1223dc5).
 
 import { execFile } from 'node:child_process';
 import type { Dirent } from 'node:fs';
-import { glob, lstat, realpath, stat } from 'node:fs/promises';
-import { basename, dirname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path';
+import { access, constants, glob, lstat, realpath, stat } from 'node:fs/promises';
+import {
+  basename,
+  delimiter,
+  dirname,
+  isAbsolute,
+  join,
+  normalize,
+  relative,
+  resolve,
+  sep,
+} from 'node:path';
 
 /** Which bin is running. `modern-cmdk` is the deprecated bundled bin that the modern-cmdk shim runs; `modern-cmdk-codemod` is the default of run(). */
 export type Program = 'modern-cmdk' | 'modern-cmdk-codemod';
@@ -87,13 +100,61 @@ interface GitResult {
 }
 
 /**
- * Run git with execFile. Resolves on any exit code; rejects on a spawn failure (ENOENT when git is
- * missing). Inherits process.env, so tests steer it with vi.stubEnv.
+ * The directories of a PATH value that are safe to look for git in: absolute entries outside `root`.
+ * Empty and relative entries are dropped (they name the working directory), and so is any entry equal
+ * to or under `root`, the tree being migrated, which may carry a planted executable. Order is kept.
  */
-function runGit(args: readonly string[], cwd: string, input = ''): Promise<GitResult> {
+export function gitSearchDirs(pathValue: string | undefined, root: string): readonly string[] {
+  return (pathValue ?? '').split(delimiter).filter((entry) => {
+    if (entry === '' || !isAbsolute(entry)) return false;
+    const rel = relative(root, entry);
+    return !(rel === '' || (rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)));
+  });
+}
+
+const resolvedGit = new Map<string, Promise<string>>();
+
+/**
+ * The absolute path of the first git executable in PATH's `gitSearchDirs`, so the spawn does no
+ * search of its own. Looks for `git.exe` then `git.com` on win32 (the names libuv tries) and `git`
+ * elsewhere. `access` with X_OK is a plain existence check on Windows. The answer is kept per root
+ * and PATH value for the life of the process. Rejects with ENOENT, naming `root`, when there is none.
+ */
+export function resolveGit(root: string): Promise<string> {
+  const pathValue = process.env.PATH;
+  const cacheKey = JSON.stringify([root, pathValue]);
+  const cached = resolvedGit.get(cacheKey);
+  if (cached !== undefined) return cached;
+  const names = process.platform === 'win32' ? ['git.exe', 'git.com'] : ['git'];
+  const found = (async (): Promise<string> => {
+    for (const searchDir of gitSearchDirs(pathValue, root)) {
+      for (const name of names) {
+        const candidate = join(searchDir, name);
+        try {
+          await access(candidate, constants.X_OK);
+          return candidate;
+        } catch {
+          // Not here or not executable: the next candidate.
+        }
+      }
+    }
+    throw Object.assign(new Error(`git was not found on PATH outside ${root}`), { code: 'ENOENT' });
+  })();
+  resolvedGit.set(cacheKey, found);
+  found.catch(() => resolvedGit.delete(cacheKey));
+  return found;
+}
+
+/**
+ * Run git with execFile on the absolute path resolveGit finds. Resolves on any exit code; rejects
+ * on a spawn failure, and with ENOENT when git is missing. Reads process.env.PATH at each call, so
+ * tests steer it with vi.stubEnv.
+ */
+async function runGit(args: readonly string[], cwd: string, input = ''): Promise<GitResult> {
+  const executable = await resolveGit(cwd);
   const { promise, resolve: done, reject } = Promise.withResolvers<GitResult>();
   const child = execFile(
-    'git',
+    executable,
     [...args],
     { cwd, encoding: 'utf8', maxBuffer: 1024 ** 3, windowsHide: true },
     (error, stdout, stderr) => {
