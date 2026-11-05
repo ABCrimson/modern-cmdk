@@ -1,0 +1,5 @@
+[
+  "forwardRef(Inner): unwrap by hand",
+  "forwardRef(<expression>): unwrap by hand",
+  "forwardRef render function with more than two parameters: unwrap by hand"
+]
