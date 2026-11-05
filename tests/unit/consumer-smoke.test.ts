@@ -1,7 +1,12 @@
 // tests/unit/consumer-smoke.test.ts
 // W1-02: the pure helpers of scripts/consumer-smoke.ts (the consumer matrix harness). The
 // harness itself (install, build, serve, browser) is exercised by running it, not here.
+// W4-04b: run() must end a timed-out step even when a grandchild holds the stdout pipe, and must
+// leave that grandchild dead (a process group kill on POSIX, taskkill /T /F on Windows).
 
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { setTimeout as setTimeout_ } from 'node:timers/promises';
 import { describe, expect, it } from 'vitest';
 import type { CliOptions } from '../../scripts/consumer-smoke.ts';
 import {
@@ -12,8 +17,24 @@ import {
   isInstalledPackageJsonPath,
   parseCli,
   parseWorkspaceYaml,
+  run,
   VARIANTS,
 } from '../../scripts/consumer-smoke.ts';
+
+/** Whether a process still exists: signal 0 throws ESRCH on POSIX, tasklist filters by pid on Windows. */
+function isAlive(pid: number): boolean {
+  if (process.platform === 'win32') {
+    const listing = spawnSync('tasklist', ['/FI', `PID eq ${pid}`, '/NH'], { encoding: 'utf8' });
+    return listing.stdout.includes(String(pid));
+  }
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ESRCH') return false;
+    throw error;
+  }
+}
 
 /** The options of a run that must parse. */
 function runOptions(argv: readonly string[]): CliOptions {
@@ -198,4 +219,31 @@ describe('buildWorkspaceYaml()', () => {
       'b@2.0.0',
     ]);
   });
+});
+
+describe('run()', () => {
+  it('a timeout ends the step even when a grandchild holds the pipes, and the grandchild dies', async () => {
+    // The child prints its grandchild's pid, then both sleep; the grandchild inherits the pipes, so
+    // only a kill of the whole process group (POSIX) or tree (Windows) lets the step end.
+    const script = [
+      "const { spawn } = require('node:child_process');",
+      "const grandchild = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { stdio: 'inherit' });",
+      'console.log("GRANDCHILD=" + grandchild.pid);',
+      'setTimeout(() => {}, 30000);',
+    ].join(' ');
+    const started = performance.now();
+    const result = await run(process.execPath, ['-e', script], {
+      cwd: tmpdir(),
+      timeoutMs: 1500,
+    });
+    const elapsed = performance.now() - started;
+    expect(result.timedOut).toBe(true);
+    expect(elapsed).toBeLessThan(1500 + 5000);
+    const pid = Number(/GRANDCHILD=(\d+)/.exec(result.output)?.[1]);
+    expect(Number.isInteger(pid) && pid > 0).toBe(true);
+    // The kill is delivered before 'close' resolves; allow the OS a moment to reap the process.
+    const deadline = performance.now() + 5000;
+    while (isAlive(pid) && performance.now() < deadline) await setTimeout_(50);
+    expect(isAlive(pid)).toBe(false);
+  }, 20_000);
 });

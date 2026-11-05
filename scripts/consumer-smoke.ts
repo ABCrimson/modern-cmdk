@@ -338,16 +338,24 @@ function tail(output: string): string {
 }
 
 function killTree(child: ChildProcess): void {
-  if (child.pid === undefined || child.exitCode !== null) return;
+  if (child.pid === undefined) return;
   if (IS_WINDOWS) {
-    spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
-  } else {
-    child.kill('SIGKILL');
+    spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+      stdio: 'ignore',
+      timeout: 30_000,
+    });
+    return;
+  }
+  // The child leads its own process group (detached), so -pid reaches grandchildren holding the pipes.
+  try {
+    process.kill(-child.pid, 'SIGKILL');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
   }
 }
 
 /** Runs a command to completion with a hard timeout; output is captured, never streamed. */
-function run(
+export function run(
   command: string,
   args: readonly string[],
   options: {
@@ -367,6 +375,7 @@ function run(
         cwd: options.cwd,
         env: { ...process.env, CI: '1', NEXT_TELEMETRY_DISABLED: '1', ...options.env },
         windowsHide: true,
+        detached: !IS_WINDOWS,
       },
     );
     let output = '';
