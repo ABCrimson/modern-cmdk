@@ -25,6 +25,7 @@
     "check:package": "node scripts/check-package.ts",
     "check:licenses": "node scripts/check-licenses.ts",
     "check:doc-samples": "node scripts/check-doc-samples.ts",
+    "check:snippets": "node scripts/check-snippets.ts",
     "test:consumers": "node scripts/consumer-smoke.ts",
     "docs:dev": "pnpm --filter docs run dev",
     "docs:build": "pnpm --filter docs run build",

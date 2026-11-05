@@ -1,0 +1,99 @@
+{
+  "Command Item": {
+    "wrapper": [
+      "export const Probe = () => (",
+      "  <Command label=\"Probe\">",
+      "    <Command.List>",
+      "{{body}}",
+      "    </Command.List>",
+      "  </Command>",
+      ");"
+    ],
+    "declarations": ["import { Command } from 'modern-cmdk/react';"]
+  },
+  "Command Group": {
+    "wrapper": [
+      "export const Probe = () => (",
+      "  <Command label=\"Probe\">",
+      "    <Command.List>",
+      "{{body}}",
+      "    </Command.List>",
+      "  </Command>",
+      ");"
+    ],
+    "declarations": ["import { Command } from 'modern-cmdk/react';"]
+  },
+  "Command Shortcut": {
+    "wrapper": [
+      "export const Probe = () => (",
+      "  <Command label=\"Probe\">",
+      "    <Command.List>",
+      "{{body}}",
+      "    </Command.List>",
+      "  </Command>",
+      ");"
+    ],
+    "declarations": ["import { Command } from 'modern-cmdk/react';"]
+  },
+  "Command Page": {
+    "wrapper": [
+      "export const Probe = () => (",
+      "  <Command label=\"Probe\">",
+      "    <Command.List>",
+      "{{body}}",
+      "    </Command.List>",
+      "  </Command>",
+      ");"
+    ],
+    "declarations": [
+      "import { Command } from 'modern-cmdk/react';",
+      "declare function goBack(): void;"
+    ]
+  },
+  "Command AsyncItems": {
+    "wrapper": [
+      "export const Probe = () => (",
+      "  <Command label=\"Probe\">",
+      "    <Command.List>",
+      "{{body}}",
+      "    </Command.List>",
+      "  </Command>",
+      ");"
+    ],
+    "declarations": [
+      "import { Command } from 'modern-cmdk/react';",
+      "import type { CommandItem } from 'modern-cmdk';",
+      "declare const itemsPromise: Promise<readonly CommandItem[]>;"
+    ]
+  },
+  "Command with use() (React 19)": {
+    "declarations": [
+      "interface Item {",
+      "  readonly id: string;",
+      "  readonly value: string;",
+      "  readonly label: string;",
+      "  readonly onSelect: () => void;",
+      "}"
+    ]
+  },
+  "Command with useOptimistic (React 19)": {
+    "declarations": [
+      "interface Item {",
+      "  readonly id: string;",
+      "  readonly value: string;",
+      "  readonly label: string;",
+      "}",
+      "declare function persist(item: Item): Promise<void>;"
+    ]
+  },
+  "Command with useActionState (React 19)": {
+    "declarations": [
+      "interface Item {",
+      "  readonly id: string;",
+      "  readonly value: string;",
+      "  readonly label: string;",
+      "}",
+      "declare function searchItems(query: string): Promise<readonly Item[]>;"
+    ]
+  }
+}

@@ -136,7 +136,7 @@ function scanTargets(root: string | undefined): { dir: string; files: string[] }
 }
 
 /** The samples' tsconfig: extends and paths are written relative to the directory it lands in. */
-function tsconfigFor(outDir: string): Record<string, unknown> {
+export function tsconfigFor(outDir: string): Record<string, unknown> {
   const up: string = relative(outDir, ROOT).split(sep).join('/');
   return {
     extends: `${up}/tsconfig.base.json`,
