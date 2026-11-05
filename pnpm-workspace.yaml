@@ -23,7 +23,7 @@ allowBuilds:
   # 2026-11-04: @vscode/vsce-sign (postinstall fetches a signing binary) arrives with @vscode/vsce; signing is publish-only and
   # `vsce package --no-dependencies` does not use it, so its build stays off (W2-03; .vsix listing proves packaging works).
   '@vscode/vsce-sign': false
-# Supply-chain policy (pnpm 12.17.0). minimumReleaseAge is in minutes (1440 = 1 day, the built-in
+# Supply-chain policy (pnpm 12.18.0). minimumReleaseAge is in minutes (1440 = 1 day, the built-in
 # default, written out so the policy is visible). minimumReleaseAgeStrict: true fails resolution when
 # no version in the requested range meets minimumReleaseAge instead of falling back to a younger one
 # (pnpm.io/settings: it defaults to true only when minimumReleaseAge is set explicitly; written out
@@ -41,9 +41,26 @@ trustPolicyExclude:
   - lefthook@2.2.2
   - semver@5.7.2
   - semver@6.3.1
-# Exact versions published less than minimumReleaseAge before the 2026-11-04 lockfile refreshes (pruned 2026-11-05 00:08 UTC);
-# pnpm 12.17.0 refuses them otherwise. Entries age out of need after a day.
+# Exact versions published less than minimumReleaseAge before the 2026-11-04 lockfile refreshes and the 2026-11-05 next and pnpm bumps
+# (pruned 2026-11-05 00:08 UTC); pnpm 12.18.0 refuses them otherwise. Entries age out of need after a day.
 minimumReleaseAgeExclude:
+  # pnpm@12.18.0 (next-12, published 2026-11-05T00:56:16Z) and its fourteen @pnpm/exe platform packages (00:55:28-00:56:06Z),
+  # the lockfile's packageManagerDependencies, were under the 24 h minimumReleaseAge at the 2026-11-05 bump from 12.17.0. Drop after a day.
+  - pnpm@12.18.0
+  - '@pnpm/exe.android-arm64@12.18.0'
+  - '@pnpm/exe.android-x64@12.18.0'
+  - '@pnpm/exe.darwin-arm64@12.18.0'
+  - '@pnpm/exe.darwin-x64@12.18.0'
+  - '@pnpm/exe.freebsd-x64@12.18.0'
+  - '@pnpm/exe.linux-arm64-musl@12.18.0'
+  - '@pnpm/exe.linux-arm64@12.18.0'
+  - '@pnpm/exe.linux-ppc64@12.18.0'
+  - '@pnpm/exe.linux-riscv64@12.18.0'
+  - '@pnpm/exe.linux-s390x@12.18.0'
+  - '@pnpm/exe.linux-x64-musl@12.18.0'
+  - '@pnpm/exe.linux-x64@12.18.0'
+  - '@pnpm/exe.win32-arm64@12.18.0'
+  - '@pnpm/exe.win32-x64@12.18.0'
   # @biomejs/biome@2.6.5 and its ten platform binaries were published 2026-11-04T12:46Z, a few hours before this install
   - '@biomejs/biome@2.6.5'
   - '@biomejs/cli-android-arm64@2.6.5'

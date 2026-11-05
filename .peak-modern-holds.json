@@ -50,8 +50,8 @@
       "pin": "12.3.0",
       "file": "apps/docs/package.json",
       "field": "devDependencies",
-      "reason": "mermaid@13.0.0-alpha.0 (alpha and v13-alpha tags, published 2026-11-04T13:22Z) carries no npm attestations and was published from a user account, while 12.3.0 carries SLSA provenance; pnpm 12.17.0 with trustPolicy no-downgrade (pnpm-workspace.yaml) refuses the resolution: 'High-risk trust downgrade for \"mermaid@13.0.0-alpha.0\" (possible package takeover)'. Re-test when a 13.x build with provenance appears (pnpm view mermaid@<v> dist.attestations).",
-      "evidence": "pnpm install on 2026-11-04 at the 1.4.0 cut (scratchpad mermaid13-install.log): ERR trust downgrade; pnpm view mermaid@13.0.0-alpha.0 dist.attestations -> none, _npmUser ashishjain0512; pnpm view mermaid@12.3.0 dist.attestations -> provenance slsa.dev/provenance/v1"
+      "reason": "mermaid@13.0.0-alpha.0 (alpha and v13-alpha tags, published 2026-11-04T13:22Z) carries no npm attestations and was published from a user account, while 12.3.0 carries SLSA provenance; pnpm 12.18.0 (as 12.17.0 before it) with trustPolicy no-downgrade (pnpm-workspace.yaml) refuses the resolution: 'High-risk trust downgrade for \"mermaid@13.0.0-alpha.0\" (possible package takeover)'. Re-test when a 13.x build with provenance appears (pnpm view mermaid@<v> dist.attestations).",
+      "evidence": "pnpm install on 2026-11-04 at the 1.4.0 cut (scratchpad mermaid13-install.log): ERR trust downgrade; re-tested under pnpm 12.18.0 on 2026-11-05 in a scratch worktree (pnpm-gates-2026-11-05.log): High-risk trust downgrade, exit 1; pnpm view mermaid@13.0.0-alpha.0 dist.attestations -> none, _npmUser ashishjain0512; pnpm view mermaid@12.3.0 dist.attestations -> provenance slsa.dev/provenance/v1"
     }
   ]
 }
