@@ -28,10 +28,11 @@ updates:
         dependency-type: production
         update-types: [minor, patch]
     ignore:
-      # react, react-dom and scheduler are pinned to a 0.0.0-experimental-* build (pnpm-workspace.yaml
-      # overrides), which the peak-modern sweep re-resolves at every session start. Dependabot cannot
-      # order 0.0.0-experimental-* builds: PR #48 (2026-11-02) proposed 0.14.10, a 2020 release that
-      # it sorts above them. Ignored for every update type.
+      # react and react-dom are pinned to a 0.0.0-experimental-* build in the pnpm-workspace.yaml catalog (D54;
+      # the overrides reference it as catalog:), and scheduler follows react-dom's exact dependency on the same
+      # build. The peak-modern sweep re-resolves them at every session start. Dependabot cannot order
+      # 0.0.0-experimental-* builds: PR #48 (2026-11-02) proposed 0.14.10, a 2020 release that it sorts above
+      # them. Ignored for every update type.
       - dependency-name: 'react'
       - dependency-name: 'react-dom'
       - dependency-name: 'scheduler'
