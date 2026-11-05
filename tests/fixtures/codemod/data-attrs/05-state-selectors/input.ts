@@ -7,3 +7,6 @@ export const enabled = '[cmdk-item][data-disabled="false"]';
 export const both = '[cmdk-item][data-selected="true"][data-disabled="false"]';
 export const negated = '[cmdk-item]:not([data-selected="true"])';
 export const hover = `[cmdk-item][data-selected="true"]:hover > [cmdk-group-heading]`;
+export const wrapped = ':is(.dark [cmdk-item])[data-selected="true"]';
+export const open = '[cmdk-item][data-selected="true"]:not(' + rest + ')';
+export const spaced = ':is( [cmdk-item] )[data-selected="true"]';

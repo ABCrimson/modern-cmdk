@@ -1,0 +1,4 @@
+[
+  "line 3: data-[selected]: on a cmdk element cannot be migrated automatically: cmdk rendered data-selected with a \"true\" or \"false\" value, modern-cmdk sets data-active only while the state holds; left unchanged",
+  "line 3: data-[disabled]: on a cmdk element cannot be migrated automatically: cmdk rendered data-disabled with a \"true\" or \"false\" value, modern-cmdk sets data-disabled only while the state holds; left unchanged"
+]

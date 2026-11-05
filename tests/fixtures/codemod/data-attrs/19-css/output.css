@@ -33,3 +33,4 @@
 [data-selected="true"] {
   color: red;
 }
+[data-command-list] { background: url( //cdn.example/a.png); height: var(--command-list-height); }

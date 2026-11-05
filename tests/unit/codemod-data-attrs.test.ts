@@ -59,6 +59,18 @@ const TITLES: Readonly<Record<string, string>> = {
     'DA-7: escapes in a rewritten string literal (tab, newline, escaped quote, non-ASCII) survive byte for byte',
   '22-template-split':
     'DA-3, ARCH-10: a compound split by a template placeholder keeps its cmdk attribute for the state rewrite and the report',
+  '23-tailwind-state-edges':
+    'DA-3: Tailwind presence forms of the state attributes are reported and [&[data-selected=true]_svg] arbitrary variants are rewritten on cmdk-bound elements',
+  '24-tailwind-arbitrary-combinators':
+    'DA-3: a state attribute after a >, + or ~ inside a [&...] arbitrary variant sits on another element and stays as it is',
+  '25-tailwind-prefixed-variants':
+    'DA-3: a [&...] arbitrary variant after other variants (hover:, md:, group-hover:) is rewritten on the bound element and left alone on another element',
+  '26-tailwind-arbitrary-has':
+    'DA-3: inside the :has() of a [&...] arbitrary variant a state attribute sits on another element and stays as it is; one after the :has() is rewritten',
+  '27-tailwind-variant-scope':
+    'DA-3: a [&...] arbitrary variant after a *: or **: variant, or after an earlier [&...] variant that moves to another element, stays as it is',
+  '28-tailwind-arbitrary-is':
+    "DA-3: inside the :is(), :not() or :where() of a [&...] arbitrary variant a state attribute before a _, >, + or ~ sits on another element and stays as it is; the argument's subject is rewritten",
 };
 
 const cases = listCases('data-attrs');
