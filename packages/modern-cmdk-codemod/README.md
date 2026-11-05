@@ -111,7 +111,7 @@ Options:
   --strict         Exit 2 on usage errors (incl. unknown options), 1 on file errors
   --concurrency=N  Files processed at once (default: min(8, available cores))
   -h, --help       Show this help
-  --lenient        Keep the lenient exit codes below (cannot be combined with --strict)
+  --lenient        Keep the lenient exit codes below and skip the clean-git-tree check (cannot be combined with --strict)
   --force          Skip the clean-git-tree check (modern-cmdk-codemod only; modern-cmdk ignores it)
   -v, --version    Print the package name and version
 

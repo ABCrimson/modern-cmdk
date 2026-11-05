@@ -16,9 +16,11 @@
 //                                         literal; for a name or member expression (which may be
 //                                         undefined, meaning cmdk's default filter) the adapter is
 //                                         guarded: filter={fn === undefined ? undefined : adapter}
-//   filter={x!}, filter={x as F}, filter={o?.f}, filter={super.f} -> left unchanged, one report: the
-//                                         assertion and the cast hide the undefined the guard exists
-//                                         for, and `?.` says the object itself may be missing
+//   filter={x!}, filter={x as F}, filter={o?.f}, filter={super.f} -> left unchanged, with the report
+//                                         of a computed value below: isNamePath rejects these forms, so
+//                                         they are not adapted. The assertion and the cast hide the
+//                                         undefined the guard exists for, and `?.` says the object itself
+//                                         may be missing
 //   filter={call()}, filter={useFilters().byName} or another computed value -> left unchanged, one report: the adapter would
 //                                         re-evaluate it on every item, outside React render
 //   filter={fn}, bound to 'modern-cmdk/react' -> left alone: it is already migrated, or the
