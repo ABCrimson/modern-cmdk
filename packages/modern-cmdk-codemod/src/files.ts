@@ -5,9 +5,10 @@
 // deprecated `modern-cmdk` bin keeps 1.4's four ignores and no .gitignore; the `modern-cmdk-codemod`
 // profile excludes more directories, applies .gitignore through `git check-ignore`, and refuses to
 // write into a dirty or untracked tree (see findDirtyFiles). Git is spawned by an absolute path that
-// resolveGit finds on PATH outside the tree being migrated: a bare `git` is searched for by libuv,
-// and a git planted in a cloned repository (a relative or empty PATH entry, an entry inside the
-// tree) would run with the user's rights (CWE-426, the review of 1223dc5).
+// resolveGit finds on PATH outside the work tree being migrated (trustBoundary, computed once per
+// operation): a bare `git` is searched for by libuv, and a git planted in a cloned repository (a
+// relative or empty PATH entry, an entry or a link inside the tree) would run with the user's rights
+// (CWE-426, the reviews of 1223dc5 and cd9d415).
 
 import { execFile } from 'node:child_process';
 import type { Dirent } from 'node:fs';
@@ -100,45 +101,93 @@ interface GitResult {
 }
 
 /**
- * The directories of a PATH value that are safe to look for git in: absolute entries outside `root`.
- * Empty and relative entries are dropped (they name the working directory), and so is any entry equal
- * to or under `root`, the tree being migrated, which may carry a planted executable. Order is kept.
+ * The trust boundary of one operation: the realpath of the nearest directory, from `realpath(cwd)`
+ * upward, that holds a `.git` entry (a directory, or the file a worktree or submodule has), else
+ * `realpath(cwd)` when no ancestor holds one. It is the work tree `git rev-parse --show-toplevel`
+ * reports, computed without spawning git, and realpath'd so that a linked cwd (macOS's `/var` ->
+ * `/private/var`) or a short Windows path (`RUNNER~1`) compares equal to what git prints. Not the
+ * cwd, which may be a subdirectory of the tree whose other directories a planted git can sit in.
+ * Not the outermost work tree either: a dotfiles repository at the home directory would exclude
+ * every PATH entry under the home (shims, `~/.local/bin`) and leave the user with no git.
  */
-export function gitSearchDirs(pathValue: string | undefined, root: string): readonly string[] {
-  return (pathValue ?? '').split(delimiter).filter((entry) => {
-    if (entry === '' || !isAbsolute(entry)) return false;
-    const rel = relative(root, entry);
-    return !(rel === '' || (rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)));
-  });
+export async function trustBoundary(cwd: string): Promise<string> {
+  const start = await realpath(cwd);
+  for (let at = start; ; at = dirname(at)) {
+    if (
+      await lstat(join(at, '.git')).then(
+        () => true,
+        () => false,
+      )
+    ) {
+      return at;
+    }
+    if (dirname(at) === at) return start;
+  }
+}
+
+/** True when `path` is `boundary` or lies under it. Written once, for gitSearchDirs and resolveGit. */
+function inside(boundary: string, path: string): boolean {
+  const rel = relative(boundary, path);
+  return rel === '' || (rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel));
+}
+
+/**
+ * The directories of a PATH value that may hold git: absolute entries outside `boundary`, the work
+ * tree being migrated. Empty and relative entries are dropped (they name the working directory), and
+ * so is any entry equal to or under `boundary`, which may carry a planted executable. Order is kept.
+ * This is the syntactic filter; resolveGit also compares real paths.
+ */
+export function gitSearchDirs(pathValue: string | undefined, boundary: string): readonly string[] {
+  return (pathValue ?? '')
+    .split(delimiter)
+    .filter((entry) => entry !== '' && isAbsolute(entry) && !inside(boundary, entry));
+}
+
+/**
+ * True when `candidate` is a regular file (a directory named git is not git) that the process may
+ * execute (`access` with X_OK is a plain existence check on Windows) and whose own realpath lies
+ * outside `boundary`, so a link into the tree is refused.
+ */
+async function isGitOutside(candidate: string, boundary: string): Promise<boolean> {
+  try {
+    if (!(await stat(candidate)).isFile()) return false;
+    await access(candidate, constants.X_OK);
+    return !inside(boundary, await realpath(candidate));
+  } catch {
+    // Not here, not executable or a dangling link: the next candidate.
+    return false;
+  }
 }
 
 const resolvedGit = new Map<string, Promise<string>>();
 
 /**
  * The absolute path of the first git executable in PATH's `gitSearchDirs`, so the spawn does no
- * search of its own. Looks for `git.exe` then `git.com` on win32 (the names libuv tries) and `git`
- * elsewhere. `access` with X_OK is a plain existence check on Windows. The answer is kept per root
- * and PATH value for the life of the process. Rejects with ENOENT, naming `root`, when there is none.
+ * search of its own. A kept entry is skipped when its realpath is inside `boundary` (a link or an
+ * alias into the tree) or does not resolve. Looks for `git.exe` then `git.com` on win32 (the names
+ * libuv tries) and `git` elsewhere; isGitOutside says what a candidate must be. `boundary` comes
+ * from trustBoundary and is the same for every spawn of one operation, so a submodule's directory
+ * or a subdirectory cwd never narrows it. The answer is kept per boundary and PATH value for the
+ * life of the process. Rejects with ENOENT, naming `boundary`, when there is none.
  */
-export function resolveGit(root: string): Promise<string> {
+export function resolveGit(boundary: string): Promise<string> {
   const pathValue = process.env.PATH;
-  const cacheKey = JSON.stringify([root, pathValue]);
+  const cacheKey = JSON.stringify([boundary, pathValue]);
   const cached = resolvedGit.get(cacheKey);
   if (cached !== undefined) return cached;
   const names = process.platform === 'win32' ? ['git.exe', 'git.com'] : ['git'];
   const found = (async (): Promise<string> => {
-    for (const searchDir of gitSearchDirs(pathValue, root)) {
+    for (const searchDir of gitSearchDirs(pathValue, boundary)) {
+      const realDir = await realpath(searchDir).catch(() => undefined);
+      if (realDir === undefined || inside(boundary, realDir)) continue;
       for (const name of names) {
         const candidate = join(searchDir, name);
-        try {
-          await access(candidate, constants.X_OK);
-          return candidate;
-        } catch {
-          // Not here or not executable: the next candidate.
-        }
+        if (await isGitOutside(candidate, boundary)) return candidate;
       }
     }
-    throw Object.assign(new Error(`git was not found on PATH outside ${root}`), { code: 'ENOENT' });
+    throw Object.assign(new Error(`git was not found on PATH outside ${boundary}`), {
+      code: 'ENOENT',
+    });
   })();
   resolvedGit.set(cacheKey, found);
   found.catch(() => resolvedGit.delete(cacheKey));
@@ -146,12 +195,19 @@ export function resolveGit(root: string): Promise<string> {
 }
 
 /**
- * Run git with execFile on the absolute path resolveGit finds. Resolves on any exit code; rejects
- * on a spawn failure, and with ENOENT when git is missing. Reads process.env.PATH at each call, so
- * tests steer it with vi.stubEnv.
+ * Run git in `cwd` with execFile on the absolute path resolveGit finds outside `boundary`. The two
+ * differ on purpose: `cwd` is where git runs (the repository root, a submodule's directory or a
+ * subdirectory); `boundary` is the operation's trustBoundary, what PATH is filtered against. Resolves
+ * on any exit code; rejects on a spawn failure, and with ENOENT when git is missing. Reads
+ * process.env.PATH at each call, so tests steer it with vi.stubEnv.
  */
-async function runGit(args: readonly string[], cwd: string, input = ''): Promise<GitResult> {
-  const executable = await resolveGit(cwd);
+async function runGit(
+  args: readonly string[],
+  cwd: string,
+  boundary: string,
+  input = '',
+): Promise<GitResult> {
+  const executable = await resolveGit(boundary);
   const { promise, resolve: done, reject } = Promise.withResolvers<GitResult>();
   const child = execFile(
     executable,
@@ -174,9 +230,9 @@ type Repo =
   | { readonly kind: 'none' }
   | { readonly kind: 'missing' };
 
-async function locateRepo(cwd: string): Promise<Repo> {
+async function locateRepo(cwd: string, boundary: string): Promise<Repo> {
   try {
-    const { code, stdout } = await runGit(['rev-parse', '--show-toplevel'], cwd);
+    const { code, stdout } = await runGit(['rev-parse', '--show-toplevel'], cwd, boundary);
     return code === 0 ? { kind: 'repo', root: resolve(stdout.trim()) } : { kind: 'none' };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { kind: 'missing' };
@@ -204,8 +260,8 @@ const key = (path: string): string => (process.platform === 'win32' ? path.toLow
  * Root-relative paths of the gitlinks (mode 160000: submodules) in the repository at `root`. One
  * level is enough: a submodule nested inside a submodule is not looked for.
  */
-async function gitlinksOf(root: string): Promise<string[]> {
-  const { code, stdout, stderr } = await runGit(['ls-files', '-s', '-z'], root);
+async function gitlinksOf(root: string, boundary: string): Promise<string[]> {
+  const { code, stdout, stderr } = await runGit(['ls-files', '-s', '-z'], root, boundary);
   if (code !== 0) throw new Error(`git ls-files failed (exit ${code}): ${stderr.trim()}`);
   // Entries are `<mode> <object> <stage>\t<path>`.
   return stdout
@@ -215,10 +271,15 @@ async function gitlinksOf(root: string): Promise<string[]> {
 }
 
 /** The paths of `rels` that `git check-ignore` run in `owner` reports as ignored. */
-async function ignoredIn(owner: string, rels: readonly string[]): Promise<Set<string>> {
+async function ignoredIn(
+  owner: string,
+  rels: readonly string[],
+  boundary: string,
+): Promise<Set<string>> {
   const { code, stdout, stderr } = await runGit(
     ['check-ignore', '-z', '--stdin'],
     owner,
+    boundary,
     rels.join('\0'),
   );
   // Exit 0: some paths are ignored; 1: none are. Anything else is a failure, never "nothing ignored".
@@ -231,9 +292,10 @@ async function ignoredIn(owner: string, rels: readonly string[]): Promise<Set<st
 async function dropGitIgnored(
   files: string[],
   cwd: string,
+  boundary: string,
   warn: (message: string) => void,
 ): Promise<string[]> {
-  const repo = await locateRepo(cwd);
+  const repo = await locateRepo(cwd, boundary);
   if (repo.kind === 'missing') {
     warn('warning: git not found; .gitignore is not applied');
     return files;
@@ -244,7 +306,7 @@ async function dropGitIgnored(
   if (!rels.some((rel) => rel !== undefined)) return files;
   // git refuses a path inside a submodule (exit 128), so each file is checked by the repository
   // that owns it: the deepest gitlink above it, else the parent. Paths go in relative to the owner.
-  const gitlinks = (await gitlinksOf(repo.root)).map(key);
+  const gitlinks = (await gitlinksOf(repo.root, boundary)).map(key);
   const groups = new Map<string, { root: string; indexes: number[]; paths: string[] }>();
   rels.forEach((rel, index) => {
     if (rel === undefined) return;
@@ -262,7 +324,7 @@ async function dropGitIgnored(
   });
   const drop = new Set<number>();
   for (const group of groups.values()) {
-    const ignored = await ignoredIn(group.root, group.paths);
+    const ignored = await ignoredIn(group.root, group.paths, boundary);
     group.paths.forEach((path, i) => {
       if (ignored.has(path)) drop.add(group.indexes[i] as number);
     });
@@ -298,7 +360,8 @@ export type DirtyResult =
  * any untracked directory) makes every matched file under it dirty.
  */
 export async function findDirtyFiles(files: readonly string[], cwd: string): Promise<DirtyResult> {
-  const repo = await locateRepo(cwd);
+  const boundary = await trustBoundary(cwd);
+  const repo = await locateRepo(cwd, boundary);
   if (repo.kind === 'missing') return { kind: 'no-git' };
   if (repo.kind === 'none') return { kind: 'no-repo' };
 
@@ -312,6 +375,7 @@ export async function findDirtyFiles(files: readonly string[], cwd: string): Pro
       '--ignore-submodules=none',
     ],
     cwd,
+    boundary,
   );
   if (code !== 0) throw new Error(`git status failed (exit ${code}): ${stderr.trim()}`);
 
@@ -437,6 +501,7 @@ export async function discoverFiles(
   return dropGitIgnored(
     files.filter((_, index) => !through[index]),
     cwd,
+    await trustBoundary(cwd),
     warn,
   );
 }

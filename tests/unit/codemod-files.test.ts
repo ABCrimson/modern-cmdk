@@ -1,9 +1,11 @@
+import { existsSync } from 'node:fs';
 import {
   appendFile,
   chmod,
   copyFile,
   mkdir,
   mkdtemp,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -19,6 +21,7 @@ import {
   parserFor,
   resolveGit,
   routeFor,
+  trustBoundary,
 } from '../../packages/modern-cmdk-codemod/src/files.js';
 import { git, gitEnv } from './git-fixture.js';
 
@@ -533,7 +536,7 @@ describe('codemod files: the git search path (SEC-57)', () => {
     const planted = join(dir, 'bin');
     await plantFakeGit(planted);
     vi.stubEnv('PATH', `${planted}${delimiter}${process.env.PATH}`);
-    const resolved = await resolveGit(dir);
+    const resolved = await resolveGit(await trustBoundary(dir));
     expect(isAbsolute(resolved)).toBe(true);
     expect(relative(planted, resolved).startsWith('..')).toBe(true);
     expect(await findDirtyFiles([resolve(dir, 'src/a.ts')], dir)).toEqual({ kind: 'clean' });
@@ -543,5 +546,117 @@ describe('codemod files: the git search path (SEC-57)', () => {
   it('SEC-57: resolveGit names the root when no PATH entry outside it holds git', async () => {
     vi.stubEnv('PATH', `${join(dir, 'bin')}${delimiter}`);
     await expect(resolveGit(dir)).rejects.toThrow(`git was not found on PATH outside ${dir}`);
+  });
+});
+
+describe('codemod files: one trust boundary per operation (SEC-58)', () => {
+  /** The nearest directory from `start` upward that holds a `.git` entry, written without the module under test. */
+  const nearestWorkTree = (start: string): string => {
+    for (let at = start; ; at = dirname(at)) {
+      if (existsSync(join(at, '.git'))) return at;
+      if (dirname(at) === at) return start;
+    }
+  };
+
+  /** Copy this Node binary where git would be looked up: `git.exe` on win32, an executable `git` elsewhere. */
+  const plantFakeGit = async (folder: string): Promise<void> => {
+    await mkdir(folder, { recursive: true });
+    const target = join(folder, process.platform === 'win32' ? 'git.exe' : 'git');
+    await copyFile(process.execPath, target);
+    await chmod(target, 0o755);
+  };
+
+  const commitSources = async (): Promise<void> => {
+    await touch('src/a.ts');
+    await touch('src/skip.ts');
+    await touch('.gitignore', 'skip.ts\n');
+    await git(dir, ['init', '-q']);
+    await git(dir, ['add', '-A']);
+    await git(dir, ['commit', '-q', '-m', 'base']);
+  };
+
+  const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+  const scratch: string[] = [];
+  const scratchDir = async (prefix: string): Promise<string> => {
+    const made = await mkdtemp(join(tmpdir(), prefix));
+    scratch.push(made);
+    return made;
+  };
+
+  afterEach(async () => {
+    for (const made of scratch.splice(0)) await rm(made, { recursive: true, force: true });
+  });
+
+  it('SEC-58: trustBoundary is the realpath of the nearest work tree above a subdirectory', async () => {
+    await commitSources();
+    await mkdir(join(dir, 'src', 'deep'), { recursive: true });
+    expect(await trustBoundary(join(dir, 'src', 'deep'))).toBe(await realpath(dir));
+  });
+
+  it('SEC-58: trustBoundary is the directory itself when no work tree is above it', async () => {
+    const bare = await scratchDir('modern-cmdk-files-bare-');
+    const real = await realpath(bare);
+    expect(await trustBoundary(bare)).toBe(nearestWorkTree(real));
+  });
+
+  it('SEC-58: trustBoundary resolves a symlink alias of the repository to its realpath', async () => {
+    await commitSources();
+    const aliasHome = await scratchDir('modern-cmdk-files-alias-');
+    const alias = join(aliasHome, 'alias');
+    await symlink(dir, alias, linkType);
+    expect(await trustBoundary(join(alias, 'src'))).toBe(await realpath(dir));
+  });
+
+  it('SEC-58: a PATH entry elsewhere in the repository is skipped when cwd is a subdirectory', async () => {
+    await commitSources();
+    const planted = join(dir, 'bin');
+    await plantFakeGit(planted);
+    vi.stubEnv('PATH', `${planted}${delimiter}${process.env.PATH}`);
+    const src = join(dir, 'src');
+    expect(await findDirtyFiles([join(src, 'a.ts')], src)).toEqual({ kind: 'clean' });
+    expect(
+      await discoverFiles(['.'], {
+        program: 'modern-cmdk-codemod',
+        cwd: src,
+        warn: (m: string) => void warnings.push(m),
+      }),
+    ).toEqual([join(src, 'a.ts')]);
+  });
+
+  it('SEC-58: a PATH entry reached through a symlink alias of the repository is skipped', async () => {
+    await commitSources();
+    const aliasHome = await scratchDir('modern-cmdk-files-alias-');
+    const alias = join(aliasHome, 'alias');
+    await symlink(dir, alias, linkType);
+    await plantFakeGit(join(dir, 'bin'));
+    vi.stubEnv('PATH', `${join(alias, 'bin')}${delimiter}${process.env.PATH}`);
+    expect(await findDirtyFiles([join(dir, 'src', 'a.ts')], dir)).toEqual({ kind: 'clean' });
+    expect(await find(['src'], 'modern-cmdk-codemod')).toEqual(['src/a.ts']);
+  });
+
+  it('SEC-58: a cwd that is a symlink alias of the repository does not move the boundary off the toplevel git prints', async () => {
+    await commitSources();
+    const aliasHome = await scratchDir('modern-cmdk-files-alias-');
+    const alias = join(aliasHome, 'alias');
+    await symlink(dir, alias, linkType);
+    await plantFakeGit(join(dir, 'bin'));
+    vi.stubEnv('PATH', `${join(dir, 'bin')}${delimiter}${process.env.PATH}`);
+    expect(await findDirtyFiles([join(alias, 'src', 'a.ts')], alias)).toEqual({ kind: 'clean' });
+    expect(
+      await discoverFiles(['src'], {
+        program: 'modern-cmdk-codemod',
+        cwd: alias,
+        warn: (m: string) => void warnings.push(m),
+      }),
+    ).toEqual([join(alias, 'src', 'a.ts')]);
+  });
+
+  it('SEC-58: a directory named git on an outside PATH entry is not taken for the executable', async () => {
+    await commitSources();
+    const decoy = await scratchDir('modern-cmdk-files-decoy-');
+    await mkdir(join(decoy, process.platform === 'win32' ? 'git.exe' : 'git'));
+    vi.stubEnv('PATH', `${decoy}${delimiter}${process.env.PATH}`);
+    expect(await findDirtyFiles([resolve(dir, 'src/a.ts')], dir)).toEqual({ kind: 'clean' });
+    expect(await find(['src'], 'modern-cmdk-codemod')).toEqual(['src/a.ts']);
   });
 });
