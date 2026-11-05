@@ -158,7 +158,7 @@ jobs:
       # Snippet gate (CV-43, RP-13): every VS Code snippet of packages/vscode-modern-cmdk, expanded with its defaults, type-checks
       # against the downloaded dist (scripts/check-snippets.ts); the unit test covers only fixture packages.
       - run: pnpm check:snippets
-      # tests/dist runs against the built packages: the CLI smoke test, the create-modern-cmdk tarball, the devtools and dialog subpaths, the exports map, the manifest and the one-core invariant
+      # tests/dist runs against the built packages: the CLI smoke test and the CLI execFile suite (the three built bins on fixture copies, byte for byte), the create-modern-cmdk tarball and the version its bin writes, the devtools and dialog subpaths, the exports map, the manifest, the one-core invariant and the shipped third-party notices
       - run: pnpm exec vitest run tests/dist
 
   coverage:
