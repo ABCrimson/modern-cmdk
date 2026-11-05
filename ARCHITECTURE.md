@@ -332,7 +332,7 @@ The optional WASM engine implements the core's `SearchEngine` interface; you pas
 - **`createWorkerSearchEngine()`** (`src/worker-engine.ts`) -- runs the same engine in a Web Worker; scores travel in a `SharedArrayBuffer` only when the page is cross-origin isolated, otherwise they are structured-cloned. Its synchronous `search()` yields the results of the most recent `searchAsync()` call, and nothing in `createCommandMachine` calls `searchAsync()`, so pair it with explicit `await engine.searchAsync(query)` calls. This file is the only place in `packages/*/src` that uses `Promise.withResolvers` (ES2024): for the worker-ready signal and for per-request tracking.
 - **Edit distance** -- `crate/src/scorer.rs` (Levenshtein helpers) is compiled under `cfg(test)` only and is not part of the search path.
 
-**Measurements.** The `.wasm` binary is 113,495 bytes raw and 52,188 bytes under `gzip -9` (measured 2026-11-04 on the built `pkg/command_search_wasm_bg.wasm`), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
+**Measurements.** The `.wasm` binary is 113,223 bytes raw and 52,100 bytes under `gzip -9` (measured 2026-11-05 on the `pkg/command_search_wasm_bg.wasm` that wasm-pack 0.15.1 builds with the nightly of 2026-11-05, rustc 1.101.0-nightly 2d20b42b8; the 2026-11-04 nightly gave 113,495 and 52,188), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
 
 ---
 
@@ -597,7 +597,7 @@ Five custom properties are registered with `@property` (`--command-list-height`,
 | `CommandSeparator` only | ≤ 5 kB | **Enforced**: `import { CommandSeparator }` from `dist/react/index.mjs`, gzip, same ignore list. Measured 4767 B; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (the compound), so this entry is a regression tripwire and not a tree-shaking claim |
 | `modern-cmdk/styles.css` | ≤ 4 kB | **Enforced**: `dist/react/styles.css`, gzip. Measured 3959 B |
 | Codemod bin | ≤ 3.4 MB | **Enforced**: `dist/codemod/cli.mjs` plus `dist/codemod/transforms/*.mjs` (the whole bin), installed size (no compression). The record `benchmarks/size-history/1.4.0.json` (5f1e01e, measured at 07bfe79) holds 3325793 B |
-| WASM binary (gzipped) | no budget; about 52 kB measured (113,495 bytes raw) | Not enforced (package private, not in `size-limit`) |
+| WASM binary (gzipped) | no budget; about 52 kB measured (113,223 bytes raw) | Not enforced (package private, not in `size-limit`) |
 | Search latency (10K items, TS scorer) | < 16 ms | Tripwire on the named task `search:ts-scorer-10k`: `pnpm bench:compare` against `benchmarks/baseline.json` warns above a 5% regression and fails the CI bench job above 15% or when the median exceeds the 16 ms `target_ms` (see below). |
 | Search latency (100K items, WASM engine) | none (unmeasured) | Target (not enforced); no figure has been measured |
 | Time to first render | < 50 ms | Target (not enforced) |
