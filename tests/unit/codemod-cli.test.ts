@@ -287,6 +287,21 @@ describe('codemod CLI: --concurrency', () => {
     expect(lines[0]).toContain('clean-git-tree check');
   });
 
+  it('CLI-13: --help names the clean-git-tree check as modern-cmdk-codemod only on the --lenient line and the strict exit-code row', async () => {
+    for (const d of [deps, codemodDeps]) {
+      const c = capture();
+      expect(await run(['--help'], c.io, d)).toBe(0);
+      const lines = c.out().split('\n');
+      const lenient = lines.filter((l) => /^ {2}--lenient\b/.test(l));
+      expect(lenient).toHaveLength(1);
+      expect(lenient[0]).toContain('clean-git-tree check');
+      expect(lenient[0]).toContain('clean-git-tree check (modern-cmdk-codemod only)');
+      const dirty = lines.filter((l) => l.includes('refused dirty tree'));
+      expect(dirty).toHaveLength(1);
+      expect(dirty[0]).toContain('refused dirty tree (modern-cmdk-codemod only)');
+    }
+  });
+
   it('CLI-PERF: --help says files run on worker threads above --concurrency=1 and on the main thread at 1', async () => {
     const c = capture();
     expect(await run(['--help'], c.io, deps)).toBe(0);

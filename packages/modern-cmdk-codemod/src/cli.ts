@@ -23,7 +23,8 @@
 // and writes nothing, even beside an unknown option. Strict mode (--strict, or the
 // modern-cmdk-codemod default): 0 on success, reports included; 1 when any file errored, no file
 // matched or the run failed; 2 for any usage error, including an unknown option, and for a refused
-// dirty tree. --strict together with --lenient is a usage error that exits 2.
+// dirty tree (modern-cmdk-codemod only; the modern-cmdk profile runs no git check).
+// --strict together with --lenient is a usage error that exits 2.
 //
 // Concurrency. The main thread loads the transform first, so a missing or broken module fails the
 // run once (exit 1 in both profiles) before any thread starts. Files are transformed on worker threads (worker.ts, shipped next to this file as
@@ -125,14 +126,14 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
     `  ${opt('--strict')}Exit 2 on usage errors (incl. unknown options), 1 on file errors`,
     `  ${opt('--concurrency=N')}Files processed at once (default: min(8, available cores))`,
     `  ${opt('-h, --help')}Show this help`,
-    `  ${opt('--lenient')}Keep the lenient exit codes below and skip the clean-git-tree check (cannot be combined with --strict)`,
+    `  ${opt('--lenient')}Keep the lenient exit codes below (cannot be combined with --strict) and skip the clean-git-tree check (modern-cmdk-codemod only)`,
     `  ${opt('--force')}Skip the clean-git-tree check (modern-cmdk-codemod only; modern-cmdk ignores it)`,
     `  ${opt('-v, --version')}Print the package name and version`,
     '',
     bold('Exit codes:'),
     '  strict   0 success (reports included); 1 a file errored, no file matched or the run failed;',
     '           2 usage error (unknown or malformed option, unknown transform, missing argument,',
-    '           --strict with --lenient) or a refused dirty tree',
+    '           --strict with --lenient) or a refused dirty tree (modern-cmdk-codemod only)',
     '  lenient  0 for --help, missing arguments, usage errors and per-file errors; 1 for an unknown',
     '           transform, no matching files and an uncaught error',
     '',
