@@ -15,7 +15,7 @@ pnpm bench:compare               # standalone harness vs benchmarks/baseline.jso
 pnpm lint                        # biome check . --error-on-warnings
 pnpm typecheck                   # tsc --noEmit: modern-cmdk, modern-cmdk-codemod, create-modern-cmdk, tests/, tests/e2e, tests/docs; vue-tsc --noEmit: the docs app (no pkg/ needed)
 pnpm size                        # build + size-limit
-pnpm check:package               # publint (strict) on both packed tarballs; attw and the tarball file list on modern-cmdk's (run pnpm build first)
+pnpm check:package               # on all three packed tarballs: publint (strict), no catalog:/workspace: in a packed manifest, bin shebang and execute bits, the bare-import allow-list; attw on modern-cmdk; the file lists of modern-cmdk and modern-cmdk-codemod (run pnpm build first)
 pnpm check:doc-samples            # type-checks every fenced ts/tsx sample of the docs and READMEs against the built dist (run pnpm build first; a checkout without the wasm build passes --skip-wasm)
 pnpm check:snippets              # type-checks every VS Code snippet of packages/vscode-modern-cmdk, expanded with its defaults, against the built dist (run pnpm build first)
 pnpm check:licenses              # lockfile licence audit against tests/package/license-policy.json (needs an install, not a build)

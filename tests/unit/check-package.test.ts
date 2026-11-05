@@ -1,7 +1,11 @@
 // tests/unit/check-package.test.ts
-// The pure helpers of scripts/check-package.ts: file-list diff, the 'use client' directive test and
-// the in-process tarball reader. The reader is exercised on archives built here byte by byte, so no
-// archiver binary runs (see the host tar rule in the script header).
+// scripts/check-package.ts, apart from its publint, attw and pnpm pack steps: the file-list diff, the
+// 'use client' directive test (startsWithUseClient) and its per-package check (clientDirectiveFailures),
+// the --pack-dir and --tarball argument handling, the in-process tarball reader (listTarEntries,
+// including header modes), PACKAGES coverage, packedManifestFailures, blankNonCode and bareImports,
+// importAllowListFailures and binFailures (shebang and tar header execute bits). The reader is exercised
+// on archives built here byte by byte, so no archiver binary runs (see the host tar rule in the script
+// header).
 
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -10,7 +14,9 @@ import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import {
   absolutePackDir,
+  bareImports,
   binFailures,
+  blankNonCode,
   clientDirectiveFailures,
   diffFileList,
   importAllowListFailures,
@@ -270,6 +276,48 @@ describe('importAllowListFailures', () => {
   it('create-modern-cmdk is not import-checked', () => {
     const entries = [file('dist/x.mjs', "import 'zzz';")];
     expect(importAllowListFailures('create-modern-cmdk', entries, [])).toEqual([]);
+  });
+});
+
+// '@{' stands for a template substitution opener in the samples below (a literal one trips noTemplateCurlyInString)
+const js = (sample: string): string => sample.replaceAll('@{', '$' + '{');
+
+describe('bareImports and blankNonCode', () => {
+  it('SEC-33: a real import() after a string holding // on the same line is reported', () => {
+    const code = "const u = 'https://x.test'; const m = await import('jscodeshift');";
+    expect(bareImports(code)).toEqual(['jscodeshift']);
+  });
+
+  it('SEC-33: a real require() after a string holding an apostrophe on the same line is reported', () => {
+    const code = 'const s = "it\'s"; const r = require("recast");';
+    expect(bareImports(code)).toEqual(['recast']);
+  });
+
+  it('SEC-33: a bare import inside a template literal, a block comment or a line comment is not reported', () => {
+    const code = [
+      js("const t = `import('a') @{ok('in-substitution-string')} require('b')`;"),
+      '/* spanning',
+      "   import('c') and require('d')",
+      '*/',
+      "// import('e') require('f')",
+      js("const nested = `outer @{`inner import('g')`} tail`;"),
+    ].join('\n');
+    expect(bareImports(code)).toEqual([]);
+  });
+
+  it('SEC-33: code inside a template substitution is still scanned', () => {
+    const code = js("const t = `x @{await import('real-dep')}`;");
+    expect(bareImports(code)).toEqual(['real-dep']);
+  });
+
+  it('SEC-33: blankNonCode keeps the length and the line count and blanks exactly the literal contents', () => {
+    const src = js(['a(\'x y\', "p\\"q", `t@{b}u`); // note', '/* c', 'd */ e'].join('\n'));
+    const out = blankNonCode(src);
+    expect(out).toHaveLength(src.length);
+    expect(out.split('\n')).toHaveLength(src.split('\n').length);
+    // quotes and backticks stay, their contents become spaces, a template substitution stays code, and a
+    // comment is blanked whole
+    expect(out).toBe(js(['a(\'   \', "    ", ` @{b} `);        ', '    ', '     e'].join('\n')));
   });
 });
 

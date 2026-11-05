@@ -23,7 +23,9 @@
 //      no catalog: or workspace: value in dependencies, peerDependencies or optionalDependencies;
 //   6. import allow-list: every bare import in modern-cmdk-codemod's dist/**/*.mjs is a Node builtin or
 //      a dependency the packed manifest declares; every bare import in modern-cmdk's dist/codemod/**/*.mjs
-//      is a Node builtin (the codemod is bundled there, so it needs nothing installed);
+//      is a Node builtin (the codemod is bundled there, so it needs nothing installed). Imports are found
+//      after blankNonCode has blanked string and template contents and comments, so text that only
+//      mentions an import never counts and a real call after such text always does;
 //   7. every bin target exists in the tarball, starts with #!/usr/bin/env node and has the execute bits (0o111)
 //      in its tar header. pnpm pack writes 0o755 for every bin target whatever its mode on disk (pnpm 12.18.0,
 //      on Linux and win32), so this guards the published tarball, including a --tarball packed by another tool.
@@ -274,33 +276,119 @@ export function packedManifestFailures(manifestText: string): string[] {
   return failures;
 }
 
+/**
+ * The source with everything that is not code blanked: the contents of string literals ('...', "..."),
+ * of template literals (the text between the backticks and between substitutions) and the whole of line
+ * and block comments become spaces. Quotes and backticks stay, newlines and carriage returns stay, so the
+ * length, every offset and every line number are those of the input. A template substitution is code
+ * again: a stack of brace depths, one entry per open substitution, returns to the template at the
+ * matching `}`, so substitutions nest to any depth. A backslash escapes the next character in a string or
+ * template; a string still open at a newline ends there, as an unterminated string does.
+ *
+ * Written for tsdown's output, unminified ESM: the token rules are the ECMAScript string, template and
+ * comment productions, and a bare import can only be written as import/export-from, import() or
+ * require()/__require(), none of which is valid inside a literal or comment. One blind spot: a regular
+ * expression literal is not recognised (telling it from a division needs the previous token), so a quote,
+ * a backtick or `//` inside one opens a literal or comment that is not there. A quote ends at the line's
+ * end, a backtick can run to the next backtick, and either can hide a bare import after it: a false
+ * negative is possible, accepted because the bundled chunks are not expected to hold such a literal (the
+ * pack gate runs on the real dist), not because the case cannot occur.
+ */
+export function blankNonCode(source: string): string {
+  const out = source.split('');
+  const blank = (from: number, to: number): void => {
+    for (let k = from; k < to; k++) if (out[k] !== '\n' && out[k] !== '\r') out[k] = ' ';
+  };
+  const depths: number[] = []; // brace depth inside each open template substitution
+  let i = 0;
+  // i is just past an opening backtick or the closing brace of a substitution
+  const template = (): void => {
+    const from = i;
+    while (i < source.length) {
+      const ch = source[i];
+      if (ch === '\\') {
+        i += 2;
+      } else if (ch === '`') {
+        blank(from, i);
+        i++;
+        return;
+      } else if (ch === '$' && source[i + 1] === '{') {
+        blank(from, i);
+        i += 2;
+        depths.push(0);
+        return;
+      } else {
+        i++;
+      }
+    }
+    blank(from, source.length);
+  };
+  while (i < source.length) {
+    const ch = source[i];
+    const next = source[i + 1];
+    if (ch === "'" || ch === '"') {
+      const from = ++i;
+      while (i < source.length && source[i] !== ch && source[i] !== '\n') {
+        i += source[i] === '\\' ? 2 : 1;
+      }
+      blank(from, Math.min(i, source.length));
+      if (source[i] === ch) i++;
+    } else if (ch === '`') {
+      i++;
+      template();
+    } else if (ch === '/' && next === '/') {
+      const from = i;
+      while (i < source.length && source[i] !== '\n') i++;
+      blank(from, i);
+    } else if (ch === '/' && next === '*') {
+      const from = i;
+      const close = source.indexOf('*/', i + 2);
+      i = close === -1 ? source.length : close + 2;
+      blank(from, i);
+    } else if (ch === '{' && depths.length > 0) {
+      depths[depths.length - 1] = (depths[depths.length - 1] ?? 0) + 1;
+      i++;
+    } else if (ch === '}' && depths.length > 0) {
+      i++;
+      if (depths[depths.length - 1] === 0) {
+        depths.pop();
+        template();
+      } else {
+        depths[depths.length - 1] = (depths[depths.length - 1] ?? 1) - 1;
+      }
+    } else {
+      i++;
+    }
+  }
+  return out.join('');
+}
+
+// Run over blankNonCode's output, where the quotes still delimit a specifier but its text is spaces:
+// the specifier is read back from the original source at the offsets of capture group 2 (the d flag).
 const IMPORT_SPECIFIERS: readonly RegExp[] = [
-  /^[ \t]*(?:import|export)\b[^;'"`()=]*?\bfrom\s*(["'])([^"'\n]+)\1/gm, // import x from 'a' / export * from 'a'
-  /^[ \t]*import\s*(["'])([^"'\n]+)\1/gm, // import 'a'
-  /\bimport\s*\(\s*(["'])([^"'\n]+)\1\s*\)/g, // import('a')
-  /(?<![\w$.])(?:__require|require)\s*\(\s*(["'])([^"'\n]+)\1\s*\)/g, // require('a') and rolldown's __require('a')
+  /^[ \t]*(?:import|export)\b[^;'"`()=]*?\bfrom\s*(["'])([^"'\n]+)\1/dgm, // import x from 'a' / export * from 'a'
+  /^[ \t]*import\s*(["'])([^"'\n]+)\1/dgm, // import 'a'
+  /\bimport\s*\(\s*(["'])([^"'\n]+)\1\s*\)/dg, // import('a')
+  /(?<![\w$.])(?:__require|require)\s*\(\s*(["'])([^"'\n]+)\1\s*\)/dg, // require('a') and rolldown's __require('a')
 ];
 
 /**
  * The bare specifiers (neither relative, absolute nor a Node builtin: `node:x`, or a bare builtin name such as
- * `fs`, by `module.isBuiltin`) a code string imports. `require(...)` and rolldown's `__require(...)` both count. A regex over
- * unminified ESM (tsdown output, one statement per line): a static import or re-export is seen only
- * when its statement starts a line, so message text such as `export * from 'cmdk'` inside a string or
- * template literal does not count. Block comments are blanked first; a dynamic import() or require()
- * counts unless its line, before the call, holds an odd number of one quote character (inside a
- * string) or a `//` (inside a line comment). A computed specifier is not seen at all.
+ * `fs`, by `module.isBuiltin`) a code string imports. `require(...)` and rolldown's `__require(...)` both count.
+ * A regex over unminified ESM (tsdown output) after `blankNonCode`: string and template contents and
+ * comments are spaces, so a call or statement written inside one is never matched, wherever it sits on
+ * its line and whatever else that line holds. A static import or re-export must still start its line.
+ * A computed specifier is not seen at all.
  */
 export function bareImports(code: string): string[] {
   const found = new Set<string>();
-  const source = code.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ' '));
+  const source = blankNonCode(code);
   for (const pattern of IMPORT_SPECIFIERS) {
     for (const match of source.matchAll(pattern)) {
-      const specifier = match[2];
-      if (specifier === undefined || /^(?:\.|\/|node:)/.test(specifier) || isBuiltin(specifier))
-        continue;
-      const before = source.slice(source.lastIndexOf('\n', match.index) + 1, match.index);
-      const inLiteral = ["'", '"', '`'].some((quote) => before.split(quote).length % 2 === 0);
-      if (!pattern.multiline && (inLiteral || before.includes('//'))) continue;
+      const range = match.indices?.[2];
+      if (range === undefined) continue;
+      const specifier = code.slice(range[0], range[1]);
+      if (/^(?:\.|\/|node:)/.test(specifier) || isBuiltin(specifier)) continue;
       found.add(specifier);
     }
   }
