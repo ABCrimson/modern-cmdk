@@ -173,7 +173,8 @@
       "!node_modules/",
       "!packages/modern-cmdk/src/react/primitives.ts",
       "!DECISIONS.md",
-      "!docs/ledger/findings.json"
+      "!docs/ledger/findings.json",
+      "!tests/fixtures"
     ]
   }
 }
