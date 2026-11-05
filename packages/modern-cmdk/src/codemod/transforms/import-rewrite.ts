@@ -313,7 +313,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
     }
   };
 
-  /** Report `K.name` and `K.name` type references on a namespace import whose name has no export. */
+  /** Report each `K.name` member access, `<K.name>` JSX tag and `K.name` type reference on a namespace import whose name has no export. */
   const reportNamespaceMembers = (
     importPath: ASTPath<import('jscodeshift').Node>,
     local: string,
@@ -335,6 +335,10 @@ export default function transform(fileInfo: FileInfo, api: API): string {
     root
       .find(j.JSXMemberExpression, { object: { type: 'JSXIdentifier', name: local } })
       .forEach((p) => {
+        // A closing tag names the same element as its opening tag, which is already reported.
+        let tag: ASTPath<import('jscodeshift').Node> = p;
+        while (tag.parent?.node.type === 'JSXMemberExpression') tag = tag.parent;
+        if (tag.parent?.node.type === 'JSXClosingElement') return;
         note(p.node.property, p.scope);
       });
   };
