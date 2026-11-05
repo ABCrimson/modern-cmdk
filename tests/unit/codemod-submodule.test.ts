@@ -1,6 +1,6 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { Writable } from 'node:stream';
 import { stripVTControlCharacters } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -92,5 +92,19 @@ describe('codemod CLI: git submodules', () => {
     expect(await readFile(inner, 'utf-8')).toMatch(
       /^import \{ Command \} from ['"]modern-cmdk\/react['"];\r?\n$/,
     );
+  });
+
+  it('SEC-58: a PATH entry in the superproject is skipped when check-ignore runs in the submodule', async () => {
+    const planted = join(dir, 'bin');
+    await mkdir(planted);
+    const target = join(planted, process.platform === 'win32' ? 'git.exe' : 'git');
+    await copyFile(process.execPath, target);
+    await chmod(target, 0o755);
+    vi.stubEnv('PATH', `${planted}${delimiter}${process.env.PATH}`);
+    expect(await run(['import-rewrite', 'inner'], capture().io, codemodDeps)).toBe(0);
+    expect(await readFile(inner, 'utf-8')).toMatch(
+      /^import \{ Command \} from ['"]modern-cmdk\/react['"];\r?\n$/,
+    );
+    expect(await readFile(join(dir, 'inner', 'skip.tsx'), 'utf-8')).toBe(SOURCE);
   });
 });
