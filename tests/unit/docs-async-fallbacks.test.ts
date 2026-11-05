@@ -3,7 +3,7 @@
 //   DG-113: CommandAsyncItems renders its own <Suspense fallback={fallback}> (src/react/async-items.tsx:58), so an outer
 //           <Suspense> whose first element child is <Command.AsyncItems> never shows its own fallback.
 //   DG-114: <Command.Loading> returns null unless isLoading is true (src/react/loading.tsx:25-27 takes the loading prop, else
-//           state.loading or isPending; the core never sets state.loading: ARCH-59), so
+//           state.loading or isPending; the machine sets state.loading true while a LOADING event is pending: src/core/machine.ts:317, sent by <Command.AsyncItems> while its fallback is mounted, src/react/async-items.tsx:47-58), so
 //           fallback={<Command.Loading>...</Command.Loading>} without
 //           the loading prop renders nothing while pending.
 // Scope: every ts, tsx and typescript fence of apps/docs/**/*.md and of the three READMEs the docs-samples gate reads

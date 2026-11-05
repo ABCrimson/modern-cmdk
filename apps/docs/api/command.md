@@ -99,7 +99,7 @@ Immutable state snapshot. Each mutation produces a new object reference for effi
 | `filteredIds` | `readonly ItemId[]` | Ordered list of visible item IDs |
 | `groupedIds` | `ReadonlyMap<GroupId, readonly ItemId[]>` | Group ID → visible item IDs |
 | `filteredCount` | `number` | Count of visible items |
-| `loading` | `boolean` | Whether async items are loading |
+| `loading` | `boolean` | `true` while any `<Command.AsyncItems>` is pending (the `LOADING` event) |
 | `page` | `string` | Current page identifier |
 | `pageStack` | `readonly string[]` | Previous pages for back-navigation |
 | `open` | `boolean` | Whether the palette is open |
@@ -149,7 +149,7 @@ const state = createInitialState({ open: true });
 | `groupId` | `GroupId` | No | Group this item belongs to |
 | `shortcut` | `string` | No | Keyboard shortcut (e.g., `"Mod+K"`) |
 | `disabled` | `boolean` | No | Excluded from filtering and selection |
-| `onSelect` | `() => void` | No | Callback when selected |
+| `onSelect` | `() => void` | No | Callback when selected. Called with no arguments; `<Command.Item onSelect>` in `modern-cmdk/react` is `(value: string) => void` and receives the item value |
 | `data` | `Record<string, unknown>` | No | Arbitrary metadata |
 
 ### `CommandGroup`
@@ -253,7 +253,7 @@ Frequency x recency ranking with bucketed recency weights (hour, day, week, mont
 import { FrecencyEngine, MemoryFrecencyStorage, itemId } from 'modern-cmdk';
 
 using storage = new MemoryFrecencyStorage();
-using frecency = new FrecencyEngine({ enabled: true, storage, namespace: 'my-app' });
+using frecency = new FrecencyEngine({ storage, namespace: 'my-app' });
 
 frecency.recordSelection(itemId('settings'));
 const bonus = frecency.getBonus(itemId('settings')); // e.g., 4.0
@@ -263,7 +263,7 @@ const bonus = frecency.getBonus(itemId('settings')); // e.g., 4.0
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | `boolean` | -- | Enable frecency ranking |
+| `enabled` | `boolean` (optional) | `false` | Turns frecency ranking on for `createCommandMachine({ frecency })` and `<Command frecency>`: ranking applies only with `enabled: true`. Flips to `true` in 2.0. `new FrecencyEngine({ storage, namespace })` needs no `enabled` field |
 | `storage` | `FrecencyStorage` | `MemoryFrecencyStorage` | Persistence backend |
 | `namespace` | `string` | `'default'` | Storage namespace for isolation |
 | `decayConfig` | `FrecencyDecayConfig` | See below | Decay curve weights |

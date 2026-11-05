@@ -32,15 +32,15 @@ The simplest approach runs the WASM module directly on the main thread. Designed
 'use client';
 
 import { Command } from 'modern-cmdk/react';
-import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
+import { createWasmSearchEngine, type FallbackSearchEngine, type WasmSearchEngine } from 'modern-cmdk-search-wasm';
 import { useEffect, useState } from 'react';
 
 function WasmSearchPalette() {
-  const [engine, setEngine] = useState<Awaited<ReturnType<typeof createWasmSearchEngine>> | null>(null);
+  const [engine, setEngine] = useState<WasmSearchEngine | FallbackSearchEngine | null>(null);
 
   useEffect(() => {
     let disposed = false;
-    let engine: Awaited<ReturnType<typeof createWasmSearchEngine>> | null = null;
+    let engine: WasmSearchEngine | FallbackSearchEngine | null = null;
 
     async function init() {
       engine = await createWasmSearchEngine();
