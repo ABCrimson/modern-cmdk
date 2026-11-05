@@ -275,6 +275,18 @@ describe('codemod CLI: --concurrency', () => {
     );
   });
 
+  it('CLI-12: --help says --lenient keeps the lenient exit codes and skips the clean-git-tree check', async () => {
+    const c = capture();
+    expect(await run(['--help'], c.io, deps)).toBe(0);
+    const lines = c
+      .out()
+      .split('\n')
+      .filter((l) => /^ {2}--lenient\b/.test(l));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('lenient exit codes');
+    expect(lines[0]).toContain('clean-git-tree check');
+  });
+
   it('CLI-PERF: --help says files run on worker threads above --concurrency=1 and on the main thread at 1', async () => {
     const c = capture();
     expect(await run(['--help'], c.io, deps)).toBe(0);

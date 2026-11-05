@@ -125,7 +125,7 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
     `  ${opt('--strict')}Exit 2 on usage errors (incl. unknown options), 1 on file errors`,
     `  ${opt('--concurrency=N')}Files processed at once (default: min(8, available cores))`,
     `  ${opt('-h, --help')}Show this help`,
-    `  ${opt('--lenient')}Keep the lenient exit codes below (cannot be combined with --strict)`,
+    `  ${opt('--lenient')}Keep the lenient exit codes below and skip the clean-git-tree check (cannot be combined with --strict)`,
     `  ${opt('--force')}Skip the clean-git-tree check (modern-cmdk-codemod only; modern-cmdk ignores it)`,
     `  ${opt('-v, --version')}Print the package name and version`,
     '',
