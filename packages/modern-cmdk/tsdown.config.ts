@@ -32,11 +32,12 @@ export default defineConfig([
       js: "'use client';",
     },
   },
-  // Codemod CLI + transforms — separate outDir, bundles jscodeshift/globby. dts is off, written out:
+  // Codemod CLI + worker + transforms — separate outDir, bundles jscodeshift and its recast/babel tree (no other runtime dependency). dts is off, written out:
   // package.json's "types" field would auto-enable it, and the codemod is a CLI, not an importable API.
   {
     entry: {
       cli: 'src/codemod/cli.ts',
+      worker: 'src/codemod/worker.ts',
       'transforms/data-attrs': 'src/codemod/transforms/data-attrs.ts',
       'transforms/forward-ref': 'src/codemod/transforms/forward-ref.ts',
       'transforms/import-rewrite': 'src/codemod/transforms/import-rewrite.ts',
@@ -45,5 +46,9 @@ export default defineConfig([
     format: 'esm',
     dts: false,
     outDir: 'dist/codemod',
+    hash: false,
+    // cli.mjs starts worker.mjs as a worker thread, which loads transforms/<name>.mjs next to itself.
+    // The entries share code (print-options, jscodeshift), so rolldown may emit chunks: keep them in dist/codemod.
+    outputOptions: { chunkFileNames: 'chunk-[name].mjs' },
   },
 ]);

@@ -1,5 +1,5 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { availableParallelism, tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { Writable } from 'node:stream';
 import { stripVTControlCharacters } from 'node:util';
@@ -8,6 +8,7 @@ import jscodeshift from 'jscodeshift';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type CliDeps,
+  defaultConcurrency,
   run,
   type TransformModule,
 } from '../../packages/modern-cmdk/src/codemod/cli.js';
@@ -222,6 +223,61 @@ describe('codemod CLI: help and usage', () => {
   });
 });
 
+describe('codemod CLI: --concurrency', () => {
+  it.each([
+    ['0', '--concurrency=0'],
+    ['a negative value', '--concurrency=-3'],
+    ['a non-integer', '--concurrency=1.5'],
+  ])(
+    'CLI-PERF: %s is a usage error (exit 0 lenient, 2 strict; nothing written)',
+    async (_label, flag) => {
+      const c = capture();
+      expect(await run(['import-rewrite', glob, flag], c.io, deps)).toBe(0);
+      expect(c.err()).toContain('--concurrency must be a positive integer');
+      expect(await run(['import-rewrite', glob, flag], capture().io, codemodDeps)).toBe(2);
+      expect(await readFile(file, 'utf-8')).toBe(SOURCE);
+    },
+  );
+
+  it('CLI-PERF: the default is min(8, availableParallelism())', () => {
+    expect(defaultConcurrency()).toBe(Math.min(8, availableParallelism()));
+    expect(defaultConcurrency(1)).toBe(1);
+    expect(defaultConcurrency(4)).toBe(4);
+    expect(defaultConcurrency(8)).toBe(8);
+    expect(defaultConcurrency(64)).toBe(8);
+  });
+
+  it('CLI-PERF: the --help concurrency line reads "Files processed at once (default: min(8, available cores))"', async () => {
+    const c = capture();
+    expect(await run(['--help'], c.io, deps)).toBe(0);
+    expect(c.out()).toMatch(
+      /--concurrency=N {2,}Files processed at once \(default: min\(8, available cores\)\)/,
+    );
+  });
+
+  it('CLI-PERF: --help says files run on worker threads above --concurrency=1 and on the main thread at 1', async () => {
+    const c = capture();
+    expect(await run(['--help'], c.io, deps)).toBe(0);
+    expect(c.out()).toContain(
+      'Files run on worker threads when --concurrency is above 1; --concurrency=1 runs them on the main thread.',
+    );
+  });
+
+  it('CLI-PERF: with an injected loader (the main-thread seam), --concurrency=1 and --concurrency=3 print the same stdout', async () => {
+    for (let i = 0; i < 6; i++) await writeFile(join(dir, 'src', `c${i}.tsx`), SOURCE);
+    const one = capture();
+    const three = capture();
+    expect(await run(['import-rewrite', glob, '--dry-run', '--concurrency=1'], one.io, deps)).toBe(
+      0,
+    );
+    expect(
+      await run(['import-rewrite', glob, '--dry-run', '--concurrency=3'], three.io, deps),
+    ).toBe(0);
+    expect(three.out()).toBe(one.out());
+    expect(one.out()).toContain('7 changed');
+  });
+});
+
 describe('codemod CLI: errors', () => {
   it('an unknown transform names it and the valid list, exit 1 (strict 2)', async () => {
     const c = capture();
@@ -432,7 +488,7 @@ describe('codemod CLI: dry-run diff', () => {
         '+++ b/src/a.tsx',
         '@@ -1 +1 @@',
         "-import { Command } from 'cmdk';",
-        '+import { Command } from "modern-cmdk/react";',
+        "+import { Command } from 'modern-cmdk/react';",
         '1 changed, 1 unchanged, 0 errors (dry run, nothing written)',
         '',
       ].join('\n'),

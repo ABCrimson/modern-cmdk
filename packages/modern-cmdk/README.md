@@ -184,7 +184,7 @@ npx modern-cmdk import-rewrite "./src/**/*.tsx"
 | `forward-ref` | Removes `React.forwardRef` wrappers (React 19) |
 | `should-filter` | Converts the `shouldFilter` prop to `filter` |
 
-Options: `--dry-run` lists the files that would change and writes nothing; `--concurrency=N` sets how many files are processed at once (default 8); `--strict` is described below.
+Options: `--dry-run` lists the files that would change and writes nothing; `--concurrency=N` sets how many files are processed at once (default: the smaller of 8 and the available cores); `--strict` is described below.
 
 A run prints one `changed <file>` line per rewritten file and a summary. With `--dry-run` the lines read `would change <file>` and the summary ends in `(dry run, nothing written)`:
 

@@ -55,7 +55,7 @@ modern-cmdk --help
 |---|---|
 | `--dry-run` | Lists the files that would change (`would change <path>`) and writes nothing |
 | `--strict` | Exit `2` on usage errors (including unknown options) and `1` when any file errored |
-| `--concurrency=N` | Files processed at once (default: 8) |
+| `--concurrency=N` | Files processed at once (default: min(8, available cores)) |
 | `-h`, `--help` | Prints the usage |
 
 `node_modules`, `dist`, `build`, and `.next` are skipped automatically.

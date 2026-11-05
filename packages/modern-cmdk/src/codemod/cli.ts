@@ -20,22 +20,25 @@
 // modern-cmdk-codemod default): 0 on success, reports included; 1 when any file errored, no file
 // matched or the run failed; 2 for any usage error, including an unknown option, and for a refused
 // dirty tree. --strict together with --lenient is a usage error that exits 2.
+//
+// Concurrency. The main thread loads the transform first, so a missing or broken module fails the
+// run once (exit 1 in both profiles) before any thread starts. Files are transformed on worker threads (worker.ts, shipped next to this file as
+// worker.mjs) when --concurrency is above 1 and no loader is injected through CliDeps.loadTransform;
+// with --concurrency=1, or an injected loader (the test seam: a loader's function cannot cross
+// into a thread), they run on the main thread. Results are reported in input order either way,
+// and writes, the dry-run diff and the summary always happen on the main thread.
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { findPackageJSON } from 'node:module';
+import { availableParallelism } from 'node:os';
 import { relative } from 'node:path';
 import { parseArgs, styleText } from 'node:util';
-import type { API, FileInfo, JSCodeshift } from 'jscodeshift';
-import jscodeshift from 'jscodeshift';
+import { Worker } from 'node:worker_threads';
+import type { API, FileInfo } from 'jscodeshift';
 import { unifiedDiff } from './diff.js';
-import {
-  discoverFiles,
-  findDirtyFiles,
-  type ParserName,
-  type Program,
-  parserFor,
-  routeFor,
-} from './files.js';
+import { discoverFiles, findDirtyFiles, type Program } from './files.js';
+import { runPool } from './pool.js';
+import { createApiFactory, type FileOutcome, transformFile, type WorkerInit } from './worker.js';
 
 // --- Transform registry ---------------------------------------------------
 
@@ -113,7 +116,7 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
     bold('Options:'),
     `  ${opt('--dry-run')}List the files that would change; write nothing`,
     `  ${opt('--strict')}Exit 2 on usage errors (incl. unknown options), 1 on file errors`,
-    `  ${opt('--concurrency=N')}Files processed at once (default 8)`,
+    `  ${opt('--concurrency=N')}Files processed at once (default: min(8, available cores))`,
     `  ${opt('-h, --help')}Show this help`,
     `  ${opt('--lenient')}Keep the lenient exit codes below (cannot be combined with --strict)`,
     `  ${opt('--force')}Skip the clean-git-tree check (modern-cmdk-codemod only; modern-cmdk ignores it)`,
@@ -126,6 +129,7 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
     '  lenient  0 for --help, missing arguments, usage errors and per-file errors; 1 for an unknown',
     '           transform, no matching files and an uncaught error',
     '',
+    'Files run on worker threads when --concurrency is above 1; --concurrency=1 runs them on the main thread.',
     'A directory argument covers its .ts .tsx .mts .cts .js .jsx .mjs .cjs .css .scss files.',
     '--dry-run also prints a unified diff of every file that would change.',
     '',
@@ -268,7 +272,7 @@ function parse(argv: readonly string[], program: Program): Parsed {
     };
   }
 
-  let concurrency = 8;
+  let concurrency = defaultConcurrency();
   if (values.concurrency !== undefined) {
     if (typeof values.concurrency !== 'string' || !/^[1-9]\d*$/.test(values.concurrency)) {
       return {
@@ -292,6 +296,11 @@ function parse(argv: readonly string[], program: Program): Parsed {
   };
 }
 
+/** The default for --concurrency: one file per core, at most 8. */
+export function defaultConcurrency(cores: number = availableParallelism()): number {
+  return Math.min(8, cores);
+}
+
 function parseCli(argv: readonly string[]): {
   readonly values: CliValues;
   readonly positionals: string[];
@@ -299,13 +308,7 @@ function parseCli(argv: readonly string[]): {
   return parseArgs({ args: [...argv], options: OPTIONS, allowPositionals: true, strict: true });
 }
 
-// --- Batched concurrent file processing ------------------------------------
-
-async function* chunked<T>(items: T[], size: number): AsyncGenerator<T[]> {
-  for (let i = 0; i < items.length; i += size) {
-    yield items.slice(i, i + size);
-  }
-}
+// --- Concurrent file processing ---------------------------------------------
 
 interface TransformResult {
   readonly filePath: string;
@@ -317,38 +320,28 @@ interface TransformResult {
   readonly error?: Error;
 }
 
-async function processFile(
-  filePath: string,
-  mod: TransformModule,
-  apiForParser: (parser: ParserName, report: (message: string) => void) => API,
+/** Turns a path into its outcome: in-process, or on a worker thread. */
+type Transformer = (filePath: string) => Promise<FileOutcome>;
+
+/** Write a changed file (or build its dry-run diff) on the main thread and fold the outcome into a result. */
+async function finish(
+  outcome: FileOutcome,
   dryRun: boolean,
   rel: (path: string) => string,
 ): Promise<TransformResult> {
-  const reports: string[] = [];
-  const report = (message: string): void => void reports.push(message);
+  const { path: filePath, reports } = outcome;
+  if (outcome.error !== undefined) {
+    return { filePath, status: 'error', reports, error: new Error(outcome.error) };
+  }
+  if (outcome.skipped) return { filePath, status: 'skipped', reports };
+  if (!outcome.changed) return { filePath, status: 'unchanged', reports };
   try {
-    const route = routeFor(filePath);
-    if (route === 'skip' || (route === 'stylesheet' && mod.transformStylesheet === undefined)) {
-      return { filePath, status: 'skipped', reports };
-    }
-    const source = await readFile(filePath, 'utf-8');
-    const result =
-      route === 'script'
-        ? mod.default(
-            { path: filePath, source },
-            apiForParser(parserFor(filePath) as ParserName, report),
-          )
-        : (mod.transformStylesheet as NonNullable<TransformModule['transformStylesheet']>)(
-            source,
-            report,
-          );
-
-    if (result === source) return { filePath, status: 'unchanged', reports };
-    if (!dryRun) await writeFile(filePath, result, 'utf-8');
+    const output = outcome.output as string;
+    if (!dryRun) await writeFile(filePath, output, 'utf-8');
     return {
       filePath,
       status: 'changed',
-      ...(dryRun ? { diff: unifiedDiff(rel(filePath), source, result) } : {}),
+      ...(dryRun ? { diff: unifiedDiff(rel(filePath), outcome.source as string, output) } : {}),
       reports,
     };
   } catch (err) {
@@ -359,6 +352,55 @@ async function processFile(
       error: err instanceof Error ? err : new Error(String(err)),
     };
   }
+}
+
+interface Slot {
+  readonly worker: Worker;
+  /** Set once the thread failed or exited; every later file given to it fails with this. */
+  dead?: Error;
+}
+
+/** Start `size` worker threads for `transform`; the transformer hands each file to an idle one. */
+function startWorkers(
+  transform: string,
+  keepSource: boolean,
+  size: number,
+): { readonly transformer: Transformer; readonly close: () => Promise<void> } {
+  const init: WorkerInit = { kind: 'modern-cmdk-codemod-worker', transform, keepSource };
+  const slots: Slot[] = Array.from({ length: size }, () => ({
+    worker: new Worker(new URL('./worker.mjs', import.meta.url), { workerData: init }),
+  }));
+  const pending = new Map<Slot, PromiseWithResolvers<FileOutcome>>();
+  for (const slot of slots) {
+    const fail = (error: Error): void => {
+      slot.dead ??= error;
+      pending.get(slot)?.reject(slot.dead);
+    };
+    slot.worker.on('message', (outcome: FileOutcome) => pending.get(slot)?.resolve(outcome));
+    slot.worker.on('error', fail);
+    slot.worker.on('exit', (code) => fail(new Error(`worker thread exited with code ${code}`)));
+  }
+  // runPool never runs more than `size` files at once, so an idle slot is always there.
+  const idle = [...slots];
+  const transformer: Transformer = async (filePath: string): Promise<FileOutcome> => {
+    const slot = idle.pop() as Slot;
+    try {
+      if (slot.dead !== undefined) throw slot.dead;
+      const request = Promise.withResolvers<FileOutcome>();
+      pending.set(slot, request);
+      slot.worker.postMessage(filePath);
+      return await request.promise;
+    } finally {
+      pending.delete(slot);
+      idle.push(slot);
+    }
+  };
+  return {
+    transformer,
+    close: async (): Promise<void> => {
+      await Promise.all(slots.map((slot) => slot.worker.terminate()));
+    },
+  };
 }
 
 // --- Main ------------------------------------------------------------------
@@ -454,27 +496,43 @@ export async function run(argv: readonly string[], io: CliIo, deps: CliDeps = {}
       }
     }
 
+    // The main thread always loads the transform first: a missing or broken module fails the run here
+    // (outer catch, exit 1 in both profiles, as in 1.4) before any worker thread starts.
     const mod = await (deps.loadTransform ?? loadTransform)(transformName);
-
-    // One jscodeshift API per parser per run; the API object itself is per file so reports carry the file.
-    const parsers = new Map<ParserName, JSCodeshift>();
-    const apiForParser = (parser: ParserName, report: (message: string) => void): API => {
-      let j = parsers.get(parser);
-      if (j === undefined) {
-        j = jscodeshift.withParser(parser);
-        parsers.set(parser, j);
-      }
-      return { jscodeshift: j, j, stats: (): void => {}, report };
-    };
-
-    const results: TransformResult[] = [];
-    for await (const batch of chunked(files, concurrency)) {
-      results.push(
-        ...(await Promise.all(
-          batch.map((filePath) => processFile(filePath, mod, apiForParser, dryRun, rel)),
-        )),
-      );
+    let transformer: Transformer;
+    let closeWorkers: () => Promise<void> = async (): Promise<void> => {};
+    if (concurrency > 1 && deps.loadTransform === undefined) {
+      ({ transformer, close: closeWorkers } = startWorkers(
+        transformName,
+        dryRun,
+        Math.min(concurrency, files.length),
+      ));
+    } else {
+      const apiForParser = createApiFactory();
+      transformer = (filePath: string): Promise<FileOutcome> =>
+        transformFile(filePath, mod, apiForParser, dryRun);
     }
+
+    let settled: PromiseSettledResult<TransformResult>[];
+    try {
+      settled = await runPool(files, concurrency, async (filePath) =>
+        finish(await transformer(filePath), dryRun, rel),
+      );
+    } finally {
+      await closeWorkers();
+    }
+    // A transformer rejects only when a worker thread died; that file is an error like any other.
+    const results = settled.map(
+      (r, i): TransformResult =>
+        r.status === 'fulfilled'
+          ? r.value
+          : {
+              filePath: files[i] as string,
+              status: 'error',
+              reports: [],
+              error: r.reason instanceof Error ? r.reason : new Error(String(r.reason)),
+            },
+    );
 
     const counts = { changed: 0, unchanged: 0, skipped: 0, error: 0, reported: 0 };
     for (const r of results) {

@@ -138,7 +138,7 @@
     {
       "name": "modern-cmdk codemod bin (installed size)",
       "path": [
-        "packages/modern-cmdk/dist/codemod/cli.mjs",
+        "packages/modern-cmdk/dist/codemod/*.mjs",
         "packages/modern-cmdk/dist/codemod/transforms/*.mjs"
       ],
       "limit": "3.4 MB",
