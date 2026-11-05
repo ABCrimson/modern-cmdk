@@ -119,11 +119,11 @@ Passing an explicit `virtualize` value bypasses both edges.
 
 ## CSS Optimization
 
-The virtualizer applies performance-critical CSS automatically. You can also add these styles for additional optimization:
+The shipped stylesheet (`modern-cmdk/styles.css`) applies every rule below; none needs adding to your own stylesheet.
 
 ### `content-visibility: auto`
 
-Off-screen items use `content-visibility: auto` to skip rendering of non-visible content:
+Every item (`[data-command-item]`) carries `content-visibility: auto` so the browser can skip rendering work for off-screen items (`styles.css:210-216`):
 
 ```css
 [data-command-item] {
@@ -132,25 +132,22 @@ Off-screen items use `content-visibility: auto` to skip rendering of non-visible
 }
 ```
 
+The stylesheet also has a `[data-command-virtual-item]` rule with the same two declarations (`styles.css:227-230`). It is a reserved hook for custom rows built on `useVirtualizer`; no component emits that attribute (see the [Theming guide](/guide/theming)).
+
 ### `will-change: transform`
 
-The scroll container uses GPU-composited transforms for positioning:
+When the list virtualizes, the virtual list element (`[data-command-list-virtual]`, rendered at `list.tsx:170`) carries `will-change: transform` (`styles.css:232-235`). Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:79`). The offset is the item's start position inside the list (`use-virtualizer.ts:98-102`), so it does not change while the list scrolls; the browser's own scrolling of `[data-command-list]` moves the rows:
 
 ```css
-[data-command-list] {
+[data-command-list-virtual] {
+  position: relative;
   will-change: transform;
 }
 ```
 
 ### Contain Layout
 
-For maximum performance, apply CSS containment to items:
-
-```css
-[data-command-item] {
-  contain: layout style paint;
-}
-```
+The shipped stylesheet applies `contain: layout style paint` to the list's inner wrapper, `[data-command-list-inner]` (`styles.css:203-206`), which renders only when the list does not virtualize (`list.tsx:176`). Items need no containment rule of their own: `content-visibility: auto` on `[data-command-item]` (`styles.css:215`) already turns on layout, style and paint containment for every item (CSS Containment Level 2), so paint containment can clip an item's descendants, for example a child's focus ring or shadow drawn outside the item's box.
 
 ## Performance Tips for 10K+ Items
 
@@ -176,9 +173,9 @@ The virtualizer uses a variable-height virtual scrolling strategy:
 
 1. **Measurement** — `ResizeObserver` measures each item's actual DOM height during `requestIdleCallback`. Falls back to `setTimeout(fn, 0)` if `requestIdleCallback` is unavailable.
 
-2. **Windowing** — Only items within the visible viewport (plus overscan) are rendered in the DOM. Items outside the window are represented by spacer elements.
+2. **Windowing** — Only items within the visible viewport (plus overscan) are rendered in the DOM. Items outside the window are not rendered (`item.tsx:73`); `[data-command-list-virtual]` takes the height of every item together (`list.tsx:171`), so the scrollbar spans the whole list.
 
-3. **Positioning** — GPU-composited `transform: translateY()` positions items without triggering layout reflows. `will-change: transform` hints the browser to promote the scroll container to its own compositing layer.
+3. **Positioning** — Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:79`), and `[data-command-list-virtual]` carries `will-change: transform` (`styles.css:234`), a hint that the element's transform will change.
 
 4. **Scroll-to-active** — When keyboard navigation moves the active item outside the visible window, the virtualizer smoothly scrolls to bring it into view.
 
@@ -191,7 +188,7 @@ Viewport (visible area):
   │ [visible item 3]     │
   │ [overscan items]     │  ← Rendered but not visible
   └──────────────────────┘
-  [9,990 items NOT in DOM] ← Spacer element with calculated height
+  [9,990 items NOT in DOM] ← [data-command-list-virtual] keeps their height
 ```
 
 ::: tip

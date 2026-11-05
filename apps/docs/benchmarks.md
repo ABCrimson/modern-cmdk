@@ -55,7 +55,7 @@ What the code does, as of 1.2.3:
 3. **O(1) membership.** The machine keeps a `Set` of filtered ids and an id-to-index `Map`, so rendering checks visibility without scanning.
 4. **Batched updates.** Events go through a scheduler that coalesces them into one pass per `requestAnimationFrame` (browsers) or microtask (Node.js). Only when a batch has more than 10 updates and `navigator.scheduling.isInputPending()` is available and reports pending input does it defer the batch, using `scheduler.yield()` when present.
 5. **Iterator Helpers.** Pipelines use `.values().filter().map()`. Results are still materialised with `.toArray()` or `.sort()` where the code needs an array, so this does not mean zero intermediate arrays.
-6. **`content-visibility: auto`** on `[data-command-item]` and `[data-command-virtual-item]` in the shipped stylesheet (`modern-cmdk/styles.css`), so the browser can skip rendering work for off-screen items.
+6. **`content-visibility: auto`** on `[data-command-item]` (every item) in the shipped stylesheet (`modern-cmdk/styles.css`), so the browser can skip rendering work for off-screen items. The stylesheet's `[data-command-virtual-item]` rule is a reserved hook that no component emits.
 7. **Set helpers for pruning.** `setDifference` removes deleted ids from the incremental cache and the registry order; it does not decide which items get re-scored.
 
 ## Regression Tracking
