@@ -7,12 +7,12 @@ import type { ItemId, SearchEngine, SearchResult } from 'modern-cmdk';
 import { isDev } from './env.js';
 
 /** Extended search engine backed by a WASM trigram index */
-interface WasmSearchEngine extends SearchEngine, AsyncDisposable {
+export interface WasmSearchEngine extends SearchEngine, AsyncDisposable {
   readonly isWasm: true;
 }
 
 /** Fallback search engine using the TypeScript scorer */
-interface FallbackSearchEngine extends SearchEngine, AsyncDisposable {
+export interface FallbackSearchEngine extends SearchEngine, AsyncDisposable {
   readonly isWasm: false;
 }
 

@@ -1,5 +1,6 @@
 // packages/modern-cmdk/src/core/utils/env.ts
-// Single home for the development-mode flag — one NODE_ENV check shared by core and React.
+// The development-mode flag for core (core/search imports it). react/hooks/use-devtools.ts keeps its own
+// copy of the same check so that dist/react imports nothing from core by path.
 // Isolated declarations: explicit type annotation on the export
 
 // Module-scoped declaration: core needs no @types/node, and nothing global leaks.
