@@ -11,13 +11,23 @@
   },
   {
     "id": "DG-71",
-    "test": "scripts/check-doc-samples.ts::TEB-84: type-checks every fenced",
+    "test": ".github/workflows/ci.yml::pnpm check:doc-samples --skip-wasm",
     "status": "gate"
   },
   {
     "id": "DG-72",
-    "test": "scripts/check-doc-samples.ts::TEB-84: type-checks every fenced",
+    "test": ".github/workflows/ci.yml::pnpm check:doc-samples --skip-wasm",
     "status": "gate"
+  },
+  {
+    "id": "DG-113",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-114",
+    "test": null,
+    "status": "pending"
   },
   {
     "id": "ARCH-07",
