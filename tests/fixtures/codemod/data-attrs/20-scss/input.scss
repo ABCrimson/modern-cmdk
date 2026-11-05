@@ -1,0 +1,35 @@
+// [cmdk-root] in a line comment stays
+$gap: 4px;
+
+[cmdk-root] {
+  --cmdk-list-height: 0px;
+
+  [cmdk-item] {
+    padding: $gap;
+
+    &[data-selected="true"] {
+      background: #eee;
+    }
+
+    &[data-disabled="true"],
+    &[data-disabled="false"]:hover {
+      opacity: 0.5;
+    }
+
+    [data-selected="true"] {
+      color: red;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [cmdk-group-heading] {
+      transition: none;
+    }
+  }
+}
+
+.other {
+  &[data-selected="true"] {
+    color: blue;
+  }
+}

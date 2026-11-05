@@ -1,0 +1,35 @@
+/* [cmdk-root] stays in comments; so does --cmdk-list-height */
+[cmdk-root] {
+  --cmdk-list-height: 0px;
+  max-width: 640px;
+}
+
+[cmdk-list] {
+  height: var(--cmdk-list-height);
+  max-height:300px;
+}
+
+[cmdk-group-heading]   {
+  padding: 4px 8px;
+}
+
+[cmdk-item][data-selected="true"],
+[cmdk-item]:hover {
+  background: #eee;
+}
+
+[cmdk-item][data-disabled='true'] {
+  opacity: 0.5;
+}
+
+[cmdk-item][aria-selected="true"] > [cmdk-group-items] {
+  content: "[cmdk-item]";
+}
+
+[cmdk-label] {
+  display: none;
+}
+
+[data-selected="true"] {
+  color: red;
+}
