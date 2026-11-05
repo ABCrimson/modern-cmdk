@@ -55,7 +55,7 @@ npm install modern-cmdk react react-dom
 
 `Command.Dialog` stays on the `modern-cmdk/react` barrel through 1.x and leaves it in 2.0; `modern-cmdk/react/dialog` exports `CommandDialog` alone.
 
-The codemod bin and `create-modern-cmdk` are supported on Node >=26.4.0 (`create-modern-cmdk` declares it in `engines`; the codemod no longer does, from 1.4.0). `modern-cmdk` itself declares no `engines`.
+`modern-cmdk-codemod` and `create-modern-cmdk` support Node >=26.4.0 and declare it in `engines`; the deprecated `modern-cmdk` bin is supported on it too. `modern-cmdk` itself declares no `engines`.
 
 `sideEffects` lists only `./dist/react/styles.css`; every JavaScript entry is side-effect-free for bundlers.
 
@@ -153,47 +153,50 @@ Theming (CSS custom properties, `@layer command`) is covered in the [theming gui
 
 ## Sizes
 
-Figures come from [`benchmarks/size-history/1.4.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/5f1e01e/benchmarks/size-history/1.4.0.json) (committed in `5f1e01e`, measured at `07bfe79` with size-limit 14.3.0) and the `size-limit` entries in the root `package.json`. Method: size-limit, gzip, peers (`react`, `react-dom`, `radix-ui`) ignored; the codemod bin is raw installed size.
+Figures come from [`benchmarks/size-history/1.5.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/8eb1557/benchmarks/size-history/1.5.0.json) (committed in `8eb1557`, measured at `056ab43` on 2026-11-05 with size-limit 14.3.0 and `npm pack --dry-run --json`). Method: size-limit, gzip, peers (`react`, `react-dom`, `radix-ui`) ignored; the codemod entries are raw installed size of the files named.
 
-| Entry | Bytes | Method |
-|---|---|---|
-| `modern-cmdk` (core) | 6355 | gzip |
-| `modern-cmdk/react`, adapter only | 5403 | gzip, `modern-cmdk` ignored |
-| `modern-cmdk` + `modern-cmdk/react` | 9830 | gzip, core included |
-| `modern-cmdk/react/dialog`, adapter only | 1425 | gzip, `modern-cmdk` ignored |
-| `modern-cmdk/react`, `CommandSeparator` only | 4767 | gzip, `modern-cmdk` ignored; still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (tree-shaking of the barrel is a 2.0 item) |
-| `modern-cmdk/styles.css` | 3959 | gzip |
-| codemod bin (`dist/codemod/cli.mjs` plus `dist/codemod/transforms/*.mjs`) | 3325793 | raw installed size, not gzip |
+| Entry | Bytes | Limit | Method |
+|---|---|---|---|
+| `modern-cmdk` (core) | 6399 | 6500 | gzip |
+| `modern-cmdk/react`, adapter only | 5558 | 5600 | gzip, `modern-cmdk` ignored |
+| `modern-cmdk` + `modern-cmdk/react` | 10019 | 10100 | gzip, core included |
+| `modern-cmdk/react/dialog`, adapter only | 1422 | 1500 | gzip, `modern-cmdk` ignored |
+| `modern-cmdk/react`, `CommandSeparator` only | 4830 | 5000 | gzip, `modern-cmdk` ignored; still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (tree-shaking of the barrel is a 2.0 item) |
+| `modern-cmdk/styles.css` | 3959 | 4000 | gzip |
+| codemod bin (`dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs`) | 3150191 | 3400000 | raw installed size, not gzip |
+| codemod shim (`dist/codemod/bin.mjs`) | 897 | 1000 | raw installed size, not gzip |
 
-1.3's 9844 B React figure measured `dist/react/index.mjs` with the core inlined, so it was core plus adapter, not the adapter.
+The packed `modern-cmdk` tarball, measured the same day: 1.4 (built from `release/1.4.0` at `b77f133`; not on npm) is 992157 B packed and 3473079 B unpacked in 16 entries, of which 147286 B is runtime and 3325793 B is the codemod; the 1.5 release candidate is 961763 B packed and 3312367 B unpacked in 22 entries, of which 162176 B is runtime (149300 B without `THIRD-PARTY-NOTICES.md`, which is 12876 B) and 3150191 B is the codemod, including the 897 B shim. The codemod's own package, `modern-cmdk-codemod`, is 29717 B packed and 100912 B unpacked in 11 entries; `jscodeshift` is not in that tarball.
 
 ## Migration from cmdk
 
-Four codemods ship as the `modern-cmdk` bin, supported on Node >= 26.4.0. Pass a transform name and a glob (quote the glob so your shell does not expand it):
+The codemods live in their own package, [`modern-cmdk-codemod`](https://github.com/ABCrimson/modern-cmdk/tree/main/packages/modern-cmdk-codemod) (Node >= 26.4.0; see its README for every option and exit code). Pass a transform name and a directory or a glob (quote the glob so your shell does not expand it). A real run needs a git work tree with the matched files committed, or `--force`; a dry run needs neither:
 
 ```bash
-npx modern-cmdk --help
-npx modern-cmdk import-rewrite "./src/**/*.tsx" --dry-run
-npx modern-cmdk import-rewrite "./src/**/*.tsx"
+npx modern-cmdk-codemod --help
+npx modern-cmdk-codemod --dry-run import-rewrite ./src
+git status --short   # empty: everything committed
+npx modern-cmdk-codemod import-rewrite ./src
 ```
+
+Run all four in this order, committing after each: `should-filter`, `forward-ref`, `data-attrs`, `import-rewrite`.
 
 | Transform | What it does |
 |---|---|
-| `import-rewrite` | Rewrites `cmdk` imports to `modern-cmdk/react` |
-| `data-attrs` | Converts `[cmdk-*]` selectors to `[data-command-*]` |
-| `forward-ref` | Removes `React.forwardRef` wrappers (React 19) |
-| `should-filter` | Converts the `shouldFilter` prop to `filter` |
+| `import-rewrite` | Rewrites imports, re-exports, `import()`, `require()` and `vi.mock` or `jest.mock` of `'cmdk'` to `'modern-cmdk/react'`; reports the names and subpaths `modern-cmdk/react` lacks |
+| `data-attrs` | Renames `cmdk-*` attributes to `data-command-*` and `--cmdk-list-height` to `--command-list-height` in JSX, in selectors inside JS/TS strings and in `.css` and `.scss` files; rewrites cmdk's state attributes beside them (`[data-selected="true"]` becomes `[data-active]`, `[data-disabled="true"]` becomes `[data-disabled]`) and the Tailwind variants on cmdk elements; reports what has no equivalent (`cmdk-label`, `cmdk-item-select`) or cannot be migrated automatically |
+| `forward-ref` | Unwraps `forwardRef` from `react` into a function component that takes `ref` as a prop (React 19) |
+| `should-filter` | Converts the `shouldFilter` prop to `filter` and wraps a cmdk `filter` function in an adapter to the `(item, query)` signature |
 
-Options: `--dry-run` lists the files that would change and writes nothing; `--concurrency=N` sets how many files are processed at once (default: the smaller of 8 and the available cores); `--strict` is described below.
+Every site a transform cannot migrate is printed as `<path>: <message>` on stderr and left unchanged. Exit codes of `modern-cmdk-codemod`: `0` success (reports included), `1` a file errored or no file matched, `2` a usage error or a refused dirty tree.
 
-A run prints one `changed <file>` line per rewritten file and a summary. With `--dry-run` the lines read `would change <file>` and the summary ends in `(dry run, nothing written)`:
+### The deprecated `modern-cmdk` bin
 
-```text
-would change src/a.tsx
-1 changed, 0 unchanged, 0 errors (dry run, nothing written)
-```
+`modern-cmdk` still ships the old `modern-cmdk` bin until 2.0, as a shim (`dist/codemod/bin.mjs`) over the same four transforms. It is deprecated: it writes one deprecation warning to stderr per run and points to `modern-cmdk-codemod`. It keeps the 1.x behaviour: lenient exit codes unless argv carries `--strict` (without `--strict`, `0` for `--help`, missing arguments, usage errors and per-file errors; `1` for an unknown transform, no matching files and an uncaught error), 1.4's file discovery (it skips only `node_modules`, `dist`, `build` and `.next` and applies no `.gitignore`), and no git check. The bin leaves in 2.0.
 
-Exit codes in 1.x are unchanged by default: `0` for `--help`, missing arguments and per-file errors, and `1` for an unknown transform, a glob that matches no files, or an uncaught error. An unknown option is warned about on stderr and ignored when the transform and glob are present. A malformed known option (`--concurrency` with no value, `--dry-run=yes`) is a usage error that writes nothing and exits `0`. With `--strict`, every usage error (including an unknown option, an unknown transform and a malformed option) exits `2`, and any file error exits `1`.
+### Third-party notices
+
+The ten packages bundled into `dist/codemod` are listed with their licences in `THIRD-PARTY-NOTICES.md`, which ships in the `modern-cmdk` tarball. It is generated by `scripts/third-party-notices.ts` and checked by `pnpm check:notices`.
 
 See the [full migration guide](https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html).
 
@@ -209,6 +212,7 @@ See the [full migration guide](https://abcrimson.github.io/modern-cmdk/guide/mig
 
 | Package | Status |
 |---|---|
+| [`modern-cmdk-codemod`](https://github.com/ABCrimson/modern-cmdk/tree/main/packages/modern-cmdk-codemod) | The cmdk migration codemods as their own package from 1.5 (`npx modern-cmdk-codemod <transform> <dir or glob>`), strict by default. |
 | [`create-modern-cmdk`](https://www.npmjs.com/package/create-modern-cmdk) | Published. `npm create modern-cmdk@latest <name>` scaffolds a new project. |
 | `modern-cmdk-search-wasm` | Experimental Rust/WASM fuzzy search; private (0.9.0), not on npm. |
 | `vscode-modern-cmdk` | Not on the VS Code Marketplace. The npm 1.0.0 of that name was an accidental publish and is not the extension; the package is private from 1.4.0. |

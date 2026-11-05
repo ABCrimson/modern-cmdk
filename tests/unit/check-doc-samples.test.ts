@@ -14,7 +14,12 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { extractSamples, importsWasm, mapDiagnostic } from '../../scripts/check-doc-samples.ts';
+import {
+  DEFAULT_FILES,
+  extractSamples,
+  importsWasm,
+  mapDiagnostic,
+} from '../../scripts/check-doc-samples.ts';
 
 const md = [
   '# Title', // 1
@@ -166,5 +171,21 @@ describe('importsWasm', () => {
     expect(importsWasm("import { a } from 'modern-cmdk';")).toBe(false);
     expect(importsWasm("import { a } from 'modern-cmdk-search-wasm-extra';")).toBe(false);
     expect(importsWasm("const s = 'modern-cmdk-search-wasm';")).toBe(false);
+  });
+});
+
+describe('DEFAULT_FILES', () => {
+  it('W7-02: lists the root README and the README of every package, and each file exists', () => {
+    expect([...DEFAULT_FILES].sort()).toEqual([
+      'README.md',
+      'packages/command-search-wasm/README.md',
+      'packages/create-modern-cmdk/README.md',
+      'packages/modern-cmdk-codemod/README.md',
+      'packages/modern-cmdk/README.md',
+      'packages/vscode-modern-cmdk/README.md',
+    ]);
+    for (const file of DEFAULT_FILES) {
+      expect(existsSync(resolve(import.meta.dirname, '../..', file)), file).toBe(true);
+    }
   });
 });
