@@ -1,0 +1,1 @@
+["<Command> at line 5 has both shouldFilter and filter; left unchanged for manual migration (filter={false} replaces shouldFilter={false}; a filter takes (item, query) and returns a number or false)"]
