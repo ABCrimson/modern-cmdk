@@ -1,57 +1,47 @@
-import type { API, FileInfo } from 'jscodeshift';
-import jscodeshift from 'jscodeshift';
+// should-filter on exact-output fixtures: tests/fixtures/codemod/should-filter/<ROW-id-case>/.
+// Every case runs three ways: LF, CRLF (both sides through toCrlf), and idempotent (the output is
+// a fixed point: the filter adapter and the `expr ? undefined : false` form are recognised and left alone).
+// Every title starts with its ledger row id.
+
 import { describe, expect, it } from 'vitest';
+import { parserFor } from '../../packages/modern-cmdk/src/codemod/files.js';
 import transform from '../../packages/modern-cmdk/src/codemod/transforms/should-filter.js';
+import { applyTransform, listCases, readCase, toCrlf } from './codemod-fixtures.ts';
 
-// Vitest — vi.hoisted() not needed here since helpers are pure functions
-function createApi(parser: string = 'tsx'): API {
-  return {
-    jscodeshift: jscodeshift.withParser(parser),
-    j: jscodeshift.withParser(parser),
-    stats: (): void => {},
-    report: (): void => {},
-  };
+const ROW_ID = /^(?:SF-\d+|SF-DOC|SF-TEST|SEC-\d+|TUB-\d+|ARCH-\d+)-/;
+
+function run(path: string, source: string): { output: string; reports: string[] } {
+  const parser = parserFor(path);
+  if (parser === undefined) throw new Error(`no parser for ${path}`);
+  return applyTransform(transform, { path, source }, parser);
 }
 
-function run(source: string, parser: string = 'tsx'): string {
-  const fileInfo: FileInfo = { path: 'test.tsx', source };
-  return transform(fileInfo, createApi(parser));
-}
+describe('codemod: should-filter fixtures', () => {
+  const names = listCases('should-filter');
 
-describe('codemod: should-filter', () => {
-  it('removes shouldFilter={true}', () => {
-    const input = `const el = <Command shouldFilter={true} />;`;
-    const output = run(input);
-
-    // Vitest — soft assertions to check all conditions
-    expect.soft(output).not.toContain('shouldFilter');
-    // The attribute should be removed entirely since true is the default
-    expect.soft(output).not.toContain('filter');
-    expect.soft(output).toContain('<Command');
+  it('has fixture cases, each named after its row id', () => {
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) expect(name).toMatch(ROW_ID);
   });
 
-  it('removes bare shouldFilter attribute', () => {
-    const input = `const el = <Command shouldFilter />;`;
-    const output = run(input);
+  for (const name of names) {
+    const c = readCase('should-filter', name);
 
-    // Bare shouldFilter is implicitly true, so it should be removed
-    expect.soft(output).not.toContain('shouldFilter');
-    expect.soft(output).not.toContain('filter');
-    expect.soft(output).toContain('<Command');
-  });
+    it(`${name}: exact output and reports, LF`, () => {
+      const result = run(c.inputPath, c.input);
+      expect(result.output).toBe(c.output);
+      expect(result.reports).toEqual(c.reports);
+    });
 
-  it('renames shouldFilter={false} to filter={false}', () => {
-    const input = `const el = <Command shouldFilter={false} />;`;
-    const output = run(input);
+    it(`${name}: exact output and reports, CRLF`, () => {
+      const result = run(c.inputPath, toCrlf(c.input));
+      expect(result.output).toBe(toCrlf(c.output));
+      expect(result.reports).toEqual(c.reports);
+    });
 
-    expect(output).not.toContain('shouldFilter');
-    expect(output).toContain('filter={false}');
-  });
-
-  it('skips files without shouldFilter', () => {
-    const input = `const el = <Command label="search" />;`;
-    const output = run(input);
-
-    expect(output).toBe(input);
-  });
+    it(`${name}: running it on its own output changes nothing`, () => {
+      const again = run(c.inputPath, c.output);
+      expect(again.output).toBe(c.output);
+    });
+  }
 });
