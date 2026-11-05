@@ -1,6 +1,7 @@
 [
   "LICENSE",
   "README.md",
+  "THIRD-PARTY-NOTICES.md",
   "dist/codemod/bin.mjs",
   "dist/codemod/chunk-jscodeshift.mjs",
   "dist/codemod/chunk-print-options.mjs",
