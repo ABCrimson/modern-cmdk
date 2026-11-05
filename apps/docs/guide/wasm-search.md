@@ -124,8 +124,7 @@ function WorkerSearchPalette() {
     async function init() {
       const created = await createWorkerSearchEngine({ maxResults: 100 });
       if (disposed) {
-        // An effect cleanup cannot await, so the disposal is fire-and-forget.
-        void created[Symbol.asyncDispose]();
+        await created[Symbol.asyncDispose]();
         return;
       }
       engine = created;
@@ -135,6 +134,7 @@ function WorkerSearchPalette() {
 
     return () => {
       disposed = true;
+      // A cleanup returns synchronously, so the async disposal cannot be awaited: it is fire-and-forget.
       void engine?.[Symbol.asyncDispose]();
     };
   }, []);
