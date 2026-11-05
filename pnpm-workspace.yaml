@@ -13,7 +13,7 @@ catalog:
   react: 0.0.0-experimental-e84e1492-20261031
   react-dom: 0.0.0-experimental-e84e1492-20261031
   typescript: 7.1.0-dev.20261104.1
-  vite: 8.3.5
+  vite: 8.3.6
 overrides:
   react: 'catalog:'
   react-dom: 'catalog:'
@@ -97,3 +97,6 @@ minimumReleaseAgeExclude:
   - '@next/swc-linux-x64-musl@16.5.0-canary.41'
   - '@next/swc-win32-arm64-msvc@16.5.0-canary.41'
   - '@next/swc-win32-x64-msvc@16.5.0-canary.41'
+  # vite@8.3.6 (latest, published 2026-11-05T05:40:52Z) was under the 24 h minimumReleaseAge at the 2026-11-05 bump
+  # from 8.3.5 (the catalog pin and tests/consumers/vite-app/package.json). Drop after a day.
+  - vite@8.3.6
