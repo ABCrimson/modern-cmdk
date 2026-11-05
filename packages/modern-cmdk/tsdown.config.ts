@@ -3,6 +3,8 @@ import { defineConfig } from 'tsdown';
 // The packages from node_modules that dist/codemod bundles (tsdown 0.23.5 listed them as "Detected dependencies in bundle"):
 // jscodeshift and the parts of its closure it reaches at run time. The dependency-free @babel/parser, flow-parser and
 // flow-estree are inlined parsers; @babel/core and its tree are not reached (tests/package/license-policy.json).
+// Changing this list requires regenerating packages/modern-cmdk/THIRD-PARTY-NOTICES.md with node scripts/third-party-notices.ts,
+// which fails when the packages found in dist/codemod differ from it.
 const BUNDLED_FOR_CODEMOD: string[] = [
   '@babel/parser',
   'ast-types',
