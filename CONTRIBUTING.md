@@ -212,6 +212,7 @@ modern-cmdk/
     unit/                         Vitest unit and integration tests (machine, registry, search,
                                   keyboard, frecency, command, async, virtualization, stress,
                                   bug-matrix, codemod-*, create-cli, check-package, check-licenses, check-doc-samples,
+                                  check-repo-links,
                                   consumer-smoke, playground-manifest, vscode-manifest, ...); `ls tests/unit` is the list
     dist/                         Tests against the built packages (cli-exec, cli-smoke, create-tarball, create-version,
                                   devtools, dialog-subpath, exports, manifest, one-core, third-party-notices; run
@@ -245,7 +246,7 @@ modern-cmdk/
     workflows/
       ci.yml                     Lint & typecheck, build, tests, React lanes, built-package tests, coverage,
                                  Rust & WASM, e2e, docs, phantom claims (`scripts/check-claims.mjs`), links (lychee 0.24.2 over the shipped
-                                 Markdown, `lychee.toml`), size, audit, benchmarks, package integrity, the consumer
+                                 Markdown, `lychee.toml`; `scripts/check-repo-links.ts` for the repository's own blob/tree/raw links), size, audit, benchmarks, package integrity, the consumer
                                  apps, the Node 24 install, templates; "CI Summary" gates them
       release.yml                Wait for CI, then changeset version / publish; backfill task
       docs.yml                   VitePress deploy
@@ -278,6 +279,7 @@ modern-cmdk/
 | `pnpm check:notices` | `packages/modern-cmdk/THIRD-PARTY-NOTICES.md` matches what the built `dist/codemod` generates (run `pnpm build` first). After changing the bundled set in `packages/modern-cmdk/tsdown.config.ts`, regenerate the file with `node scripts/third-party-notices.ts` |
 | `pnpm test:templates` | Scaffold `react-basic`, `react-dialog` and `react-full` from the packed tarballs, install, type-check and build each. Run `pnpm check:package --pack-dir <dir>` first, then `pnpm test:templates --pack-dir <dir> --template all` |
 | `pnpm test:codemod-tarball` | `npm install` the packed tarballs with their dependencies and run the codemod on a copy of `tests/fixtures/codemod-tarball/app`; needs the npm registry. Run `pnpm check:package --pack-dir <dir>` first, then `pnpm test:codemod-tarball --pack-dir <dir>` |
+| `pnpm check:repo-links` | Check the repository's own `github.com/ABCrimson/modern-cmdk` `blob/`, `tree/` and `raw/` links in the shipped Markdown, `CHANGELOG.md` files and `.changeset/*.md` against the checkout: `main` and `HEAD` in the working tree, a commit hash, branch or tag through `git` (an unknown ref is fetched once), `#readme`, `#L<n>` and heading-anchor fragments too. Routes such as `/issues` and `/pull` are counted and listed as unchecked. Needs no build. Exit 1 on a dead link |
 | `pnpm check:doc-samples` | Type-check every fenced `ts`/`tsx`/`typescript` sample of `apps/docs/**/*.md` and the six READMEs in `DEFAULT_FILES` of `scripts/check-doc-samples.ts` (the root `README.md` and those of `packages/modern-cmdk`, `packages/modern-cmdk-codemod`, `packages/create-modern-cmdk`, `packages/vscode-modern-cmdk` and `packages/command-search-wasm`) against the built `dist` with the repository's `tsc` (run `pnpm build` first). A fence whose info string has the word `fragment` is a deliberate excerpt and is skipped and counted. `--skip-wasm` also skips the samples that import `modern-cmdk-search-wasm` (a checkout without the wasm build). CI runs it twice: dist-tests with `--skip-wasm` (its dist artifact has no wasm build) and the Rust & WASM job in full. Exit 1 on any diagnostic |
 | `pnpm check:licenses` | Licence audit of the whole workspace lockfile against `tests/package/license-policy.json`: `allowed` (the allowed SPDX ids), `exceptions` (packages with another licence, all `ships: false`; an optional `platforms` list scopes an entry to the OSes where pnpm installs the package, so it is never stale elsewhere) and `licenseFiles` (hash-pinned declarations for a manifest without a licence field). It needs an install, not a build |
 | `pnpm test:consumers` | Consumer apps (Next.js with Turbopack and webpack, and Vite) built from the packed tarball: one core copy in the client JS, SSR output, hydration and the `CommandDialog` subpath. It packs but never builds: run `pnpm build` first |
