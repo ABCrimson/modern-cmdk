@@ -4,7 +4,7 @@
 // git repository (--root) and asserts the exit code, the dead line and the summary counts.
 
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -293,7 +293,7 @@ describe('check-repo-links runs', () => {
     expect(await readdir(root, { recursive: true })).not.toContain('pwned');
   });
 
-  it('SEC-62: a path with .. segments is dead without being read, so a link cannot reach outside the root', async () => {
+  it('SEC-62: a working-tree path with .. segments is dead without being read', async () => {
     const base: string = await mkdtemp(join(tmpdir(), 'check-repo-links-sec62-'));
     dirs.push(base);
     const root: string = join(base, 'root');
@@ -304,6 +304,61 @@ describe('check-repo-links runs', () => {
     const result = await scan(root);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain('../outside.md leaves the repository');
+  });
+
+  it("SEC-62: a commit link's path with .. segments is dead under a --root subdirectory too", async () => {
+    const repo: string = await mkdtemp(join(tmpdir(), 'check-repo-links-sec62c-'));
+    dirs.push(repo);
+    await git(repo, 'init', '-q');
+    await mkdir(join(repo, 'sub'));
+    await writeFile(join(repo, 'secret.md'), 'one\ntwo\nthree\n');
+    await writeFile(join(repo, 'sub/x.md'), 'x\n');
+    await git(repo, 'add', '.');
+    await git(repo, 'commit', '-q', '-m', 'first');
+    const sha: string = (await git(repo, 'rev-parse', 'HEAD')).stdout.trim();
+    await writeFile(join(repo, 'sub/README.md'), `[out](${BASE}/blob/${sha}/../secret.md#L99)\n`);
+
+    const result = await scan(join(repo, 'sub'));
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain('../secret.md leaves the repository');
+  });
+
+  it('SEC-65: a link that decodes to a line break stays on one output line and cannot start a workflow command', async () => {
+    const root: string = await mkdtemp(join(tmpdir(), 'check-repo-links-sec65-'));
+    dirs.push(root);
+    await writeFile(join(root, 'LICENSE'), 'MIT\n');
+    await writeFile(
+      join(root, 'README.md'),
+      `[a](${BASE}/blob/main/LICENSE#x%0A::warning::f)\n[b](${BASE}/blob/main/NOPE%0A::error::p)\n`,
+    );
+
+    const result = await scan(root);
+    expect(result.code).toBe(1);
+    expect(result.stderr.trim().split('\n')).toHaveLength(1);
+    for (const line of `${result.stdout}${result.stderr}`.split('\n')) {
+      expect(line).not.toMatch(/^::/);
+    }
+    expect(result.stderr).toContain('NOPE\\u{a}::error::p does not exist');
+  });
+
+  it('SEC-62: a symbolic link that resolves outside the root is dead without being read', async (ctx) => {
+    const base: string = await mkdtemp(join(tmpdir(), 'check-repo-links-sec62s-'));
+    dirs.push(base);
+    const root: string = join(base, 'root');
+    await mkdir(root);
+    await writeFile(join(base, 'secret.txt'), '1\n2\n3\n4\n5\n');
+    try {
+      await symlink(join(base, 'secret.txt'), join(root, 'link.txt'));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EPERM') ctx.skip();
+      throw error;
+    }
+    await writeFile(join(root, 'README.md'), `[l](${BASE}/blob/main/link.txt#L999)\n`);
+
+    const result = await scan(root);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain('link.txt leaves the repository through a symbolic link');
+    expect(result.stderr).not.toContain('5 lines');
   });
 
   it('exits 2 on an unknown flag', async () => {

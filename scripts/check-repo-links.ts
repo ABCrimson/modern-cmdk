@@ -22,8 +22,9 @@
 //     Links job checks out the full history. A ref that is neither a hash nor a plain name (letters, digits, '.',
 //     '_' and '-', starting with a letter, digit or '_', with no '..' and no '.lock' ending) is reported dead before
 //     any git call, and every git call places `--end-of-options` before the arguments a link supplies, so a crafted
-//     link in a pull request's Markdown cannot pass options to git. A path that leaves the root (`..` segments) is
-//     reported dead without being read.
+//     link in a pull request's Markdown cannot pass options to git.
+//   - a path that leaves the root (`..` segments), whatever the ref, is reported dead before any stat, read or git
+//     call; a working-tree path a symbolic link resolves outside the root is reported dead without being read.
 //   - fragments: `#readme` on a tree link needs a README.md in that directory (case-insensitive); `#L<n>` and
 //     `#L<n>-L<m>` on a blob link need 1 <= n <= m <= the file's line count; any other fragment on a blob link to a
 //     .md file must match one of GitHub's heading anchors (lowercase, spaces to hyphens, punctuation other than
@@ -33,12 +34,13 @@
 // wiki, the bare repository URL) is a route GitHub serves from repository state, not from the tree: it is counted
 // and its distinct prefixes are printed as unchecked.
 //
-// Output: one stderr line per dead link, `file:line: <url> — <reason>`, then on stdout
+// Output: one stderr line per dead link, `file:line: <url> — <reason>` (a control character a link decodes to is
+// printed as a \u{..} escape), then on stdout
 // `check-repo-links: N links checked in M files, D dead, U unchecked routes`. Exit codes: 0 = no dead link,
 // 1 = a dead link, 2 = usage error.
 
 import { execFile } from 'node:child_process';
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
 
@@ -82,6 +84,13 @@ export type Verdict =
 const OK: Verdict = { status: 'ok' };
 const UNCHECKED: Verdict = { status: 'unchecked' };
 const dead = (reason: string): Verdict => ({ status: 'dead', reason });
+
+/** A line with control, format and line/paragraph-separator characters escaped, so one link stays one output line and a decoded link cannot start a workflow command. */
+const printable = (text: string): string =>
+  text.replace(
+    /[\p{Cc}\p{Cf}\u2028\u2029]/gu,
+    (c) => `\\u{${(c.codePointAt(0) ?? 0).toString(16)}}`,
+  );
 
 const LINK_PATTERN =
   /https:\/\/github\.com\/ABCrimson\/modern-cmdk(?:\.git)?(?![\w-]|\.\w)(?:[/#?][^\s<>()[\]"'`]*)?/g;
@@ -305,6 +314,10 @@ class Checkout {
   }
 
   async lookup(ref: string, path: string): Promise<Lookup> {
+    const rel: string = relative(this.#root, join(this.#root, path));
+    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+      return { entry: undefined, reason: `${path} leaves the repository` };
+    }
     if (ref === 'main' || ref === 'HEAD') return this.#inWorkingTree(path);
     if (!HEX_REF.test(ref) && !isRefName(ref)) {
       return {
@@ -317,21 +330,23 @@ class Checkout {
 
   async #inWorkingTree(path: string): Promise<Lookup> {
     const full: string = join(this.#root, path);
-    const rel: string = relative(this.#root, full);
-    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
-      return { entry: undefined, reason: `${path} leaves the repository` };
-    }
-    const info = await stat(full).catch(() => undefined);
-    if (info === undefined)
+    const real: string | undefined = await realpath(full).catch(() => undefined);
+    if (real === undefined) {
       return { entry: undefined, reason: `${path || '.'} does not exist in the working tree` };
+    }
+    const realRel: string = relative(await realpath(this.#root), real);
+    if (realRel === '..' || realRel.startsWith(`..${sep}`) || isAbsolute(realRel)) {
+      return { entry: undefined, reason: `${path} leaves the repository through a symbolic link` };
+    }
+    const info = await stat(real);
     if (info.isDirectory()) {
       return {
-        entry: { type: 'dir', entries: (): Promise<string[]> => readdir(full) },
+        entry: { type: 'dir', entries: (): Promise<string[]> => readdir(real) },
         reason: '',
       };
     }
     return {
-      entry: { type: 'file', text: (): Promise<string> => readFile(full, 'utf8') },
+      entry: { type: 'file', text: (): Promise<string> => readFile(real, 'utf8') },
       reason: '',
     };
   }
@@ -471,10 +486,13 @@ async function main(): Promise<number> {
       }
       checked++;
       const verdict: Verdict = await checkLink(checkout, link);
-      if (verdict.status === 'dead') deadLines.push(`${page}:${line}: ${url} — ${verdict.reason}`);
-      else if (verdict.status === 'unchecked') {
+      if (verdict.status === 'dead') {
+        deadLines.push(printable(`${page}:${line}: ${url} — ${verdict.reason}`));
+      } else if (verdict.status === 'unchecked') {
         uncheckedLines.push(
-          `${page}:${line}: ${url} — fragment #${link.fragment} is not covered by a rule`,
+          printable(
+            `${page}:${line}: ${url} — fragment #${link.fragment} is not covered by a rule`,
+          ),
         );
       }
     }
