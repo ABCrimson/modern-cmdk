@@ -2,15 +2,19 @@
 // The pure helpers of scripts/codemod-tarball-smoke.ts (the tarball exit gate). The script's checks themselves
 // need packed tarballs and the npm registry; CI runs them (W5-01), this file pins the decisions around them.
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   countDeprecationLines,
   diffTrees,
   findTarballs,
   main,
+  minReleaseAgeDays,
+  npmExecArgs,
+  npmInstallArgs,
+  npmPolicyArgs,
   parseSmokeArgs,
   resolveBin,
   sameOutput,
@@ -175,5 +179,54 @@ describe('snapshotTree and diffTrees', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('npm release-age policy', () => {
+  it('SEC-64: minReleaseAgeDays reads minimumReleaseAge from pnpm-workspace.yaml and rounds minutes up to days', () => {
+    expect(minReleaseAgeDays('minimumReleaseAge: 1440\n')).toBe(1);
+    expect(minReleaseAgeDays('minimumReleaseAge: 1441\n')).toBe(2);
+    expect(minReleaseAgeDays('minimumReleaseAge: 10\n')).toBe(1);
+    expect(() => minReleaseAgeDays('minimumReleaseAgeStrict: true\n')).toThrow(UsageError);
+    expect(() => minReleaseAgeDays('minimumReleaseAge: soon\n')).toThrow(UsageError);
+    expect(
+      minReleaseAgeDays(
+        readFileSync(resolve(import.meta.dirname, '../../pnpm-workspace.yaml'), 'utf8'),
+      ),
+    ).toBe(1);
+    expect(npmPolicyArgs(2)).toEqual(['--min-release-age=2']);
+  });
+
+  it('SEC-64: every npm argv the smoke builds carries --min-release-age', () => {
+    expect(npmInstallArgs(1, 'x.tgz')).toEqual([
+      'install',
+      '--no-audit',
+      '--no-fund',
+      '--ignore-scripts',
+      '--omit=peer',
+      '--min-release-age=1',
+      'x.tgz',
+    ]);
+    expect(npmExecArgs(1, 'x.tgz', ['--dry-run'])).toEqual([
+      'exec',
+      '--yes',
+      '--min-release-age=1',
+      '--package',
+      'x.tgz',
+      '--',
+      'modern-cmdk-codemod',
+      'data-attrs',
+      'src',
+      '--dry-run',
+    ]);
+    // Every runNpm call site takes its argv from one of the two builders, and there are exactly three.
+    const source = readFileSync(
+      resolve(import.meta.dirname, '../../scripts/codemod-tarball-smoke.ts'),
+      'utf8',
+    );
+    const sites = [...source.matchAll(/runNpm\(\s*(npm\w+)/g)].map((match) => match[1]);
+    expect([...source.matchAll(/\brunNpm\(/g)]).toHaveLength(4); // the definition and three calls
+    expect(sites).toHaveLength(3);
+    for (const site of sites) expect(['npmInstallArgs', 'npmExecArgs']).toContain(site);
   });
 });

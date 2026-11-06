@@ -19,8 +19,9 @@
 //     in a fresh copy C (not a git work tree): `--dry-run` exits 0 (and prints the same stdout as the modern-cmdk bin
 //     when both tarballs are given); a real run without --force exits 2, names --force and leaves C byte-identical;
 //     with --force it exits 0 and C equals tests/fixtures/codemod-tarball/app.expected.
-// The codemod tarball is also installed into a temp dir D and its resolved dependency tree is printed: npm, unlike
-// pnpm, applies no release-age gate, so a transitive dependency younger than a day is not stopped and must be seen.
+// The codemod tarball is also installed into a temp dir D and its resolved dependency tree is printed. Every npm call
+// passes --min-release-age=<the root minimumReleaseAge in days> (npm 12 `min-release-age`), so no dependency younger
+// than the repository policy is installed or run; the local tarball itself is never gated.
 //
 // npm is spawned as `process.execPath <npm-cli.js>` of the npm bundled next to the running Node, with no shell:
 // on Windows npm is a .cmd shim that spawn cannot run without a shell (tests/dist/create-tarball.test.ts runs pnpm
@@ -29,11 +30,12 @@
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { listTarEntries } from './check-package.ts';
+import { parseWorkspaceYaml } from './consumer-smoke.ts';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const FIXTURE = join(ROOT, 'tests/fixtures/codemod-tarball');
@@ -58,6 +60,56 @@ export interface SmokeOptions {
   readonly modernCmdk: string | undefined;
   readonly codemod: string | undefined;
   readonly keep: boolean;
+}
+
+/**
+ * The root minimumReleaseAge (pnpm-workspace.yaml, minutes) in whole days, rounded up and at least 1: npm's
+ * `min-release-age` counts days. A missing or non-numeric key is a UsageError, never a silent default.
+ */
+export function minReleaseAgeDays(workspaceYaml: string): number {
+  const minutes = parseWorkspaceYaml(workspaceYaml).minimumReleaseAge;
+  if (typeof minutes !== 'number' || !Number.isFinite(minutes) || minutes < 0) {
+    throw new UsageError('pnpm-workspace.yaml has no numeric minimumReleaseAge');
+  }
+  return Math.max(1, Math.ceil(minutes / 1440));
+}
+
+/** The npm flag that holds every install and exec to the repository's release-age policy. */
+export function npmPolicyArgs(days: number): readonly string[] {
+  return [`--min-release-age=${days}`];
+}
+
+/** The argv of `npm install <tarball>` into an empty project. --omit=peer: `npm help install` lists --omit <dev|optional|peer>. */
+export function npmInstallArgs(days: number, tarball: string): readonly string[] {
+  return [
+    'install',
+    '--no-audit',
+    '--no-fund',
+    '--ignore-scripts',
+    '--omit=peer',
+    ...npmPolicyArgs(days),
+    tarball,
+  ];
+}
+
+/** The argv of `npm exec` running the codemod's data-attrs transform from the packed tarball, with `extra` appended. */
+export function npmExecArgs(
+  days: number,
+  tarball: string,
+  extra: readonly string[],
+): readonly string[] {
+  return [
+    'exec',
+    '--yes',
+    ...npmPolicyArgs(days),
+    '--package',
+    tarball,
+    '--',
+    'modern-cmdk-codemod',
+    'data-attrs',
+    'src',
+    ...extra,
+  ];
 }
 
 const MODERN_CMDK_TARBALL = /^modern-cmdk-[0-9].*\.tgz$/;
@@ -283,6 +335,7 @@ async function smokeModernCmdk(
   report: Report,
   tarball: string,
   work: string,
+  days: number,
 ): Promise<string | undefined> {
   listsAll(report, 'modern-cmdk', tarball, [
     'package/dist/codemod/cli.mjs',
@@ -290,11 +343,7 @@ async function smokeModernCmdk(
   ]);
   const installDir = join(work, 'A');
   await makeProject(installDir);
-  // --omit=peer: `npm help install` of the bundled npm lists --omit <dev|optional|peer>.
-  const install = runNpm(
-    ['install', '--no-audit', '--no-fund', '--ignore-scripts', '--omit=peer', tarball],
-    installDir,
-  );
+  const install = runNpm(npmInstallArgs(days, tarball), installDir);
   if (!report.child('npm install modern-cmdk tarball', install, 0)) return undefined;
 
   const manifest = JSON.parse(
@@ -328,25 +377,13 @@ async function smokeCodemod(
   tarball: string,
   work: string,
   bundledStdout: string | undefined,
+  days: number,
 ): Promise<void> {
   listsAll(report, 'modern-cmdk-codemod', tarball, ['package/dist/cli.mjs']);
   const app = await copyApp(work, 'C');
   const before = snapshotTree(app);
   const exec = (extra: readonly string[]): ChildResult =>
-    runNpm(
-      [
-        'exec',
-        '--yes',
-        '--package',
-        tarball,
-        '--',
-        'modern-cmdk-codemod',
-        'data-attrs',
-        'src',
-        ...extra,
-      ],
-      app,
-    );
+    runNpm(npmExecArgs(days, tarball, extra), app);
 
   const dry = exec(['--dry-run']);
   const dryProblems = [
@@ -381,13 +418,10 @@ async function smokeCodemod(
     ),
   ]);
 
-  // The resolved tree, so a transitive dependency npm let through (it has no release-age gate) is seen.
+  // The resolved tree, so every transitive dependency npm resolved under --min-release-age is seen.
   const treeDir = join(work, 'D');
   await makeProject(treeDir);
-  const install = runNpm(
-    ['install', '--no-audit', '--no-fund', '--ignore-scripts', '--omit=peer', tarball],
-    treeDir,
-  );
+  const install = runNpm(npmInstallArgs(days, tarball), treeDir);
   if (report.child('npm install modern-cmdk-codemod tarball', install, 0)) {
     const lock = JSON.parse(
       readFileSync(join(treeDir, 'node_modules/.package-lock.json'), 'utf8'),
@@ -405,18 +439,22 @@ async function smokeCodemod(
 
 /** Runs the selected checks; the exit code is 0 when all pass, 1 otherwise. */
 export async function runSmoke(options: SmokeOptions): Promise<number> {
+  const days = minReleaseAgeDays(
+    await readFile(resolve(import.meta.dirname, '../pnpm-workspace.yaml'), 'utf8'),
+  );
   const work = await mkdtemp(join(tmpdir(), 'modern-cmdk-codemod-smoke-'));
   const report = new Report();
   try {
     let bundledStdout: string | undefined;
     if (options.modernCmdk !== undefined)
-      bundledStdout = await smokeModernCmdk(report, options.modernCmdk, work);
+      bundledStdout = await smokeModernCmdk(report, options.modernCmdk, work, days);
     if (options.codemod !== undefined) {
       await smokeCodemod(
         report,
         options.codemod,
         work,
         options.modernCmdk === undefined ? undefined : bundledStdout,
+        days,
       );
     }
     if (
