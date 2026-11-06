@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsdown';
 
-// The packages from node_modules that dist/codemod bundles (tsdown 0.23.5 listed them as "Detected dependencies in bundle"):
+// The packages from node_modules that dist/codemod bundles (tsdown 0.23.7 listed them as "Detected dependencies in bundle"):
 // jscodeshift and the parts of its closure it reaches at run time. The dependency-free @babel/parser, flow-parser and
 // flow-estree are inlined parsers; @babel/core and its tree are not reached (tests/package/license-policy.json).
 // Changing this list requires regenerating packages/modern-cmdk/THIRD-PARTY-NOTICES.md with node scripts/third-party-notices.ts,
@@ -34,7 +34,7 @@ export default defineConfig([
   // dist/react instead of a second copy; hash: false and chunkFileNames keep those chunks in dist/react/chunk-*.mjs
   // (rolldown's default puts a chunk at the outDir root) with stable names across builds. The banner is a per-output option, so every chunk carries 'use client'.
   // One core: src/react imports the core as 'modern-cmdk'. tsdown externalizes dependencies and
-  // peers but never the package's own name, so deps.neverBundle (tsdown 0.23.5, DepsConfig) lists
+  // peers but never the package's own name, so deps.neverBundle (tsdown 0.23.7, DepsConfig) lists
   // it; it is matched as written (before tsconfig paths resolve it) for the JS and the dts build,
   // so dist/react/index.mjs and index.d.mts import 'modern-cmdk' (the exports map self-reference
   // in the repo, node_modules/modern-cmdk once installed) instead of inlining a second core.
@@ -55,7 +55,7 @@ export default defineConfig([
   // that package's dist, whose files import jscodeshift as an undeclared dependency here) and jscodeshift with its
   // recast/babel tree, so modern-cmdk has no runtime dependency on the new package or on jscodeshift. The bundle leaves in 2.0
   // (PKG-1). dts is off, written out: package.json's "types" field would auto-enable it, and the codemod is a CLI, not an importable API.
-  // The bundled set is an explicit list (RP-28, tsdown 0.23.5 DepsConfig): deps.onlyBundle throws if a node_modules package outside it is
+  // The bundled set is an explicit list (RP-28, tsdown 0.23.7 DepsConfig): deps.onlyBundle throws if a node_modules package outside it is
   // bundled, so a new dependency of the codemod fails this build until it is listed here and checked for its licence
   // (tests/package/license-policy.json). deps.onlyImport: [] lets the emitted files import node: builtins and nothing else.
   {

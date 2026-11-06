@@ -8,7 +8,7 @@
 // differs from what it would write (or is missing). Exit codes: 0 = written / up to date, 1 = stale file, missing
 // dist, or a bundled package without a licence text, 2 = usage error.
 //
-// Source of the package list: the comment line tsdown 0.23.5 (rolldown 1.2) writes above every bundled module of
+// Source of the package list: the comment line tsdown 0.23.7 (rolldown 1.3) writes above every bundled module of
 // packages/modern-cmdk/dist/codemod/**/*.mjs, `// ../../node_modules/.pnpm/<pkg>@<v>/node_modules/<pkg>/<file>`
 // (the `//#region <path>` form of other rolldown releases is read too). A line that names a node_modules path is
 // one bundled module; the package is the LAST node_modules/<name> or node_modules/@scope/name in it, whose
