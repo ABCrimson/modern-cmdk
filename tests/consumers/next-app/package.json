@@ -9,15 +9,15 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "16.5.0-canary.41",
+    "next": "16.5.0-canary.42",
     "radix-ui": "1.8.2-rc.1791984254107",
-    "react": "0.0.0-experimental-e84e1492-20261031",
-    "react-dom": "0.0.0-experimental-e84e1492-20261031"
+    "react": "0.0.0-experimental-5b610964-20261106",
+    "react-dom": "0.0.0-experimental-5b610964-20261106"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "typescript": "7.1.0-dev.20261105.1"
+    "typescript": "7.1.0-dev.20261106.1"
   }
 }

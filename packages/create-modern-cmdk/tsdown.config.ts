@@ -9,7 +9,7 @@ import { defineConfig } from 'tsdown';
 // enables dts generation from it when the option is absent (that index.d.mts was unreachable).
 // `sourcemap: false` is tsdown's default, written out so the bin-only choice sits beside dts;
 // tsdown would force sourcemaps on only if the tsconfig enabled `declarationMap`, which it does not.
-// Stack traces point at the unminified dist/index.mjs itself (15.61 kB with the templates embedded, as tsdown 0.23.5 reports it).
+// Stack traces point at the unminified dist/index.mjs itself (16.89 kB with the templates embedded, as tsdown 0.23.7 reports it).
 // Other defaults relied on (tsdown 0.23 types): format 'esm', platform 'node', outDir 'dist',
 // clean true, treeshake true.
 

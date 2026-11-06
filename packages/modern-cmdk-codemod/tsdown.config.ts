@@ -7,7 +7,7 @@ import { defineConfig } from 'tsdown';
 // Only this package's own src is bundled. jscodeshift is a dependency, so it stays external and npm installs it.
 // deps.onlyBundle: [] throws if anything from node_modules is bundled, and deps.onlyImport allows the emitted
 // files to import jscodeshift (and node: builtins, always allowed on platform 'node') and nothing else, so a
-// stray bare import, or a dependency added without a manifest entry, fails the build (tsdown 0.23.5, DepsConfig).
+// stray bare import, or a dependency added without a manifest entry, fails the build (tsdown 0.23.7, DepsConfig).
 // The entries share code (print-options, the jscodeshift import in worker), so rolldown may emit chunks:
 // hash: false and chunkFileNames keep them in dist as chunk-<name>.mjs with stable names.
 export default defineConfig({

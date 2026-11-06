@@ -336,7 +336,7 @@ The optional WASM engine implements the core's `SearchEngine` interface; you pas
 - **`createWorkerSearchEngine()`** (`src/worker-engine.ts`) -- runs the same engine in a Web Worker; scores travel in a `SharedArrayBuffer` only when the page is cross-origin isolated, otherwise they are structured-cloned. Its synchronous `search()` yields the results of the most recent `searchAsync()` call, and nothing in `createCommandMachine` calls `searchAsync()`, so pair it with explicit `await engine.searchAsync(query)` calls. This file is the only place in `packages/*/src` that uses `Promise.withResolvers` (ES2024): for the worker-ready signal and for per-request tracking.
 - **Edit distance** -- `crate/src/scorer.rs` (Levenshtein helpers) is compiled under `cfg(test)` only and is not part of the search path.
 
-**Measurements.** The `.wasm` binary is 113,223 bytes raw and 52,100 bytes under `gzip -9` (measured 2026-11-05 on the `pkg/command_search_wasm_bg.wasm` that wasm-pack 0.15.1 builds with the nightly of 2026-11-05, rustc 1.101.0-nightly 2d20b42b8; the 2026-11-04 nightly gave 113,495 and 52,188), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
+**Measurements.** The `.wasm` binary is 113,220 bytes raw and 52,101 bytes under `gzip -9` (measured 2026-11-06 on the `pkg/command_search_wasm_bg.wasm` that wasm-pack 0.15.1 builds with the nightly of 2026-11-06, rustc 1.101.0-nightly 249c1e4e3; the 2026-11-05 nightly gave 113,223 and 52,100), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
 
 ---
 
@@ -603,7 +603,7 @@ Five custom properties are registered with `@property` (`--command-list-height`,
 | Codemod bin (`modern-cmdk`, deprecated) | ≤ 3.4 MB | **Enforced**: `dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs` (the bundled bin, shim included), installed size (no compression). `benchmarks/size-history/1.5.0.json` (056ab43, measured 2026-11-05 with size-limit 14.3.0) holds 3150191 B; the 1.4 value was 3325793 B |
 | Codemod shim (`bin.mjs`) | ≤ 1000 B | **Enforced**: `dist/codemod/bin.mjs` alone, installed size. Measured 897 B (`benchmarks/size-history/1.5.0.json`) |
 | `modern-cmdk-codemod` own files | ≤ 100000 B | **Enforced**: `packages/modern-cmdk-codemod/dist/*.mjs` plus `dist/transforms/*.mjs`, installed size; `jscodeshift` is not in the tarball and not counted. Measured 97921 B (`benchmarks/size-history/1.5.0.json`); the tarball is 100912 B unpacked, 29717 B packed |
-| WASM binary (gzipped) | no budget; about 52 kB measured (113,223 bytes raw) | Not enforced (package private, not in `size-limit`) |
+| WASM binary (gzipped) | no budget; about 52 kB measured (113,220 bytes raw) | Not enforced (package private, not in `size-limit`) |
 | Search latency (10K items, TS scorer) | < 16 ms | Tripwire on the named task `search:ts-scorer-10k`: `pnpm bench:compare` against `benchmarks/baseline.json` warns above a 5% regression and fails the CI bench job above 15% or when the median exceeds the 16 ms `target_ms` (see below). |
 | Search latency (100K items, WASM engine) | none (unmeasured) | Target (not enforced); no figure has been measured |
 | Time to first render | < 50 ms | Target (not enforced) |
