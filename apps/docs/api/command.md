@@ -119,7 +119,7 @@ Immutable state snapshot. Each mutation produces a new object reference for effi
 | `CLOSE` | -- | Close the palette |
 | `TOGGLE` | -- | Toggle open state |
 | `ITEMS_LOADED` | `{ items: readonly CommandItem[] }` | Bulk-load async items |
-| `LOADING` | `{ source: string; pending: boolean }` | A pending `<Command.AsyncItems>` source; `loading` is true while any source is pending |
+| `LOADING` | `{ source: string; pending: boolean }` | A `<Command.AsyncItems>` source started (`pending` true) or finished (`pending` false); `loading` is true while any source is pending |
 | `REGISTER_ITEM` | `{ item: CommandItem }` | Register a new item |
 | `UNREGISTER_ITEM` | `{ id: ItemId }` | Remove an item |
 | `REGISTER_GROUP` | `{ group: CommandGroup }` | Register a new group |
