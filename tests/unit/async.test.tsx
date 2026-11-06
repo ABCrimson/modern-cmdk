@@ -132,6 +132,42 @@ function AsyncApp({
 }
 
 describe('Command.AsyncItems — Suspense + use()', () => {
+  it('TEB-95: Command.Empty stays hidden while an AsyncItems source is pending and appears once it settles with no items', async () => {
+    const { promise, resolve } = Promise.withResolvers<readonly CommandItemType[]>();
+
+    await renderAsync(
+      <Command>
+        <Command.Input />
+        <Command.List>
+          <Command.AsyncItems items={promise} fallback={null}>
+            {(items: readonly CommandItemType[]): ReactNode[] =>
+              items.map((item) => (
+                <Command.Item key={item.id} value={item.value} forceId={item.id}>
+                  {item.value}
+                </Command.Item>
+              ))
+            }
+          </Command.AsyncItems>
+          <Command.Empty>No results.</Command.Empty>
+        </Command.List>
+      </Command>,
+    );
+
+    const list = (): Element | null => container.querySelector('[data-command-list]');
+    expect(container.querySelector('[data-command-empty]')).toBeNull();
+    expect(list()?.getAttribute('aria-busy')).toBe('true');
+
+    await act(async () => {
+      resolve([]);
+    });
+    await flush();
+
+    await vi.waitFor(() => {
+      expect(container.querySelector('[data-command-empty]')).not.toBeNull();
+    });
+    expect(list()?.getAttribute('aria-busy')).toBe('false');
+  });
+
   it('should render fallback while promise is pending', async () => {
     const { promise } = Promise.withResolvers<readonly CommandItemType[]>();
 
