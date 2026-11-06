@@ -134,7 +134,6 @@ describe('release.yml first-publish-tarball job (D62)', () => {
     expect(block).toContain(
       'node scripts/check-package.ts --package modern-cmdk-codemod --tarball',
     );
-    expect(block).toContain('node scripts/codemod-tarball-smoke.ts --codemod');
   });
 
   it('D62: first-publish-tarball records source.txt and compares an already-published version by content', () => {
@@ -165,9 +164,13 @@ describe('release.yml first-publish-tarball job (D62)', () => {
     expect(block).not.toMatch(/actions\/attest|anchore\/sbom-action/);
   });
 
-  it('D62: the header job graph names first-publish-tarball and the attest refusal', () => {
+  it('D62: the header job graph names first-publish-tarball, first-publish-smoke and the attest refusal', () => {
     const header = workflow.slice(0, workflow.indexOf('\njobs:'));
+    expect(header).toContain(
+      'version -> first-publish-tarball -> first-publish-smoke -> first-publish-attest',
+    );
     expect(header).toContain('first-publish-tarball');
+    expect(header).toContain('first-publish-smoke');
     expect(header).toContain('first-publish-attest');
     expect(header).toMatch(/refus/);
   });
@@ -197,7 +200,8 @@ function stepsOf(block: string): string {
 }
 
 describe('release.yml first-publish split (D62: the smoke job executes a fresh npm tree, so it holds no signing credential)', () => {
-  const smoke = job('first-publish-tarball');
+  const tarball = job('first-publish-tarball');
+  const smoke = job('first-publish-smoke');
   const attestJob = job('first-publish-attest');
 
   it('D62: the job that runs the smoke script has no id-token and no attestations permission', () => {
@@ -207,16 +211,16 @@ describe('release.yml first-publish split (D62: the smoke job executes a fresh n
     const runners = jobNames().filter((name) =>
       job(name).includes('scripts/codemod-tarball-smoke.ts'),
     );
-    expect(runners).toEqual(['first-publish-tarball']);
-    // Its outputs are the contract with the signing job.
-    expect(smoke).toMatch(/^ {6}state: \$\{\{ steps\.registry\.outputs\.state \}\}$/m);
-    expect(smoke).toMatch(/^ {6}tarball: \$\{\{ steps\.hash\.outputs\.tarball \}\}$/m);
-    expect(smoke).toMatch(/^ {6}sha256: \$\{\{ steps\.hash\.outputs\.sha256 \}\}$/m);
+    expect(runners).toEqual(['first-publish-smoke']);
+    // The tarball job's outputs are the contract with the smoke and signing jobs.
+    expect(tarball).toMatch(/^ {6}state: \$\{\{ steps\.registry\.outputs\.state \}\}$/m);
+    expect(tarball).toMatch(/^ {6}tarball: \$\{\{ steps\.hash\.outputs\.tarball \}\}$/m);
+    expect(tarball).toMatch(/^ {6}sha256: \$\{\{ steps\.hash\.outputs\.sha256 \}\}$/m);
   });
 
-  it('D62: first-publish-attest signs only: it needs the smoke job, runs on state first, downloads before attesting and runs no repository code', () => {
+  it('D62: first-publish-attest signs only: it needs the tarball and smoke jobs, runs on state first, downloads before attesting and runs no repository code', () => {
     expect(attestJob).not.toBe('');
-    expect(attestJob).toContain('    needs: first-publish-tarball');
+    expect(attestJob).toContain('    needs: [first-publish-tarball, first-publish-smoke]');
     expect(attestJob).toContain("    if: needs.first-publish-tarball.outputs.state == 'first'");
     const perms = attestJob.match(/^ {4}permissions:\n((?: {6}.*\n)+)/m)?.[1] ?? '';
     const granted = [...perms.matchAll(/^ {6}([\w-]+): (\w+)/gm)].map((m) => `${m[1]}:${m[2]}`);
@@ -239,8 +243,8 @@ describe('release.yml first-publish split (D62: the smoke job executes a fresh n
     expect(attestJob).not.toMatch(/continue-on-error|\|\| true|secrets\./);
   });
 
-  it("D62: first-publish-attest verifies the downloaded tarball against the smoke job's sha256 output before it attests", () => {
-    const verify = step(attestJob, 'Verify the tarball is the one the smoke job tested');
+  it("D62: first-publish-attest verifies the downloaded tarball against the tarball job's sha256 output before it attests", () => {
+    const verify = step(attestJob, 'Verify the tarball is the one the tarball job hashed');
     expect(verify).not.toBe('');
     expect(verify).toMatch(
       /EXPECTED_SHA256: \$\{\{ needs\.first-publish-tarball\.outputs\.sha256 \}\}/,
@@ -250,16 +254,16 @@ describe('release.yml first-publish split (D62: the smoke job executes a fresh n
     expect(verify).toMatch(/!= "\$EXPECTED_SHA256"/);
     expect(verify).toMatch(/exit 1/);
     const steps = stepsOf(attestJob);
-    const at = steps.indexOf('Verify the tarball is the one the smoke job tested');
+    const at = steps.indexOf('Verify the tarball is the one the tarball job hashed');
     expect(at).toBeGreaterThan(steps.indexOf('actions/download-artifact@'));
     expect(at).toBeLessThan(steps.indexOf('anchore/sbom-action@'));
     expect(at).toBeLessThan(steps.indexOf('actions/attest@'));
-    // The smoke job computes the digest of the very file it then uploads.
-    const hash = step(smoke, 'Hash the tarball');
+    // The tarball job computes the digest of the very file it then uploads.
+    const hash = step(tarball, 'Hash the tarball');
     expect(hash).toContain('sha256sum');
     expect(hash).toContain('id: hash');
-    expect(smoke.indexOf('- name: Hash the tarball')).toBeLessThan(
-      smoke.indexOf('- name: Upload the first-publish artifact'),
+    expect(tarball.indexOf('- name: Hash the tarball')).toBeLessThan(
+      tarball.indexOf('- name: Upload the first-publish artifact'),
     );
   });
 
@@ -287,7 +291,7 @@ describe('release.yml first-publish split (D62: the smoke job executes a fresh n
     const afterHeader = workflow.slice(workflow.indexOf('\njobs:'));
     expect(afterHeader.match(/id-token: write/g)).toHaveLength(holders.length);
     expect(prose).toMatch(
-      /first-publish-tarball holds no id-token[^.]*because it executes a freshly resolved npm tree/,
+      /first-publish-smoke holds no id-token because it executes a freshly resolved npm tree/,
     );
   });
 
@@ -297,7 +301,7 @@ describe('release.yml first-publish split (D62: the smoke job executes a fresh n
     expect(version).toContain('workspace:*');
     expect(version).toContain('apply-release-plan 8.1.1');
     // It agrees with the scope gate's error text.
-    expect(smoke).toContain(
+    expect(tarball).toContain(
       'every internal specifier is workspace:*, which changeset version does not rewrite',
     );
   });
@@ -314,8 +318,13 @@ describe('release.yml backfill job (D62)', () => {
       'create-modern-cmdk@1.2.1|create-modern-cmdk|## 1.2.1|33678255dcee29a02a1222c10f5698f47cf7f24c',
     ]);
     expect(block).toContain(
-      `git log --reverse --format=%H -G '"version": "1.0.0"' -- packages/modern-cmdk-codemod/package.json`,
+      'sha=$(git log --reverse --format=%H -G "\\"version\\": \\"$' +
+        '{version//./\\\\.}\\"" -- "packages/$dir/package.json" | sed -n 1p) || return 1',
     );
+    const lookup = block.split('\n').find((l) => l.includes('git log --reverse')) ?? '';
+    expect(lookup).toContain('${version');
+    expect(lookup).toContain('"packages/$dir/package.json"');
+    expect(lookup).not.toContain('1.0.0');
     expect(block).toContain('if [ "$GITHUB_REF" != refs/heads/main ]; then');
     expect(block).toMatch(/failed\+=\("\$tag"\)/);
     expect(block).toMatch(/::error::[^\n]*\$\{failed\[\*\]\}/);
@@ -323,5 +332,56 @@ describe('release.yml backfill job (D62)', () => {
     expect(block.indexOf('done\n')).toBeLessThan(block.search(/\$\{#failed\[@\]\}/));
     expect(block).toMatch(/\$\{#failed\[@\]\}" -ne 0 \]; then[\s\S]*exit 1/);
     expect(block).not.toMatch(/continue-on-error/);
+  });
+});
+
+describe('release.yml first-publish-smoke job (SEC-63)', () => {
+  const tarball = job('first-publish-tarball');
+  const smoke = job('first-publish-smoke');
+  const attestJob = job('first-publish-attest');
+
+  it('SEC-63: first-publish-tarball hashes, records and uploads the tarball and runs no freshly resolved npm code', () => {
+    expect(tarball).not.toBe('');
+    const steps = stepsOf(tarball);
+    expect(steps).not.toContain('codemod-tarball-smoke.ts');
+    expect(steps).not.toMatch(/\bnpm (exec|install)\b/);
+    const hash = steps.indexOf('- name: Hash the tarball');
+    const record = steps.indexOf('- name: Record the source');
+    const upload = steps.indexOf('- name: Upload the first-publish artifact');
+    expect(hash).toBeGreaterThan(-1);
+    expect(hash).toBeLessThan(record);
+    expect(record).toBeLessThan(upload);
+  });
+
+  it("SEC-63: first-publish-smoke downloads the uploaded artifact, verifies its sha256 against the tarball job's output, runs the smoke script, and holds no id-token, no attestations permission and no upload step", () => {
+    expect(smoke).not.toBe('');
+    expect(smoke).toContain("    if: needs.first-publish-tarball.outputs.state == 'first'");
+    expect(smoke).toContain('    needs: first-publish-tarball');
+    const perms = smoke.match(/^ {4}permissions:\n((?: {6}.*\n)+)/m)?.[1] ?? '';
+    const granted = [...perms.matchAll(/^ {6}([\w-]+): (\w+)/gm)].map((m) => `${m[1]}:${m[2]}`);
+    expect(granted).toEqual(['contents:read']);
+    expect(smoke).not.toMatch(/id-token|attestations|artifact-metadata|upload-artifact|secrets\./);
+    expect(smoke).not.toMatch(/continue-on-error|\|\| true/);
+    const steps = stepsOf(smoke);
+    const download = steps.indexOf('actions/download-artifact@');
+    const verify = steps.indexOf('sha256sum');
+    const run = steps.indexOf(
+      'node scripts/codemod-tarball-smoke.ts --codemod "first-publish/$TARBALL"',
+    );
+    expect(download).toBeGreaterThan(-1);
+    expect(steps).toContain('name: first-publish-modern-cmdk-codemod');
+    expect(download).toBeLessThan(verify);
+    expect(verify).toBeLessThan(run);
+    expect(steps).toMatch(/!= "\$EXPECTED_SHA256"/);
+    expect(steps).toMatch(
+      /EXPECTED_SHA256: \$\{\{ needs\.first-publish-tarball\.outputs\.sha256 \}\}/,
+    );
+    expect(steps).toMatch(/TARBALL: \$\{\{ needs\.first-publish-tarball\.outputs\.tarball \}\}/);
+    expect(steps).toContain('pnpm install --frozen-lockfile --ignore-scripts');
+  });
+
+  it('SEC-63: first-publish-attest needs first-publish-tarball and first-publish-smoke, so a failed smoke blocks the attestation', () => {
+    expect(attestJob).toContain('    needs: [first-publish-tarball, first-publish-smoke]');
+    expect(attestJob).toContain("    if: needs.first-publish-tarball.outputs.state == 'first'");
   });
 });
