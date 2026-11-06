@@ -23,7 +23,7 @@ permissions:
 # need that build: the unit suites resolve `modern-cmdk` to src through the aliases in
 # vitest.config.ts, and rust-wasm and docs build what they need themselves. Every job that installs
 # from the committed lockfile uses `--frozen-lockfile`; the pnpm store cache (`cache: pnpm`) is keyed on the OS,
-# architecture and lockfile hash alone, so the two jobs that install packages no lockfile vets (react-lanes and templates) must not use it.
+# architecture and lockfile hash alone, so the jobs that install packages no lockfile vets (react-lanes, consumers and templates) must not use it.
 jobs:
   lint:
     name: Lint & Typecheck
@@ -296,7 +296,21 @@ jobs:
       - run: pnpm --filter playground exec tsc --noEmit
       - run: pnpm --filter playground run build
       # Chromium only: Firefox and WebKit are opt-in (E2E_ENGINES=all) until 1.8.0, never set in CI
-      - run: pnpm playwright install --with-deps chromium
+      # The retry is for the apt mirror flake (run 42023125730: apt exit 100 'Unable to locate package'); an
+      # infrastructure install retry announced with ::warning, never a test retry (LD-04 stands for tests).
+      - name: Install Chromium (bounded retry on the apt mirror)
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            pnpm playwright install --with-deps chromium && exit 0
+            if [ "$i" -eq 3 ]; then
+              echo "::error::playwright install failed 3 times (apt mirror or registry)"
+              exit 1
+            fi
+            echo "::warning::playwright install attempt $i failed (apt mirror or registry); retrying in 15 s"
+            if ! sudo apt-get update; then echo "::warning::apt-get update failed before attempt $((i + 1))"; fi
+            sleep 15
+          done
       - run: pnpm playwright test
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
@@ -326,7 +340,19 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm docs:build
-      - run: pnpm playwright install --with-deps chromium
+      - name: Install Chromium (bounded retry on the apt mirror)
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            pnpm playwright install --with-deps chromium && exit 0
+            if [ "$i" -eq 3 ]; then
+              echo "::error::playwright install failed 3 times (apt mirror or registry)"
+              exit 1
+            fi
+            echo "::warning::playwright install attempt $i failed (apt mirror or registry); retrying in 15 s"
+            if ! sudo apt-get update; then echo "::warning::apt-get update failed before attempt $((i + 1))"; fi
+            sleep 15
+          done
       # Renders every built page under the Pages base (playwright.docs.config.ts)
       - run: pnpm test:docs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -526,7 +552,7 @@ jobs:
         run: tar -xf "$RUNNER_TEMP/dist.tar"
       - run: pnpm check:package --pack-dir "$RUNNER_TEMP/pack"
       # Codemod tarball smoke (W4-03): installs the packed tarballs with their dependencies from the npm registry
-      # (no lockfile) and runs the codemod; it prints the resolved tree. Measured 8.5 s on the author's host with a warm npm cache; a cold runner takes longer.
+      # (no lockfile) with --min-release-age set to the root minimumReleaseAge in days (SEC-64) and runs the codemod; it prints the resolved tree. Measured 8.5 s on the author's host with a warm npm cache; a cold runner takes longer.
       # No retry: a registry failure fails the job.
       - run: node scripts/codemod-tarball-smoke.ts --pack-dir "$RUNNER_TEMP/pack"
       # modern-cmdk ships THIRD-PARTY-NOTICES.md; this fails when it is stale against the dist/codemod extracted above.
@@ -586,10 +612,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      # No `cache: pnpm`: consumer-smoke.ts installs each app without a lockfile (see the header of scripts/consumer-smoke.ts).
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -597,7 +623,19 @@ jobs:
           path: ${{ runner.temp }}
       - name: Extract the dist
         run: tar -xf "$RUNNER_TEMP/dist.tar"
-      - run: pnpm playwright install --with-deps chromium
+      - name: Install Chromium (bounded retry on the apt mirror)
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            pnpm playwright install --with-deps chromium && exit 0
+            if [ "$i" -eq 3 ]; then
+              echo "::error::playwright install failed 3 times (apt mirror or registry)"
+              exit 1
+            fi
+            echo "::warning::playwright install attempt $i failed (apt mirror or registry); retrying in 15 s"
+            if ! sudo apt-get update; then echo "::warning::apt-get update failed before attempt $((i + 1))"; fi
+            sleep 15
+          done
       - run: node scripts/consumer-smoke.ts --app ${{ matrix.variant }} --report consumers-${{ matrix.variant }}.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
