@@ -164,6 +164,19 @@ describe('migration guide: commands', () => {
   });
 });
 
+describe('migration guide: API differences', () => {
+  it("DT-17: the API differences table names defaultValue, forceMount, progress and the root's div props", () => {
+    const table = page.slice(
+      page.indexOf('## Complete API Differences'),
+      page.indexOf('## New Features Available After Migration'),
+    );
+    expect(table.length).toBeGreaterThan(0);
+    for (const needle of ['defaultValue', 'forceMount', 'progress', 'div props']) {
+      expect(table, needle).toContain(needle);
+    }
+  });
+});
+
 describe('migration guide: removed claims', () => {
   it('does not say the API works identically, skips CSS, skips group-heading or plans a root fix', () => {
     expect(page).not.toMatch(/works identically/i);
@@ -174,4 +187,24 @@ describe('migration guide: removed claims', () => {
     expect(page).not.toMatch(/writes `?\[?data-command\]?`? for/i);
     expect(page).not.toMatch(/`--dry-run` prints no diff/i);
   });
+});
+
+describe('deprecated bin paragraphs', () => {
+  const paragraphs: Record<string, string> = {
+    guide: page,
+    'codemod README': readFileSync(resolve(root, 'packages/modern-cmdk-codemod/README.md'), 'utf8'),
+    'modern-cmdk README': readFileSync(resolve(root, 'packages/modern-cmdk/README.md'), 'utf8'),
+  };
+
+  for (const [name, text] of Object.entries(paragraphs)) {
+    it(`DG-135: the ${name} says the deprecated bin follows a symlinked directory that a pattern names and leaves out dot paths`, () => {
+      const at: number = text.indexOf("1.4's excludes");
+      expect(at, name).toBeGreaterThan(-1);
+      const paragraph: string = text.slice(at, text.indexOf('\n', at));
+      expect(paragraph).toContain('a pattern names');
+      expect(paragraph).toContain('or that a directory argument names');
+      expect(paragraph).toContain('start with a dot');
+      expect(paragraph).not.toContain('does not follow symlinked directories');
+    });
+  }
 });

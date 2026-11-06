@@ -1,6 +1,6 @@
 # Migration from cmdk
 
-This guide covers migrating from `cmdk` (pacocoursey/cmdk) to `modern-cmdk/react`. The import swap is one line, but the two libraries differ in their data attributes, their CSS custom property, the `filter` signature and several props, so plan for the [breaking changes](#breaking-changes) below. The `modern-cmdk-codemod` CLI does the mechanical part and reports every site it cannot migrate.
+This guide covers migrating from `cmdk` ([dip/cmdk](https://github.com/dip/cmdk), formerly pacocoursey/cmdk) to `modern-cmdk/react`. The import swap is one line, but the two libraries differ in their data attributes, their CSS custom property, the `filter` signature and several props, so plan for the [breaking changes](#breaking-changes) below. The `modern-cmdk-codemod` CLI does the mechanical part and reports every site it cannot migrate.
 
 ## Swap the Import
 
@@ -68,7 +68,7 @@ Commit after each transform so the next run starts from a clean tree and each st
 npx modern-cmdk-codemod --force should-filter ./src
 ```
 
-A directory argument covers every `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and `.scss` file below it. A glob works too; quote it so your shell passes it to the CLI instead of expanding it:
+A directory argument covers every `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and `.scss` file below it. Files and directories whose names start with a dot (`.storybook/`, `src/.palette.tsx`) are not matched by a directory argument or by a wildcard (`*` or `**`). Name them with a pattern whose segment starts with the dot, such as `"./.storybook/*.tsx"` or `"./src/.*.tsx"`, or give the dot directory itself as the directory argument (`./.storybook`). A glob works too; quote it so your shell passes it to the CLI instead of expanding it:
 
 ```bash
 npx modern-cmdk-codemod --dry-run data-attrs "./src/**/*.{tsx,css}"
@@ -117,7 +117,7 @@ Commit or stash, or pass `--force` when you accept that a bad run cannot be undo
 
 ### Which Files Are Read
 
-The codemod skips `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static` and `.vercel`, every path your `.gitignore` covers (asked of `git check-ignore`) and every file reached through a symlinked directory.
+The codemod skips `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static` and `.vercel`, every path your `.gitignore` covers (asked of `git check-ignore`) and every file reached through a symlinked directory, and every file or directory whose name starts with a dot (unless a pattern segment starts with that dot or a directory argument names that directory, such as `./.storybook`).
 
 ### Output and Exit Codes
 
@@ -133,7 +133,7 @@ A changed file prints `changed <path>` (`would change <path>` with `--dry-run`);
 
 ### The Deprecated `npx modern-cmdk`
 
-The `modern-cmdk` package still ships a `modern-cmdk` bin until 2.0. It runs the same four transforms, bundled, with the 1.x exit codes (lenient unless argv carries `--strict`) and 1.4's file discovery: it skips only `node_modules`, `dist`, `build` and `.next`, applies no `.gitignore` and makes no git check. It writes one deprecation warning to stderr per run. Use `modern-cmdk-codemod` instead.
+The `modern-cmdk` package still ships a `modern-cmdk` bin until 2.0. It runs the same four transforms, bundled, with the 1.x exit codes (lenient unless argv carries `--strict`) and 1.4's excludes: of the ten directories `modern-cmdk-codemod` skips, it skips only `node_modules`, `dist`, `build` and `.next`, applies no `.gitignore` and makes no git check. Like `modern-cmdk-codemod`, it reads only the ten script and stylesheet extensions from a directory, leaves out files and directories whose names start with a dot unless a pattern segment starts with that dot or a directory argument names that directory, descends no symlinked directory under `**` or a directory argument, reads no symlinked file and on Windows matches names case-insensitively. Unlike `modern-cmdk-codemod`, it follows a symlinked directory that a pattern names or that a directory argument names: `"./src/link/*.tsx"` and `./src/link` reach the files the link points to. It writes one deprecation warning to stderr per run. Use `modern-cmdk-codemod` instead.
 
 ## Attributes, CSS and Tailwind
 
@@ -275,27 +275,6 @@ export const Palette = () => (
 );
 ```
 
-### Compatible Since 1.5: `onSelect` Receives the Value
-
-`Command.Item`'s `onSelect` is called with the item's `value`, as cmdk's is (`item.tsx:15`). Before 1.5 it was called with no argument.
-
-```tsx
-import { Command } from 'modern-cmdk/react';
-
-export function Palette() {
-  return (
-    <Command onActiveChange={(id) => console.log('active', id)}>
-      <Command.Input onValueChange={(query) => console.log('query', query)} />
-      <Command.List>
-        <Command.Item value="copy" onSelect={(value) => console.log('selected', value)}>
-          Copy
-        </Command.Item>
-      </Command.List>
-    </Command>
-  );
-}
-```
-
 ### 6. `forwardRef` Removed (React 19)
 
 React 19 passes `ref` as a regular prop. All `forwardRef` wrappers are removed; `forward-ref` does this for your own components.
@@ -338,6 +317,15 @@ Install `radix-ui` (`>=1.4.0 <2.0.0`) alongside `modern-cmdk`: `modern-cmdk/reac
 - import { useSyncExternalStore } from 'use-sync-external-store/shim';
 + // No longer needed — React 19 native
 ```
+
+### 9. Props Without an Equivalent
+
+cmdk 1.1.1 accepts four things that modern-cmdk has no counterpart for (`cmdk/dist/index.d.ts`: `defaultValue` on the root, `forceMount` on `Item` and `Group`, `progress` on `Loading`, and every `div` prop on the root). The codemod does not touch them; remove or replace them by hand:
+
+- `defaultValue` on the root: no equivalent. `CommandMachineOptions` has no initial-selection prop.
+- `forceMount` on `Command.Item` and `Command.Group`: no equivalent. `CommandItemProps` and `CommandGroupProps` have no such prop.
+- `progress` on `Command.Loading`: no equivalent. `CommandLoadingProps` adds only `loading`, an override of the loading state, to the `div` props.
+- Root `div` props (`id`, `style`, `onKeyDown`, `data-*` and the rest): the root forwards none. `CommandRootProps` takes `CommandMachineOptions` plus `children`, `className` and `label`.
 
 ## Full Before/After Comparison
 
@@ -420,6 +408,10 @@ function CommandPalette() {
 | No virtualization | Automatic above 100 matching items (off again at 50 or fewer) | Opt-out with `virtualize={false}` |
 | `@radix-ui/react-dialog` | `radix-ui` (peer `>=1.4.0 <2.0.0`) | Unified package |
 | `use-sync-external-store` shim | Native `useSyncExternalStore` | React 19 built-in |
+| `defaultValue` on the root | Removed | Breaking change 9; no equivalent |
+| `forceMount` on `Item` and `Group` | Removed | Breaking change 9; no equivalent |
+| `progress` on `Command.Loading` | Removed | Breaking change 9; no equivalent |
+| Root `div` props | Removed | Breaking change 9; the root forwards no div props, only `className` and `label` |
 
 ## New Features Available After Migration
 

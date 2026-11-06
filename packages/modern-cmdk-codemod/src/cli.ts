@@ -138,7 +138,7 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
     '           transform, no matching files and an uncaught error',
     '',
     'Files run on worker threads when --concurrency is above 1; --concurrency=1 runs them on the main thread.',
-    'A directory argument covers its .ts .tsx .mts .cts .js .jsx .mjs .cjs .css .scss files.',
+    'A directory argument covers its .ts .tsx .mts .cts .js .jsx .mjs .cjs .css .scss files (dot paths excluded).',
     '--dry-run also prints a unified diff of every file that would change.',
     '',
     NODE_FLOOR_LINES[program],
