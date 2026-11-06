@@ -66,8 +66,9 @@ body:
         Node: v28.0.0-nightly20261106ec4d4c2950
         Browser: Chrome 130
         OS: macOS 15.2
-        modern-cmdk: 1.2.2
-        modern-cmdk/react: 1.2.2
+        modern-cmdk: 1.2.3
+        modern-cmdk/react: 1.2.3
+        modern-cmdk-codemod: (if used)
         React: 0.0.0-experimental-5b610964-20261106
         TypeScript: 7.1.0-dev.20261106.1
         Vite: 8.3.6
