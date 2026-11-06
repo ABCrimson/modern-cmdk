@@ -5,11 +5,11 @@
 
 import type { CommandItem } from 'modern-cmdk';
 import type { ReactNode } from 'react';
-import { Suspense, use, useId, useLayoutEffect, useRef } from 'react';
+import { Suspense, use, useId, useLayoutEffect } from 'react';
 import { useStableContext } from './context.js';
 
 export interface CommandAsyncItemsProps {
-  /** Promise that resolves to items */
+  /** Promise that resolves to items; keep it stable across renders (state, a ref, or `useMemo`) or the boundary re-suspends on every render */
   readonly items: Promise<readonly CommandItem[]>;
   /** Fallback content while loading */
   readonly fallback?: ReactNode;
@@ -59,19 +59,17 @@ function PendingSignal(): null {
   return null;
 }
 
-/** Suspense-based async item loader that resolves a promise of items using React 19 `use()`. */
+/**
+ * Suspense-based async item loader that resolves a promise of items using React 19 `use()`.
+ *
+ * The `items` promise must be kept stable across renders (held in state, a ref, or `useMemo`):
+ * a new promise on every render, such as `items={fetchItems()}`, suspends again on every render.
+ */
 export function CommandAsyncItems({
   items,
   fallback,
   children,
 }: CommandAsyncItemsProps): ReactNode {
-  // Stabilize promise reference — only update when a genuinely new promise is passed
-  // Prevents infinite re-suspension from unstable promise identity
-  const stableRef = useRef(items);
-  if (stableRef.current !== items) {
-    stableRef.current = items;
-  }
-
   return (
     <Suspense
       fallback={
@@ -81,7 +79,7 @@ export function CommandAsyncItems({
         </>
       }
     >
-      <AsyncItemsInner items={stableRef.current}>{children}</AsyncItemsInner>
+      <AsyncItemsInner items={items}>{children}</AsyncItemsInner>
     </Suspense>
   );
 }
