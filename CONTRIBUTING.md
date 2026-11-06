@@ -667,12 +667,11 @@ chore: bump Biome to 2.6.6
 
 3. **Pre-commit hooks** -- Lefthook runs both in parallel:
    - `biome check --staged` -- lint and format staged files (`*.{ts,tsx,js,jsx,json,css}`)
-   - `tsc --noEmit` -- type-check `modern-cmdk` (skipped during merge and rebase)
+   - `pnpm typecheck` -- the same type-check CI's lint job runs (on staged `*.{ts,tsx,vue}`; skipped during merge and rebase)
 
-4. **Pre-push hooks** -- Lefthook runs both in parallel:
-   - `vitest run --reporter=dot` -- all unit tests
-   - `size-limit` -- builds `packages/*` then checks the budget. Gated on a
-     `packages/*/src/**/*.{ts,tsx}` glob, so docs-only pushes skip the rebuild.
+4. **Pre-push hooks** -- Lefthook runs them in order and stops at the first failure:
+   - `pnpm --filter './packages/*' run build` -- always
+   - then, in parallel: `vitest run --reporter=dot` (all unit tests) and `size-limit` (the budgets), the latter only when the push touches `packages/*/src/**`, a `packages/*/tsdown.config.ts` or the root `package.json`
 
 5. **CI checks** -- The CI pipeline runs:
    - Lint and type-check (`pnpm lint`, `pnpm typecheck`)
