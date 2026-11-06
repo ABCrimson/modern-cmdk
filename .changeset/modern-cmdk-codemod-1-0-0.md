@@ -12,12 +12,13 @@ First release of `modern-cmdk-codemod` (1.0.0): the cmdk to modern-cmdk codemod 
 - A third positional argument exits 2 with "unexpected argument ..." unless `--lenient` is given, which ignores it (additive).
 - `-v` and `--version` print the package name and version; `--concurrency=N` must be an integer of at least 1 (`0` no longer hangs, a non-number no longer processes zero files); files run on worker threads above 1 and on the main thread at 1.
 - `--dry-run` lists the files that would change and prints a unified diff of each; it writes nothing.
-- Every site a transform cannot migrate is reported as `<path>: <message>` on stderr and counted in the summary (`N changed, N unchanged, N errors, N reported`); a failed file names its path. Reports never change the exit code.
+- Every site a transform cannot migrate is reported as `<path>: <message>` on stderr and counted in the summary (`N changed, N unchanged, N errors` plus `, N skipped` and `, N reported` when they are not zero); a failed file names its path. Reports never change the exit code.
+- A file an explicit pattern matches whose extension is neither a script nor a stylesheet (or a stylesheet under a transform without a stylesheet pass) is skipped and counted as skipped, never parsed.
 
 **File discovery**
 
 - A directory argument covers `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and `.scss` files, not every file type. Bug fix: restores 1.4 matching of a directory argument such as app/[slug] (globby 16 expandDirectories; files.ts discoverFiles, dirs split).
-- Skipped: `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static` and `.vercel`; every path your `.gitignore` covers (asked of `git check-ignore`); and every file reached through a symlinked directory below the working directory (SEC-29: modern-cmdk-codemod drops every file reached through a symlinked directory below cwd). The deprecated bin keeps 1.4's four ignores and no `.gitignore`.
+- Skipped: `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static` and `.vercel`; files and directories whose names start with a dot (as in 1.4; name them with an explicit pattern); every path your `.gitignore` covers (asked of `git check-ignore`); and every file reached through a symlinked directory below the working directory (SEC-29: modern-cmdk-codemod drops every file reached through a symlinked directory below cwd). The deprecated bin keeps 1.4's four ignores and no `.gitignore`.
 - A Windows path with backslashes matches its files. Files keep their line endings and quote style (the transforms no longer turn LF into CRLF or single quotes into double quotes).
 - Files are parsed by extension: `ts` for `.ts`, `.mts` and `.cts`, `tsx` for `.tsx`, and a JSX-capable parser for `.js`, `.jsx`, `.mjs` and `.cjs`.
 
@@ -25,7 +26,7 @@ First release of `modern-cmdk-codemod` (1.0.0): the cmdk to modern-cmdk codemod 
 
 - `should-filter`: only on `Command`, `Command.Dialog`, `CommandRoot` and `CommandDialog` bound to `'cmdk'` or `'modern-cmdk/react'`. `shouldFilter={false}` becomes `filter={false}`; `shouldFilter` and `shouldFilter={true}` are removed; `shouldFilter={expr}` becomes `filter={expr ? undefined : false}`; a cmdk `filter(value, search, keywords)` function is wrapped in an adapter to `(item, query) => number | false`.
 - `forward-ref`: unwraps every `forwardRef` form (renamed or aliased imports, namespace calls, single-parameter render functions, `forwardRef(Component)`, a defaulted props parameter), keeping names, types and comments; what it cannot unwrap is reported.
-- `data-attrs`: maps every `cmdk-*` attribute that has a `data-command-*` equivalent (`cmdk-root` is `data-command-root`; `cmdk-dialog`, `cmdk-overlay`, `cmdk-group-heading`, `cmdk-group-items` and `cmdk-list-sizer` are added), in JSX attributes, in selectors inside JS/TS string and template literals, and in `.css` and `.scss` files. The `[cmdk-item=""]` forms are matched, the state attributes become `data-active` and `data-disabled` (`[data-selected="true"]` becomes `[data-active]`, `data-[selected=true]:` becomes `data-active:`), and `cmdk-label` and `cmdk-item-select`, which have no equivalent, are reported.
+- `data-attrs`: maps every `cmdk-*` attribute that has a `data-command-*` equivalent (`cmdk-root` is `data-command-root`; `cmdk-dialog`, `cmdk-overlay`, `cmdk-group-heading`, `cmdk-group-items` and `cmdk-list-sizer` are added), and `--cmdk-list-height` becomes `--command-list-height`, in JSX attributes, in selectors inside JS/TS string and template literals, and in `.css` and `.scss` files. The `[cmdk-item=""]` forms are matched, the state attributes become `data-active` and `data-disabled` (`[data-selected="true"]` becomes `[data-active]`, `data-[selected=true]:` becomes `data-active:`), and `cmdk-label` and `cmdk-item-select`, which have no equivalent, are reported.
 - `import-rewrite`: rewrites imports, re-exports, `import()`, `require()` and `vi.mock` or `jest.mock` of `'cmdk'` to `'modern-cmdk/react'`; `CommandRoot` and a default import become `Command`; names modern-cmdk/react lacks (`defaultFilter`, `CommandProps`), cmdk subpaths and `declare module 'cmdk'` are reported and left alone.
 
 Run on a committed tree, commit after each transform, and read the reports: the [migration guide](https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html) has the attribute table and every breaking change.
@@ -38,6 +39,7 @@ Run on a committed tree, commit after each transform, and read the reports: the 
 - `RP-17`: The documented `./src` input globs every file type, parses each as TS, and never migrates [cmdk-*] selectors in .css files.
 - `RP-20`: A Windows backslash path matches no files and the CLI exits 1 with no message.
 - `SEC-07`: Unknown flags are silently ignored, so a typo of the safety flag rewrites files. There is also no git-clean check or backup before in-place overwrite (CWE-20).
+- `RP-19`: Unknown flags are silently ignored, so a typo like --dry performs a real write.
 - `SEC-30`: .js files with JSX are parsed with the ts parser and fail. Directory arguments expand to every file type. CSS files are never transformed, although the migration guide (L41) promises --cmdk-* CSS variable renames.
 - `DA-1`: cmdk-root is mapped to 'data-command', but modern-cmdk emits data-command-root and its CSS and README target [data-command-root]. Migrated selectors and JSX therefore point at an attribute nothing renders.
 - `DA-2`: The attribute map omits cmdk-dialog, cmdk-overlay, cmdk-group-heading, cmdk-group-items and cmdk-list-sizer, all of which have data-command-* equivalents. [cmdk-group-heading] (ubiquitous in shadcn/ui) survives migration untouched.
@@ -68,7 +70,7 @@ Run on a committed tree, commit after each transform, and read the reports: the 
 - `SF-1`: shouldFilter={expr} becomes filter={expr}, but modern-cmdk's filter accepts only a function, false or undefined, so a boolean that can be true fails type-checking.
 - `SF-2`: cmdk's filter prop signature (value, search, keywords) => number differs from modern-cmdk's (item, query) => number|false. An element carrying both shouldFilter={false} and filter={fn} ends up with duplicate filter attributes, and custom filters are not adapted.
 - `SEC-31`: Renames shouldFilter on every JSX element, not only on Command components as the header says.
-- `ARCH-11`: The migration keeps cmdk's filter(value, search, keywords) signature, but modern-cmdk calls filter(item, query), so a migrated filter throws. cmdk's onSelect(value) argument is also not provided.
+- `ARCH-11`: The migration keeps cmdk's filter(value, search, keywords) signature, but modern-cmdk calls filter(item, query), so a migrated filter throws. cmdk's onSelect(value) argument is also not provided. (the filter half, fixed by the should-filter adapter above; under LD-05 `Command.Item`'s `onSelect` still receives no argument in 1.x, and the value arrives in 2.0)
 - `RP-18`: All transforms call root.toSource() with recast defaults: on Windows every touched file is converted LF to CRLF (whole-file diff) and quotes flip to double.
 
 Already fixed in the `modern-cmdk` 1.3.0 bin (4d82ee3, ad79e71) and part of this package from its first release:
