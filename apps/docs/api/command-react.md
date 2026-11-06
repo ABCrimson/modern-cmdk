@@ -215,7 +215,7 @@ Extends `ComponentPropsWithRef<'div'>` (excluding `onSelect`, `value`).
 | `ref` | `Ref<HTMLDivElement>` | -- | Ref to the item element |
 | `value` | `string` | Required | Display text and primary search target |
 | `keywords` | `readonly string[]` | -- | Additional searchable terms |
-| `onSelect` | `(value: string) => void` | -- | Callback when the item is selected; receives the item `value` (since 1.5). The core `CommandItem.onSelect` of the `items` prop is unchanged: `() => void` |
+| `onSelect` | `() => void` | -- | Callback when the item is selected; called with no argument (the item value arrives as the first argument in 2.0) |
 | `disabled` | `boolean` | `false` | Whether the item is disabled |
 | `shortcut` | `string` | -- | Keyboard shortcut string (e.g., `"Mod+K"`) |
 | `forceId` | `string` | -- | Override the auto-generated item ID |

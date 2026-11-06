@@ -119,6 +119,7 @@ Immutable state snapshot. Each mutation produces a new object reference for effi
 | `CLOSE` | -- | Close the palette |
 | `TOGGLE` | -- | Toggle open state |
 | `ITEMS_LOADED` | `{ items: readonly CommandItem[] }` | Bulk-load async items |
+| `LOADING` | `{ source: string; pending: boolean }` | A pending `<Command.AsyncItems>` source; `loading` is true while any source is pending |
 | `REGISTER_ITEM` | `{ item: CommandItem }` | Register a new item |
 | `UNREGISTER_ITEM` | `{ id: ItemId }` | Remove an item |
 | `REGISTER_GROUP` | `{ group: CommandGroup }` | Register a new group |
@@ -149,7 +150,7 @@ const state = createInitialState({ open: true });
 | `groupId` | `GroupId` | No | Group this item belongs to |
 | `shortcut` | `string` | No | Keyboard shortcut (e.g., `"Mod+K"`) |
 | `disabled` | `boolean` | No | Excluded from filtering and selection |
-| `onSelect` | `() => void` | No | Callback when selected. Called with no arguments; `<Command.Item onSelect>` in `modern-cmdk/react` is `(value: string) => void` and receives the item value |
+| `onSelect` | `() => void` | No | Callback when selected. Called with no arguments, in the core and in `<Command.Item onSelect>` |
 | `data` | `Record<string, unknown>` | No | Arbitrary metadata |
 
 ### `CommandGroup`

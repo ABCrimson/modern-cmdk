@@ -14,7 +14,7 @@ export interface RegisterItemOptions {
   readonly groupId?: string;
   readonly shortcut?: string;
   readonly disabled?: boolean;
-  readonly onSelect?: (value: string) => void;
+  readonly onSelect?: () => void;
   readonly data?: Readonly<Record<string, unknown>>;
   readonly forceId?: string;
 }
@@ -47,7 +47,7 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
       groupId: options?.groupId ? groupId(options.groupId) : undefined,
       shortcut: options?.shortcut,
       disabled: options?.disabled,
-      onSelect: (): void => onSelectRef.current?.(value),
+      onSelect: (): void => onSelectRef.current?.(),
       data: dataRef.current,
     };
 
