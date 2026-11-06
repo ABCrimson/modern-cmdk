@@ -53,13 +53,13 @@ Run the transforms in this order. `import-rewrite` goes last: `should-filter` ad
 
 ## Which files are read
 
-A directory argument covers every `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and `.scss` file below it. A glob works too; quote it so your shell passes it to the CLI:
+A directory argument covers every `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and `.scss` file below it. Files and directories whose names start with a dot (`.storybook/`, `src/.palette.tsx`) are not matched by a directory argument or by a wildcard (`*` or `**`). Name them with a pattern whose segment starts with the dot, such as `"./.storybook/*.tsx"` or `"./src/.*.tsx"`, or give the dot directory itself as the directory argument (`./.storybook`). A glob works too; quote it so your shell passes it to the CLI:
 
 ```bash
 npx modern-cmdk-codemod --dry-run data-attrs "./src/**/*.{tsx,css}"
 ```
 
-The codemod skips `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static` and `.vercel`, every path your `.gitignore` covers (asked of `git check-ignore`) and every file reached through a symlinked directory.
+The codemod skips `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static` and `.vercel`, every path your `.gitignore` covers (asked of `git check-ignore`) and every file reached through a symlinked directory, and every file or directory whose name starts with a dot (unless a pattern segment starts with that dot or a directory argument names that directory, such as `./.storybook`).
 
 ## The four transforms
 
@@ -123,7 +123,7 @@ Exit codes:
            transform, no matching files and an uncaught error
 
 Files run on worker threads when --concurrency is above 1; --concurrency=1 runs them on the main thread.
-A directory argument covers its .ts .tsx .mts .cts .js .jsx .mjs .cjs .css .scss files.
+A directory argument covers its .ts .tsx .mts .cts .js .jsx .mjs .cjs .css .scss files (dot paths excluded).
 --dry-run also prints a unified diff of every file that would change.
 
 Node >= 26.4.0 (the engines.node of modern-cmdk-codemod)
@@ -133,7 +133,7 @@ Node >= 26.4.0 (the engines.node of modern-cmdk-codemod)
 
 ## Relation to the deprecated `modern-cmdk` bin
 
-`modern-cmdk` still ships a `modern-cmdk` bin that runs the same four transforms, bundled. It is deprecated and leaves in modern-cmdk 2.0: it writes one deprecation warning to stderr per run, keeps the 1.x exit codes (lenient unless argv carries `--strict`) and 1.4's file discovery (it skips only `node_modules`, `dist`, `build` and `.next`, applies no `.gitignore`), and makes no git check. Use `modern-cmdk-codemod` instead. The bundled codemod dependencies and their licences are listed in the `THIRD-PARTY-NOTICES.md` that `modern-cmdk` ships.
+`modern-cmdk` still ships a `modern-cmdk` bin that runs the same four transforms, bundled. It is deprecated and leaves in modern-cmdk 2.0: it writes one deprecation warning to stderr per run, keeps the 1.x exit codes (lenient unless argv carries `--strict`) and 1.4's excludes (of the ten directories `modern-cmdk-codemod` skips, it skips only `node_modules`, `dist`, `build` and `.next`, and applies no `.gitignore`; like `modern-cmdk-codemod`, it reads only the ten script and stylesheet extensions from a directory, leaves out files and directories whose names start with a dot unless a pattern segment starts with that dot or a directory argument names that directory, descends no symlinked directory under `**` or a directory argument, reads no symlinked file and on Windows matches names case-insensitively; unlike it, it follows a symlinked directory that a pattern names or that a directory argument names, such as `"./src/link/*.tsx"` or `./src/link`), and makes no git check. Use `modern-cmdk-codemod` instead. The bundled codemod dependencies and their licences are listed in the `THIRD-PARTY-NOTICES.md` that `modern-cmdk` ships.
 
 ## More
 

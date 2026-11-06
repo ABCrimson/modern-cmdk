@@ -287,6 +287,19 @@ describe('codemod CLI: --concurrency', () => {
     expect(lines[0]).toContain('clean-git-tree check');
   });
 
+  it('DG-134: --help says a directory argument excludes dot paths', async () => {
+    for (const d of [deps, codemodDeps]) {
+      const c = capture();
+      expect(await run(['--help'], c.io, d)).toBe(0);
+      const line = c
+        .out()
+        .split('\n')
+        .filter((l) => l.includes('A directory argument covers'));
+      expect(line).toHaveLength(1);
+      expect(line[0]).toContain('(dot paths excluded)');
+    }
+  });
+
   it('CLI-13: --help names the clean-git-tree check as modern-cmdk-codemod only on the --lenient line and the strict exit-code row', async () => {
     for (const d of [deps, codemodDeps]) {
       const c = capture();
