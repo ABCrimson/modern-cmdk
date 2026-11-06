@@ -149,6 +149,30 @@ describe('buildTempWorkspaceYaml', () => {
     expect(rootYaml[key]).toBeDefined();
     expect(temp[key]).toEqual(rootYaml[key]);
   });
+
+  it('DT-72: the temp workspace copies the root minimumReleaseAgeExclude list and adds none of its own', () => {
+    const twoEntries = [
+      'packages:',
+      '  - "."',
+      'minimumReleaseAge: 1440',
+      'minimumReleaseAgeExclude:',
+      '  - "vite@8.3.6"',
+      '  - "typescript@7.1.0-dev.20261106.1"',
+      '',
+    ].join('\n');
+    const copied = parseWorkspaceYaml(buildTempWorkspaceYaml(twoEntries));
+    expect(copied.minimumReleaseAgeExclude).toEqual([
+      'vite@8.3.6',
+      'typescript@7.1.0-dev.20261106.1',
+    ]);
+    // The assertion bites: a one-entry list is not what a two-entry root yields.
+    expect(copied.minimumReleaseAgeExclude).not.toEqual(['vite@8.3.6']);
+    // A root without the key yields none: the script has no list of its own.
+    const withoutList = parseWorkspaceYaml(
+      buildTempWorkspaceYaml('packages:\n  - "."\nminimumReleaseAge: 1440\n'),
+    );
+    expect('minimumReleaseAgeExclude' in withoutList).toBe(false);
+  });
 });
 
 describe('parseCli', () => {

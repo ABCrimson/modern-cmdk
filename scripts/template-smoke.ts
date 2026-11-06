@@ -15,9 +15,9 @@
 //   2. `node <unpacked>/package/dist/index.mjs <T>/app --template=<t>` must exit 0; react-full must print
 //      its deprecation line and scaffold the same files as react-basic;
 //   3. dependencies['modern-cmdk'] of the scaffolded package.json becomes file:<tarball> and a
-//      pnpm-workspace.yaml is written (packages ['.'] plus the supply-chain keys of the repository root,
-//      read now; never overrides, never an exclude: a template pin younger than minimumReleaseAge fails
-//      the install and this script says so);
+//      pnpm-workspace.yaml is written: packages ['.'] plus the supply-chain keys of the repository root, read
+//      now, including its minimumReleaseAgeExclude list; never overrides, and never an exclude of its own. A
+//      template pin younger than minimumReleaseAge fails the install unless the root excludes it;
 //   4. pnpm install, pnpm run typecheck, pnpm run build (each with a hard timeout, no retry);
 //   5. dist/index.html exists and a built .css asset contains [data-command-root] (CV-73 end to end).
 //
@@ -131,7 +131,10 @@ export function rewriteDependency<
   };
 }
 
-/** The temp app's pnpm-workspace.yaml: packages ['.'] and the root's supply-chain keys, no overrides. */
+/**
+ * The temp app's pnpm-workspace.yaml: packages ['.'] and the root's supply-chain keys (its whole
+ * minimumReleaseAgeExclude list included), no overrides and no exclude of its own.
+ */
 export function buildTempWorkspaceYaml(rootYamlText: string): string {
   return buildWorkspaceYaml(parseWorkspaceYaml(rootYamlText), []).replace(
     /^# Written by scripts\/consumer-smoke\.ts:/,
@@ -346,7 +349,7 @@ async function smokeTemplate(
       /minimumReleaseAge|NO_MATURE_MATCHING_VERSION|too recent/i.test(error.message)
     ) {
       throw new StepError(
-        `${error.message}\n  hint: a template pin may be younger than minimumReleaseAge; this script never adds excludes, fix the pin or wait`,
+        `${error.message}\n  hint: a template pin may be younger than minimumReleaseAge and absent from the root minimumReleaseAgeExclude; this script adds no exclude of its own, so fix the pin or wait`,
       );
     }
     throw error;
