@@ -11,8 +11,8 @@ import { useRegisterItem } from './hooks/use-register.js';
 export interface CommandItemProps extends Omit<ComponentPropsWithRef<'div'>, 'onSelect' | 'value'> {
   readonly value: string;
   readonly keywords?: readonly string[];
-  /** Called with the item's `value` when it is selected by click, Enter or shortcut */
-  readonly onSelect?: (value: string) => void;
+  /** Called when the item is selected by click, Enter or shortcut (no argument in 1.x; the value arrives in 2.0) */
+  readonly onSelect?: () => void;
   readonly disabled?: boolean;
   readonly shortcut?: string;
   readonly forceId?: string;

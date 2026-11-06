@@ -1,9 +1,9 @@
 // tests/unit/item-onselect-value.test.tsx
-// ARCH-11 (onSelect half): <Command.Item onSelect> receives the item's value
+// ARCH-62 (LD-05, D66): <Command.Item onSelect> is called with no argument in 1.x; the value argument is a 2.0 change
 
 import { act, cleanup, render } from '@testing-library/react';
 import type { CommandItem as CoreItem } from 'modern-cmdk';
-import { Command } from 'modern-cmdk/react';
+import { Command, type CommandItemProps } from 'modern-cmdk/react';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 afterEach(cleanup);
@@ -14,7 +14,7 @@ async function settle(): Promise<void> {
   });
 }
 
-function mount(onSelect: (value: string) => void, shortcut?: string): HTMLElement {
+function mount(onSelect: () => void, shortcut?: string): HTMLElement {
   const { container } = render(
     <Command label="test">
       <Command.Input />
@@ -28,21 +28,22 @@ function mount(onSelect: (value: string) => void, shortcut?: string): HTMLElemen
   return container;
 }
 
-describe('ARCH-11 Command.Item onSelect(value)', () => {
-  it('ARCH-11: onSelect receives the item value on click', async () => {
-    const fn = vi.fn();
-    const container = mount(fn);
+describe('ARCH-62 Command.Item onSelect()', () => {
+  it('ARCH-62: onSelect is called with no argument on click', async () => {
+    const onSelect = vi.fn<() => void>();
+    const container = mount(onSelect);
     await settle();
     await act(async () => {
       container.querySelector<HTMLElement>('[data-command-item]')?.click();
     });
     await settle();
-    expect(fn).toHaveBeenCalledWith('x');
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0]).toEqual([]);
   });
 
-  it('ARCH-11: onSelect receives the item value on Enter', async () => {
-    const fn = vi.fn();
-    const container = mount(fn);
+  it('ARCH-62: onSelect is called with no argument on Enter', async () => {
+    const onSelect = vi.fn<() => void>();
+    const container = mount(onSelect);
     await settle();
     await act(async () => {
       container
@@ -50,12 +51,13 @@ describe('ARCH-11 Command.Item onSelect(value)', () => {
         ?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     });
     await settle();
-    expect(fn).toHaveBeenCalledWith('x');
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0]).toEqual([]);
   });
 
-  it('ARCH-11: onSelect receives the item value on its shortcut', async () => {
-    const fn = vi.fn();
-    mount(fn, 'Shift+K');
+  it('ARCH-62: onSelect is called with no argument on its shortcut', async () => {
+    const onSelect = vi.fn<() => void>();
+    mount(onSelect, 'Shift+K');
     await settle();
     await act(async () => {
       document.dispatchEvent(
@@ -63,12 +65,14 @@ describe('ARCH-11 Command.Item onSelect(value)', () => {
       );
     });
     await settle();
-    expect(fn).toHaveBeenCalledWith('x');
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0]).toEqual([]);
   });
 
-  it('ARCH-11: a () => void handler still type-checks and the core item type is unchanged', () => {
-    const noArgs: () => void = () => undefined;
-    expect(<Command.Item value="y" onSelect={noArgs} />).toBeDefined();
+  it('ARCH-62: a (force?: boolean) => void handler type-checks as onSelect, and the core item type is unchanged', () => {
+    expectTypeOf<CommandItemProps['onSelect']>().toEqualTypeOf<(() => void) | undefined>();
+    const toggle = (_force?: boolean): void => undefined;
+    expect(<Command.Item value="b" onSelect={toggle} />).toBeDefined();
     expectTypeOf<CoreItem['onSelect']>().toEqualTypeOf<(() => void) | undefined>();
   });
 });
