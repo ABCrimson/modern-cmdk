@@ -380,6 +380,22 @@ describe('release.yml first-publish-smoke job (SEC-63)', () => {
     expect(steps).toContain('pnpm install --frozen-lockfile --ignore-scripts');
   });
 
+  it('SEC-63: first-publish-smoke checks out the commit first-publish-tarball scope-gated, not the moving Version PR ref', () => {
+    const checkout =
+      stepsOf(smoke)
+        .split(/^ {6}- /m)
+        .find((s) => s.includes('actions/checkout@')) ?? '';
+    expect(checkout).toMatch(/ref: \$\{\{ needs\.first-publish-tarball\.outputs\.head \}\}/);
+    expect(checkout).not.toContain('changeset-release/main');
+    expect(tarball).toMatch(/^ {6}head: \$\{\{ steps\.scope\.outputs\.head \}\}$/m);
+    const scope =
+      stepsOf(tarball)
+        .split(/^ {6}- /m)
+        .find((s) => s.startsWith('name: Scope gate')) ?? '';
+    expect(scope).toContain('id: scope');
+    expect(scope).toContain('echo "head=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"');
+  });
+
   it('SEC-63: first-publish-attest needs first-publish-tarball and first-publish-smoke, so a failed smoke blocks the attestation', () => {
     expect(attestJob).toContain('    needs: [first-publish-tarball, first-publish-smoke]');
     expect(attestJob).toContain("    if: needs.first-publish-tarball.outputs.state == 'first'");
