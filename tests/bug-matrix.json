@@ -211,7 +211,7 @@
   },
   {
     "id": "TEB-38",
-    "test": "benchmarks/standalone/compare-baseline.ts::afterEach: () => {",
+    "test": "benchmarks/standalone/compare-baseline.ts::subscription = machine = stateChanged = undefined;",
     "status": "gate"
   },
   {
@@ -276,7 +276,7 @@
   },
   {
     "id": "ARCH-11",
-    "test": "tests/fixtures/codemod/should-filter/ARCH-11-cmdk-filter-adapter/output.tsx::(item.value, query, item.keywords",
+    "test": "tests/fixtures/codemod/should-filter/ARCH-11-cmdk-filter-adapter/output.tsx::(byValue as (value: string, search: string, keywords?: string[]) => number)(item.value, query",
     "status": "covered"
   },
   {
@@ -496,7 +496,7 @@
   },
   {
     "id": "FR-2",
-    "test": "tests/fixtures/codemod/forward-ref/FR-2-type-arguments/output.tsx::}: PanelProps & {",
+    "test": "tests/fixtures/codemod/forward-ref/FR-2-type-arguments/output.tsx::}: PanelProps & { extra: number } & {",
     "status": "covered"
   },
   {

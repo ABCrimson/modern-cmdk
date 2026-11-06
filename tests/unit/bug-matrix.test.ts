@@ -1,7 +1,7 @@
 // tests/unit/bug-matrix.test.ts
 // G17: every FIXED BUG ledger row of 1.3.0, 1.4.0 and 1.5.0 maps to a vitest title ("covered") or to a gate line
 // ("gate": a CI step, script or config line), except the ids in PENDING_BY_DECISION below.
-// An entry names "path::string"; the file must exist and contain the string, so renaming or
+// An entry names "path::string"; the file must exist and contain the string exactly once, so renaming or
 // deleting the test or gate line breaks the matrix instead of silently orphaning the row.
 // A row proved by a fixture-driven suite names its case's expected output or reports file, so deleting the case breaks the matrix.
 
@@ -92,13 +92,15 @@ describe('BUG-to-test matrix', () => {
       entry.status !== 'pending' && entry.test !== null,
   );
 
-  it.for(covered)('$id: its test or gate file exists and contains the string', ({ id, test }) => {
-    const [file, title] = test.split('::');
-    if (!file || !title) throw new Error(`${id}: test must be "path::string", got "${test}"`);
-    expect(existsSync(resolve(root, file)), `${id}: ${file} does not exist`).toBe(true);
-    expect(
-      readFileSync(resolve(root, file), 'utf8'),
-      `${id}: string not found in ${file}`,
-    ).toContain(title);
-  });
+  it.for(covered)(
+    '$id: its test or gate file exists and contains the string exactly once',
+    ({ id, test }) => {
+      const [file, title] = test.split('::');
+      if (!file || !title) throw new Error(`${id}: test must be "path::string", got "${test}"`);
+      expect(existsSync(resolve(root, file)), `${id}: ${file} does not exist`).toBe(true);
+      const text = readFileSync(resolve(root, file), 'utf8');
+      expect(text, `${id}: string not found in ${file}`).toContain(title);
+      expect(text.split(title).length - 1, `${id}: string not unique in ${file}`).toBe(1);
+    },
+  );
 });
