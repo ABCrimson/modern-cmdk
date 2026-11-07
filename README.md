@@ -1,10 +1,13 @@
 <p align="center">
-  <img src="apps/docs/public/og-image.svg" alt="modern-cmdk" width="640" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="apps/docs/public/brand/banner-dark.png">
+    <img src="apps/docs/public/brand/banner-light.png" alt="modern-cmdk: one headless engine, any framework" width="880">
+  </picture>
 </p>
 
 <p align="center">
   <strong>modern-cmdk</strong><br/>
-  The definitive command palette engine for the modern web.
+  One headless engine. Any framework.
 </p>
 
 <p align="center">
