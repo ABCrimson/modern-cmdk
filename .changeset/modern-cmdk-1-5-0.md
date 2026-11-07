@@ -22,9 +22,9 @@ Migration tools you can trust, on the modern-cmdk side: the `modern-cmdk` bin is
 
 **Sizes**
 
-Recorded in `benchmarks/size-history/1.5.0.json` (committed in `8eb1557`, measured at `056ab43` with size-limit 14.3.0), gzip for the JS and CSS entries: core 6399 B (1.4.0: 6355 B), `modern-cmdk/react` adapter only 5558 B (5403 B), `modern-cmdk/react/dialog` 1422 B (1425 B), `CommandSeparator` only 4830 B, core + React 10019 B (9830 B), `styles.css` 3959 B (3959 B). The adapter grew by 155 B; the boundary's `reset`/`resetKeys` code is 85 B of that.
+Recorded in `benchmarks/size-history/1.5.0.json` (committed in `4498a0f`, measured at `d5ce6ff` with size-limit 14.3.0), gzip for the JS and CSS entries: core 6399 B (1.4.0: 6355 B), `modern-cmdk/react` adapter only 5539 B (5403 B), `modern-cmdk/react/dialog` 1422 B (1425 B), `CommandSeparator` only 4812 B, core + React 10003 B (9830 B), `styles.css` 3959 B (3959 B). The adapter grew by 136 B.
 
-The packed `modern-cmdk@1.5` release candidate against `modern-cmdk@1.4`: unpacked 3312367 B against 3473079 B, tarball 961763 B (22 entries) against 992157 B (16 entries). The codemod part is 3150191 B (3325793 B in 1.4), including the 897 B shim `dist/codemod/bin.mjs`. The runtime part is 162176 B against 147286 B in 1.4: 149300 B without the 12876 B `THIRD-PARTY-NOTICES.md`.
+The packed `modern-cmdk@1.5` release candidate against `modern-cmdk@1.4`: unpacked 3315632 B against 3473079 B, tarball 962822 B (22 entries) against 992157 B (16 entries). The codemod part is 3150372 B (3325793 B in 1.4), including the 897 B shim `dist/codemod/bin.mjs`. The runtime part is 165260 B against 147286 B in 1.4: 152384 B without the 12876 B `THIRD-PARTY-NOTICES.md`.
 
 **Bug fixes (from the findings ledger, each label as recorded)**
 

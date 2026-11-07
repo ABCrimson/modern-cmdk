@@ -602,7 +602,7 @@ Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnp
 | Codemod shim | 1000 B | `dist/codemod/bin.mjs` alone, installed size |
 | `modern-cmdk-codemod` own files | 100000 B | `packages/modern-cmdk-codemod/dist/*.mjs` plus `dist/transforms/*.mjs`, installed size; `jscodeshift` excluded |
 
-These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.5.0.json` (056ab43, measured 2026-11-05 with size-limit 14.3.0): the bundled codemod bin is 3150191 B (3325793 B in 1.4), the shim 897 B and the `modern-cmdk-codemod` own files 97921 B. Pack it with `npm pack --dry-run --json` to see the tarball sizes the record also holds.
+These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.5.0.json` (d5ce6ff, measured 2026-11-07 with size-limit 14.3.0): the bundled codemod bin is 3150372 B (3325793 B in 1.4), the shim 897 B and the `modern-cmdk-codemod` own files 98030 B. Pack it with `npm pack --dry-run --json` to see the tarball sizes the record also holds.
 
 ### Performance rules
 
