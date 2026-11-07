@@ -5,7 +5,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   countDeprecationLines,
   diffTrees,
@@ -195,6 +195,26 @@ describe('npm release-age policy', () => {
       ),
     ).toBe(1);
     expect(npmPolicyArgs(2)).toEqual(['--min-release-age=2']);
+  });
+
+  it('SEC-67: a pnpm-workspace.yaml without a numeric minimumReleaseAge makes main exit 2 with the usage message, not an unhandled rejection', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'codemod-smoke-sec67-'));
+    const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    try {
+      // An empty tarball satisfies the existence check of parseSmokeArgs; main then reads the workspace file and throws the
+      // UsageError before any tarball or npm use.
+      const tarball = join(dir, 'modern-cmdk-codemod-1.0.0.tgz');
+      writeFileSync(tarball, '');
+      const workspace = join(dir, 'pnpm-workspace.yaml');
+      writeFileSync(workspace, 'minimumReleaseAgeStrict: true\n');
+      expect(await main(['--codemod', tarball], workspace)).toBe(2);
+      const written = stderr.mock.calls.map(([chunk]) => String(chunk)).join('');
+      expect(written).toContain('minimumReleaseAge');
+      expect(written).toContain('usage: node scripts/codemod-tarball-smoke.ts');
+    } finally {
+      stderr.mockRestore();
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('SEC-64: every npm argv the smoke builds carries --min-release-age', () => {
