@@ -818,7 +818,7 @@ describe('codemod CLI: dirty-tree refusal (modern-cmdk-codemod only)', () => {
 });
 
 describe('codemod CLI: discovery by program', () => {
-  it('CLI-10, SEC-29: modern-cmdk-codemod drops gitignored files; modern-cmdk keeps 1.4 discovery (no .gitignore)', async () => {
+  it("CLI-10, SEC-29: modern-cmdk-codemod drops gitignored files; modern-cmdk keeps 1.4's excludes (no .gitignore)", async () => {
     await mkdir(join(dir, 'generated'));
     await writeFile(join(dir, 'generated', 'g.tsx'), SOURCE);
     await writeFile(join(dir, '.gitignore'), 'generated/\n');
