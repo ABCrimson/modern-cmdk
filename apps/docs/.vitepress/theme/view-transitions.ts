@@ -4,8 +4,9 @@
 // transitionAppearance() from the 'toggle-appearance' provider in Layout.vue. The styling is styles/motion.css,
 // keyed on the data-mc-transition attribute this file sets on <html> for the lifetime of a transition.
 //
-// Nothing here touches document or window at module level, so the module is safe to import during SSR; every
-// access is inside a function that only runs in the browser (the router hooks and the toggle).
+// The module has no top-level document or window access, and the router hooks also run during SSR
+// (vitepress/dist/client/app/ssr.js:6 calls createApp(), which runs enhanceApp({ router })), where they touch neither
+// window, document nor location; only the browser-only paths (canTransition() true, the toggle) reach the DOM.
 
 import type { Router } from 'vitepress';
 import type { Ref } from 'vue';
@@ -13,6 +14,8 @@ import { nextTick } from 'vue';
 
 /** A transition that has not started animating within this many milliseconds is released so navigation never stalls. */
 const TIMEOUT_MS = 600;
+
+const FAKE_HOST = 'http://a.com';
 
 const ATTRIBUTE = 'data-mc-transition';
 
@@ -48,9 +51,12 @@ function track(transition: ViewTransition, kind: Kind): void {
   transition.ready.catch(() => {});
 }
 
-/** The pathname of an href the router passes to its hooks (the href may carry a base, a query and a hash). */
+/**
+ * The pathname of an href the router passes to its hooks. The router hands over normalised path-absolute hrefs (router.js:180),
+ * so a fixed fake host resolves them without location, which does not exist during SSR (the router does the same, router.js:7,20,36).
+ */
 function pathnameOf(href: string): string {
-  return new URL(href, location.origin).pathname;
+  return new URL(href, FAKE_HOST).pathname;
 }
 
 /**
@@ -60,7 +66,7 @@ function pathnameOf(href: string): string {
  * - onAfterPageLoad is awaited immediately before route.component is replaced (:45-47), so holding it open until the
  *   browser has captured the old page lets the swap happen inside the transition callback.
  * - onAfterRouteChange runs after both go() (:30) and popstate (:109), once the new component has been set.
- * - onBeforePageLoad runs at the start of every page load, from go() and from popstate alike (:34 and :107), so it is
+ * - onBeforePageLoad runs at the start of every page load, from go() and from popstate alike (:35, reached from go() at :27 and from popstate at :107), so it is
  *   the one place that sees every navigation start.
  * - go() updates the history before it loads the page (changeRoute, :183-196), so location.pathname is already the new
  *   path inside the hooks; the previous path is therefore remembered here.
