@@ -52,7 +52,10 @@ permissions: {}
 # contents: write and the npm OIDC publish. first-publish-smoke holds no id-token because it executes a
 # freshly resolved npm tree (the smoke test installs the codemod without a lockfile and runs it), and it runs
 # only after first-publish-tarball has hashed and uploaded the bytes; first-publish-tarball holds none because it
-# only packs, hashes and uploads; first-publish-attest, which runs none of this repository's code, signs the bytes it verified.
+# runs no freshly resolved code: the scope gate, npm view, the lockfile install (--frozen-lockfile --ignore-scripts),
+# the build, the pack and check-package.ts, then the hash and the upload or, for a version npm already has, an
+# entry-by-entry comparison with npm's tarball; first-publish-attest, which runs none of this repository's code,
+# signs the bytes it verified.
 # publish runs in the `npm` environment, whose deployment branches are restricted to main.
 #
 # Publish via npm OIDC Trusted Publishing — no long-lived token. An empty NPM_TOKEN /
