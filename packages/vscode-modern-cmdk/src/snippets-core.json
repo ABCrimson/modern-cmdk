@@ -1,0 +1,28 @@
+{
+  "Command Machine (Core)": {
+    "prefix": "cmd-machine",
+    "body": [
+      "import { createCommandMachine, itemId } from 'modern-cmdk';",
+      "",
+      "function ${1:startMachine}() {",
+      "  const machine = createCommandMachine({",
+      "    items: [",
+      "      { id: itemId('${2:action}'), value: '${3:Action}', onSelect: () => ${4:{}} },",
+      "    ],",
+      "  });",
+      "",
+      "  const unsubscribe = machine.subscribe(() => {",
+      "    const state = machine.getState();",
+      "    $0",
+      "  });",
+      "",
+      "  // Call the returned teardown when you are done with the machine.",
+      "  return () => {",
+      "    unsubscribe();",
+      "    machine[Symbol.dispose]();",
+      "  };",
+      "}"
+    ],
+    "description": "Core state machine (framework-agnostic) with an explicit teardown"
+  }
+}

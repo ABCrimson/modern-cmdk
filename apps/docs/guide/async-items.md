@@ -164,7 +164,7 @@ export function DebouncedSearchPalette() {
 
 ## Loading States
 
-Each `<Command.AsyncItems>` renders its own `<Suspense>` boundary around the loader and shows its `fallback` prop there, so give each one its own `fallback` for granular loading states; an enclosing `<Suspense>` never shows its fallback for it. `<Command.Loading>` renders only while the machine reports loading, so pass `loading` to show it as a fallback:
+Each `<Command.AsyncItems>` renders its own `<Suspense>` boundary around the loader and shows its `fallback` prop there, so give each one its own `fallback` for granular loading states; an enclosing `<Suspense>` never shows its fallback for it. `state.loading` is `true` while any `<Command.AsyncItems>` is pending (the machine's `LOADING` event, sent while the fallback is mounted), so `<Command.Loading>` without props and the list's `aria-busy` follow it. The `loading` prop of `<Command.Loading>` is an override, not a requirement; keep it on a `<Command.Loading>` used as a fallback so the element renders on the fallback's first render, before the machine's update:
 
 ```tsx
 'use client';
@@ -221,7 +221,7 @@ export function GranularLoading() {
 
 ## Error Handling
 
-Wrap `<Command.AsyncItems>` in `<CommandErrorBoundary>`, exported by `modern-cmdk/react`, so a rejected promise renders a fallback instead of unmounting the tree. Its `fallback` is a node or a function `(error: Error) => ReactNode`, and `onError` receives the error and React's `ErrorInfo`. It has no reset prop: change its `key` to remount the subtree and retry, as the sample does. The promise is cached at module level so re-renders reuse it, which means a rejected promise would be reused too: `onError` deletes the cache entry before the remount, so the retry fetches again.
+Wrap `<Command.AsyncItems>` in `<CommandErrorBoundary>`, exported by `modern-cmdk/react`, so a rejected promise renders a fallback instead of unmounting the tree. Its `fallback` is a node or a function `(error: Error, reset: () => void) => ReactNode`, and `onError` receives the error and React's `ErrorInfo`. The first sample retries by changing the boundary's `key`, which remounts the subtree; the second uses `reset` and `resetKeys`. The promise is cached at module level so re-renders reuse it, which means a rejected promise would be reused too: `onError` deletes the cache entry before the remount, so the retry fetches again.
 
 ```tsx
 'use client';
@@ -280,6 +280,45 @@ export function ResilientSearch() {
             <div role="alert" data-command-error>
               <p>Search failed: {error.message}</p>
               <button type="button" onClick={() => setAttempt((n) => n + 1)}>
+                Retry
+              </button>
+            </div>
+          )}
+        >
+          <SearchResults />
+        </CommandErrorBoundary>
+      </Command.List>
+    </Command>
+  );
+}
+```
+
+### Reset and resetKeys
+
+Its function `fallback` also receives `reset`, which clears the caught error so the children render again, and `resetKeys` resets the boundary on its own when any entry changes (compared with `Object.is`, by position). A reset re-renders the same children, so `onError` clears the promise cache when the error is caught: a Retry click and a `resetKeys` change both fetch again.
+
+```tsx
+'use client';
+
+import type { CommandItem } from 'modern-cmdk';
+import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
+
+// App-owned: the promise cache of the sample above.
+declare const cache: Map<string, Promise<readonly CommandItem[]>>;
+declare function SearchResults(): React.ReactNode;
+
+export function ResettableSearch({ tenant }: { tenant: string }) {
+  return (
+    <Command label="Search" filter={false}>
+      <Command.Input placeholder="Search..." />
+      <Command.List>
+        <CommandErrorBoundary
+          resetKeys={[tenant]}
+          onError={() => cache.clear()}
+          fallback={(error, reset) => (
+            <div role="alert">
+              <p>Search failed: {error.message}</p>
+              <button type="button" onClick={reset}>
                 Retry
               </button>
             </div>

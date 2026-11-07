@@ -1,103 +1,44 @@
-import type { API, FileInfo } from 'jscodeshift';
-import jscodeshift from 'jscodeshift';
+// forward-ref: every case directory of tests/fixtures/codemod/forward-ref/ is one input file, its
+// exact expected output (diffed byte for byte), and the reports the transform files. A case
+// directory is named after the ledger row it closes, so each title starts with its row id.
+
 import { describe, expect, it } from 'vitest';
-import transform from '../../packages/modern-cmdk/src/codemod/transforms/forward-ref.js';
-
-function createApi(parser: string = 'tsx'): API {
-  return {
-    jscodeshift: jscodeshift.withParser(parser),
-    j: jscodeshift.withParser(parser),
-    stats: () => {},
-    report: () => {},
-  };
-}
-
-function run(source: string, parser: string = 'tsx'): string {
-  const fileInfo: FileInfo = { path: 'test.tsx', source };
-  return transform(fileInfo, createApi(parser));
-}
+import { parserFor } from '../../packages/modern-cmdk-codemod/src/files.js';
+import transform from '../../packages/modern-cmdk-codemod/src/transforms/forward-ref.js';
+import {
+  applyTransform,
+  listCases,
+  readCase,
+  type TransformResult,
+  toCrlf,
+} from './codemod-fixtures.js';
 
 describe('codemod: forward-ref', () => {
-  it('removes React.forwardRef with destructured props', () => {
-    const input = [
-      `import React from 'react';`,
-      `const MyComponent = React.forwardRef(({ className }, ref) => {`,
-      `  return <div ref={ref} className={className} />;`,
-      `});`,
-    ].join('\n');
-    const output = run(input);
+  for (const name of listCases('forward-ref')) {
+    const fixture = readCase('forward-ref', name);
+    const parser = parserFor(fixture.inputPath);
+    if (parser === undefined)
+      throw new Error(`forward-ref/${name}: no parser for ${fixture.inputPath}`);
+    const run = (source: string): TransformResult =>
+      applyTransform(transform, { path: fixture.inputPath, source }, parser);
 
-    // Vitest — soft assertions: check all output properties
-    expect.soft(output).not.toContain('forwardRef');
-    expect.soft(output).toContain('ref');
-    expect.soft(output).toContain('className');
-    // ref should be merged into the destructured props
-    expect(output).toMatch(/\{\s*ref\s*,\s*className\s*\}/);
-  });
+    it(`${name}: output is exactly the expected file`, () => {
+      expect(run(fixture.input).output).toBe(fixture.output);
+    });
 
-  it('removes bare forwardRef call (not React.forwardRef)', () => {
-    const input = [
-      `import { forwardRef } from 'react';`,
-      `const MyComponent = forwardRef(({ value }, ref) => {`,
-      `  return <input ref={ref} value={value} />;`,
-      `});`,
-    ].join('\n');
-    const output = run(input);
+    it(`${name}: files exactly the expected reports`, () => {
+      expect(run(fixture.input).reports).toEqual(fixture.reports);
+    });
 
-    // forwardRef wrapper should be gone
-    expect(output).not.toContain('forwardRef(');
-    // ref should be merged into destructured props
-    expect(output).toMatch(/\{\s*ref\s*,\s*value\s*\}/);
-  });
+    it(`${name}: a CRLF file keeps its line endings`, () => {
+      const result = run(toCrlf(fixture.input));
+      expect(result.output).toBe(toCrlf(fixture.output));
+      expect(result.reports).toEqual(fixture.reports);
+    });
 
-  it('converts identifier props param to destructured with rest', () => {
-    const input = [
-      `import React from 'react';`,
-      `const MyComponent = React.forwardRef((props, ref) => {`,
-      `  return <div ref={ref} {...props} />;`,
-      `});`,
-    ].join('\n');
-    const output = run(input);
-
-    expect(output).not.toContain('forwardRef');
-    // Should convert (props, ref) -> ({ ref, ...props })
-    expect(output).toMatch(/\{\s*ref\s*,\s*\.\.\.props\s*\}/);
-  });
-
-  it('cleans up unused forwardRef import specifier', () => {
-    const input = [
-      `import { forwardRef } from 'react';`,
-      `const MyComponent = forwardRef(({ name }, ref) => {`,
-      `  return <span ref={ref}>{name}</span>;`,
-      `});`,
-    ].join('\n');
-    const output = run(input);
-
-    // The entire import should be removed since forwardRef was the only specifier
-    expect(output).not.toContain(`import { forwardRef }`);
-    expect(output).not.toContain('forwardRef');
-  });
-
-  it('preserves other imports when removing forwardRef specifier', () => {
-    const input = [
-      `import { forwardRef, useState } from 'react';`,
-      `const MyComponent = forwardRef(({ label }, ref) => {`,
-      `  const [value, setValue] = useState('');`,
-      `  return <input ref={ref} value={value} />;`,
-      `});`,
-    ].join('\n');
-    const output = run(input);
-
-    // Vitest — soft assertions for multi-check validation
-    expect.soft(output).not.toContain('forwardRef');
-    expect.soft(output).toContain('useState');
-    expect.soft(output).toMatch(/from\s+['"]react['"]/);
-  });
-
-  it('skips files without forwardRef', () => {
-    const input = [`import React from 'react';`, `const MyComponent = () => <div />;`].join('\n');
-    const output = run(input);
-
-    expect(output).toBe(input);
-  });
+    it(`${name}: a second run changes nothing`, () => {
+      const second = run(fixture.output);
+      expect(second.output).toBe(fixture.output);
+    });
+  }
 });

@@ -2,8 +2,10 @@
 // CV-42 (D7 repo side): the VS Code extension package is private, packageable by a pinned vsce
 // and carries the metadata vsce asks for.
 
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(import.meta.dirname, '../../packages/vscode-modern-cmdk');
@@ -16,7 +18,7 @@ const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
   icon?: string;
   scripts?: Record<string, string>;
   devDependencies?: Record<string, string>;
-  contributes?: { snippets?: { path: string }[] };
+  contributes?: { snippets?: { language: string; path: string }[] };
 };
 
 describe('vscode-modern-cmdk manifest', () => {
@@ -52,5 +54,94 @@ describe('vscode-modern-cmdk manifest', () => {
     const snippets = manifest.contributes?.snippets ?? [];
     expect(snippets.length).toBeGreaterThan(0);
     for (const s of snippets) expect(existsSync(resolve(root, s.path))).toBe(true);
+  });
+});
+
+describe('vscode-modern-cmdk snippets', () => {
+  const files =
+    (JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as { files?: string[] })
+      .files ?? [];
+  const snippets = manifest.contributes?.snippets ?? [];
+
+  function load(path: string): Record<string, { prefix: string; body: string[] }> {
+    return JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  }
+
+  it('CV-71: every contributes.snippets path is covered by files', () => {
+    for (const s of snippets) {
+      expect(files, s.path).toContain(s.path.replace(/^\.\//, ''));
+    }
+  });
+
+  it('CV-77: every snippet file is contributed to languages its bodies are valid in', () => {
+    // The oracle is the checker: a package holding only the JS contributions, compiled as .jsx/.js with --syntax-only
+    // (TS1xxx and the TS8xxx "only in TypeScript files" family), so no built dist is needed.
+    const javascript = snippets.filter(
+      (s) => s.language === 'javascript' || s.language === 'javascriptreact',
+    );
+    expect(javascript.length).toBeGreaterThan(0);
+    const scratch: string = mkdtempSync(join(tmpdir(), 'vscode-manifest-'));
+    const outDir: string = resolve(
+      import.meta.dirname,
+      '../../node_modules/.cache',
+      `vscode-manifest-${process.pid}`,
+    );
+    try {
+      writeFileSync(
+        join(scratch, 'package.json'),
+        JSON.stringify({
+          contributes: { snippets: javascript.map((s) => ({ ...s, path: resolve(root, s.path) })) },
+        }),
+      );
+      const result = spawnSync(
+        process.execPath,
+        [
+          resolve(import.meta.dirname, '../../scripts/check-snippets.ts'),
+          '--package',
+          scratch,
+          '--out',
+          outDir,
+          '--syntax-only',
+        ],
+        { encoding: 'utf8' },
+      );
+      expect(result.stderr).toBe('');
+      expect(result.status).toBe(0);
+      expect(result.stdout).toMatch(/javascriptreact \d+/);
+    } finally {
+      rmSync(scratch, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it('CV-58: cmd-machine is contributed to typescript and javascript', () => {
+    const languagesOf = (path: string): string[] =>
+      (manifest.contributes?.snippets ?? []).filter((s) => s.path === path).map((s) => s.language);
+    expect(languagesOf('./src/snippets-core.json')).toEqual(
+      expect.arrayContaining(['typescript', 'javascript', 'typescriptreact', 'javascriptreact']),
+    );
+    const core = Object.values(load('./src/snippets-core.json'));
+    expect(core.map((s) => s.prefix)).toEqual(['cmd-machine']);
+    const body = core[0]?.body.join('\n') ?? '';
+    expect(body).toContain('machine[Symbol.dispose]()');
+    expect(body).not.toMatch(/^using /m);
+  });
+
+  it('CV-30: the cmd-dialog body toggles on a case-insensitive key and wires onOpenChange', () => {
+    const dialog = Object.values(load('./src/snippets.json')).find(
+      (s) => s.prefix === 'cmd-dialog',
+    );
+    const body = dialog?.body.join('\n') ?? '';
+    expect(body).toContain('onOpenChange');
+    expect(body).toContain('toLowerCase');
+  });
+
+  it('CV-55: cmd-action passes the action isPending to Command.Loading', () => {
+    const action = Object.values(load('./src/snippets-tsx.json')).find(
+      (s) => s.prefix === 'cmd-action',
+    );
+    const body = action?.body.join('\n') ?? '';
+    expect(body).toContain('loading={isPending}');
+    expect(body).not.toContain('{isPending && <Command.Loading>');
   });
 });

@@ -1,0 +1,7 @@
+[data-command-root] {
+  display: grid;
+}
+
+[data-command-item] {
+  padding: 4px 8px;
+}

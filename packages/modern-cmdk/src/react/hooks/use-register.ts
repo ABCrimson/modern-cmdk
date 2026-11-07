@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/hooks/use-register.ts
 // Item/group registration — useLayoutEffect for registration before paint
 // Isolated declarations: explicit return types on all exports

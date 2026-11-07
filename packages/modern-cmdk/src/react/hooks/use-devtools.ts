@@ -1,12 +1,22 @@
-'use client';
-
 // packages/modern-cmdk/src/react/hooks/use-devtools.ts
 // Development-only devtools bridge — gated on NODE_ENV, inert in production builds
 // Isolated declarations: explicit return types on all exports
 
 import { use, useEffect, useRef } from 'react';
-import { isDev } from '../../core/utils/env.js';
 import { CommandStableContext, CommandStateContext } from '../context.js';
+
+// Module-scoped declaration: no @types/node needed, nothing global leaks.
+declare const process: { readonly env: { readonly NODE_ENV?: string } };
+
+// Same semantics as core/utils/env.ts isDev, kept here so dist/react carries no core region:
+// true unless NODE_ENV is 'production'; an unbundled browser module (no `process`) counts as production.
+const isDev: boolean = (() => {
+  try {
+    return process.env.NODE_ENV !== 'production';
+  } catch {
+    return false;
+  }
+})();
 
 interface DevtoolsState {
   readonly registeredItems: number;

@@ -7,7 +7,6 @@ import { describe, expect, it } from 'vitest';
 
 describe('modern-cmdk/react/dialog (src)', () => {
   it('exports the same CommandDialog as modern-cmdk/react', () => {
-    expect.hasAssertions();
     expect(Object.keys(dialog)).toEqual(['CommandDialog']);
     expect(dialog.CommandDialog).toBe(react.CommandDialog);
     expect(dialog.CommandDialog).toBe(react.Command.Dialog);

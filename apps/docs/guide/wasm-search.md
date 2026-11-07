@@ -32,21 +32,26 @@ The simplest approach runs the WASM module directly on the main thread. Designed
 'use client';
 
 import { Command } from 'modern-cmdk/react';
-import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
+import { createWasmSearchEngine, type FallbackSearchEngine, type WasmSearchEngine } from 'modern-cmdk-search-wasm';
 import { useEffect, useState } from 'react';
 
 function WasmSearchPalette() {
-  const [engine, setEngine] = useState<Awaited<ReturnType<typeof createWasmSearchEngine>> | null>(null);
+  const [engine, setEngine] = useState<WasmSearchEngine | FallbackSearchEngine | null>(null);
 
   useEffect(() => {
     let disposed = false;
-    let engine: Awaited<ReturnType<typeof createWasmSearchEngine>> | null = null;
+    let engine: WasmSearchEngine | FallbackSearchEngine | null = null;
 
     async function init() {
-      engine = await createWasmSearchEngine();
-      if (!disposed) setEngine(engine);
+      const created = await createWasmSearchEngine();
+      if (disposed) {
+        created[Symbol.dispose]();
+        return;
+      }
+      engine = created;
+      setEngine(created);
     }
-    init();
+    void init();
 
     return () => {
       disposed = true;
@@ -102,22 +107,36 @@ For large datasets (50K+ items, by design), run the WASM module in a dedicated W
 'use client';
 
 import { Command } from 'modern-cmdk/react';
-import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
+import {
+  createWorkerSearchEngine,
+  type MainThreadSearchEngine,
+  type WorkerSearchEngine,
+} from 'modern-cmdk-search-wasm';
 import { useEffect, useState } from 'react';
 
 function WorkerSearchPalette() {
-  const [engine, setEngine] = useState<Awaited<ReturnType<typeof createWorkerSearchEngine>> | null>(null);
+  const [engine, setEngine] = useState<WorkerSearchEngine | MainThreadSearchEngine | null>(null);
 
   useEffect(() => {
     let disposed = false;
+    let engine: WorkerSearchEngine | MainThreadSearchEngine | null = null;
 
     async function init() {
-      const workerEngine = await createWorkerSearchEngine({ maxResults: 100 });
-      if (!disposed) setEngine(workerEngine);
+      const created = await createWorkerSearchEngine({ maxResults: 100 });
+      if (disposed) {
+        await created[Symbol.asyncDispose]();
+        return;
+      }
+      engine = created;
+      setEngine(created);
     }
+    void init();
 
-    Promise.resolve().then(() => init());
-    return () => { disposed = true; };
+    return () => {
+      disposed = true;
+      // A cleanup returns synchronously, so the async disposal cannot be awaited: it is fire-and-forget.
+      void engine?.[Symbol.asyncDispose]();
+    };
   }, []);
 
   if (!engine) return <div>Initializing worker...</div>;

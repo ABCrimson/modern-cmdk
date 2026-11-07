@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/context.ts
 // React context definitions — use() for consuming in Suspense boundaries
 // Split into stable + state contexts to prevent unnecessary re-renders

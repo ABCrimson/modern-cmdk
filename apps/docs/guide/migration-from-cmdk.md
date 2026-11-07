@@ -1,119 +1,244 @@
 # Migration from cmdk
 
-This guide covers migrating from `cmdk` (pacocoursey/cmdk) to `modern-cmdk/react`. For simple cases, it is a package swap. For advanced usage, there are breaking changes to address.
+This guide covers migrating from `cmdk` ([dip/cmdk](https://github.com/dip/cmdk), formerly pacocoursey/cmdk) to `modern-cmdk/react`. The import swap is one line, but the two libraries differ in their data attributes, their CSS custom property, the `filter` signature and several props, so plan for the [breaking changes](#breaking-changes) below. The `modern-cmdk-codemod` CLI does the mechanical part and reports every site it cannot migrate.
 
-## Quick Start: Drop-in Compatibility
-
-For the simplest migration, swap the import:
+## Swap the Import
 
 ```diff
 - import { Command } from 'cmdk';
 + import { Command } from 'modern-cmdk/react';
 ```
 
-The compound component API works identically for basic usage. Data attributes and CSS custom properties are renamed (`[cmdk-*]` to `[data-command-*]`, `--cmdk-*` to `--command-*`) -- the `data-attrs` codemod below rewrites most of them in JSX and in JS/TS strings (it skips `cmdk-group-heading`, `cmdk-group-items`, `cmdk-dialog`, `cmdk-overlay` and `cmdk-list-sizer`, and mis-renames `cmdk-root`; see [Complete API Differences](#complete-api-differences)); rename them in `.css` files by hand.
+The compound components keep cmdk's names (`Command`, `Command.Input`, `Command.List`, `Command.Item`, `Command.Group` and the rest). What changes underneath is listed in [Breaking Changes](#breaking-changes) and [Attributes, CSS and Tailwind](#attributes-css-and-tailwind).
 
-## Automated Migration with Codemod
+## Automated Migration with the Codemod
 
-`modern-cmdk` ships a codemod CLI. It runs **one transform per invocation** against a file glob -- `modern-cmdk <transform> <glob>` -- so apply the transforms you need in sequence:
+`modern-cmdk-codemod` runs **one transform per invocation** against a directory or a glob: `modern-cmdk-codemod <transform> <dir or glob>`. Run the transforms in this order:
+
+1. `should-filter`
+2. `forward-ref`
+3. `data-attrs`
+4. `import-rewrite`, last
+
+`import-rewrite` goes last because `should-filter` adapts a cmdk `filter` function only on elements bound to a `'cmdk'` import. Once the import reads `'modern-cmdk/react'`, a cmdk filter can no longer be told from a migrated one, and the transform leaves it alone.
+
+Start with a dry run. It needs no git tree, writes nothing and prints a unified diff of every file that would change:
+
+```bash
+npx modern-cmdk-codemod --dry-run should-filter ./src
+```
+
+```text
+would change src/palette.tsx
+--- a/src/palette.tsx
++++ b/src/palette.tsx
+@@ -2,7 +2,7 @@
+ import { forwardRef } from 'react';
+
+ export const Palette = forwardRef<HTMLDivElement>((props, ref) => (
+-  <Command ref={ref} shouldFilter={false} className="data-[selected=true]:bg-gray-100">
++  <Command ref={ref} filter={false} className="data-[selected=true]:bg-gray-100">
+     <Command.Input />
+     <Command.List>
+       <Command.Item value="copy">Copy</Command.Item>
+1 changed, 0 unchanged, 0 errors, 1 skipped (dry run, nothing written)
+```
+
+Then run the four transforms from the root of a git work tree whose matched files are committed. The CLI refuses to write anywhere else ([the git rule](#the-git-rule)):
 
 ::: code-group
 ```bash [npx]
-npx modern-cmdk import-rewrite "./src/**/*.{ts,tsx,js,jsx}"
-npx modern-cmdk data-attrs "./src/**/*.{ts,tsx,js,jsx}"
-npx modern-cmdk forward-ref "./src/**/*.{ts,tsx,js,jsx}"
-npx modern-cmdk should-filter "./src/**/*.{ts,tsx,js,jsx}"
+npx modern-cmdk-codemod should-filter ./src
+npx modern-cmdk-codemod forward-ref ./src
+npx modern-cmdk-codemod data-attrs ./src
+npx modern-cmdk-codemod import-rewrite ./src
 ```
 
 ```bash [pnpm]
-pnpm dlx modern-cmdk import-rewrite "./src/**/*.{ts,tsx,js,jsx}"
-pnpm dlx modern-cmdk data-attrs "./src/**/*.{ts,tsx,js,jsx}"
-pnpm dlx modern-cmdk forward-ref "./src/**/*.{ts,tsx,js,jsx}"
-pnpm dlx modern-cmdk should-filter "./src/**/*.{ts,tsx,js,jsx}"
+pnpm dlx modern-cmdk-codemod should-filter ./src
+pnpm dlx modern-cmdk-codemod forward-ref ./src
+pnpm dlx modern-cmdk-codemod data-attrs ./src
+pnpm dlx modern-cmdk-codemod import-rewrite ./src
 ```
 :::
 
-Quote the glob so your shell passes it to the CLI. A bare directory such as `./src` expands to every file in it, and every file is parsed as TypeScript: `import-rewrite` reports each stylesheet, JSON and Markdown file as an error, and the other transforms report such a file as an error only when it contains the text they look for (`cmdk`, `forwardRef` or `shouldFilter`).
+Commit after each transform so the next run starts from a clean tree and each step is a reviewable diff. To write into a tree that is not clean, or outside git, pass `--force`:
+
+```bash
+npx modern-cmdk-codemod --force should-filter ./src
+```
+
+A directory argument covers every `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and `.scss` file below it. Files and directories whose names start with a dot (`.storybook/`, `src/.palette.tsx`) are not matched by a directory argument or by a wildcard (`*` or `**`). Name them with a pattern whose segment starts with the dot, such as `"./.storybook/*.tsx"` or `"./src/.*.tsx"`, or give the dot directory itself as the directory argument (`./.storybook`). A glob works too; quote it so your shell passes it to the CLI instead of expanding it:
+
+```bash
+npx modern-cmdk-codemod --dry-run data-attrs "./src/**/*.{tsx,css}"
+```
+
+A file a transform has nothing to say about is counted as unchanged or skipped and printed as nothing.
 
 ### Available Transforms
 
 | Transform | What it does |
 |---|---|
-| `import-rewrite` | Rewrites `'cmdk'` imports to `'modern-cmdk/react'` |
-| `data-attrs` | Renames `cmdk-input`, `cmdk-list`, `cmdk-item`, `cmdk-group`, `cmdk-separator`, `cmdk-empty`, `cmdk-loading` and `cmdk-root` as JSX attributes and as `[cmdk-*]` selectors inside JS/TS string and template literals (e.g. `querySelector('[cmdk-item]')`), and `--cmdk-list-height` inside those literals. It writes `cmdk-root` as `data-command`, not `data-command-root`, and leaves `cmdk-group-heading` and other attributes unchanged. It does not read `.css` files; rename selectors there by hand. |
-| `forward-ref` | Removes `React.forwardRef` wrappers, using `ref` as a prop |
-| `should-filter` | Converts `shouldFilter={false}` to `filter={false}` |
+| `should-filter` | On `Command`, `Command.Dialog`, `CommandRoot` and `CommandDialog` imported from `'cmdk'` or `'modern-cmdk/react'`: `shouldFilter={false}` becomes `filter={false}`, `shouldFilter` and `shouldFilter={true}` are removed, `shouldFilter={expr}` becomes `filter={expr ? undefined : false}`. On an element bound to `'cmdk'` only, a cmdk `filter` function (`(value, search, keywords) => number`) is wrapped in an adapter to `(item, query) => number \| false`; a name or member expression is guarded against `undefined`, which means cmdk's default filter. A `filter` on an element bound to `'modern-cmdk/react'` is left alone without a report: it reads as already migrated. Reported and left unchanged: `shouldFilter` beside `filter`; a `shouldFilter` whose value is not a JSX expression or is an empty expression; a `filter` whose value is not an expression or is an empty expression; a `filter` that may not be a function (`null`, a conditional or a logical expression); and a `filter` computed where it stands, which the adapter would re-evaluate on every item outside render (a call, `new`, a computed key other than a string or number literal (`o[k]`; `o['f']` is adapted like `o.f`), an assertion, a cast, an optional chain, `super.f`, a bare `this` or any other computed value), for which you hoist it to a const and pass the name. Other components named `Command`, or any other element, are not touched. |
+| `forward-ref` | Unwraps `React.forwardRef(...)` from `react` into a function component that takes `ref` as a prop, keeping the props and ref types. Reported and left unchanged: `forwardRef()` with no argument; a non-function argument such as `forwardRef(Inner)` or `forwardRef(<expression>)`; a render function with more than two parameters; `forwardRef<T>()` with a ref type argument and a render function without parameters; a props parameter that is not an identifier or object pattern; a props pattern with a computed key that may be `'ref'`; a props pattern that already has a `ref` key; a ref parameter that is not a plain identifier; a render function with a typed single props parameter, a JSX spread and no ref type argument; and a ref annotation whose props type is unknown. |
+| `data-attrs` | Renames cmdk's attributes and custom property in JSX attributes, in selectors inside JS/TS string and template literals, and in `.css` and `.scss` files. Rewrites cmdk's state attributes beside them and the Tailwind variants on cmdk elements. Reports every site it cannot migrate. See [Attributes, CSS and Tailwind](#attributes-css-and-tailwind). |
+| `import-rewrite` | Rewrites imports, re-exports, `import()`, `require()` and `vi.mock` or `jest.mock` of `'cmdk'` to `'modern-cmdk/react'`. `CommandRoot` and a default import become `Command`. A name `modern-cmdk/react` does not export (`defaultFilter`, `CommandProps`) stays on a `'cmdk'` import with one report per name. `declare module 'cmdk'` and any `'cmdk/<subpath>'` specifier are left unchanged and reported. |
 
 ### Codemod Options
 
 ```bash
-modern-cmdk <transform> <glob> [--dry-run] [--strict] [--concurrency=N]
-modern-cmdk --help
+modern-cmdk-codemod <transform> <dir or glob> [--dry-run] [--force] [--lenient | --strict] [--concurrency=N]
+modern-cmdk-codemod --help
+modern-cmdk-codemod --version
 ```
 
 | Option | Effect |
 |---|---|
-| `--dry-run` | Lists the files that would change (`would change <path>`) and writes nothing |
-| `--strict` | Exit `2` on usage errors (including unknown options) and `1` when any file errored |
-| `--concurrency=N` | Files processed at once (default: 8) |
+| `--dry-run` | Prints `would change <path>` and a unified diff for each file that would change; writes nothing and skips the git check |
+| `--force` | Writes even when the matched files have uncommitted changes or lie outside a git work tree |
+| `--strict` | The default of `modern-cmdk-codemod`: exit `2` on usage errors, `1` when a file errors |
+| `--lenient` | Exit `0` for usage errors and per-file errors, as the deprecated bin does, and skip the git check; cannot be combined with `--strict` |
+| `--concurrency=N` | Files processed at once (default: min(8, available cores)) |
 | `-h`, `--help` | Prints the usage |
+| `-v`, `--version` | Prints the package name and version |
 
-`node_modules`, `dist`, `build`, and `.next` are skipped automatically.
+### The Git Rule
 
-The CLI prints one line per changed file (`changed <path>`, or `would change <path>` with `--dry-run`); unchanged files print nothing, and a summary such as `2 changed, 5 unchanged, 0 errors`. Per-file errors go to stderr as `<path>: <message>`. `--dry-run` prints no diff; review the result in version control after a real run.
+A run that writes needs a git work tree in which every matched file is committed. If a matched file is modified, staged, deleted or untracked, or lies outside the work tree, or git cannot be found, the CLI writes nothing and exits `2`:
 
-Without `--strict`, exit codes stay as in 1.2: `0` for `--help`, missing arguments and per-file errors; `1` for an unknown transform, no matching files and an uncaught error. With `--strict`, any usage error (including an unknown transform) exits `2`, any file error exits `1`, and no matching files still exits `1`.
+```text
+error: refusing to write: 1 matched file has uncommitted changes:
+  src/palette.tsx
+Commit or stash them, or pass --force to write anyway (--dry-run previews without writing).
+```
 
-With both `<transform>` and `<glob>` given, an unknown option is ignored with a warning on stderr and the run goes on; without them it prints an error and the usage and exits `0`. With `--strict`, an unknown option is a usage error (exit `2`). A malformed known option -- `--concurrency` with no value, `--dry-run=yes` -- is a usage error that writes nothing (exit `0`; `2` with `--strict`).
+Commit or stash, or pass `--force` when you accept that a bad run cannot be undone with git. `--dry-run` never checks.
 
-::: tip
-Run with `--dry-run` first to see which files would change, then run without it and review the diff in version control.
-:::
+### Which Files Are Read
+
+The codemod skips `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static` and `.vercel`, every path your `.gitignore` covers (asked of `git check-ignore`) and every file reached through a symlinked directory, and every file or directory whose name starts with a dot (unless a pattern segment starts with that dot or a directory argument names that directory, such as `./.storybook`).
+
+### Output and Exit Codes
+
+A changed file prints `changed <path>` (`would change <path>` with `--dry-run`); unchanged files print nothing. A summary closes the run, for example `2 changed, 5 unchanged, 0 errors, 1 reported`, with `skipped` and `reported` counts when they are not zero. Reports and per-file errors go to stderr as `<path>: <message>`.
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Success; reports do not change it |
+| `1` | A file errored, no file matched, or the run failed |
+| `2` | Usage error (unknown or malformed option, unknown transform, missing argument), `--strict` with `--lenient`, or a refused dirty tree |
+
+`--lenient` restores the exit codes `modern-cmdk` 1.x had: `0` for `--help`, missing arguments, usage errors and per-file errors; `1` for an unknown transform, no matching files and an uncaught error. With `--lenient`, an unknown option beside both arguments is ignored with a warning.
+
+### The Deprecated `npx modern-cmdk`
+
+The `modern-cmdk` package still ships a `modern-cmdk` bin until 2.0. It runs the same four transforms, bundled, with the 1.x exit codes (lenient unless argv carries `--strict`) and 1.4's excludes: of the ten directories `modern-cmdk-codemod` skips, it skips only `node_modules`, `dist`, `build` and `.next`, applies no `.gitignore` and makes no git check. Like `modern-cmdk-codemod`, it reads only the ten script and stylesheet extensions from a directory, leaves out files and directories whose names start with a dot unless a pattern segment starts with that dot or a directory argument names that directory, descends no symlinked directory under `**` or a directory argument, reads no symlinked file and on Windows matches names case-insensitively. Unlike `modern-cmdk-codemod`, it follows a symlinked directory that a pattern names or that a directory argument names: `"./src/link/*.tsx"` and `./src/link` reach the files the link points to. It writes one deprecation warning to stderr per run. Use `modern-cmdk-codemod` instead.
+
+## Attributes, CSS and Tailwind
+
+cmdk marks its elements with `cmdk-*` attributes; `modern-cmdk/react` renders `data-command-*`. There are **no runtime aliases**: the old selectors stop matching. The `data-attrs` transform rewrites the attribute, in JSX, in JS/TS strings and template literals (`querySelector('[cmdk-item]')`) and in `.css` and `.scss` files. CI checks this table against the codemod's own maps:
+
+| cmdk | modern-cmdk/react | Codemod | Notes |
+|---|---|---|---|
+| `[cmdk-root]` | `[data-command-root]` | `data-attrs` | |
+| `[cmdk-input]` | `[data-command-input]` | `data-attrs` | |
+| `[cmdk-list]` | `[data-command-list]` | `data-attrs` | |
+| `[cmdk-list-sizer]` | `[data-command-list-inner]` | `data-attrs` | The element the list measures into `--command-list-height`; not rendered while the list is virtualized, which renders `[data-command-list-virtual]` instead |
+| `[cmdk-item]` | `[data-command-item]` | `data-attrs` | |
+| `[cmdk-group]` | `[data-command-group]` | `data-attrs` | |
+| `[cmdk-group-heading]` | `[data-command-group-heading]` | `data-attrs` | |
+| `[cmdk-group-items]` | `[data-command-group-items]` | `data-attrs` | |
+| `[cmdk-separator]` | `[data-command-separator]` | `data-attrs` | |
+| `[cmdk-empty]` | `[data-command-empty]` | `data-attrs` | |
+| `[cmdk-loading]` | `[data-command-loading]` | `data-attrs` | |
+| `[cmdk-dialog]` | `[data-command-dialog]` | `data-attrs` | Set on the Radix `Dialog.Content` element, which wraps the inner `[data-command-dialog-content]` |
+| `[cmdk-overlay]` | `[data-command-overlay]` | `data-attrs` | |
+| `--cmdk-list-height` | `--command-list-height` | `data-attrs` | Also rewritten in `.css` and `.scss` files |
+| `cmdk-label` | none | Manual: cmdk renders a visually hidden `<label>`; modern-cmdk puts the label on the root as `aria-label` and renders no label element | |
+| `cmdk-item-select` | none | Manual: a DOM event cmdk dispatches on an item to run its `onSelect`, not an attribute; modern-cmdk has no such event, use the item `onSelect` prop | |
+
+### CSS and SCSS
+
+`data-attrs` reads `.css` and `.scss` files like any other file. It rewrites attribute selectors and `--cmdk-list-height` and leaves comments, strings outside attribute selectors and formatting alone. This stylesheet, run through `modern-cmdk-codemod data-attrs ./src`:
+
+```css
+[cmdk-root] { width: 100%; }
+[cmdk-item][data-selected="true"] { background: #f0f0f0; }
+[cmdk-list] { height: var(--cmdk-list-height); }
+[cmdk-group-heading] { font-size: 12px; }
+[cmdk-label] { display: none; }
+```
+
+becomes this, with the `cmdk-label` rule reported (`src/palette.css: line 5: cmdk-label has no modern-cmdk equivalent: ...; left unchanged`) and kept:
+
+```css
+[data-command-root] { width: 100%; }
+[data-command-item][data-active] { background: #f0f0f0; }
+[data-command-list] { height: var(--command-list-height); }
+[data-command-group-heading] { font-size: 12px; }
+[cmdk-label] { display: none; }
+```
+
+In SCSS, a nested `&[data-selected="true"]` is migrated when every selector of the enclosing rule ends in a compound that holds a cmdk attribute (`.row[cmdk-item] { &[data-selected="true"] { ... } }`), and reported when only some do (`[cmdk-item], .other { ... }`). When no selector ends in one, it is left unchanged and not reported, even if a cmdk attribute appears earlier in the selector (`[cmdk-root] .row { &[data-selected="true"] { ... } }`): rewrite that one by hand.
+
+### State Attributes
+
+cmdk renders `data-selected` and `data-disabled` on every item with the value `"true"` or `"false"`. `modern-cmdk/react` renders `data-active` and `data-disabled` only while the state holds, with no value (`item.tsx:85-86`). Next to a cmdk attribute, the codemod rewrites:
+
+| cmdk | modern-cmdk/react |
+|---|---|
+| `[data-selected="true"]` | `[data-active]` |
+| `[data-selected="false"]` | `:not([data-active])` |
+| `[data-disabled="true"]` | `[data-disabled]` |
+| `[data-disabled="false"]` | `:not([data-disabled])` |
+
+### Tailwind Variants
+
+On elements bound to a `cmdk` or `modern-cmdk/react` import, the codemod rewrites the variants in `className` and `class`, including arbitrary variants such as `[&[data-selected=true]_svg]:`:
+
+| Before | After |
+|---|---|
+| `data-[selected=true]:bg-gray-100` | `data-active:bg-gray-100` |
+| `data-[disabled=true]:opacity-50` | `data-disabled:opacity-50` |
+
+`data-active:` is Tailwind v4's presence shorthand for `[data-active]`; on Tailwind v3 write `data-[active]:`. The `false` forms (`data-[selected=false]:`) have no equivalent and are reported with the advice to use `not-data-active:`.
+
+### What the Codemod Reports and Leaves for You
+
+Every site below is left unchanged and printed once on stderr with its line, so run the transforms and read the reports before you commit:
+
+- `cmdk-label` and `cmdk-item-select`, in JSX, selectors and stylesheets (see the table above).
+- A `[data-selected]` or `[data-disabled]` without a `"true"` or `"false"` value beside a cmdk attribute, and Tailwind's `data-[selected]:` presence form on a cmdk element. A `[data-selected]` in a selector that holds no cmdk attribute is not touched and not reported: the codemod cannot tell it is cmdk's. The same holds for a nested `&[data-selected]` under a rule whose selectors hold a cmdk attribute only before their last compound.
+- `defaultFilter`, `CommandProps` and any other `cmdk` export that `modern-cmdk/react` lacks: the name stays on a `'cmdk'` import until you migrate it.
+- `declare module 'cmdk'`: move the declaration to `'modern-cmdk/react'` by hand.
+- `cmdk/<subpath>` specifiers.
+- `useCommandState`: the import is rewritten and reported, because its state is modern-cmdk's `CommandState`, not cmdk's.
+- A string that is exactly a cmdk attribute name, such as `el.hasAttribute('cmdk-item')` or `el.getAttribute('cmdk-root')`: it names an attribute, not a selector, so it is reported with the `data-command-*` name to use. A name built at run time is not seen.
 
 ## Breaking Changes
 
-### 1. Data Attributes Renamed
+`should-filter` migrates change 5 on elements bound to a `'cmdk'` import, and `forward-ref` migrates change 6 for your own components; the rest need hand edits. Changes 1 to 5 name the source line that defines the new behavior.
 
-All `[cmdk-*]` data attributes are renamed to `[data-command-*]`. There are **no runtime aliases** -- the old selectors simply stop matching, so update your CSS and tests (the `data-attrs` codemod rewrites most of them in JSX and JS/TS strings, not in `.css` files; it skips `[cmdk-group-heading]`, `[cmdk-group-items]`, `[cmdk-dialog]`, `[cmdk-overlay]` and `[cmdk-list-sizer]`, and writes `[data-command]` for `[cmdk-root]`).
+### 1. Item `value` Is Required
 
-::: code-group
-```css [Before (cmdk)]
-[cmdk-root] { /* root styles */ }
-[cmdk-input] { /* input styles */ }
-[cmdk-item] { /* item styles */ }
-[cmdk-item][data-selected="true"] { /* active item */ }
-[cmdk-group] { /* group styles */ }
-[cmdk-group-heading] { /* heading styles */ }
-[cmdk-list] { /* list styles */ }
-[cmdk-separator] { /* separator styles */ }
-[cmdk-empty] { /* empty state */ }
-[cmdk-loading] { /* loading state */ }
-```
+cmdk infers a missing `value` from the item's text. `Command.Item` requires `value: string` (`packages/modern-cmdk/src/react/item.tsx:12`); the TypeScript compiler flags every item without one.
 
-```css [After (modern-cmdk/react)]
-[data-command-root] { /* root styles */ }
-[data-command-input] { /* input styles */ }
-[data-command-item] { /* item styles */ }
-[data-command-item][data-active] { /* active item */ }
-[data-command-group] { /* group styles */ }
-[data-command-group-heading] { /* heading styles */ }
-[data-command-list] { /* list styles */ }
-[data-command-separator] { /* separator styles */ }
-[data-command-empty] { /* empty state */ }
-[data-command-loading] { /* loading state */ }
-```
-:::
+### 2. `Command.Input` Is Uncontrolled
 
-### 2. CSS Custom Property Renamed
+`Command.Input` omits `value` from its props (`input.tsx:14`), so the search text cannot be controlled. `onValueChange` is still there to observe it (`input.tsx:15`).
 
-```diff
-- height: var(--cmdk-list-height);
-+ height: var(--command-list-height);
-```
+### 3. The Root Has No `value` or `onValueChange`
 
-There is no `--cmdk-list-height` alias at runtime -- update to `--command-list-height`. Rename it by hand in `.css` files; the `data-attrs` codemod rewrites it only inside JS/TS string and template literals.
+cmdk's root takes a controlled `value` and `onValueChange` for the active item. `Command` takes the options of `CommandMachineOptions` (`packages/modern-cmdk/src/core/types.ts:166-193`) and has neither; observe the active item with `onActiveChange`, which receives the item id or `null`.
 
-### 3. `shouldFilter` Renamed to `filter`
+### 4. `vimBindings` and `disablePointerSelection` Are Gone
+
+Neither prop exists on `CommandMachineOptions` (`core/types.ts:166-193`). Remove them.
+
+### 5. `filter` Replaces `shouldFilter`, and Its Signature Differs
+
+`shouldFilter={false}` becomes `filter={false}`; `should-filter` does this. `filter` also takes a function, and its signature is not cmdk's `(value, search, keywords) => number`. It is `(item, query) => number | false` (`core/types.ts:172`): it receives the whole `CommandItem`, returns a score (higher is better), and `false` excludes the item. `should-filter` wraps a cmdk filter function in an adapter on cmdk-bound elements; rewrite it by hand if you want it to use the item directly.
 
 ::: code-group
 ```tsx fragment [Before (cmdk)]
@@ -135,8 +260,6 @@ export function ExternalFilterPalette() {
 ```
 :::
 
-The `filter` prop also accepts a custom filter function (not just `false`). Note the signature differs from cmdk -- it receives the whole `CommandItem`, not separate `value`/`keywords` arguments:
-
 ```tsx
 import { Command } from 'modern-cmdk/react';
 
@@ -152,9 +275,9 @@ export const Palette = () => (
 );
 ```
 
-### 4. `forwardRef` Removed (React 19)
+### 6. `forwardRef` Removed (React 19)
 
-React 19 passes `ref` as a regular prop. All `forwardRef` wrappers are removed.
+React 19 passes `ref` as a regular prop. All `forwardRef` wrappers are removed; `forward-ref` does this for your own components.
 
 ::: code-group
 ```tsx fragment [Before (cmdk + React 18)]
@@ -175,20 +298,7 @@ function CustomInput({ ref, ...props }: CommandInputProps) {
 ```
 :::
 
-### 5. `"use client"` Directive Required
-
-Every component in `modern-cmdk/react` has `"use client"` at the top. If you are importing from a server component, you must use the component from a client component boundary:
-
-```tsx fragment
-// This file is a Server Component
-import { CommandPalette } from './command-palette'; // Client Component
-
-export default function Page() {
-  return <CommandPalette />;
-}
-```
-
-### 6. Radix UI Package Change
+### 7. Radix UI Package Change
 
 The Dialog component uses the unified `radix-ui` package instead of individual `@radix-ui/*` packages:
 
@@ -199,7 +309,7 @@ The Dialog component uses the unified `radix-ui` package instead of individual `
 
 Install `radix-ui` (`>=1.4.0 <2.0.0`) alongside `modern-cmdk`: `modern-cmdk/react` imports it, and it is a required peer in 1.x (see [Installation](/guide/installation#peer-dependencies)).
 
-### 7. `useSyncExternalStore` Shim Removed
+### 8. `useSyncExternalStore` Shim Removed
 
 `use-sync-external-store` is no longer a dependency. React 19 provides `useSyncExternalStore` natively. If you were importing the shim directly, remove it:
 
@@ -208,23 +318,49 @@ Install `radix-ui` (`>=1.4.0 <2.0.0`) alongside `modern-cmdk`: `modern-cmdk/reac
 + // No longer needed — React 19 native
 ```
 
-### 8. Active Item Attribute Change
+### 9. Props Without an Equivalent
+
+cmdk 1.1.1 accepts props that modern-cmdk 1.x does not take (declarations in `cmdk/dist/index.d.ts`). tsc rejects each named prop below with TS2322 (a `ReactNode` `heading` gives TS2412 under `exactOptionalPropertyTypes`), but JSX type-checking never rejects a hyphenated attribute: a `data-*` or `aria-*` attribute on the root or on `CommandDialog` compiles and is dropped, never rendered. The codemod does not touch any of them; remove or replace them by hand:
+
+- `defaultValue` on the root (d.ts:42): no equivalent. `CommandMachineOptions` has no initial-selection prop.
+- `forceMount` on `Command.Item` and `Command.Group` (d.ts:86, :106): no equivalent. `CommandItemProps` and `CommandGroupProps` have no such prop.
+- `progress` on `Command.Loading` (d.ts:223-224): no equivalent. `CommandLoadingProps` adds only `loading`, an override of the loading state, to the `div` props.
+- `alwaysRender` on `Command.Separator` (d.ts:118): no equivalent. `CommandSeparatorProps` adds nothing to the `div` props.
+- `label` on `Command.Loading` (d.ts:228) and on `Command.List` (d.ts:150): not accepted. `CommandLoadingProps` and `CommandListProps` have no `label`; the root and the dialog keep theirs.
+- `value` on `Command.Group` (d.ts:104): not accepted. `CommandGroupProps` has no `value`.
+- A `ReactNode` `heading` on `Command.Group` (d.ts:102): `CommandGroupProps.heading` is a `string` (`packages/modern-cmdk/src/react/group.tsx:17`).
+- `asChild` on every part: not accepted. None of the prop types has it.
+- `role` on `Command.Input` (d.ts:124-128 omits only `onChange`, `value` and `type`): not accepted. `CommandInputProps` omits `role` (`packages/modern-cmdk/src/react/input.tsx:14`); the input always renders `role="combobox"`, as cmdk did over any role you passed.
+- `defaultValue` on `CommandDialog` (d.ts:178): not accepted. `CommandDialogProps` has no such prop.
+- `defaultOpen` and `modal` on `CommandDialog` (Radix `DialogProps`, which cmdk's `Dialog` takes at d.ts:155): not accepted. `CommandDialogProps` takes `open` and `onOpenChange` but neither of these.
+- `div` props on `CommandDialog` (`id`, `style`, `onKeyDown`, `data-*` and the rest; d.ts:155-159): not forwarded. tsc rejects `id`, `style`, `onKeyDown` and every other unhyphenated one; a `data-*` or `aria-*` attribute compiles and is dropped. `CommandDialogProps` takes `CommandMachineOptions` plus `children`, `className`, `overlayClassName`, `contentClassName`, `label`, `open`, `onOpenChange`, `description` and `container`.
+- Root `div` props (`id`, `style`, `onKeyDown`, `data-*` and the rest): the root forwards none. `CommandRootProps` takes `CommandMachineOptions` plus `children`, `className` and `label`.
+
+### 10. `onSelect` Receives No Argument in 1.x
+
+cmdk calls `onSelect(value)`. In modern-cmdk 1.x `Command.Item`'s `onSelect` is `() => void` (`packages/modern-cmdk/src/react/item.tsx:15`), so a handler that declares a required parameter fails tsc (TS2322, "Target signature provides too few arguments"), and one whose parameter is optional compiles but receives `undefined` at run time. Read the value from the closure of the item you render, as the After sample does. The root's `onSelect` and `onActiveChange` options receive the item id (generated by `useId()` unless the item sets `forceId`), not its value, and `onActiveChange` fires when the highlight moves, not on selection. The value arrives as the first argument in 2.0.
 
 ::: code-group
-```css [Before (cmdk)]
-[cmdk-item][data-selected="true"] {
-  background: #f0f0f0;
-}
+```tsx fragment [Before (cmdk)]
+<Command.Item onSelect={(value) => run(value)}>Open</Command.Item>
 ```
 
-```css [After (modern-cmdk/react)]
-[data-command-item][data-active] {
-  background: var(--color-primary-subtle);
+```tsx [After (modern-cmdk/react)]
+import { Command } from 'modern-cmdk/react';
+
+function run(value: string): void {
+  console.log(value);
+}
+
+export function OpenItem() {
+  return (
+    <Command.Item value="open" onSelect={() => run('open')}>
+      Open
+    </Command.Item>
+  );
 }
 ```
 :::
-
-The `data-selected="true"` attribute is replaced with `data-active` (presence-based, no value).
 
 ## Full Before/After Comparison
 
@@ -295,28 +431,32 @@ function CommandPalette() {
 
 | cmdk | modern-cmdk/react | Notes |
 |---|---|---|
-| `import { Command } from 'cmdk'` | `import { Command } from 'modern-cmdk/react'` | Import path |
-| `[cmdk-root]` | `[data-command-root]` | Manual: the `data-attrs` codemod currently writes `[data-command]` for the root, which matches nothing modern-cmdk emits (planned fix in 1.5.0) -- correct it by hand |
-| `[cmdk-input]` | `[data-command-input]` | Codemod: `data-attrs` |
-| `[cmdk-item]` | `[data-command-item]` | Codemod: `data-attrs` |
-| `[cmdk-group]` | `[data-command-group]` | Codemod: `data-attrs` |
-| `[cmdk-group-heading]` | `[data-command-group-heading]` | Manual: not covered by the codemod |
-| `[cmdk-group-items]` | `[data-command-group-items]` | Manual: not covered by the codemod |
-| `[cmdk-dialog]` | `[data-command-dialog]` | Manual: not covered by the codemod; set on the Radix `Dialog.Content` element, which wraps the inner `[data-command-dialog-content]` |
-| `[cmdk-overlay]` | `[data-command-overlay]` | Manual: not covered by the codemod |
-| `[cmdk-list-sizer]` | no equivalent | modern-cmdk does not render this element; the list renders its own inner wrapper, `[data-command-list-inner]`, which is not a rename of it |
-| `[cmdk-list]` | `[data-command-list]` | Codemod: `data-attrs` |
-| `[cmdk-separator]` | `[data-command-separator]` | Codemod: `data-attrs` |
-| `[cmdk-empty]` | `[data-command-empty]` | Codemod: `data-attrs` |
-| `[cmdk-loading]` | `[data-command-loading]` | Codemod: `data-attrs` |
-| `--cmdk-list-height` | `--command-list-height` | Codemod: `data-attrs` inside JS/TS strings only; rename by hand in `.css` |
-| `shouldFilter={false}` | `filter={false}` | Also accepts filter function |
+| `import { Command } from 'cmdk'` | `import { Command } from 'modern-cmdk/react'` | Import path; `import-rewrite` |
+| `[cmdk-*]`, `--cmdk-list-height` | `[data-command-*]`, `--command-list-height` | See the [attribute table](#attributes-css-and-tailwind) |
+| `data-selected="true"` | `data-active` | Presence-based attribute |
+| `shouldFilter={false}` | `filter={false}` | `filter` also takes `(item, query) => number \| false` |
+| Item `value` inferred from text | Item `value` required | Breaking change 1 |
+| Controlled `Command.Input` `value` | Uncontrolled input, `onValueChange` observes | Breaking change 2 |
+| Root `value` and `onValueChange` | `onActiveChange` | Breaking change 3 |
+| `vimBindings`, `disablePointerSelection` | Removed | Breaking change 4 |
 | `React.forwardRef` | `ref` as regular prop | React 19 native |
-| No `"use client"` | `"use client"` on every component | RSC boundary |
-| No virtualization | Automatic at 100+ items | Opt-out with `virtualize={false}` |
+| No virtualization | Automatic above 100 matching items (off again at 50 or fewer) | Opt-out with `virtualize={false}` |
 | `@radix-ui/react-dialog` | `radix-ui` (peer `>=1.4.0 <2.0.0`) | Unified package |
 | `use-sync-external-store` shim | Native `useSyncExternalStore` | React 19 built-in |
-| `data-selected="true"` | `data-active` | Presence-based attribute |
+| `defaultValue` on the root | Removed | Breaking change 9; no equivalent |
+| `forceMount` on `Item` and `Group` | Removed | Breaking change 9; no equivalent |
+| `progress` on `Command.Loading` | Removed | Breaking change 9; no equivalent |
+| Root `div` props | Removed | Breaking change 9; the root forwards no div props, only `className` and `label` |
+| `alwaysRender` on `Command.Separator` | Not accepted | Breaking change 9; no equivalent |
+| `label` on `Command.Loading` and `Command.List` | Not accepted | Breaking change 9; no equivalent |
+| `value` on `Command.Group` | Not accepted | Breaking change 9; no equivalent |
+| `ReactNode` `heading` on `Command.Group` | `heading` is a `string` | Breaking change 9 |
+| `asChild` on every part | Not accepted | Breaking change 9; no equivalent |
+| `role` on `Command.Input` | Not accepted | Breaking change 9; the input is always `combobox` |
+| `defaultValue` on `CommandDialog` | Not accepted | Breaking change 9; no equivalent |
+| `defaultOpen` and `modal` on `CommandDialog` | Not accepted | Breaking change 9; no equivalent |
+| `CommandDialog` `div` props | Not forwarded | Breaking change 9; tsc rejects the unhyphenated ones, a `data-*` or `aria-*` attribute compiles and is dropped |
+| Item `onSelect(value)` | `onSelect()` (no argument; the value arrives in 2.0) | Breaking change 10 |
 
 ## New Features Available After Migration
 
@@ -325,7 +465,7 @@ After migrating, you get access to features not available in cmdk:
 - **[Frecency ranking](/guide/frecency)** -- Items ranked by frequency + recency via `Date.now()`
 - **[Keyboard shortcuts](/guide/shortcuts)** -- Built-in registry with `<Command.Shortcut />`
 - **[Fuzzy search](/guide/wasm-search)** -- Optional WASM-accelerated search for large datasets
-- **[Virtualization](/guide/virtualization)** -- Automatic for 100+ items
+- **[Virtualization](/guide/virtualization)** -- Automatic above 100 matching items
 - **[Match highlighting](/api/command-react#command-highlight)** -- `<Command.Highlight />` component
 - **[Async items](/guide/async-items)** -- `<Command.AsyncItems />` with Suspense
 - **[Multi-page navigation](/api/command-react#command-page)** -- `<Command.Page />` with a page stack (Backspace pops)

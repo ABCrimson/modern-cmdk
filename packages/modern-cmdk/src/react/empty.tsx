@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/empty.tsx
 // <Command.Empty> — role="status", aria-live="polite"
 // Portals into a container outside the listbox for valid ARIA structure

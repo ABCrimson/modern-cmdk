@@ -1,0 +1,51 @@
+{
+  "name": "modern-cmdk-codemod",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Codemods that migrate cmdk code to modern-cmdk",
+  "license": "MIT",
+  "homepage": "https://github.com/ABCrimson/modern-cmdk/tree/main/packages/modern-cmdk-codemod#readme",
+  "bugs": {
+    "url": "https://github.com/ABCrimson/modern-cmdk/issues"
+  },
+  "engines": {
+    "node": ">=26.4.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "modern-cmdk-codemod": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "jscodeshift": "catalog:"
+  },
+  "devDependencies": {
+    "@types/jscodeshift": "catalog:",
+    "@types/node": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "keywords": [
+    "codemod",
+    "jscodeshift",
+    "cmdk",
+    "modern-cmdk",
+    "migration",
+    "command-palette",
+    "react"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ABCrimson/modern-cmdk.git",
+    "directory": "packages/modern-cmdk-codemod"
+  }
+}

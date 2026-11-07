@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/input.tsx
 // <Command.Input> — urgent local input value, stable callbacks, ARIA combobox role
 // The machine applies SEARCH_CHANGE on its scheduler tick (rAF in browsers), so machine state lags

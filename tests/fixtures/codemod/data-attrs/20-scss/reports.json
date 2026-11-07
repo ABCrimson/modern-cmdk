@@ -1,0 +1,3 @@
+[
+  "line 38: [data-selected=\"true\"] under a rule whose selectors only partly hold a cmdk attribute cannot be migrated automatically; left unchanged"
+]

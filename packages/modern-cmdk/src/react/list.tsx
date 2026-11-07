@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/list.tsx
 // <Command.List> — auto-virtualization when filteredCount > 100, ResizeObserver for height
 // Scroll container with a named scroll-timeline, aria-live announcements, scroll-to-active on keyboard nav

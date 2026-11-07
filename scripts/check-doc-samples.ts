@@ -1,11 +1,12 @@
 // scripts/check-doc-samples.ts
-// TEB-84: type-checks every fenced ts, tsx and typescript sample of the docs and the three READMEs listed in DEFAULT_FILES
+// TEB-84: type-checks every fenced ts, tsx and typescript sample of the docs and the six READMEs listed in DEFAULT_FILES
 // against the built package, so a broken sample cannot ship. Runs with Node's native type stripping:
 //
 //   node scripts/check-doc-samples.ts [--root <dir>] [--out <dir>] [--skip-wasm]
 //
 // Roots (default): apps/docs/**/*.md (node_modules, .vitepress/cache and dist excluded), README.md,
-// packages/modern-cmdk/README.md and packages/create-modern-cmdk/README.md. --root <dir> scans the
+// and the READMEs of packages/modern-cmdk, packages/modern-cmdk-codemod, packages/create-modern-cmdk,
+// packages/vscode-modern-cmdk and packages/command-search-wasm. --root <dir> scans the
 // *.md files under <dir> instead (the gate's own bite test points it at restored sample text).
 //
 // Each sample is written to node_modules/.cache/doc-samples/<slug>-L<line>.<ext> (or under --out <dir>, a
@@ -41,10 +42,13 @@ const OUT_DIR: string = join(ROOT, 'node_modules/.cache/doc-samples');
 const TSC: string = join(ROOT, 'node_modules/typescript/bin/tsc');
 const SKIP_DIRS: ReadonlySet<string> = new Set(['node_modules', 'cache', 'dist', '.git']);
 const LANGS: ReadonlySet<string> = new Set(['ts', 'tsx', 'typescript']);
-const DEFAULT_FILES: readonly string[] = [
+export const DEFAULT_FILES: readonly string[] = [
   'README.md',
   'packages/modern-cmdk/README.md',
+  'packages/modern-cmdk-codemod/README.md',
   'packages/create-modern-cmdk/README.md',
+  'packages/vscode-modern-cmdk/README.md',
+  'packages/command-search-wasm/README.md',
 ];
 
 export interface Sample {
@@ -136,7 +140,7 @@ function scanTargets(root: string | undefined): { dir: string; files: string[] }
 }
 
 /** The samples' tsconfig: extends and paths are written relative to the directory it lands in. */
-function tsconfigFor(outDir: string): Record<string, unknown> {
+export function tsconfigFor(outDir: string): Record<string, unknown> {
   const up: string = relative(outDir, ROOT).split(sep).join('/');
   return {
     extends: `${up}/tsconfig.base.json`,

@@ -1,0 +1,115 @@
+{
+  "sha": "d5ce6ff",
+  "date": "2026-11-07T00:14:48.594Z",
+  "sizeLimit": "14.3.0",
+  "node": "v28.0.0-nightly20261106ec4d4c2950",
+  "unit": "bytes (gzip for the js and css entries; the codemod entries are the installed size of the files named, no compression; tarballs: npm pack --dry-run --json unpackedSize and size, in bytes)",
+  "entries": [
+    {
+      "name": "modern-cmdk (core)",
+      "path": "packages/modern-cmdk/dist/core/index.mjs",
+      "size": 6399,
+      "limit": 6500
+    },
+    {
+      "name": "modern-cmdk/react (adapter only)",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
+      "size": 5539,
+      "limit": 5600
+    },
+    {
+      "name": "modern-cmdk/react/dialog (adapter only)",
+      "path": "packages/modern-cmdk/dist/react/dialog.mjs",
+      "size": 1422,
+      "limit": 1500
+    },
+    {
+      "name": "modern-cmdk/react: CommandSeparator only",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
+      "size": 4812,
+      "limit": 5000
+    },
+    {
+      "name": "modern-cmdk + modern-cmdk/react",
+      "path": "packages/modern-cmdk/dist/react/index.mjs",
+      "size": 10003,
+      "limit": 10100
+    },
+    {
+      "name": "modern-cmdk/styles.css",
+      "path": "packages/modern-cmdk/dist/react/styles.css",
+      "size": 3959,
+      "limit": 4000
+    },
+    {
+      "name": "modern-cmdk codemod bin (installed size)",
+      "path": [
+        "packages/modern-cmdk/dist/codemod/*.mjs",
+        "packages/modern-cmdk/dist/codemod/transforms/*.mjs"
+      ],
+      "size": 3150372,
+      "limit": 3400000
+    },
+    {
+      "name": "modern-cmdk codemod shim (bin.mjs)",
+      "path": "packages/modern-cmdk/dist/codemod/bin.mjs",
+      "size": 897,
+      "limit": 1000
+    },
+    {
+      "name": "modern-cmdk-codemod (own files, dependencies excluded)",
+      "path": [
+        "packages/modern-cmdk-codemod/dist/*.mjs",
+        "packages/modern-cmdk-codemod/dist/transforms/*.mjs"
+      ],
+      "size": 98030,
+      "limit": 100000
+    }
+  ],
+  "tarballs": {
+    "modern-cmdk@1.4": {
+      "sha": "b77f133",
+      "note": "not on npm; built from release/1.4.0 in a throwaway worktree (pnpm install --frozen-lockfile --ignore-scripts, pnpm --filter modern-cmdk run build); the manifest still reads 1.2.3 because changesets versions at publish; no THIRD-PARTY-NOTICES.md and no dist/codemod/bin.mjs shim in 1.4",
+      "unpackedSize": 3473079,
+      "tarballSize": 992157,
+      "entryCount": 16,
+      "codemodUnpackedSize": 3325793,
+      "runtimeUnpackedSize": 147286,
+      "thirdPartyNotices": null,
+      "codemodShim": null
+    },
+    "modern-cmdk@1.5-rc": {
+      "sha": "d5ce6ff",
+      "unpackedSize": 3315632,
+      "tarballSize": 962822,
+      "entryCount": 22,
+      "codemodUnpackedSize": 3150372,
+      "runtimeUnpackedSize": 165260,
+      "thirdPartyNotices": 12876,
+      "codemodShim": 897,
+      "runtimeUnpackedSizeWithoutNotices": 152384,
+      "note": "the manifest still reads 1.2.3 (changesets versions at publish); runtimeUnpackedSize = unpackedSize minus every file under dist/codemod/ (the shim bin.mjs is in the codemod part); THIRD-PARTY-NOTICES.md is in the runtime part and listed separately"
+    },
+    "modern-cmdk-codemod@1.5-rc": {
+      "sha": "d5ce6ff",
+      "unpackedSize": 113416,
+      "tarballSize": 33119,
+      "entryCount": 11,
+      "note": "manifest version 0.0.0 until the first changeset versions it to 1.0.0; jscodeshift and its dependencies are not in the tarball"
+    },
+    "create-modern-cmdk@1.5-rc": {
+      "sha": "d5ce6ff",
+      "unpackedSize": 25329,
+      "tarballSize": 8907,
+      "entryCount": 4,
+      "note": "the manifest still reads 1.2.2 (changesets versions at publish)"
+    }
+  },
+  "measuredWith": {
+    "pack": "npm pack --dry-run --json, run in packages/modern-cmdk, packages/modern-cmdk-codemod and packages/create-modern-cmdk on the committed release candidate tree after a fresh pnpm build (npm 12.1.0, the npm bundled with the pinned Node, prints an object keyed by package name); the modern-cmdk@1.4 block was measured in the release/1.4.0 worktree described under worktree14",
+    "codemodPart": "the sum of the sizes of the files under dist/codemod/ in the modern-cmdk pack listing; runtime = unpackedSize minus that sum",
+    "sizeLimit": "pnpm build (a fresh build of every package), then pnpm exec size-limit --json (reads the size-limit config of the root package.json)",
+    "worktree14": "git worktree add <scratchpad>/probe-W6-01 release/1.4.0; pnpm install --frozen-lockfile --ignore-scripts; pnpm --filter modern-cmdk run build; removed afterwards (rm -rf, git worktree prune)",
+    "prepack": "no prepack script in packages/*/package.json (grep -n prepack, no match)"
+  }
+}

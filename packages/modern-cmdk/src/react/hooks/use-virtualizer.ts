@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/hooks/use-virtualizer.ts
 // Virtualization hook — ResizeObserver + requestIdleCallback for measurement
 // Item offsets that item.tsx applies with the `translate` property; content-visibility: auto comes from styles.css ([data-command-item]), not this hook

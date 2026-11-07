@@ -58,7 +58,7 @@ Compound component API that bridges the core state machine to React 19:
 - **`useTransition`** -- Wraps only the optimistic active-item update; `Command.Input` keeps an urgent draft value and the machine catches up on its scheduler tick, so `isPending` never reflects a search
 - **`useOptimistic`** -- Optimistic active item updates for instant visual feedback
 - **`ref` as prop** -- React 19 native ref forwarding (no `forwardRef`)
-- **`"use client"` directive** -- All components are client-only
+- **`"use client"` directive** -- The shipped React components are client-only: `dist/react/index.mjs` and `dist/react/dialog.mjs` begin with the directive, added as a banner by `packages/modern-cmdk/tsdown.config.ts` (the source files under `src/react` do not carry it)
 - **Radix UI integration** -- Dialog with focus trap, portal, overlay
 
 ### Layer 3: Optional Plugins
@@ -274,8 +274,8 @@ class RedisFrecencyStorage implements FrecencyStorage {
 `packages/modern-cmdk/tsdown.config.ts` holds three tsdown configs:
 
 1. **The core** (`dist/core/index.mjs`, with declarations).
-2. **The React adapter**: two entries, `modern-cmdk/react` and `modern-cmdk/react/dialog`, in one config so the code both use (context, hooks, `CommandDialog`) is emitted once as a shared chunk in `dist/react`. The core is external: the adapter imports it as `modern-cmdk`, so a bundle holds one core, not a second copy inlined into the adapter. `radix-ui` stays external too, and every output carries a `'use client'` banner. `styles.css` is copied to `dist/react/styles.css`.
-3. **The codemod** (`dist/codemod`): the CLI and its transforms, bundled with their dependencies, without declarations because it is a CLI and not an importable API.
+2. **The React adapter**: two entries, `modern-cmdk/react` and `modern-cmdk/react/dialog`, in one config so the code both use (context, hooks, `CommandDialog`) is emitted once as a shared chunk in `dist/react`. The core is external: the adapter imports it as `modern-cmdk`, so a bundle holds one core, not a second copy inlined into the adapter. `radix-ui` stays external too, and the two React outputs (`react/index.mjs`, `react/dialog.mjs`) begin with `'use client'`: the banner comes from this config, and no file under `src/react` carries the directive. `styles.css` is copied to `dist/react/styles.css`.
+3. **The codemod** (`dist/codemod`): the deprecated `modern-cmdk` bin. Its source lives in the sibling package `packages/modern-cmdk-codemod` (bin `modern-cmdk-codemod`); this config builds `cli.mjs`, the worker and the transforms from that source, bundled with jscodeshift and its parser tree (ten packages), behind the shim `dist/codemod/bin.mjs`, which warns once and keeps the 1.x exit codes and 1.4's excludes until 2.0. `modern-cmdk` ships `THIRD-PARTY-NOTICES.md` for the bundled code (`pnpm check:notices`). Neither `modern-cmdk` nor `modern-cmdk-codemod` ships declarations for the codemod, because it is a CLI and not an importable API.
 
 `sideEffects` in `packages/modern-cmdk/package.json` is `["./dist/react/styles.css"]` only. `Command.Dialog` is a member of the `Command` compound, so every `modern-cmdk/react` import loads `radix-ui`, and `radix-ui` is a required peer dependency (`>=1.4.0 <2.0.0`) through 1.x. See [Server-Side Rendering](/guide/ssr#tree-shaking) for the measured consequence for bundle size.
 

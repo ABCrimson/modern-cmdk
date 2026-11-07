@@ -1,6 +1,7 @@
 // modern-cmdk-search-wasm — Optional WASM-accelerated fuzzy search
 // ESNext target — TypeScript 7.1 — ESM-only
 
+export type { FallbackSearchEngine, WasmSearchEngine } from './wasm-engine.js';
 export { createWasmSearchEngine } from './wasm-engine.js';
 export type { WorkerMessage, WorkerResponse } from './worker.js';
 export type {

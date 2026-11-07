@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.6.5/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.6/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -113,7 +113,7 @@
       }
     },
     {
-      "includes": ["packages/modern-cmdk/src/codemod/**"],
+      "includes": ["packages/modern-cmdk-codemod/src/**"],
       "linter": {
         "rules": {
           "suspicious": {
@@ -173,7 +173,8 @@
       "!node_modules/",
       "!packages/modern-cmdk/src/react/primitives.ts",
       "!DECISIONS.md",
-      "!docs/ledger/findings.json"
+      "!docs/ledger/findings.json",
+      "!tests/fixtures"
     ]
   }
 }

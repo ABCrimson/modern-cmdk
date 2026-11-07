@@ -150,7 +150,7 @@ When no results match the query, `<Command.Empty>` renders with `role="status"` 
 </div>
 ```
 
-The list's own `aria-busy` mirrors `state.loading`, which nothing sets to `true` in 1.4.0 (ARCH-59 tracks the core change), so it stays `"false"`.
+The list's own `aria-busy` mirrors `state.loading`, which is `true` while any `<Command.AsyncItems>` is pending (the machine's `LOADING` event, sent while its `fallback` is mounted), so assistive technology is told the list is busy until the items resolve.
 
 ## `forced-colors: active` Support
 

@@ -1,0 +1,6 @@
+[
+  "declare module 'cmdk' was left unchanged; move the declaration to 'modern-cmdk/react' by hand",
+  "'cmdk/dist/x' is a cmdk subpath with no modern-cmdk/react counterpart; left unchanged",
+  "'cmdk/package.json' is a cmdk subpath with no modern-cmdk/react counterpart; left unchanged",
+  "'cmdk/foo' is a cmdk subpath with no modern-cmdk/react counterpart; left unchanged"
+]

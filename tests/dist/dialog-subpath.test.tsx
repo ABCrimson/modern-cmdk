@@ -33,7 +33,6 @@ const load = async (): Promise<{ react: DistReact; dialog: DistDialog }> => ({
 
 describe.skipIf(!distBuilt)('built package: modern-cmdk/react/dialog', () => {
   it('modern-cmdk/react/dialog exports the same CommandDialog as modern-cmdk/react', async () => {
-    expect.hasAssertions();
     const { react, dialog } = await load();
     expect(Object.keys(dialog)).toEqual(['CommandDialog']);
     expect(dialog.CommandDialog).toBe(react.CommandDialog);
@@ -41,7 +40,6 @@ describe.skipIf(!distBuilt)('built package: modern-cmdk/react/dialog', () => {
   });
 
   it('renders the subpath CommandDialog open and filters its items', async () => {
-    expect.hasAssertions();
     const { react, dialog } = await load();
     const { Command } = react;
     render(

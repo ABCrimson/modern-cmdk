@@ -15,7 +15,7 @@
 //   2. the app under tests/consumers/<app> is copied into os.tmpdir()/modern-cmdk-consumer-<variant>-*
 //      and gets dependencies['modern-cmdk'] = file:<tarball>;
 //   3. pnpm-workspace.yaml in the copy: packages ['.'], the root file's supply-chain keys read now
-//      (never packages or overrides) and the app's release-age-exclude.json entries;
+//      (never packages or overrides) and the app's release-age-exclude.json entries, each spec once;
 //   4. pnpm install; then `require.resolve('modern-cmdk/package.json')` in the copy (the './package.json'
 //      export; it must print a path inside node_modules/modern-cmdk); for vite the app's pinned
 //      TypeScript, `tsc --noEmit -p .` (next type-checks inside `next build`); then the build
@@ -41,7 +41,7 @@
 // the adapter and the apps call) reaches FrecencyEngine, so each core copy in the client output
 // carries the literal once.
 
-import type { ChildProcess } from 'node:child_process';
+import type { ChildProcess, ChildProcessByStdio } from 'node:child_process';
 import { spawn, spawnSync } from 'node:child_process';
 import type { Dirent } from 'node:fs';
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -51,6 +51,7 @@ import type { AddressInfo } from 'node:net';
 import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { extname, join, resolve, sep } from 'node:path';
+import type { Readable } from 'node:stream';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
@@ -299,7 +300,10 @@ export function buildWorkspaceYaml(
       const base: readonly YamlScalar[] = Array.isArray(value)
         ? (value as readonly YamlScalar[])
         : [];
-      value = [...base, ...excludes.map((entry: ReleaseAgeExclude): string => entry.spec)];
+      // A Set keeps each spec once, in first-seen order (the root list first).
+      value = [
+        ...new Set([...base, ...excludes.map((entry: ReleaseAgeExclude): string => entry.spec)]),
+      ];
       if (value.length === 0) continue;
     }
     if (value === undefined) continue;
@@ -334,17 +338,43 @@ function tail(output: string): string {
   return output.split(/\r?\n/).slice(-TAIL_LINES).join('\n');
 }
 
-function killTree(child: ChildProcess): void {
-  if (child.pid === undefined || child.exitCode !== null) return;
+export function killTree(child: ChildProcess): void {
+  if (child.pid === undefined) return;
   if (IS_WINDOWS) {
-    spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
-  } else {
-    child.kill('SIGKILL');
+    spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+      stdio: 'ignore',
+      timeout: 30_000,
+    });
+    return;
+  }
+  // A detached child leads its own process group, so -pid reaches grandchildren holding the pipes.
+  try {
+    process.kill(-child.pid, 'SIGKILL');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+    // ESRCH means no such group: either the child is gone (nothing to kill) or it is alive but not
+    // a group leader, and then only the direct child can be killed.
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
   }
 }
 
+/** Spawns a long-lived served app with piped output; on POSIX it leads its own process group, so killTree reaches it. */
+export function spawnServer(
+  command: string,
+  args: readonly string[],
+  options: { readonly cwd: string; readonly env?: Readonly<Record<string, string | undefined>> },
+): ChildProcessByStdio<null, Readable, Readable> {
+  return spawn(command, [...args], {
+    cwd: options.cwd,
+    env: { ...process.env, ...options.env },
+    windowsHide: true,
+    detached: !IS_WINDOWS,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
+
 /** Runs a command to completion with a hard timeout; output is captured, never streamed. */
-function run(
+export function run(
   command: string,
   args: readonly string[],
   options: {
@@ -364,6 +394,7 @@ function run(
         cwd: options.cwd,
         env: { ...process.env, CI: '1', NEXT_TELEMETRY_DISABLED: '1', ...options.env },
         windowsHide: true,
+        detached: !IS_WINDOWS,
       },
     );
     let output = '';
@@ -463,7 +494,7 @@ async function waitForOk(
 // --- next start on Node 27+ ------------------------------------------------------------------
 
 // Node 27 and 28 create http.IncomingMessage#headers with a null prototype (verified on
-// v27.0.0-alpha.0 and v28.0.0-nightly20261104). Next 16.5.0-canary.40 and canary.41 (the pin; re-checked 2026-11-05) call
+// v27.0.0-alpha.0 and v28.0.0-nightly20261106). Next 16.5.0-canary.40 through canary.43 (the pin; re-checked 2026-11-07) call
 // `headers.hasOwnProperty(...)` on it in app-page-turbo.runtime.prod.js, so every request to
 // `next start` answers 500 'TypeError: e.hasOwnProperty is not a function'. That is a Next-on-Node
 // fault, not a modern-cmdk one, but it would end the Next variants before any modern-cmdk check
@@ -587,6 +618,8 @@ async function prepareApp(variant: Variant, tarball: string, tempDirs: string[])
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   const rootYaml = parseWorkspaceYaml(await readFile(join(ROOT, 'pnpm-workspace.yaml'), 'utf8'));
+  // Both app lists are empty: next is a root devDependency (D57), so a next spec younger than the 24 h
+  // minimumReleaseAge goes in the root minimumReleaseAgeExclude; an entry here is for a spec only this app installs.
   const excludes = (await readJson(join(dir, 'release-age-exclude.json'))) as ReleaseAgeExclude[];
   await writeFile(join(dir, 'pnpm-workspace.yaml'), buildWorkspaceYaml(rootYaml, excludes));
   return dir;
@@ -759,15 +792,10 @@ async function runVariant(
       await writeFile(shim, NODE_HEADERS_SHIM);
       process.stdout.write(`  next start runs with ${NODE_HEADERS_SHIM_NOTE}\n`);
       result.workarounds.push(NODE_HEADERS_SHIM_NOTE);
-      const started = spawn(
+      const started = spawnServer(
         node,
         ['--require', shim, nextBin, 'start', '--hostname', '127.0.0.1', '--port', String(port)],
-        {
-          cwd: dir,
-          env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' },
-          windowsHide: true,
-          stdio: ['ignore', 'pipe', 'pipe'],
-        },
+        { cwd: dir, env: { NEXT_TELEMETRY_DISABLED: '1' } },
       );
       const collect = (chunk: Buffer): void => {
         serverOutput = (serverOutput + chunk.toString('utf8')).slice(-65_536);

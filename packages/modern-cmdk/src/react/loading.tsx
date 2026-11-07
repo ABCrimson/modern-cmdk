@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/loading.tsx
 // <Command.Loading> — aria-busy, Suspense boundary integration
 // React 19: use() for context, ref as prop

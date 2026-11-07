@@ -18,7 +18,10 @@
     "../benchmarks/standalone/compare-rules.ts",
     "../vitest.config.ts",
     "../playwright.config.ts",
-    "../packages/modern-cmdk/src/core/es2026.d.ts"
+    "../packages/modern-cmdk/src/core/es2026.d.ts",
+    "../packages/create-modern-cmdk/templates/*/src/App.tsx",
+    "../packages/create-modern-cmdk/src/raw.d.ts",
+    "../packages/create-modern-cmdk/src/env.d.ts"
   ],
   "exclude": ["dist/**", "e2e/**"]
 }

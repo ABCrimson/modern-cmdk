@@ -211,7 +211,7 @@
   },
   {
     "id": "TEB-38",
-    "test": "benchmarks/standalone/compare-baseline.ts::afterEach: () => {",
+    "test": "benchmarks/standalone/compare-baseline.ts::subscription = machine = stateChanged = undefined;",
     "status": "gate"
   },
   {
@@ -268,5 +268,435 @@
     "id": "RDG-68",
     "test": null,
     "status": "pending"
+  },
+  {
+    "id": "ARCH-10",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-1, RC-1, TUB-01, RP-07, DG-05, DA-9, ARCH-10: cmdk-root maps to data-command-root in JSX",
+    "status": "covered"
+  },
+  {
+    "id": "ARCH-11",
+    "test": "tests/fixtures/codemod/should-filter/ARCH-11-cmdk-filter-adapter/output.tsx::(byValue as (value: string, search: string, keywords?: string[]) => number)(item.value, query",
+    "status": "covered"
+  },
+  {
+    "id": "ARCH-59",
+    "test": "tests/unit/loading-state.test.tsx::ARCH-59: a pending AsyncItems shows Command.Loading and aria-busy, both clear after it resolves",
+    "status": "covered"
+  },
+  {
+    "id": "CLI-2",
+    "test": "tests/unit/codemod-cli.test.ts::CLI-PERF: %s is a usage error (exit 0 lenient, 2 strict; nothing written)",
+    "status": "covered"
+  },
+  {
+    "id": "CLI-3",
+    "test": "tests/unit/codemod-cli.test.ts::CLI-3, RP-16: a .js file containing JSX is rewritten (babel parser)",
+    "status": "covered"
+  },
+  {
+    "id": "CLI-4",
+    "test": "tests/unit/codemod-cli.test.ts::CLI-4: a directory argument covers script files and skips every other extension",
+    "status": "covered"
+  },
+  {
+    "id": "CLI-5",
+    "test": "tests/unit/codemod-cli.test.ts::a transform that throws on a file reports \"path: message\", exit 0, strict 1",
+    "status": "covered"
+  },
+  {
+    "id": "CV-02",
+    "test": "tests/unit/create-cli.test.ts::--help prints usage and the template list to stdout, exit 0",
+    "status": "covered"
+  },
+  {
+    "id": "CV-05",
+    "test": "tests/unit/create-cli.test.ts::CV-70, CV-05, RP-12: --template=react-full prints one deprecation line and scaffolds react-basic",
+    "status": "covered"
+  },
+  {
+    "id": "CV-06",
+    "test": "tests/unit/create-cli.test.ts::react-dialog writes a controlled dialog with a Mod+K listener",
+    "status": "covered"
+  },
+  {
+    "id": "CV-13",
+    "test": ".github/workflows/ci.yml::pnpm check:snippets",
+    "status": "gate"
+  },
+  {
+    "id": "CV-14",
+    "test": ".github/workflows/ci.yml::pnpm check:snippets",
+    "status": "gate"
+  },
+  {
+    "id": "CV-15",
+    "test": ".github/workflows/ci.yml::pnpm check:snippets",
+    "status": "gate"
+  },
+  {
+    "id": "CV-16",
+    "test": ".github/workflows/ci.yml::pnpm check:snippets",
+    "status": "gate"
+  },
+  {
+    "id": "CV-17",
+    "test": ".github/workflows/ci.yml::pnpm check:snippets",
+    "status": "gate"
+  },
+  {
+    "id": "CV-20",
+    "test": "tests/unit/create-cli.test.ts::the space form --template <name> is honoured",
+    "status": "covered"
+  },
+  {
+    "id": "CV-21",
+    "test": "tests/unit/create-cli.test.ts::CV-21, SEC-11: a non-empty target lists the files this run will overwrite on stderr before any write",
+    "status": "covered"
+  },
+  {
+    "id": "CV-22",
+    "test": "tests/unit/create-cli.test.ts::CV-22: the package name is derived from the basename",
+    "status": "covered"
+  },
+  {
+    "id": "CV-23",
+    "test": "tests/unit/create-cli.test.ts::CV-23: a failed write removes only what this run created",
+    "status": "covered"
+  },
+  {
+    "id": "CV-29",
+    "test": "tests/unit/vscode-manifest.test.ts::CV-58: cmd-machine is contributed to typescript and javascript",
+    "status": "covered"
+  },
+  {
+    "id": "CV-30",
+    "test": "tests/unit/vscode-snippets-dialog.test.tsx::CV-30: the expanded cmd-dialog opens on Ctrl+K and with Caps Lock (key K)",
+    "status": "covered"
+  },
+  {
+    "id": "CV-55",
+    "test": "tests/unit/vscode-manifest.test.ts::CV-55: cmd-action passes the action isPending to Command.Loading",
+    "status": "covered"
+  },
+  {
+    "id": "CV-56",
+    "test": "tests/unit/vscode-snippets-optimistic.test.tsx::CV-76: selecting an item in cmd-optimistic renders one Command.Item per entry and no duplicate key",
+    "status": "covered"
+  },
+  {
+    "id": "CV-70",
+    "test": "tests/unit/create-cli.test.ts::CV-70, CV-05, RP-12: --template=react-full prints one deprecation line and scaffolds react-basic",
+    "status": "covered"
+  },
+  {
+    "id": "CV-72",
+    "test": "tests/unit/create-templates.test.tsx::CV-72: the react-dialog template opens on Mod+K with key K (Caps Lock)",
+    "status": "covered"
+  },
+  {
+    "id": "CV-73",
+    "test": "tests/unit/create-cli.test.ts::CV-48, CV-73, DT-06: main.tsx imports modern-cmdk/styles.css and tsconfig has types vite/client",
+    "status": "covered"
+  },
+  {
+    "id": "CV-74",
+    "test": "tests/unit/create-cli.test.ts::CV-74: validateTarget refuses Windows-illegal names for win32 only",
+    "status": "covered"
+  },
+  {
+    "id": "CV-76",
+    "test": "tests/unit/vscode-snippets-optimistic.test.tsx::CV-76: selecting an item in cmd-optimistic renders one Command.Item per entry and no duplicate key",
+    "status": "covered"
+  },
+  {
+    "id": "CV-77",
+    "test": "tests/unit/vscode-manifest.test.ts::CV-77: every snippet file is contributed to languages its bodies are valid in",
+    "status": "covered"
+  },
+  {
+    "id": "DA-1",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-1, RC-1, TUB-01, RP-07, DG-05, DA-9, ARCH-10: cmdk-root maps to data-command-root in JSX",
+    "status": "covered"
+  },
+  {
+    "id": "DA-2",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-2, RC-21, TUB-02, ARCH-10: the five missing attributes map in selector strings",
+    "status": "covered"
+  },
+  {
+    "id": "DA-3",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-3, ARCH-10: data-selected and data-disabled values become data-active and data-disabled inside a cmdk compound",
+    "status": "covered"
+  },
+  {
+    "id": "DA-4",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-4, RP-17, SEC-30, DG-06: a .css file has selectors and --cmdk-list-height rewritten, comments and formatting untouched",
+    "status": "covered"
+  },
+  {
+    "id": "DA-5",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-5: empty, single-quoted, ~= and unquoted attribute selectors are rewritten, operator and value kept",
+    "status": "covered"
+  },
+  {
+    "id": "DA-7",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-7: a single-quoted file stays single-quoted, inner quotes unescaped",
+    "status": "covered"
+  },
+  {
+    "id": "DA-10",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-10: cmdk-label and cmdk-item-select stay unchanged, one report per site",
+    "status": "covered"
+  },
+  {
+    "id": "DG-05",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-1, RC-1, TUB-01, RP-07, DG-05, DA-9, ARCH-10: cmdk-root maps to data-command-root in JSX",
+    "status": "covered"
+  },
+  {
+    "id": "DT-06",
+    "test": "tests/unit/create-cli.test.ts::CV-48, CV-73, DT-06: main.tsx imports modern-cmdk/styles.css and tsconfig has types vite/client",
+    "status": "covered"
+  },
+  {
+    "id": "DT-67",
+    "test": "lefthook.yml::glob: \"{packages/*/src/**,packages/*/tsdown.config.ts,package.json}\"",
+    "status": "gate"
+  },
+  {
+    "id": "DT-68",
+    "test": "tests/unit/check-package.test.ts::SEC-33: a real import() after a string holding // on the same line is reported",
+    "status": "covered"
+  },
+  {
+    "id": "DT-69",
+    "test": "tests/unit/consumer-smoke.test.ts::a timeout ends the step even when a grandchild holds the pipes, and the grandchild dies",
+    "status": "covered"
+  },
+  {
+    "id": "DT-70",
+    "test": "tests/unit/consumer-smoke.test.ts::ends the served app spawned by spawnServer",
+    "status": "covered"
+  },
+  {
+    "id": "DT-71",
+    "test": "vitest.config.ts::testTimeout: 30_000",
+    "status": "gate"
+  },
+  {
+    "id": "F5",
+    "test": "tests/unit/create-cli.test.ts::CV-70, CV-05, RP-12: --template=react-full prints one deprecation line and scaffolds react-basic",
+    "status": "covered"
+  },
+  {
+    "id": "FR-1",
+    "test": "tests/fixtures/codemod/forward-ref/FR-1-renamed-ref/output.tsx::ref: forwardedRef,",
+    "status": "covered"
+  },
+  {
+    "id": "FR-2",
+    "test": "tests/fixtures/codemod/forward-ref/FR-2-type-arguments/output.tsx::}: PanelProps & { extra: number } & {",
+    "status": "covered"
+  },
+  {
+    "id": "FR-3",
+    "test": "tests/fixtures/codemod/forward-ref/FR-3-aliased-callee/output.tsx::) => <li ref={ref} id={id} />;",
+    "status": "covered"
+  },
+  {
+    "id": "FR-4",
+    "test": "tests/fixtures/codemod/forward-ref/FR-4-single-param/output.tsx::export const A = (props) => <div {...props} />;",
+    "status": "covered"
+  },
+  {
+    "id": "FR-5",
+    "test": "tests/fixtures/codemod/forward-ref/FR-5-still-referenced/output.tsx::export const kind = typeof forwardRef;",
+    "status": "covered"
+  },
+  {
+    "id": "FR-7",
+    "test": "tests/fixtures/codemod/forward-ref/FR-7-assignment-pattern-object/output.tsx::} = {}",
+    "status": "covered"
+  },
+  {
+    "id": "FR-8",
+    "test": "tests/fixtures/codemod/forward-ref/FR-8-both-names-unused/output.tsx::export const B = (",
+    "status": "covered"
+  },
+  {
+    "id": "IR-1",
+    "test": "tests/unit/codemod-import-rewrite.test.ts::IR-1: every name a rewrite writes into a modern-cmdk/react import is in KNOWN_EXPORTS",
+    "status": "covered"
+  },
+  {
+    "id": "IR-2",
+    "test": "tests/fixtures/codemod/import-rewrite/IR-2-default-command/output.tsx::import { Command } from 'modern-cmdk/react';",
+    "status": "covered"
+  },
+  {
+    "id": "IR-3",
+    "test": "tests/fixtures/codemod/import-rewrite/IR-3-test-mocks/output.ts::vi.mock('modern-cmdk/react'",
+    "status": "covered"
+  },
+  {
+    "id": "IR-4",
+    "test": "tests/unit/codemod-print-options.test.ts::IR-4: the quote follows sampleRaw when it starts with a quote",
+    "status": "covered"
+  },
+  {
+    "id": "IR-6",
+    "test": "tests/fixtures/codemod/import-rewrite/TUB-57-export-star-as/reports.json::export * as C from 'cmdk' re-exported names",
+    "status": "covered"
+  },
+  {
+    "id": "RC-1",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-1, RC-1, TUB-01, RP-07, DG-05, DA-9, ARCH-10: cmdk-root maps to data-command-root in JSX",
+    "status": "covered"
+  },
+  {
+    "id": "RP-07",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-1, RC-1, TUB-01, RP-07, DG-05, DA-9, ARCH-10: cmdk-root maps to data-command-root in JSX",
+    "status": "covered"
+  },
+  {
+    "id": "RP-08",
+    "test": "tests/fixtures/codemod/forward-ref/FR-1-renamed-ref/output.tsx::ref: forwardedRef,",
+    "status": "covered"
+  },
+  {
+    "id": "RP-11",
+    "test": "tests/unit/create-cli.test.ts::react-dialog writes a controlled dialog with a Mod+K listener",
+    "status": "covered"
+  },
+  {
+    "id": "RP-12",
+    "test": "tests/unit/create-cli.test.ts::CV-70, CV-05, RP-12: --template=react-full prints one deprecation line and scaffolds react-basic",
+    "status": "covered"
+  },
+  {
+    "id": "RP-13",
+    "test": ".github/workflows/ci.yml::pnpm check:snippets",
+    "status": "gate"
+  },
+  {
+    "id": "RP-15",
+    "test": "tests/unit/codemod-cli.test.ts::CLI-PERF: %s is a usage error (exit 0 lenient, 2 strict; nothing written)",
+    "status": "covered"
+  },
+  {
+    "id": "RP-16",
+    "test": "tests/unit/codemod-cli.test.ts::CLI-3, RP-16: a .js file containing JSX is rewritten (babel parser)",
+    "status": "covered"
+  },
+  {
+    "id": "RP-17",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-4, RP-17, SEC-30, DG-06: a .css file has selectors and --cmdk-list-height rewritten, comments and formatting untouched",
+    "status": "covered"
+  },
+  {
+    "id": "RP-18",
+    "test": "tests/unit/codemod-print-options.test.ts::RP-18: printOptions gives CRLF only when the source contains CRLF",
+    "status": "covered"
+  },
+  {
+    "id": "RP-19",
+    "test": "tests/unit/codemod-cli.test.ts::RP-19, SEC-07: --dry under modern-cmdk-codemod exits 2 and writes nothing",
+    "status": "covered"
+  },
+  {
+    "id": "RP-20",
+    "test": "tests/unit/codemod-files.test.ts::RP-20: on win32 every backslash becomes a forward slash",
+    "status": "covered"
+  },
+  {
+    "id": "RP-22",
+    "test": "tests/unit/create-cli.test.ts::RP-22: --no-overwrite refuses a target with any colliding file",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-07",
+    "test": "tests/dist/cli-exec.test.ts::CLI-TEST: a dirty tree makes the strict bin exit 2 and write nothing; --force writes",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-09",
+    "test": "tests/fixtures/codemod/forward-ref/FR-1-renamed-ref/output.tsx::ref: forwardedRef,",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-10",
+    "test": "tests/unit/codemod-cli.test.ts::CLI-PERF: %s is a usage error (exit 0 lenient, 2 strict; nothing written)",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-11",
+    "test": "tests/unit/create-cli.test.ts::CV-21, SEC-11: a non-empty target lists the files this run will overwrite on stderr before any write",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-12",
+    "test": "tests/unit/create-cli.test.ts::CV-70, CV-05, RP-12: --template=react-full prints one deprecation line and scaffolds react-basic",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-30",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-4, RP-17, SEC-30, DG-06: a .css file has selectors and --cmdk-list-height rewritten, comments and formatting untouched",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-31",
+    "test": "tests/fixtures/codemod/should-filter/SEC-31-unbound-elements/output.tsx::export const A = () => <MyList shouldFilter={false} />;",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-48",
+    "test": "tests/unit/codemod-cli.test.ts::a transform that throws on a file reports \"path: message\", exit 0, strict 1",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-49",
+    "test": "packages/modern-cmdk-codemod/src/transforms/data-attrs.ts:: * Rewrite the cmdk attribute selectors and custom properties in a piece of text: a selector",
+    "status": "gate"
+  },
+  {
+    "id": "SF-1",
+    "test": "tests/fixtures/codemod/should-filter/SF-1-values/output.tsx::filter={enabled ? undefined : false}",
+    "status": "covered"
+  },
+  {
+    "id": "SF-2",
+    "test": "tests/fixtures/codemod/should-filter/SF-2-both-props/reports.json::has both shouldFilter and filter",
+    "status": "covered"
+  },
+  {
+    "id": "TUB-01",
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-1, RC-1, TUB-01, RP-07, DG-05, DA-9, ARCH-10: cmdk-root maps to data-command-root in JSX",
+    "status": "covered"
+  },
+  {
+    "id": "DG-132",
+    "test": "tests/unit/docs-wasm-samples.test.ts::DG-132: both wasm-search.md engine samples dispose the engine in the cleanup and when init resolves after it",
+    "status": "covered"
+  },
+  {
+    "id": "CE-07",
+    "test": "tests/unit/machine-loading.test.ts::ARCH-59: LOADING with pending true adds its source and sets state.loading",
+    "status": "covered"
+  },
+  {
+    "id": "RDG-125",
+    "test": "tests/unit/release-workflow.test.ts::expect(lookup).toContain('\"packages/$dir/package.json\"');",
+    "status": "covered"
+  },
+  {
+    "id": "RDG-127",
+    "test": "tests/unit/ci-workflow.test.ts::RDG-127: the e2e, docs and consumers jobs install Chromium through the bounded retry that announces every failed attempt",
+    "status": "covered"
+  },
+  {
+    "id": "SEC-67",
+    "test": "tests/unit/codemod-tarball-smoke.test.ts::SEC-67: a pnpm-workspace.yaml without a numeric minimumReleaseAge makes main exit 2 with the usage message, not an unhandled rejection",
+    "status": "covered"
   }
 ]

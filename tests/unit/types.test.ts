@@ -118,7 +118,7 @@ describe('Type Foundation', () => {
       });
     });
 
-    it('should list all 14 event variants in the type discriminant', () => {
+    it('should list all 15 event variants in the type discriminant', () => {
       expectTypeOf<CommandEvent['type']>().toEqualTypeOf<
         | 'SEARCH_CHANGE'
         | 'ITEM_SELECT'
@@ -130,6 +130,7 @@ describe('Type Foundation', () => {
         | 'CLOSE'
         | 'TOGGLE'
         | 'ITEMS_LOADED'
+        | 'LOADING'
         | 'REGISTER_ITEM'
         | 'UNREGISTER_ITEM'
         | 'REGISTER_GROUP'
@@ -147,6 +148,7 @@ describe('Type Foundation', () => {
         'CLOSE',
         'TOGGLE',
         'ITEMS_LOADED',
+        'LOADING',
         'REGISTER_ITEM',
         'UNREGISTER_ITEM',
         'REGISTER_GROUP',

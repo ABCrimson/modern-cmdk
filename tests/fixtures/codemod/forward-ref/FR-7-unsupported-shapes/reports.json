@@ -1,0 +1,7 @@
+[
+  "forwardRef props parameter is not an identifier or object pattern: unwrap by hand",
+  "forwardRef props parameter is not an identifier or object pattern: unwrap by hand",
+  "forwardRef ref parameter is not a plain identifier: unwrap by hand",
+  "forwardRef props pattern already has a 'ref' key: unwrap by hand",
+  "forwardRef ref parameter is not a plain identifier: unwrap by hand"
+]

@@ -5,7 +5,7 @@ description: Complete API reference for the React 19 adapter, including all comp
 
 # modern-cmdk/react
 
-React 19 compound component adapter for `modern-cmdk`. All components use the `"use client"` directive and accept `ref` as a prop (no `forwardRef`).
+React 19 compound component adapter for `modern-cmdk`. The shipped components are client-only (`dist/react/index.mjs` and `dist/react/dialog.mjs` begin with `"use client"`; the build adds it, the source files do not carry it) and accept `ref` as a prop (no `forwardRef`).
 
 ## Installation
 
@@ -60,7 +60,7 @@ function Palette({ children }: { children: ReactNode }) {
 | `groups` | `CommandGroup[]` | `[]` | Pre-registered groups |
 | `filter` | `Function \| false` | built-in | Custom filter function, or `false` to disable |
 | `search` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM) |
-| `frecency` | `FrecencyOptions` | -- | Frecency ranking configuration |
+| `frecency` | `FrecencyOptions` | -- | Frecency ranking configuration; ranking is on only with `enabled: true` (`enabled` is optional, default `false`) |
 | `loop` | `boolean` | `true` | Whether keyboard navigation wraps |
 | `open` | `boolean` | `false` | Initial open state |
 | `onSelect` | `(id: ItemId) => void` | -- | Fired when an item is selected |
@@ -215,7 +215,7 @@ Extends `ComponentPropsWithRef<'div'>` (excluding `onSelect`, `value`).
 | `ref` | `Ref<HTMLDivElement>` | -- | Ref to the item element |
 | `value` | `string` | Required | Display text and primary search target |
 | `keywords` | `readonly string[]` | -- | Additional searchable terms |
-| `onSelect` | `() => void` | -- | Callback when the item is selected |
+| `onSelect` | `() => void` | -- | Callback when the item is selected; called with no argument (the item value arrives as the first argument in 2.0) |
 | `disabled` | `boolean` | `false` | Whether the item is disabled |
 | `shortcut` | `string` | -- | Keyboard shortcut string (e.g., `"Mod+K"`) |
 | `forceId` | `string` | -- | Override the auto-generated item ID |
@@ -299,7 +299,7 @@ Extends `ComponentPropsWithRef<'div'>`. Data attribute: `data-command-empty`. AR
 
 ## `<Command.Loading>`
 
-Renders when the `loading` prop is `true`. Without the prop it renders only while the optimistic active-item transition is pending (`isPending`); `state.loading` is never set to `true` by the machine today, so async item loading does not show it on its own, and a search never sets `isPending`. Pass `loading` explicitly (for example `loading` inside a Suspense fallback) to show it.
+Renders while `state.loading` is `true` or the optimistic active-item transition is pending (`isPending`). `state.loading` is `true` while any `<Command.AsyncItems>` is pending (the machine's `LOADING` event), so the component needs no props to show async loading; a search never sets `isPending`. The `loading` prop is an override, not a requirement. Keep it on a `<Command.Loading>` used as an `AsyncItems` fallback, so the element renders on the fallback's first render.
 
 ```tsx
 import { Command } from 'modern-cmdk/react';
@@ -313,7 +313,7 @@ Extends `ComponentPropsWithRef<'div'>`.
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `loading` | `boolean` | auto-detected | Override loading state detection |
+| `loading` | `boolean` | auto-detected | Override loading state detection (`state.loading` or `isPending`) |
 
 Data attribute: `data-command-loading`. ARIA: `role="status"`, `aria-busy`, `aria-live="assertive"`.
 
@@ -522,7 +522,14 @@ import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
 
 const guarded = (
   <CommandErrorBoundary
-    fallback={(error) => <div>Palette failed: {error.message}</div>}
+    fallback={(error, reset) => (
+      <div>
+        Palette failed: {error.message}{" "}
+        <button type="button" onClick={reset}>
+          Retry
+        </button>
+      </div>
+    )}
     onError={(error, info) => console.error(error, info.componentStack)}
   >
     <Command>{/* ... */}</Command>
@@ -533,7 +540,8 @@ const guarded = (
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `children` | `ReactNode` | Required | Subtree to guard |
-| `fallback` | `ReactNode \| ((error: Error) => ReactNode)` | `null` | Rendered when an error is caught |
+| `fallback` | `ReactNode \| ((error: Error, reset: () => void) => ReactNode)` | `null` | Rendered when an error is caught; a function receives the error and `reset`, which clears the caught error so the children render again |
+| `resetKeys` | `readonly unknown[]` | -- | Resets the boundary when an entry changes between renders (`Object.is`, by position, or a different length) |
 | `onError` | `(error: Error, errorInfo: ErrorInfo) => void` | -- | Error reporting callback |
 
 ---

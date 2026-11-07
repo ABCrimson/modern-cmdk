@@ -1,6 +1,10 @@
 import type { CommandItem } from 'modern-cmdk';
 import { createSearchEngine, itemId } from 'modern-cmdk';
-import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
+import {
+  createWasmSearchEngine,
+  type FallbackSearchEngine,
+  type WasmSearchEngine,
+} from 'modern-cmdk-search-wasm';
 import { beforeAll, describe, test } from 'vitest';
 
 // ---------------------------------------------------------------------------
@@ -53,7 +57,7 @@ const items10K = generateItems(10_000);
 // (describe callbacks stay synchronous; async setup belongs in a hook)
 // ---------------------------------------------------------------------------
 
-let wasmEngine: Awaited<ReturnType<typeof createWasmSearchEngine>>;
+let wasmEngine: WasmSearchEngine | FallbackSearchEngine;
 
 beforeAll(async () => {
   wasmEngine = await createWasmSearchEngine();

@@ -1,19 +1,24 @@
 packages:
   - 'packages/*'
   - 'apps/*'
-# Single source of the six pins RDG-66 named (react, react-dom, @types/react, @types/react-dom, typescript, vite; D54).
-# Workspace manifests reference them as catalog:; the freshness sweep checks these entries at this site
-# (dep-freshness-catalog.mjs, 2026-11-04). apps/docs keeps its own typescript pin (a scoped hold for vue-tsc) and the
-# tests/consumers apps are not workspace projects.
-# Other exact pins shared by two manifests (@types/node, tsdown, jscodeshift, @types/jscodeshift, radix-ui, and idb-keyval,
-# the runtime dependency RDG-117 leaves in its manifests) are still written in each manifest (RDG-117, 1.5.0).
+# Single source of the exact pins that two or more workspace manifests share: the six RDG-66 pins (react, react-dom,
+# @types/react, @types/react-dom, typescript, vite; D54) and the five RDG-117 pins (@types/node, tsdown, jscodeshift,
+# @types/jscodeshift, radix-ui; 1.5.0). Workspace manifests reference them as catalog:; the freshness sweep checks these
+# entries at this site (dep-freshness-catalog.mjs, 2026-11-04). apps/docs keeps its own typescript pin (a scoped hold for
+# vue-tsc) and the tests/consumers apps are not workspace projects. Peer ranges (modern-cmdk's radix-ui >=1.4.0 <2.0.0)
+# and idb-keyval, a runtime dependency written out in its manifests, stay outside the catalog.
 catalog:
+  '@types/jscodeshift': 17.3.0
+  '@types/node': 26.6.6
   '@types/react': 19.3.0
   '@types/react-dom': 19.3.0
-  react: 0.0.0-experimental-e84e1492-20261031
-  react-dom: 0.0.0-experimental-e84e1492-20261031
-  typescript: 7.1.0-dev.20261104.1
-  vite: 8.3.5
+  jscodeshift: 17.4.0
+  radix-ui: 1.8.2-rc.1791984254107
+  react: 0.0.0-experimental-5b610964-20261106
+  react-dom: 0.0.0-experimental-5b610964-20261106
+  tsdown: 0.23.7
+  typescript: 7.1.0-dev.20261106.1
+  vite: 8.3.6
 overrides:
   react: 'catalog:'
   react-dom: 'catalog:'
@@ -41,59 +46,57 @@ trustPolicyExclude:
   - lefthook@2.2.2
   - semver@5.7.2
   - semver@6.3.1
-# Exact versions published less than minimumReleaseAge before the 2026-11-04 lockfile refreshes and the 2026-11-05 next and pnpm bumps
-# (pruned 2026-11-05 00:08 UTC); pnpm 12.18.0 refuses them otherwise. Entries age out of need after a day.
+# Exact versions published less than minimumReleaseAge before the 2026-11-07 sweep install (pruned 2026-11-07 00:05 UTC);
+# pnpm 12.18.0 refuses them otherwise. Entries age out of need after a day.
 minimumReleaseAgeExclude:
-  # pnpm@12.18.0 (next-12, published 2026-11-05T00:56:16Z) and its fourteen @pnpm/exe platform packages (00:55:28-00:56:06Z),
-  # the lockfile's packageManagerDependencies, were under the 24 h minimumReleaseAge at the 2026-11-05 bump from 12.17.0. Drop after a day.
-  - pnpm@12.18.0
-  - '@pnpm/exe.android-arm64@12.18.0'
-  - '@pnpm/exe.android-x64@12.18.0'
-  - '@pnpm/exe.darwin-arm64@12.18.0'
-  - '@pnpm/exe.darwin-x64@12.18.0'
-  - '@pnpm/exe.freebsd-x64@12.18.0'
-  - '@pnpm/exe.linux-arm64-musl@12.18.0'
-  - '@pnpm/exe.linux-arm64@12.18.0'
-  - '@pnpm/exe.linux-ppc64@12.18.0'
-  - '@pnpm/exe.linux-riscv64@12.18.0'
-  - '@pnpm/exe.linux-s390x@12.18.0'
-  - '@pnpm/exe.linux-x64-musl@12.18.0'
-  - '@pnpm/exe.linux-x64@12.18.0'
-  - '@pnpm/exe.win32-arm64@12.18.0'
-  - '@pnpm/exe.win32-x64@12.18.0'
-  # @biomejs/biome@2.6.5 and its ten platform binaries were published 2026-11-04T12:46Z, a few hours before this install
-  - '@biomejs/biome@2.6.5'
-  - '@biomejs/cli-android-arm64@2.6.5'
-  - '@biomejs/cli-android-x64@2.6.5'
-  - '@biomejs/cli-darwin-arm64@2.6.5'
-  - '@biomejs/cli-darwin-x64@2.6.5'
-  - '@biomejs/cli-linux-arm64@2.6.5'
-  - '@biomejs/cli-linux-arm64-musl@2.6.5'
-  - '@biomejs/cli-linux-x64@2.6.5'
-  - '@biomejs/cli-linux-x64-musl@2.6.5'
-  - '@biomejs/cli-win32-arm64@2.6.5'
-  - '@biomejs/cli-win32-x64@2.6.5'
-  - '@playwright/test@1.66.0-alpha-2026-11-04'
-  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-linux-arm@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-linux-x64@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261104.1'
-  - '@typescript/typescript-win32-x64@7.1.0-dev.20261104.1'
-  - playwright-core@1.66.0-alpha-2026-11-04
-  - playwright@1.66.0-alpha-2026-11-04
-  - typescript@7.1.0-dev.20261104.1
-  # next@16.5.0-canary.41 (the root devDependency for the docs-samples gate, TEB-84 and D57, and the tests/consumers/next-app pin) was
-  # published 2026-11-04T23:52Z (its @next/env and platform binaries 23:41-23:44Z), under the 24 h minimumReleaseAge at the 2026-11-05
-  # bump from canary.40; with its @next/env and platform binaries. Drop after a day.
-  - next@16.5.0-canary.41
-  - '@next/env@16.5.0-canary.41'
-  - '@next/swc-darwin-arm64@16.5.0-canary.41'
-  - '@next/swc-darwin-x64@16.5.0-canary.41'
-  - '@next/swc-linux-arm64-gnu@16.5.0-canary.41'
-  - '@next/swc-linux-arm64-musl@16.5.0-canary.41'
-  - '@next/swc-linux-x64-gnu@16.5.0-canary.41'
-  - '@next/swc-linux-x64-musl@16.5.0-canary.41'
-  - '@next/swc-win32-arm64-msvc@16.5.0-canary.41'
-  - '@next/swc-win32-x64-msvc@16.5.0-canary.41'
+  # @biomejs/biome@2.6.6 (latest, published 2026-11-06T13:28:30Z) and its ten @biomejs/cli-* platform binaries (13:28-13:32Z)
+  # were under the 24 h minimumReleaseAge at the 2026-11-06 bump from 2.6.5. Drop after a day.
+  - '@biomejs/biome@2.6.6'
+  - '@biomejs/cli-android-arm64@2.6.6'
+  - '@biomejs/cli-android-x64@2.6.6'
+  - '@biomejs/cli-darwin-arm64@2.6.6'
+  - '@biomejs/cli-darwin-x64@2.6.6'
+  - '@biomejs/cli-linux-arm64@2.6.6'
+  - '@biomejs/cli-linux-arm64-musl@2.6.6'
+  - '@biomejs/cli-linux-x64@2.6.6'
+  - '@biomejs/cli-linux-x64-musl@2.6.6'
+  - '@biomejs/cli-win32-arm64@2.6.6'
+  - '@biomejs/cli-win32-x64@2.6.6'
+  # tsdown@0.23.7 (latest, published 2026-11-06T09:57:16Z) was under the 24 h minimumReleaseAge at the 2026-11-06 bump from
+  # 0.23.5 (0.23.6 was never released; the catalog pin). Drop after a day.
+  - tsdown@0.23.7
+  # rolldown-plugin-dts@0.30.0 (tsdown 0.23.7's dts plugin; published 2026-11-06T07:09:56Z) was under the 24 h minimumReleaseAge at the
+  # same bump (the install named it). Drop after a day.
+  - rolldown-plugin-dts@0.30.0
+  # @axe-core/playwright@4.14.1-b609be2.0.sha-b609be2 (next, published 2026-11-06T14:44:51Z) was under the 24 h minimumReleaseAge at the
+  # 2026-11-06 bump from the e9cf392 build. Drop after a day.
+  - '@axe-core/playwright@4.14.1-b609be2.0.sha-b609be2'
+  # next@16.5.0-canary.43 (the root devDependency for the docs-samples gate, TEB-84 and D57, and the tests/consumers/next-app pin) was
+  # published 2026-11-06T23:51:19Z (its @next/env and platform binaries 23:41-23:43Z), under the 24 h minimumReleaseAge at the
+  # 2026-11-07 bump from canary.42; with its @next/env and platform binaries. Drop after a day.
+  - next@16.5.0-canary.43
+  - '@next/env@16.5.0-canary.43'
+  - '@next/swc-darwin-arm64@16.5.0-canary.43'
+  - '@next/swc-darwin-x64@16.5.0-canary.43'
+  - '@next/swc-linux-arm64-gnu@16.5.0-canary.43'
+  - '@next/swc-linux-arm64-musl@16.5.0-canary.43'
+  - '@next/swc-linux-x64-gnu@16.5.0-canary.43'
+  - '@next/swc-linux-x64-musl@16.5.0-canary.43'
+  - '@next/swc-win32-arm64-msvc@16.5.0-canary.43'
+  - '@next/swc-win32-x64-msvc@16.5.0-canary.43'
+  # react and react-dom 0.0.0-experimental-5b610964-20261106 (experimental; published 2026-11-06T16:19:15Z and 16:19:52Z) and the scheduler of the same build
+  # (16:20:24Z) were under the 24 h minimumReleaseAge at the 2026-11-06 bump from e84e1492-20261031 (the catalog pins and
+  # the tests/consumers apps). Drop after a day.
+  - react@0.0.0-experimental-5b610964-20261106
+  - react-dom@0.0.0-experimental-5b610964-20261106
+  - scheduler@0.0.0-experimental-5b610964-20261106
+  # typescript@7.1.0-dev.20261106.1 (next; published 2026-11-06T08:09:36Z) and its seven @typescript/typescript-<platform> binaries
+  # (08:04-08:07Z) were under the 24 h minimumReleaseAge at the 2026-11-06 bump from the previous day's dev build. Drop after a day.
+  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261106.1'
+  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261106.1'
+  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261106.1'
+  - '@typescript/typescript-linux-arm@7.1.0-dev.20261106.1'
+  - '@typescript/typescript-linux-x64@7.1.0-dev.20261106.1'
+  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261106.1'
+  - '@typescript/typescript-win32-x64@7.1.0-dev.20261106.1'
+  - typescript@7.1.0-dev.20261106.1

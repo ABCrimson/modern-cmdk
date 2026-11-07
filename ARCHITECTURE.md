@@ -47,6 +47,7 @@ flowchart TB
     App["Application Layer"]
 
     React["modern-cmdk/react<br/>React 19 · Compound Components"]
+    Codemod["modern-cmdk-codemod<br/>cmdk → modern-cmdk migration CLI<br/>bin only · not imported by the runtime"]
     Future["(future)<br/>Svelte / Vue / Solid adapters"]
 
     subgraph core ["modern-cmdk — Framework-Agnostic Core"]
@@ -70,6 +71,7 @@ flowchart TB
 
     App --> React
     App -.-> Future
+    Codemod -.->|"rewrites the application source"| App
     React -->|"useSyncExternalStore<br/>useTransition / useOptimistic"| core
     WASM -.->|"passed as the search option"| core
 ```
@@ -82,9 +84,11 @@ The architecture follows strict layering rules:
 
 1. **Core layer** (`modern-cmdk`) -- Pure TypeScript. No DOM APIs required to construct or drive the machine (the keyboard registry attaches a `keydown` listener only when `document` exists). No framework imports. Runs in Node.js, Deno, Bun, or any browser.
 
-2. **Adapter layer** (`modern-cmdk/react`) -- Thin React 19 wrapper. Consumes the core via `useSyncExternalStore`. Renders JSX. Handles DOM events. Has `"use client"` directives.
+2. **Adapter layer** (`modern-cmdk/react`) -- Thin React 19 wrapper. Consumes the core via `useSyncExternalStore`. Renders JSX. Handles DOM events. Carries the `'use client'` directive in its shipped output: the shipped `dist/react/index.mjs` and `dist/react/dialog.mjs` begin with `'use client'`, added as the banner of the React config in `packages/modern-cmdk/tsdown.config.ts`; no module under `src/react` carries the directive (`tests/dist/one-core.test.ts` enforces both).
 
 3. **Extension layer** (`modern-cmdk-search-wasm`) -- Optional WASM search engine. It implements the core's `SearchEngine` interface and is handed to the machine through the `search` option. It ships a Rust crate compiled with `wasm-pack`. The package is `private: true` in `packages/command-search-wasm/package.json`; it is not published to npm.
+
+4. **Tooling layer** (`modern-cmdk-codemod`) -- The cmdk to modern-cmdk migration CLI (bin: `modern-cmdk-codemod`; source `packages/modern-cmdk-codemod/src`). It is a separate package with `jscodeshift` as its own dependency, no `exports` and no `types`, and nothing in the runtime imports it. `modern-cmdk` keeps a deprecated `modern-cmdk` bin until 2.0 (see [Build output](#build-output-and-the-scoped-sideeffects-array)).
 
 Dependencies flow strictly downward. The core never imports from adapters or extensions.
 
@@ -332,7 +336,7 @@ The optional WASM engine implements the core's `SearchEngine` interface; you pas
 - **`createWorkerSearchEngine()`** (`src/worker-engine.ts`) -- runs the same engine in a Web Worker; scores travel in a `SharedArrayBuffer` only when the page is cross-origin isolated, otherwise they are structured-cloned. Its synchronous `search()` yields the results of the most recent `searchAsync()` call, and nothing in `createCommandMachine` calls `searchAsync()`, so pair it with explicit `await engine.searchAsync(query)` calls. This file is the only place in `packages/*/src` that uses `Promise.withResolvers` (ES2024): for the worker-ready signal and for per-request tracking.
 - **Edit distance** -- `crate/src/scorer.rs` (Levenshtein helpers) is compiled under `cfg(test)` only and is not part of the search path.
 
-**Measurements.** The `.wasm` binary is 113,223 bytes raw and 52,100 bytes under `gzip -9` (measured 2026-11-05 on the `pkg/command_search_wasm_bg.wasm` that wasm-pack 0.15.1 builds with the nightly of 2026-11-05, rustc 1.101.0-nightly 2d20b42b8; the 2026-11-04 nightly gave 113,495 and 52,188), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
+**Measurements.** The `.wasm` binary is 113,220 bytes raw and 52,101 bytes under `gzip -9` (measured 2026-11-06 on the `pkg/command_search_wasm_bg.wasm` that wasm-pack 0.15.1 builds with the nightly of 2026-11-06, rustc 1.101.0-nightly 249c1e4e3; the 2026-11-05 nightly gave 113,223 and 52,100), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
 
 ---
 
@@ -445,7 +449,7 @@ All components consume the machine via React context using `use(CommandContext)`
 | `Command.Activity` | React Activity API state preservation (falls back to conditional rendering) | `mode` |
 
 All components:
-- Have `"use client"` directives
+- Reach the consumer with the `'use client'` directive: the shipped `dist/react/index.mjs` and `dist/react/dialog.mjs` begin with `'use client'`, added as the banner of the React config in `packages/modern-cmdk/tsdown.config.ts`; no module under `src/react` carries the directive (`tests/dist/one-core.test.ts` enforces both)
 - Accept `ref` as a prop (React 19 -- no `forwardRef`)
 - Use `useId()` for stable, SSR-safe ARIA IDs
 
@@ -590,14 +594,16 @@ Five custom properties are registered with `@property` (`--command-list-height`,
 
 | Metric | Target | Enforcement |
 |---|---|---|
-| Core bundle | ≤ 6.5 kB | **Enforced**: `size-limit` (`pnpm size`, CI "Bundle Size" job), `packages/modern-cmdk/dist/core/index.mjs`, gzip. Measured 6355 B |
-| React adapter only | ≤ 5.5 kB | **Enforced**: `dist/react/index.mjs`, gzip, with `modern-cmdk`, `react`, `react-dom`, `react/jsx-runtime` and `radix-ui` ignored (the core is not counted). Measured 5403 B |
-| Core + React adapter | ≤ 9.9 kB | **Enforced**: `dist/react/index.mjs`, gzip, `modern-cmdk` not ignored, so the one core is counted once. Measured 9830 B (1.3 inlined the core in the adapter: 6355 B + 9844 B = 16199 B) |
-| `modern-cmdk/react/dialog` only | ≤ 1.5 kB | **Enforced**: `dist/react/dialog.mjs`, gzip, same ignore list. Measured 1425 B |
-| `CommandSeparator` only | ≤ 5 kB | **Enforced**: `import { CommandSeparator }` from `dist/react/index.mjs`, gzip, same ignore list. Measured 4767 B; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (the compound), so this entry is a regression tripwire and not a tree-shaking claim |
+| Core bundle | ≤ 6.5 kB | **Enforced**: `size-limit` (`pnpm size`, CI "Bundle Size" job), `packages/modern-cmdk/dist/core/index.mjs`, gzip. Measured 6399 B |
+| React adapter only | ≤ 5.6 kB | **Enforced**: `dist/react/index.mjs`, gzip, with `modern-cmdk`, `react`, `react-dom`, `react/jsx-runtime` and `radix-ui` ignored (the core is not counted). Measured 5539 B |
+| Core + React adapter | ≤ 10.1 kB | **Enforced**: `dist/react/index.mjs`, gzip, `modern-cmdk` not ignored, so the one core is counted once. Measured 10003 B (1.4 measured 9830 B; 1.3 inlined the core in the adapter: 6355 B + 9844 B = 16199 B) |
+| `modern-cmdk/react/dialog` only | ≤ 1.5 kB | **Enforced**: `dist/react/dialog.mjs`, gzip, same ignore list. Measured 1422 B |
+| `CommandSeparator` only | ≤ 5 kB | **Enforced**: `import { CommandSeparator }` from `dist/react/index.mjs`, gzip, same ignore list. Measured 4812 B; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (the compound), so this entry is a regression tripwire and not a tree-shaking claim |
 | `modern-cmdk/styles.css` | ≤ 4 kB | **Enforced**: `dist/react/styles.css`, gzip. Measured 3959 B |
-| Codemod bin | ≤ 3.4 MB | **Enforced**: `dist/codemod/cli.mjs` plus `dist/codemod/transforms/*.mjs` (the whole bin), installed size (no compression). The record `benchmarks/size-history/1.4.0.json` (5f1e01e, measured at 07bfe79) holds 3325793 B |
-| WASM binary (gzipped) | no budget; about 52 kB measured (113,223 bytes raw) | Not enforced (package private, not in `size-limit`) |
+| Codemod bin (`modern-cmdk`, deprecated) | ≤ 3.4 MB | **Enforced**: `dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs` (the bundled bin, shim included), installed size (no compression). `benchmarks/size-history/1.5.0.json` (d5ce6ff, measured 2026-11-07 with size-limit 14.3.0) holds 3150372 B; the 1.4 value was 3325793 B |
+| Codemod shim (`bin.mjs`) | ≤ 1000 B | **Enforced**: `dist/codemod/bin.mjs` alone, installed size. Measured 897 B (`benchmarks/size-history/1.5.0.json`) |
+| `modern-cmdk-codemod` own files | ≤ 100000 B | **Enforced**: `packages/modern-cmdk-codemod/dist/*.mjs` plus `dist/transforms/*.mjs`, installed size; `jscodeshift` is not in the tarball and not counted. Measured 98030 B (`benchmarks/size-history/1.5.0.json`); the tarball is 113416 B unpacked, 33119 B packed |
+| WASM binary (gzipped) | no budget; about 52 kB measured (113,220 bytes raw) | Not enforced (package private, not in `size-limit`) |
 | Search latency (10K items, TS scorer) | < 16 ms | Tripwire on the named task `search:ts-scorer-10k`: `pnpm bench:compare` against `benchmarks/baseline.json` warns above a 5% regression and fails the CI bench job above 15% or when the median exceeds the 16 ms `target_ms` (see below). |
 | Search latency (100K items, WASM engine) | none (unmeasured) | Target (not enforced); no figure has been measured |
 | Time to first render | < 50 ms | Target (not enforced) |
@@ -610,7 +616,7 @@ A row marked "Target (not enforced)" has no check in CI or in the test suites: i
 
 **What `ci.yml` does with benchmarks.** The `bench` job (needs `build`, downloads the `dist` artifact) runs `pnpm bench:compare`, which measures the three named operations (`search:ts-scorer-10k`, `stateUpdate:navigate`, `stateUpdate:searchChange`) three times each and compares the medians with `benchmarks/baseline.json`. Exit code 1 (a regression above 5%) is turned into a warning annotation and the job continues; exit code 2 (a regression above 15%, a median above its `target_ms`, or a harness error) fails the job. A baseline median below `regressionThresholds.floor_ms` (0.01 ms; today only `stateUpdate:navigate`, 0.75 microseconds) is reported, not compared, because runner noise at that scale exceeds the thresholds. If the baseline was recorded on a different CPU or Node version the table says so, and the thresholds are a tripwire, not a verdict. The job then runs `pnpm bench --run` (the Vitest bench files, which print timings but assert nothing), type-checks `benchmarks/tsconfig.json`, and uploads `benchmarks/results/` as the `benchmark-results` artifact. There is no separate benchmark workflow.
 
-Bundle sizes are checked on every CI run by the `size` job, which uploads `size-report.json`. The measured figures above are the committed record [`benchmarks/size-history/1.4.0.json`](benchmarks/size-history/1.4.0.json) (size-limit 14.3.0, measured at `07bfe79`, committed in `5f1e01e`); every entry and its limit is in `size-limit` in the root `package.json`, whose paths point at `packages/modern-cmdk/dist`.
+Bundle sizes are checked on every CI run by the `size` job, which uploads `size-report.json`. The measured figures above are the committed record [`benchmarks/size-history/1.5.0.json`](benchmarks/size-history/1.5.0.json) (size-limit 14.3.0, measured 2026-11-07 at `d5ce6ff`, committed in `4498a0f`); the 1.4 figures quoted beside them come from [`benchmarks/size-history/1.4.0.json`](benchmarks/size-history/1.4.0.json). Every entry and its limit is in `size-limit` in the root `package.json`, whose paths point at `packages/modern-cmdk/dist` and, for the `modern-cmdk-codemod` own-files entry, at `packages/modern-cmdk-codemod/dist`.
 
 ---
 
@@ -642,7 +648,7 @@ The compile target is `ESNext` with the `ESNext` and `DOM` libs (`tsconfig.base.
 - **Iterator Helpers** (ES2025: `.values().map()`, `.filter()`, `.toArray()`, `.find()`, `.entries().filter()`) -- native, used in the registry, search engine, machine and keyboard code to pipe Map/Set/array iterators without intermediate arrays.
 - **`using` / `await using` / `Symbol.dispose`** (Explicit Resource Management, ESNext) -- every stateful class implements `Disposable`, so cleanup can be `using machine = createCommandMachine(...)`. `FrecencyEngine` also implements `AsyncDisposable`.
 - **Array copy methods** (ES2023: `toSorted`, `toSpliced`) -- native.
-- **`Promise.withResolvers`** (ES2024) -- native, used only by `packages/command-search-wasm/src/worker-engine.ts`. The core does not use it.
+- **`Promise.withResolvers`** (ES2024) -- native, used by `packages/command-search-wasm/src/worker-engine.ts` and by the codemod (`packages/modern-cmdk-codemod/src/cli.ts`, `files.ts`, which also uses `Array.fromAsync` over `fs.promises.glob`). The core does not use it.
 - **Replaced with plain helpers** so the core does not need a runtime that ships them: Set methods (ES2025, `utils/set-ops.ts`), `Map.groupBy` / `Object.groupBy` (ES2024, `utils/group-by.ts`) and `String.prototype.toWellFormed` (ES2024, `utils/string-wellformed.ts`).
 - **Not used anywhere in `packages/*/src`:** `Temporal`, and no pattern escaping of any kind (the shortcut parser needs none; see [Parser](#parser)).
 
@@ -677,7 +683,7 @@ Building a production-quality dialog from scratch would add significant bundle s
 
 ### Why Vite for the playground?
 
-The interactive playground (`apps/playground`) uses **Vite 8.3.5** with `@vitejs/plugin-react` 6.2.1 and `build.target: 'esnext'`, so Iterator Helpers and `using` syntax are not downleveled. Vite passes CSS nesting, `@layer` and `@starting-style` through unchanged.
+The interactive playground (`apps/playground`) uses **Vite 8.3.6** with `@vitejs/plugin-react` 6.2.1 and `build.target: 'esnext'`, so Iterator Helpers and `using` syntax are not downleveled. Vite passes CSS nesting, `@layer` and `@starting-style` through unchanged.
 
 ### Why `@starting-style` over JavaScript animations?
 
@@ -704,13 +710,19 @@ This prevents accidentally passing a `GroupId` where an `ItemId` is expected. Th
 
 ### Build output and the scoped `sideEffects` array
 
-`packages/modern-cmdk/tsdown.config.ts` holds three tsdown configs. The core (`dist/core/index.mjs`, with declarations). The React adapter: two entries, `modern-cmdk/react` and `modern-cmdk/react/dialog`, in one config so shared code is emitted once as a chunk in `dist/react`; the core is external (the adapter imports it as `modern-cmdk` through `deps.neverBundle`, so a bundle holds one core), `radix-ui` stays external, every output carries a `'use client'` banner, and `styles.css` is copied to `dist/react`. The codemod (`dist/codemod`): the CLI and its transforms, bundled, without declarations.
+`packages/modern-cmdk/tsdown.config.ts` holds three tsdown configs; `packages/modern-cmdk-codemod/tsdown.config.ts` holds a fourth, for the sibling package. The core (`dist/core/index.mjs`, with declarations). The React adapter: two entries, `modern-cmdk/react` and `modern-cmdk/react/dialog`, in one config so shared code is emitted once as a chunk in `dist/react`; the core is external (the adapter imports it as `modern-cmdk` through `deps.neverBundle`, so a bundle holds one core), `radix-ui` stays external, every output carries a `'use client'` banner, and `styles.css` is copied to `dist/react`. The deprecated codemod bin (`dist/codemod`, without declarations): the entries `bin` (`src/codemod/bin.ts`, the shim) and `cli`, `worker` and the four `transforms/*` built from `../modern-cmdk-codemod/src` (the sibling's source, never its `dist`), with `jscodeshift` and its recast and babel tree bundled. The bundle is an explicit `deps.onlyBundle` list of ten packages, so a new codemod dependency fails this build until it is listed there, its licence is checked in `tests/package/license-policy.json` and `packages/modern-cmdk/THIRD-PARTY-NOTICES.md` is regenerated (`pnpm check:notices` fails when the file differs from the built `dist/codemod`). `modern-cmdk-codemod` has its own config with nothing bundled (`deps.onlyBundle: []`, `neverBundle` and `onlyImport` of `jscodeshift`): entries `cli`, `worker` and the four transforms from its own `src`, so `jscodeshift` stays an installed dependency.
 
 `packages/modern-cmdk/package.json` declares `"sideEffects": ["./dist/react/styles.css"]`. That tells bundlers (Vite, webpack, Rollup) that every JavaScript module is side-effect-free, so an export nobody uses can be dropped, while `import "modern-cmdk/styles.css"` is never dropped. The React entry is deliberately not listed.
 
 What that does and does not buy: it removes **unused exports**, not subsystems the machine itself uses. `createCommandMachine` imports and constructs the `CommandRegistry`, `KeyboardShortcutRegistry`, `FrecencyEngine`, `TypedEmitter` and scheduler, so a consumer who imports only `createCommandMachine` still ships all of them, and with them the parser, the matcher's `detectConflicts`, the `mapGroupBy` helper and every set helper the registry calls. Bundling `dist/core/index.mjs` with esbuild 0.28.2 from a single `createCommandMachine` import (checked 2026-11-04) drops the exports the machine never reaches: `IdbFrecencyStorage` (and with it the `idb-keyval` import), `createTelemetryMiddleware`, `formatShortcut`, `findMatchingShortcut`, `scoreItem` (the engine calls the internal `scoreItemPreLowered`), `scoreItemAsync` / `batchScoreItems`, `itemId`, `groupId` and `DEFAULT_MACHINE_OPTIONS`. `parseShortcut` ships whenever `createCommandMachine` or `KeyboardShortcutRegistry` is imported, and `TypedEmitter` whenever `createCommandMachine` is; importing `CommandRegistry` alone pulls in neither. `objectGroupBy` is not in `dist/core/index.mjs` at all: it is not exported, so the package build already removes it. The set helpers in `utils/set-ops.ts` are not exported from `modern-cmdk`; they ship whenever `CommandRegistry` is bundled, which `createCommandMachine` always does.
 
-The `modern-cmdk/react` side gets nothing from `sideEffects`: `Command` is built with `Object.assign(CommandRoot, { ..., Dialog: CommandDialog, ... })`, so importing any export, even `CommandSeparator` alone, keeps `CommandDialog`, `CommandRoot` and the `radix-ui` import (4767 B gzip against 5403 B for the whole adapter, `benchmarks/size-history/1.4.0.json`). Dropping that cost is the 2.0 change (D33).
+The `modern-cmdk/react` side gets nothing from `sideEffects`: `Command` is built with `Object.assign(CommandRoot, { ..., Dialog: CommandDialog, ... })`, so importing any export, even `CommandSeparator` alone, keeps `CommandDialog`, `CommandRoot` and the `radix-ui` import (4812 B gzip against 5539 B for the whole adapter, `benchmarks/size-history/1.5.0.json`). Dropping that cost is the 2.0 change (D33).
+
+### The codemod package, the shim and their removal in 2.0
+
+`modern-cmdk` 1.x ships the migration CLI twice, on purpose. The new package `modern-cmdk-codemod` is the CLI (bin `modern-cmdk-codemod`): strict by default, `--lenient` to opt out (an unknown flag or a parse error exits 2, a transform failure exits 1, success 0), with the git rule: a strict run without `--dry-run` or `--force` refuses with exit 2 when the matched files have uncommitted changes, lie outside the git work tree, or no git is found (`packages/modern-cmdk-codemod/src/cli.ts`). The `modern-cmdk` bin is deprecated: `dist/codemod/bin.mjs` (`packages/modern-cmdk/src/codemod/bin.ts`) warns once and runs the bundled `dist/codemod/cli.mjs`, keeping the 1.x exit codes and 1.4's excludes until 2.0, so the default exit codes of a shipped CLI do not change inside 1.x. `modern-cmdk` therefore has no runtime dependency on `modern-cmdk-codemod` or on `jscodeshift`.
+
+In 2.0 the `modern-cmdk` bin, `dist/codemod/bin.mjs` and the bundled `dist/codemod/cli.mjs` leave together, in the same pull request that drops the `bin` field and both size-limit entries (the bundled bin and the shim); the gate is `pnpm size` exiting 0 and `npm pack --dry-run` listing no `dist/codemod` file (`docs/plans/2026-10-31-roadmap-1.3-to-2.0.md`, section 4).
 
 ---
 
@@ -777,7 +789,15 @@ packages/modern-cmdk/src/react/
     use-devtools.ts      -- useCommandDevtools hook
 
 packages/modern-cmdk/src/codemod/
-  cli.ts                 -- Codemod CLI runner (bin: modern-cmdk)
+  bin.ts                 -- The deprecated `modern-cmdk` bin (shim): warns once, then runs the bundled dist/codemod/cli.mjs
+
+packages/modern-cmdk-codemod/src/     -- bin: modern-cmdk-codemod; its own package
+  cli.ts                 -- CLI runner: strict parseArgs, --help, exit codes, git rule
+  files.ts               -- File discovery (globs, directories, ignore rules)
+  diff.ts                -- Unified diff for --dry-run
+  pool.ts                -- Concurrency scheduler (pure): runs a task over the files, results in input order; cli.ts starts the worker threads
+  worker.ts              -- Worker thread: loads a transform and runs it on a file
+  print-options.ts       -- recast print options (quotes, line endings)
   transforms/            -- import-rewrite, data-attrs, forward-ref, should-filter
 
 packages/command-search-wasm/        -- private, unpublished

@@ -33,7 +33,10 @@
     "README.md",
     "LICENSE",
     "images/icon.png",
-    "src/snippets.json"
+    "src/snippets.json",
+    "src/snippets-tsx.json",
+    "src/snippets-jsx.json",
+    "src/snippets-core.json"
   ],
   "contributes": {
     "snippets": [
@@ -44,6 +47,30 @@
       {
         "language": "javascriptreact",
         "path": "./src/snippets.json"
+      },
+      {
+        "language": "typescriptreact",
+        "path": "./src/snippets-tsx.json"
+      },
+      {
+        "language": "javascriptreact",
+        "path": "./src/snippets-jsx.json"
+      },
+      {
+        "language": "typescript",
+        "path": "./src/snippets-core.json"
+      },
+      {
+        "language": "javascript",
+        "path": "./src/snippets-core.json"
+      },
+      {
+        "language": "typescriptreact",
+        "path": "./src/snippets-core.json"
+      },
+      {
+        "language": "javascriptreact",
+        "path": "./src/snippets-core.json"
       }
     ]
   },

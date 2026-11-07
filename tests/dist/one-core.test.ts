@@ -34,7 +34,6 @@ const read = (file: string): string => readFileSync(file, 'utf8');
 
 describe.skipIf(!distBuilt)('built package: one core', () => {
   it('dist/react imports the core from modern-cmdk', () => {
-    expect.hasAssertions();
     const importsCore = distFiles(reactDir, '.mjs').some((file) =>
       /^(?:import|export)\b[^;]*?\bfrom\s*["']modern-cmdk["']/mu.test(read(file)),
     );
@@ -42,7 +41,6 @@ describe.skipIf(!distBuilt)('built package: one core', () => {
   });
 
   it('dist/react defines no core export', async () => {
-    expect.hasAssertions();
     const names = Object.keys(await import(pathToFileURL(coreEntry).href));
     expect(names.length).toBeGreaterThan(0);
     const declared: string[] = [];
@@ -59,35 +57,42 @@ describe.skipIf(!distBuilt)('built package: one core', () => {
     expect(declared).toEqual([]);
   });
 
-  it('dist/react carries no src/core region except utils/env.ts', () => {
-    expect.hasAssertions();
-    // Allowlisted: isDev is not a core export, hooks/use-devtools.ts imports it by path
-    // ('../../core/utils/env.js'), and env.ts's header says the file is shared.
-    const allowed = new Set(['src/core/utils/env.ts']);
+  it('ARCH-54: dist/react carries no src/core region', () => {
     const regions: string[] = [];
     for (const file of distFiles(reactDir, '.mjs')) {
       for (const match of read(file).matchAll(/^\/\/ (src\/core\/\S+)$/gmu)) {
-        const region = match[1];
-        if (region !== undefined && !allowed.has(region)) regions.push(region);
+        if (match[1] !== undefined) regions.push(match[1]);
       }
     }
     expect(regions).toEqual([]);
   });
 
-  it("every dist/react module starts with 'use client' and dist/core has none", () => {
-    expect.hasAssertions();
+  it('TEB-94, ARCH-55: every dist/react/*.mjs starts with exactly one use client directive', () => {
     const reactFiles = distFiles(reactDir, '.mjs');
     expect(reactFiles.length).toBeGreaterThan(0);
     for (const file of reactFiles) {
-      expect(read(file).startsWith("'use client';")).toBe(true);
+      const directives = read(file).match(/^['"]use client['"];?\s*$/gmu) ?? [];
+      expect(directives, file).toHaveLength(1);
+      expect(read(file).startsWith("'use client';"), file).toBe(true);
     }
     for (const file of distFiles(join(distRoot, 'core'), '.mjs')) {
       expect(read(file)).not.toMatch(/['"]use client['"]/u);
     }
   });
 
+  it('ARCH-61: no src/react module carries a module-level use client directive (the tsdown banner is the single source)', () => {
+    const srcReact: string = resolve(import.meta.dirname, '../../packages/modern-cmdk/src/react');
+    const carriers = readdirSync(srcReact, { recursive: true, encoding: 'utf8' })
+      .filter((name) => /\.tsx?$/u.test(name))
+      .filter((name) =>
+        /^['"]use client['"];?\s*$/mu.test(readFileSync(join(srcReact, name), 'utf8')),
+      )
+      .map((name) => name.replaceAll('\\', '/'))
+      .sort();
+    expect(carriers).toEqual([]);
+  });
+
   it('dist/react declarations import the core types from modern-cmdk', () => {
-    expect.hasAssertions();
     const declarations = distFiles(reactDir, '.d.mts');
     expect(declarations.some((file) => /\bfrom\s*["']modern-cmdk["']/u.test(read(file)))).toBe(
       true,

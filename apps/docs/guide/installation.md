@@ -5,8 +5,8 @@
 | | Version | Notes |
 |---|---|---|
 | **Runtime** | no version check | `modern-cmdk` declares no `engines` (from 1.4.0). The published code uses ES2025 iterator helpers (`.values().map()`, `.toArray()`), `Symbol.dispose` and `Symbol.asyncDispose`, and `Array.prototype.toSorted` and `toSpliced`; run it on an engine that has them. |
-| **Node.js (tools)** | >= 26.4.0 | The codemod bin and `create-modern-cmdk` are supported on Node >=26.4.0 (`create-modern-cmdk` declares it in `engines`; the codemod no longer does, from 1.4.0, D14). |
-| **TypeScript** | >= 5.6 | Measured consumer floor, with `"lib": ["ESNext", "DOM"]` (the `.d.mts` files use `IteratorObject`, `Disposable` and `AsyncDisposable`). 5.5.4 fails with `Cannot find name 'IteratorObject'`. The package is *built* with TypeScript 7.1.0-dev.20261104.1, which is a separate fact from the floor. Method below. |
+| **Node.js (tools)** | >= 26.4.0 | The two tool packages, `modern-cmdk-codemod` (bin `modern-cmdk-codemod`) and `create-modern-cmdk`, declare `engines.node` >= 26.4.0. The `modern-cmdk` bin (`dist/codemod/bin.mjs`) is deprecated: it is a shim that warns once and runs the bundled codemod until 2.0, and `modern-cmdk` itself declares no `engines`. |
+| **TypeScript** | >= 5.6 | Measured consumer floor, with `"lib": ["ESNext", "DOM"]` (the `.d.mts` files use `IteratorObject`, `Disposable` and `AsyncDisposable`). 5.5.4 fails with `Cannot find name 'IteratorObject'`. The package is *built* with TypeScript 7.1.0-dev.20261106.1, which is a separate fact from the floor. Method below. |
 
 ### How the TypeScript floor was measured
 

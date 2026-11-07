@@ -9,6 +9,8 @@ Demonstrates frecency-boosted search ranking. Items you use frequently and recen
 
 ## Basic Frecency
 
+Frecency is off unless `enabled: true` is set (`enabled` is optional and defaults to `false`), so every sample here sets it.
+
 ```tsx
 'use client';
 

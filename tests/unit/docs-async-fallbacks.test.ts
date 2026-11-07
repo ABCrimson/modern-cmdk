@@ -1,13 +1,14 @@
 // tests/unit/docs-async-fallbacks.test.ts
 // TEB-93: DG-113 and DG-114 (the DG-108 defect shapes) as a docs-truth check, so the bug matrix maps both rows to a real test.
-//   DG-113: CommandAsyncItems renders its own <Suspense fallback={fallback}> (src/react/async-items.tsx:58), so an outer
+//   DG-113: CommandAsyncItems renders its own <Suspense fallback={fallback}> (src/react/async-items.tsx:74-83), so an outer
 //           <Suspense> whose first element child is <Command.AsyncItems> never shows its own fallback.
-//   DG-114: <Command.Loading> returns null unless isLoading is true (src/react/loading.tsx:25-27 takes the loading prop, else
-//           state.loading or isPending; the core never sets state.loading: ARCH-59), so
+//   DG-114: <Command.Loading> returns null unless isLoading is true (src/react/loading.tsx:23-25 takes the loading prop, else
+//           state.loading or isPending; the machine sets state.loading true while a LOADING event is pending: src/core/machine.ts:314-318, sent by <Command.AsyncItems> while its fallback is mounted, src/react/async-items.tsx:48-60), so
 //           fallback={<Command.Loading>...</Command.Loading>} without
 //           the loading prop renders nothing while pending.
-// Scope: every ts, tsx and typescript fence of apps/docs/**/*.md and of the three READMEs the docs-samples gate reads
-// (scripts/check-doc-samples.ts DEFAULT_FILES), fragment fences included; the fence regex is that script's (:72).
+// Scope: every ts, tsx and typescript fence of apps/docs/**/*.md and of three of the six READMEs the docs-samples gate reads
+// (scripts/check-doc-samples.ts DEFAULT_FILES): README.md, packages/modern-cmdk/README.md and packages/create-modern-cmdk/README.md,
+// fragment fences included; the fence regex is that script's (:76).
 
 import { existsSync, globSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
@@ -80,7 +81,7 @@ function scanAsyncFallbacks(code: string): { loading: number[]; suspense: number
   return { loading, suspense };
 }
 
-/** Every ts, tsx or typescript fence of a page, fragment fences included (the gate skips those); fence regex of scripts/check-doc-samples.ts:72. */
+/** Every ts, tsx or typescript fence of a page, fragment fences included (the gate skips those); fence regex of scripts/check-doc-samples.ts:76. */
 function fences(markdown: string): { line: number; code: string }[] {
   const found: { line: number; code: string }[] = [];
   const lines: string[] = markdown.split(/\r?\n/);

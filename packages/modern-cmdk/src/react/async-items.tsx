@@ -1,5 +1,3 @@
-'use client';
-
 // packages/modern-cmdk/src/react/async-items.tsx
 // <Command.AsyncItems> — use() hook for resolving async item sources with Suspense
 // React 19: use() for both context and promise resolution
@@ -7,11 +5,11 @@
 
 import type { CommandItem } from 'modern-cmdk';
 import type { ReactNode } from 'react';
-import { Suspense, use, useLayoutEffect, useRef } from 'react';
+import { Suspense, use, useId, useLayoutEffect } from 'react';
 import { useStableContext } from './context.js';
 
 export interface CommandAsyncItemsProps {
-  /** Promise that resolves to items */
+  /** Promise that resolves to items; keep it stable across renders (state, a ref, or `useMemo`) or the boundary re-suspends on every render */
   readonly items: Promise<readonly CommandItem[]>;
   /** Fallback content while loading */
   readonly fallback?: ReactNode;
@@ -41,22 +39,47 @@ function AsyncItemsInner({
   return <>{children(items)}</>;
 }
 
-/** Suspense-based async item loader that resolves a promise of items using React 19 `use()`. */
+/**
+ * Rendered next to the Suspense fallback: while it is mounted its source counts as pending,
+ * so `state.loading` (Command.Loading, the list's aria-busy) follows the suspended promise.
+ * The fallback unmounts when the items resolve, reject into an error boundary, or this
+ * AsyncItems unmounts, and the cleanup then clears the source.
+ */
+function PendingSignal(): null {
+  const stable = useStableContext('Command.AsyncItems');
+  const source = useId();
+
+  useLayoutEffect(() => {
+    stable.machine.send({ type: 'LOADING', source, pending: true });
+    return (): void => {
+      stable.machine.send({ type: 'LOADING', source, pending: false });
+    };
+  }, [stable.machine, source]);
+
+  return null;
+}
+
+/**
+ * Suspense-based async item loader that resolves a promise of items using React 19 `use()`.
+ *
+ * The `items` promise must be kept stable across renders (held in state, a ref, or `useMemo`):
+ * a new promise on every render, such as `items={fetchItems()}`, suspends again on every render.
+ */
 export function CommandAsyncItems({
   items,
   fallback,
   children,
 }: CommandAsyncItemsProps): ReactNode {
-  // Stabilize promise reference — only update when a genuinely new promise is passed
-  // Prevents infinite re-suspension from unstable promise identity
-  const stableRef = useRef(items);
-  if (stableRef.current !== items) {
-    stableRef.current = items;
-  }
-
   return (
-    <Suspense fallback={fallback}>
-      <AsyncItemsInner items={stableRef.current}>{children}</AsyncItemsInner>
+    <Suspense
+      fallback={
+        <>
+          {fallback}
+          <PendingSignal />
+        </>
+      }
+    >
+      <AsyncItemsInner items={items}>{children}</AsyncItemsInner>
     </Suspense>
   );
 }

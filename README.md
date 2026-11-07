@@ -10,8 +10,8 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/modern-cmdk"><img alt="npm version" src="https://img.shields.io/npm/v/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
-  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.1.0--dev.20261104.1-dc2626?style=flat-square&labelColor=0a0e27"/></a>
-  <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-experimental--e84e1492-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.1.0--dev.20261106.1-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-experimental--5b610964-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
 </p>
 
@@ -28,14 +28,15 @@
 
 A ground-up rewrite of `cmdk` for **React 19**, written in modern ECMAScript: a framework-agnostic command-palette state machine (search, frecency ranking, keyboard shortcuts) with a thin React adapter on top. This repository is a pnpm monorepo holding the library, its docs site and its tooling.
 
-Usage, install, peers, sizes and the codemods are documented once, in the [`modern-cmdk` package README](./packages/modern-cmdk/README.md), which is also the npm page.
+Usage, install, peers and sizes are documented once, in the [`modern-cmdk` package README](./packages/modern-cmdk/README.md), which is also the npm page. The cmdk migration codemods have their own package, [`modern-cmdk-codemod`](./packages/modern-cmdk-codemod), and a [migration guide](https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html).
 
 ## Packages
 
 | Package | What it is | npm status |
 |---|---|---|
-| [`modern-cmdk`](./packages/modern-cmdk) | Core engine, React adapter (`modern-cmdk/react`, `modern-cmdk/react/dialog`), default styles and the cmdk migration codemods | Published |
-| [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding with three templates (react-basic, react-dialog, react-full) | Published |
+| [`modern-cmdk`](./packages/modern-cmdk) | Core engine, React adapter (`modern-cmdk/react`, `modern-cmdk/react/dialog`), default styles and the deprecated `modern-cmdk` codemod bin (until 2.0) | Published |
+| [`modern-cmdk-codemod`](./packages/modern-cmdk-codemod) | The cmdk migration codemods (`npx modern-cmdk-codemod <transform> <dir or glob>`), strict by default; replaces the `modern-cmdk` bin | Prepared for its first publish (owner-gated) |
+| [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding with two templates (react-basic, react-dialog); react-full is a deprecated alias of react-basic, removed in create-modern-cmdk 2.0 | Published |
 | [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search (trigram index) | Experimental, private (0.9.0), unpublished |
 | [`vscode-modern-cmdk`](./packages/vscode-modern-cmdk) | VS Code snippets extension | Private; not on the VS Code Marketplace (the npm 1.0.0 was an accidental publish) |
 
@@ -50,7 +51,7 @@ git clone https://github.com/ABCrimson/modern-cmdk.git && cd modern-cmdk
 pnpm install --frozen-lockfile && pnpm build && pnpm test
 ```
 
-Development uses the Node version in `.nvmrc` (Node 28 nightly 28.0.0-nightly20261104d36e9ba1f8) and the `engines` floor of the root `package.json`, with pnpm 12.
+Development uses the Node version in `.nvmrc` (Node 28 nightly 28.0.0-nightly20261106ec4d4c2950) and the `engines` floor of the root `package.json`, with pnpm 12.
 
 | Command | Description |
 |---|---|
@@ -59,7 +60,7 @@ Development uses the Node version in `.nvmrc` (Node 28 nightly 28.0.0-nightly202
 | `pnpm test:e2e` | E2E tests (Playwright; Chromium, with Firefox and WebKit opt-in via `E2E_ENGINES=all`) |
 | `pnpm bench` | Benchmarks (Vitest bench mode) |
 | `pnpm lint` | Lint (Biome) |
-| `pnpm typecheck` | Type-check (TypeScript 7.1.0-dev.20261104.1) |
+| `pnpm typecheck` | Type-check (TypeScript 7.1.0-dev.20261106.1) |
 | `pnpm size` | Build, then the size-limit budgets |
 | `pnpm docs:dev` | Docs dev server (VitePress) |
 
