@@ -8,8 +8,9 @@
 // --pack-dir picks exactly one modern-cmdk-[0-9]*.tgz and one modern-cmdk-codemod-[0-9]*.tgz from <dir>
 // (modern-cmdk-1.2.3.tgz never counts as the codemod tarball). At least one tarball is required. The checks of a
 // tarball run only when that tarball is given; the same-diff check runs only when both are given.
-// Exit codes: 0 = every check passed, 1 = a check failed, 2 = usage error (bad argv, or a pnpm-workspace.yaml without a
-// numeric minimumReleaseAge: main reads it before any check runs).
+// Exit codes: 0 = every check passed, 1 = a check failed, 2 = usage error (bad argv, or a pnpm-workspace.yaml that
+// cannot be read, holds a line parseWorkspaceYaml does not support, or has no numeric minimumReleaseAge: main reads it
+// before any check runs).
 //
 // Checks per tarball (each prints one line with its exit code):
 //   modern-cmdk: the tarball lists dist/codemod/cli.mjs and dist/codemod/bin.mjs (read in-process with
@@ -65,11 +66,17 @@ export interface SmokeOptions {
 
 /**
  * The root minimumReleaseAge (pnpm-workspace.yaml, minutes) in whole days, rounded up and at least 1: npm's
- * `min-release-age` counts days. A missing or non-numeric key is a UsageError, never a silent default; main reads
- * it inside its UsageError handling, so the smoke ends in exit 2 with the usage message.
+ * `min-release-age` counts days. A missing or non-numeric key, or a line parseWorkspaceYaml does not support, is a
+ * UsageError, never a silent default; main reads it inside its UsageError handling, so the smoke ends in exit 2 with
+ * the usage message.
  */
 export function minReleaseAgeDays(workspaceYaml: string): number {
-  const minutes = parseWorkspaceYaml(workspaceYaml).minimumReleaseAge;
+  let minutes: unknown;
+  try {
+    minutes = parseWorkspaceYaml(workspaceYaml).minimumReleaseAge;
+  } catch (error) {
+    throw new UsageError((error as Error).message);
+  }
   if (typeof minutes !== 'number' || !Number.isFinite(minutes) || minutes < 0) {
     throw new UsageError('pnpm-workspace.yaml has no numeric minimumReleaseAge');
   }
@@ -487,7 +494,8 @@ const USAGE =
 
 /**
  * Parses `argv`, reads the release age from `workspaceFile` (the root pnpm-workspace.yaml by default), runs the smoke
- * and returns the exit code (0 pass, 1 check failed, 2 usage error: bad argv or no numeric minimumReleaseAge).
+ * and returns the exit code (0 pass, 1 check failed, 2 usage error: bad argv, an unreadable `workspaceFile`, an
+ * unsupported line in it, or no numeric minimumReleaseAge).
  */
 export async function main(
   argv: readonly string[],
@@ -497,7 +505,10 @@ export async function main(
   let days: number;
   try {
     options = parseSmokeArgs(argv);
-    days = minReleaseAgeDays(await readFile(workspaceFile, 'utf8'));
+    const text = await readFile(workspaceFile, 'utf8').catch((error: Error) => {
+      throw new UsageError(`cannot read ${workspaceFile}: ${error.message}`);
+    });
+    days = minReleaseAgeDays(text);
   } catch (error) {
     if (!(error instanceof UsageError)) throw error;
     process.stderr.write(`${basename(import.meta.filename)}: ${error.message}\n${USAGE}\n`);
