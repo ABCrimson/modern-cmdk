@@ -20,6 +20,7 @@ body:
         - "modern-cmdk (WASM search)"
         - "modern-cmdk (deprecated codemod bin)"
         - "modern-cmdk-codemod"
+        - "create-modern-cmdk"
         - "Documentation"
         - "Playground"
       default: 0
@@ -64,10 +65,9 @@ body:
       render: shell
       placeholder: |
         Node: v28.0.0-nightly20261106ec4d4c2950
-        Browser: Chrome 130
-        OS: macOS 15.2
+        Browser: Chrome 158
+        OS: macOS 26
         modern-cmdk: 1.2.3
-        modern-cmdk/react: 1.2.3
         modern-cmdk-codemod: (if used)
         React: 0.0.0-experimental-5b610964-20261106
         TypeScript: 7.1.0-dev.20261106.1
