@@ -6,11 +6,11 @@
  * 'toggle-appearance' (the call into transitionAppearance). Without those attributes none of the view-transition
  * rules below match, so the default root cross-fade of the user agent stays as it is.
  *
- * Every duration and easing reads the --mc-dur-* and --mc-ease-* tokens of tokens.css; under prefers-reduced-motion
- * the durations are 0s. Every movement uses the individual `translate` and `scale` properties.
+ * Every duration reads the --mc-dur-* tokens of tokens.css and every time-based easing the --mc-ease-* tokens (the recipe's ease-in is --mc-ease-standard here; scroll-driven animations use linear); under
+ * prefers-reduced-motion the durations are 0s. Every movement uses the individual `translate` and `scale` properties.
  *
  * Opt-in classes for other items: .mc-reveal (scroll-driven reveal), .mc-enter and .mc-enter-frame (@starting-style
- * entrances).
+ * entrances), both in this file, and .mc-numbers (tabular figures for the numbers row), in fonts.css.
  */
 
 /* Route change: the nav and the sidebar stay still, the old content fades, the new content rises 8 px */
@@ -66,7 +66,7 @@
  * viewport to --mc-switch-x, --mc-switch-y (percentages) and --mc-switch-r (px) on <html>. The two root images are
  * stacked without blending and without the default animation; a circular
  * clip-path grows from the click point on the new image when going to light and, played in reverse, shrinks onto it on the old image when
- * going to dark (that image is stacked on top in both cases).
+ * going to dark (that image is stacked above the other in both cases).
  */
 :root[data-mc-transition="appearance"]::view-transition-old(root),
 :root[data-mc-transition="appearance"]::view-transition-new(root) {
@@ -80,12 +80,12 @@
 
 :root[data-mc-transition="appearance"]::view-transition-new(root) {
   z-index: 2147483646;
-  animation: mc-vt-reveal var(--mc-dur-3) ease-in;
+  animation: mc-vt-reveal var(--mc-dur-3) var(--mc-ease-standard);
 }
 
 :root.dark[data-mc-transition="appearance"]::view-transition-old(root) {
   z-index: 2147483646;
-  animation: mc-vt-reveal var(--mc-dur-3) ease-in reverse;
+  animation: mc-vt-reveal var(--mc-dur-3) var(--mc-ease-standard) reverse forwards;
 }
 
 :root.dark[data-mc-transition="appearance"]::view-transition-new(root) {
@@ -143,11 +143,15 @@
       animation-range: entry 0% cover 25%;
     }
 
-    /* A 2 px reading bar under the nav on doc pages, scaled by the root scroll position */
+    /*
+     * A 2 px reading bar on doc pages, scaled by the root scroll position. Below 60rem .VPNav is position: relative and
+     * scrolls away while .VPLocalNav sticks at the top (VPNav.vue and VPLocalNav.vue scoped styles), so the bar sits at 0;
+     * from 60rem .VPNav is fixed at --vp-layout-top-height and the bar goes under it.
+     */
     :root:has(.VPDoc)::after {
       content: "";
       position: fixed;
-      inset-block-start: var(--vp-nav-height);
+      inset-block-start: 0;
       inset-inline: 0;
       block-size: 2px;
       background-color: var(--mc-brand-3);
@@ -156,6 +160,12 @@
       z-index: var(--vp-z-index-nav);
       animation: mc-reading-bar linear both;
       animation-timeline: scroll(root block);
+    }
+
+    @media (min-width: 60rem) {
+      :root:has(.VPDoc)::after {
+        inset-block-start: calc(var(--vp-layout-top-height, 0px) + var(--vp-nav-height));
+      }
     }
 
     /*
