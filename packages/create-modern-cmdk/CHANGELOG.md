@@ -95,7 +95,7 @@
 
 ## 1.1.5
 
-Backfilled from the git history of `packages/create-modern-cmdk` between the tags `create-modern-cmdk@1.1.4` and `create-modern-cmdk@1.1.5` (published 2026-03-13). The GitHub release body of this version is a copy of the library's 1.0.0 notes and describes none of this.
+Backfilled from the git history of `packages/create-modern-cmdk` between the tags `create-modern-cmdk@1.1.4` and `create-modern-cmdk@1.1.5` (published 2026-03-13). The GitHub release body of this version was a copy of the library's 1.0.0 notes until 2026-11-07, when it was replaced by this section.
 
 ### Patch Changes
 
@@ -103,7 +103,7 @@ Backfilled from the git history of `packages/create-modern-cmdk` between the tag
 
 ## 1.1.4
 
-Backfilled from the git history of `packages/create-modern-cmdk` between the tags `create-modern-cmdk@1.0.0` and `create-modern-cmdk@1.1.4` (published 2026-03-13). The GitHub release body of this version is a copy of the library's 1.0.0 notes and describes none of this.
+Backfilled from the git history of `packages/create-modern-cmdk` between the tags `create-modern-cmdk@1.0.0` and `create-modern-cmdk@1.1.4` (published 2026-03-13). The GitHub release body of this version was a copy of the library's 1.0.0 notes until 2026-11-07, when it was replaced by this section.
 
 ### Patch Changes
 
