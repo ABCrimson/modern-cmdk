@@ -8,7 +8,8 @@
 // --pack-dir picks exactly one modern-cmdk-[0-9]*.tgz and one modern-cmdk-codemod-[0-9]*.tgz from <dir>
 // (modern-cmdk-1.2.3.tgz never counts as the codemod tarball). At least one tarball is required. The checks of a
 // tarball run only when that tarball is given; the same-diff check runs only when both are given.
-// Exit codes: 0 = every check passed, 1 = a check failed, 2 = usage error.
+// Exit codes: 0 = every check passed, 1 = a check failed, 2 = usage error (bad argv, or a pnpm-workspace.yaml without a
+// numeric minimumReleaseAge: main reads it before any check runs).
 //
 // Checks per tarball (each prints one line with its exit code):
 //   modern-cmdk: the tarball lists dist/codemod/cli.mjs and dist/codemod/bin.mjs (read in-process with
@@ -64,7 +65,8 @@ export interface SmokeOptions {
 
 /**
  * The root minimumReleaseAge (pnpm-workspace.yaml, minutes) in whole days, rounded up and at least 1: npm's
- * `min-release-age` counts days. A missing or non-numeric key is a UsageError, never a silent default.
+ * `min-release-age` counts days. A missing or non-numeric key is a UsageError, never a silent default; main reads
+ * it inside its UsageError handling, so the smoke ends in exit 2 with the usage message.
  */
 export function minReleaseAgeDays(workspaceYaml: string): number {
   const minutes = parseWorkspaceYaml(workspaceYaml).minimumReleaseAge;
@@ -437,11 +439,11 @@ async function smokeCodemod(
   }
 }
 
-/** Runs the selected checks; the exit code is 0 when all pass, 1 otherwise. */
-export async function runSmoke(options: SmokeOptions): Promise<number> {
-  const days = minReleaseAgeDays(
-    await readFile(resolve(import.meta.dirname, '../pnpm-workspace.yaml'), 'utf8'),
-  );
+/**
+ * Runs the selected checks; the exit code is 0 when all pass, 1 otherwise. `days` is the root minimumReleaseAge in
+ * days (minReleaseAgeDays), computed by main so a bad workspace file is a usage error before anything runs.
+ */
+export async function runSmoke(options: SmokeOptions, days: number): Promise<number> {
   const work = await mkdtemp(join(tmpdir(), 'modern-cmdk-codemod-smoke-'));
   const report = new Report();
   try {
@@ -483,17 +485,25 @@ export async function runSmoke(options: SmokeOptions): Promise<number> {
 const USAGE =
   'usage: node scripts/codemod-tarball-smoke.ts [--pack-dir <dir>] [--modern-cmdk <tgz>] [--codemod <tgz>] [--keep]';
 
-/** Parses `argv`, runs the smoke and returns the exit code (0 pass, 1 check failed, 2 usage error). */
-export async function main(argv: readonly string[]): Promise<number> {
+/**
+ * Parses `argv`, reads the release age from `workspaceFile` (the root pnpm-workspace.yaml by default), runs the smoke
+ * and returns the exit code (0 pass, 1 check failed, 2 usage error: bad argv or no numeric minimumReleaseAge).
+ */
+export async function main(
+  argv: readonly string[],
+  workspaceFile: string = resolve(import.meta.dirname, '../pnpm-workspace.yaml'),
+): Promise<number> {
   let options: SmokeOptions;
+  let days: number;
   try {
     options = parseSmokeArgs(argv);
+    days = minReleaseAgeDays(await readFile(workspaceFile, 'utf8'));
   } catch (error) {
     if (!(error instanceof UsageError)) throw error;
     process.stderr.write(`${basename(import.meta.filename)}: ${error.message}\n${USAGE}\n`);
     return 2;
   }
-  return runSmoke(options);
+  return runSmoke(options, days);
 }
 
 if (import.meta.main) {
