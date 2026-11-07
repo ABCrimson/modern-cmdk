@@ -1,11 +1,13 @@
 // tests/unit/size-history.test.ts
 // RDG-128: the 1.5.0 size record (benchmarks/size-history/1.5.0.json) and every sentence and table that cites it.
+// The Sizes paragraphs are read from .changeset/modern-cmdk-1-5-0.md while that changeset is pending and from the CHANGELOG
+// 1.5.0 entry once the Version PR has consumed it (TUB-75; DT-74's rule for the bug-report template).
 // Every number below is read from the record (or from the 1.4.0 record for the "1.4" comparison figures); none is a
 // literal. The blob id the docs cite is computed from the record's bytes and asserted; the commit in the blob links is
 // not (the orchestrator fills it after the record commit), only the record's path inside those links is.
 
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -301,8 +303,20 @@ describe('CONTRIBUTING.md: the size-limit paragraph', () => {
   });
 });
 
-describe('.changeset/modern-cmdk-1-5-0.md: the Sizes paragraphs', () => {
-  const text = read('.changeset/modern-cmdk-1-5-0.md');
+/**
+ * The Sizes paragraphs live in .changeset/modern-cmdk-1-5-0.md until the Version PR consumes the changeset into
+ * packages/modern-cmdk/CHANGELOG.md, where @changesets/changelog-github writes the body under the entry's first line with
+ * every continuation line indented by two spaces. The Version PR's CI runs on that tree, so the suite reads whichever the
+ * tree holds, de-indented, and the line lookups below see the paragraphs as the changeset wrote them (TUB-75).
+ */
+function sizesText(): string {
+  const changeset = join(root, '.changeset/modern-cmdk-1-5-0.md');
+  if (existsSync(changeset)) return readFileSync(changeset, 'utf8');
+  return section(read('packages/modern-cmdk/CHANGELOG.md'), '## 1.5.0').replaceAll(/^ {2}/gm, '');
+}
+
+describe('the Sizes paragraphs: .changeset/modern-cmdk-1-5-0.md while it is pending, the CHANGELOG 1.5.0 entry once consumed', () => {
+  const text = sizesText();
   const recorded = line(text, 'Recorded in `benchmarks/size-history/1.5.0.json`');
   const packed = line(text, 'The packed `modern-cmdk@1.5` release candidate');
 

@@ -1,6 +1,7 @@
 // tests/dist/manifest.test.ts
 // 1.4.0 package integrity: the library manifest and the built dist tell the truth.
-// Reads packages/modern-cmdk/package.json, packages/modern-cmdk-codemod/package.json and the BUILT dist, so it needs `pnpm build` first.
+// Reads packages/modern-cmdk/package.json, packages/modern-cmdk-codemod/package.json (and its CHANGELOG.md once changesets has
+// written it) and the BUILT dist, so it needs `pnpm build` first.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -12,6 +13,21 @@ import { describe, expect, it } from 'vitest';
 const packageDir: string = resolve(import.meta.dirname, '../../packages/modern-cmdk');
 const packageJsonPath: string = join(packageDir, 'package.json');
 const codemodDir: string = resolve(import.meta.dirname, '../../packages/modern-cmdk-codemod');
+
+/**
+ * The newest `## x.y.z` heading of packages/modern-cmdk-codemod/CHANGELOG.md, or 0.0.0 while changesets has not written that
+ * file: the Version PR consumes .changeset/modern-cmdk-codemod-1-0-0.md into the CHANGELOG and bumps the manifest in the same
+ * commit (D62), and this suite runs on both trees (TUB-76; DT-74's rule for the bug-report template).
+ */
+function codemodChangelogVersion(): string {
+  const changelog: string = join(codemodDir, 'CHANGELOG.md');
+  if (!existsSync(changelog)) return '0.0.0';
+  const version: string | undefined = /^## (\d+\.\d+\.\d+)\r?$/m.exec(
+    readFileSync(changelog, 'utf8'),
+  )?.[1];
+  if (version === undefined) throw new Error(`${changelog} has no ## x.y.z heading`);
+  return version;
+}
 const distBuilt: boolean = existsSync(join(packageDir, 'dist/core/index.mjs'));
 
 if (!distBuilt && process.env.CI) {
@@ -136,8 +152,8 @@ describe('modern-cmdk-codemod manifest (PKG-1, D17)', () => {
 
   it('PKG-1: name, version, type and publish settings', () => {
     expect(manifest.name).toBe('modern-cmdk-codemod');
-    // changesets bumps it: 0.0.0 plus a major changeset gives 1.0.0 (D62)
-    expect(manifest.version).toBe('0.0.0');
+    // 0.0.0 until the Version PR consumes the major changeset and writes the CHANGELOG whose newest heading is then the version
+    expect(manifest.version).toBe(codemodChangelogVersion());
     expect((manifest as { type?: string }).type).toBe('module');
     expect((manifest as { license?: string }).license).toBe('MIT');
     expect(manifest.publishConfig).toEqual({ access: 'public' });
