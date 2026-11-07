@@ -341,6 +341,24 @@ describe('check-repo-links runs', () => {
     expect(result.stderr).toContain('NOPE\\u{a}::error::p does not exist');
   });
 
+  it('SEC-66: a route link whose first path segment carries a control or format character prints it escaped on the unchecked-routes line', async () => {
+    const root: string = await mkdtemp(join(tmpdir(), 'check-repo-links-sec66-'));
+    dirs.push(root);
+    await writeFile(
+      join(root, 'README.md'),
+      `[a](${BASE}/\u001b[2Jx)\n[b](${BASE}/zero\u200bwidth)\n`,
+    );
+
+    const result = await scan(root);
+    expect(result.code).toBe(0);
+    const line: string =
+      result.stdout.split('\n').find((l) => l.startsWith('unchecked routes:')) ?? '';
+    expect(line).toContain('\\u{1b}');
+    expect(line).toContain('\\u{200b}');
+    expect(result.stdout).not.toContain('\u001b');
+    expect(result.stdout).not.toContain('\u200b');
+  });
+
   it('SEC-62: a symbolic link that resolves outside the root is dead without being read', async (ctx) => {
     const base: string = await mkdtemp(join(tmpdir(), 'check-repo-links-sec62s-'));
     dirs.push(base);
