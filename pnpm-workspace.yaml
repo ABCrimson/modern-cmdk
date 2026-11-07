@@ -91,7 +91,7 @@ minimumReleaseAgeExclude:
   - react-dom@0.0.0-experimental-5b610964-20261106
   - scheduler@0.0.0-experimental-5b610964-20261106
   # typescript@7.1.0-dev.20261106.1 (next; published 2026-11-06T08:09:36Z) and its seven @typescript/typescript-<platform> binaries
-  # (08:05-08:09Z) were under the 24 h minimumReleaseAge at the 2026-11-06 bump from the previous day's dev build. Drop after a day.
+  # (08:04-08:07Z) were under the 24 h minimumReleaseAge at the 2026-11-06 bump from the previous day's dev build. Drop after a day.
   - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261106.1'
   - '@typescript/typescript-darwin-x64@7.1.0-dev.20261106.1'
   - '@typescript/typescript-linux-arm64@7.1.0-dev.20261106.1'
