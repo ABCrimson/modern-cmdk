@@ -14,7 +14,8 @@
 //                 docs-2026-11/social-preview.png; the file is never committed or served)
 //
 // Outputs (all under apps/docs/public): og-image.png, og-image.svg, apple-touch-icon.png, favicon.svg (through svgo),
-// brand/banner-dark.png, brand/banner-light.png. Every size and dimension is asserted below; one miss exits 1.
+// brand/banner-dark.png, brand/banner-light.png. Every size and dimension is asserted on the
+// rendered buffer before anything is written: a miss writes nothing for that asset and the run exits 1.
 // Chromium runs with --use-angle=d3d11 on Windows outside CI (the host's GPU path), with default flags elsewhere.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -123,8 +124,10 @@ const failures: string[] = [];
 const say = (line: string): void => {
   process.stdout.write(`${line}\n`);
 };
-const expect = (ok: boolean, message: string): void => {
+/** Records a failed assertion and returns whether it held. */
+const check = (ok: boolean, message: string): boolean => {
   if (!ok) failures.push(message);
+  return ok;
 };
 
 function fontFace(family: string, file: string, weights: string): string {
@@ -189,20 +192,27 @@ try {
         document.fonts.check('650 64px "Instrument Sans Variable"') &&
         document.fonts.check('400 20px "Geist Mono Variable"'),
     );
-    expect(loaded, `${job.name}: the inlined fonts did not load`);
+    const fontsOk = check(loaded, `${job.name}: the inlined fonts did not load`);
     const png = await page.screenshot({ type: 'png', omitBackground: job.transparent });
     await page.close();
 
     const size = pngSize(png);
     const wantW = job.width * job.scale;
     const wantH = job.height * job.scale;
-    expect(
+    const dimsOk = check(
       size.width === wantW && size.height === wantH,
       `${job.name}: ${size.width} x ${size.height}, want ${wantW} x ${wantH}`,
     );
-    expect(png.length <= job.maxBytes, `${job.name}: ${png.length} B exceeds ${job.maxBytes} B`);
-    writeOut(job.out, png);
-    say(`${job.name}: ${size.width} x ${size.height}, ${png.length} B -> ${job.out}`);
+    const bytesOk = check(
+      png.length <= job.maxBytes,
+      `${job.name}: ${png.length} B exceeds ${job.maxBytes} B`,
+    );
+    if (fontsOk && dimsOk && bytesOk) {
+      writeOut(job.out, png);
+      say(`${job.name}: ${size.width} x ${size.height}, ${png.length} B -> ${job.out}`);
+    } else {
+      say(`${job.name}: ${size.width} x ${size.height}, ${png.length} B, not written`);
+    }
   }
 } finally {
   await browser.close();
@@ -210,8 +220,10 @@ try {
 
 // og-image.svg ships at its path (create-modern-cmdk's README links it by raw URL) with the fonts inlined.
 const ogSvg = withFonts(readFileSync(join(brandDir, 'og-image.svg'), 'utf8'));
-writeOut(join(publicDir, 'og-image.svg'), ogSvg);
-say(`og-image.svg: ${Buffer.byteLength(ogSvg)} B -> ${join(publicDir, 'og-image.svg')}`);
+if (check(!ogSvg.includes('oklch('), 'og-image.svg contains oklch(')) {
+  writeOut(join(publicDir, 'og-image.svg'), ogSvg);
+  say(`og-image.svg: ${Buffer.byteLength(ogSvg)} B -> ${join(publicDir, 'og-image.svg')}`);
+}
 
 // favicon.svg: the committed source through svgo (installed devDependency), at most 900 B.
 const favicon: string = optimize(readFileSync(join(brandDir, 'favicon.svg'), 'utf8'), {
@@ -219,13 +231,13 @@ const favicon: string = optimize(readFileSync(join(brandDir, 'favicon.svg'), 'ut
   plugins: ['preset-default'],
 }).data;
 const faviconBytes = Buffer.byteLength(favicon);
-expect(faviconBytes <= 900, `favicon.svg: ${faviconBytes} B exceeds 900 B`);
-writeOut(join(publicDir, 'favicon.svg'), favicon);
-say(`favicon.svg: ${faviconBytes} B -> ${join(publicDir, 'favicon.svg')}`);
-
 // The shipped SVGs carry sRGB hex only: Chromium paints OKLCH, other rasterisers do not.
-for (const file of [join(publicDir, 'og-image.svg'), join(publicDir, 'favicon.svg')]) {
-  expect(!readFileSync(file, 'utf8').includes('oklch('), `${file} contains oklch(`);
+const faviconOk =
+  check(faviconBytes <= 900, `favicon.svg: ${faviconBytes} B exceeds 900 B`) &&
+  check(!favicon.includes('oklch('), 'favicon.svg contains oklch(');
+if (faviconOk) {
+  writeOut(join(publicDir, 'favicon.svg'), favicon);
+  say(`favicon.svg: ${faviconBytes} B -> ${join(publicDir, 'favicon.svg')}`);
 }
 
 if (failures.length > 0) {
