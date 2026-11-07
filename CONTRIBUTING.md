@@ -678,7 +678,7 @@ chore: bump Biome to 2.6.6
    - Unit tests (3 OS, on Node 26.4.0 and the `.nvmrc` Node), React lanes, built-package tests, coverage with the ratchet
    - Rust & WASM, E2E tests (Chromium), docs build and render tests
    - Bundle size check (`size-limit`)
-   - Package integrity (`pnpm check:package --pack-dir`, the codemod tarball smoke `scripts/codemod-tarball-smoke.ts`, the notices check `scripts/third-party-notices.ts --check`, `pnpm check:licenses`, an SPDX SBOM artifact `sbom` made with syft v1.56.0), the Consumer app matrix (next-turbopack, next-webpack, vite) and a Node 24 engine-strict install of the packed tarball
+   - Package integrity (`pnpm check:package --pack-dir`, the codemod tarball smoke `scripts/codemod-tarball-smoke.ts`, the notices check `scripts/third-party-notices.ts --check`, `pnpm check:licenses`, an SPDX SBOM artifact `sbom` made with syft v1.57.0), the Consumer app matrix (next-turbopack, next-webpack, vite) and a Node 24 engine-strict install of the packed tarball
    - Templates (scaffold `react-basic`, `react-dialog` and `react-full` from the packed tarballs, `tsc -b` and build each; `scripts/template-smoke.ts --template all`, timeout 10 minutes)
    - Benchmarks (`pnpm bench:compare` against `benchmarks/baseline.json`, then `pnpm bench --run`)
    - Security audit (`pnpm audit`)
