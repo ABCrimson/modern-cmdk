@@ -165,15 +165,55 @@ describe('migration guide: commands', () => {
 });
 
 describe('migration guide: API differences', () => {
-  it("DT-17: the API differences table names defaultValue, forceMount, progress and the root's div props", () => {
+  it("DT-17: the API differences table names every cmdk prop modern-cmdk lacks, from defaultValue to the root's div props", () => {
     const table = page.slice(
       page.indexOf('## Complete API Differences'),
       page.indexOf('## New Features Available After Migration'),
     );
     expect(table.length).toBeGreaterThan(0);
-    for (const needle of ['defaultValue', 'forceMount', 'progress', 'div props']) {
+    for (const needle of [
+      'defaultValue',
+      'forceMount',
+      'progress',
+      'div props',
+      'alwaysRender',
+      'asChild',
+      'onSelect',
+      'heading',
+      'defaultOpen',
+      'modal',
+    ]) {
       expect(table, needle).toContain(needle);
     }
+  });
+
+  it('DT-17: section 9 says a data-* or aria-* attribute compiles and is dropped rather than claiming tsc rejects every prop', () => {
+    const start = page.indexOf('### 9. ');
+    const end = page.indexOf('### 10. ');
+    expect(start, 'section 9 exists').toBeGreaterThan(-1);
+    expect(end, 'section 10 follows').toBeGreaterThan(start);
+    const section = page.slice(start, end);
+    expect(section).toContain('compiles and is dropped');
+    expect(section).not.toContain('rejects with TS2322 (declarations');
+  });
+
+  it('DG-137: the guide states that Command.Item onSelect receives no argument in 1.x and names the 2.0 change', () => {
+    const headings = [...page.matchAll(/^### (\d+)\. .*$/gm)].map((m) => m[0]);
+    const heading = headings.find((h) => h.includes('onSelect'));
+    expect(heading, 'a numbered breaking-change heading names onSelect').toBeDefined();
+    const start = page.indexOf(heading as string);
+    const next = page.indexOf('\n## ', start);
+    const section = page.slice(start, next === -1 ? undefined : next);
+    expect(section).toContain('() => void');
+    expect(section).toContain('2.0');
+    const number = /^### (\d+)\./.exec(heading as string)?.[1];
+    const table = page.slice(
+      page.indexOf('## Complete API Differences'),
+      page.indexOf('## New Features Available After Migration'),
+    );
+    const row = table.split('\n').find((line) => line.includes('onSelect'));
+    expect(row, 'the API table has an onSelect row').toBeDefined();
+    expect(row).toContain(`Breaking change ${number}`);
   });
 });
 
