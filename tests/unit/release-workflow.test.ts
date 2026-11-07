@@ -271,7 +271,7 @@ describe('release.yml first-publish split (D62: the smoke job executes a fresh n
     expect(attestJob).toMatch(/subject-path: first-publish\/\*\.tgz/);
     expect(attestJob).toMatch(/sbom-path: first-publish\/modern-cmdk-codemod\.spdx\.json/);
     expect(attestJob).toContain('output-file: first-publish/modern-cmdk-codemod.spdx.json');
-    expect(attestJob).toContain('syft-version: v1.56.0');
+    expect(attestJob).toContain('syft-version: v1.57.0');
   });
 
   it('D62: the header lists exactly the jobs whose permissions hold id-token: write, and says why the smoke job holds none', () => {
