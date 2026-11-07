@@ -44,6 +44,8 @@ export interface UsePaletteOptions {
   readonly items: () => readonly PaletteEntry[];
   /** Applied as the first SEARCH_CHANGE when the engine loads (finder mode). */
   readonly initialQuery: () => string | undefined;
+  /** The group heading shown above the server-rendered links, so the first row keeps its y through hydration. */
+  readonly ssrHeading: () => string;
   /** Unique within the page: Vue's useId(), called by the component. */
   readonly uid: string;
   readonly elements: {
@@ -83,7 +85,7 @@ function supportsIteratorHelpers(): boolean {
   );
 }
 
-/** matchesShortcut (core/keyboard/matcher.ts:12) compares `event.key`, which Option+Shift+letter turns
+/** matchesShortcut (core/keyboard/matcher.ts:11) compares `event.key`, which Option+Shift+letter turns
  * into another character on macOS; the physical key is the fallback when the modifiers agree. */
 function matchesChord(core: Core, event: KeyboardEvent, shortcut: ParsedShortcut): boolean {
   if (core.matchesShortcut(event, shortcut)) return true;
@@ -110,7 +112,11 @@ function syntheticClickAt(element: Element | null): MouseEvent {
 export interface PaletteApi {
   readonly headingId: string;
   readonly listId: string;
+  readonly ssrHeadingId: string;
+  readonly ssrHeading: Readonly<Ref<string>>;
   readonly pageHref: (path: string) => string;
+  /** False while the input is the server's read-only one; true from the start of mount, so typing is kept. */
+  readonly editable: Readonly<Ref<boolean>>;
   readonly ready: Readonly<Ref<boolean>>;
   readonly query: Readonly<Ref<string>>;
   readonly groups: Readonly<Ref<readonly PaletteGroupView[]>>;
@@ -150,6 +156,8 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
 
   /** True once the core is loaded, the machine runs and the combobox markup is live. */
   const ready = shallowRef(false);
+  /** True from the start of mount() until the core fails to load: the input accepts typing while the core loads. */
+  const editable = shallowRef(false);
   const query = shallowRef('');
   const state: ShallowRef<CommandState | null> = shallowRef(null);
   const liveMessage = shallowRef('');
@@ -238,11 +246,26 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
     machine?.send({ type: 'NAVIGATE', direction: 'first' });
   }
 
+  /** send() batches into the next animation frame (machine.ts:355, utils/scheduler.ts:85), so state trails the input
+   * by one frame. Enter and the arrows must act on the state of the query the visitor sees: when the state is
+   * behind, run in the next frame, after the machine's own frame callback (registered first, so it runs first). */
+  function whenSettled(run: () => void): void {
+    const guarded = (): void => {
+      if (!disposed) run();
+    };
+    if (state.value?.search === query.value) guarded();
+    else requestAnimationFrame(guarded);
+  }
+
   /** Arrow keys and the autoplay move the active row. When search ranking interleaves groups, the order the
    * eye reads (grouped) differs from state.filteredIds, which NAVIGATE walks (machine.ts:179-230); then the
    * neighbour in the grouped order is activated with ITEM_ACTIVATE (machine.ts:250) instead. Both wrap,
    * matching the machine's `loop: true`. */
   function move(direction: 'next' | 'prev'): void {
+    whenSettled(() => moveNow(direction));
+  }
+
+  function moveNow(direction: 'next' | 'prev'): void {
     if (machine === null || state.value === null) return;
     const visual = visualIds.value;
     if (visual.length === 0) return;
@@ -286,6 +309,14 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
     }, COPIED_MS);
   }
 
+  /** The rendered option of an entry, if it is in the current result list. */
+  function optionElement(entryId: string): HTMLElement | undefined {
+    const options = elements.list.value?.querySelectorAll<HTMLElement>('[role="option"]');
+    return options === undefined
+      ? undefined
+      : [...options].find((option) => option.dataset.mcEntry === entryId);
+  }
+
   function perform(entry: PaletteEntry, trigger: Event | undefined): void {
     if (entry.action === 'copy-install') {
       void copyInstall(entry);
@@ -296,7 +327,8 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
         trigger instanceof MouseEvent
           ? trigger
           : syntheticClickAt(
-              elements.list.value?.querySelector('[role="option"][aria-selected="true"]') ??
+              optionElement(entry.id) ??
+                elements.list.value?.querySelector('[role="option"][aria-selected="true"]') ??
                 elements.root.value,
             );
       toggleAppearance(origin);
@@ -324,7 +356,7 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
   // ---- matched characters ----------------------------------------------------------------------------
 
   // CSS Custom Highlight API (MDN "Baseline 2025", design-final.md §5): the ranges come from
-  // scoreItem(query, item).matches (core/search/default-scorer.ts:152). Scoring a copy of the item without
+  // scoreItem(query, item).matches (core/search/default-scorer.ts:29). Scoring a copy of the item without
   // keywords keeps the ranges on the visible label. No `CSS.highlights`: nothing is painted, nothing breaks.
   function paintMatches(): void {
     if (
@@ -511,7 +543,12 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
   }
 
   function onInput(event: Event): void {
-    if (!(event.target instanceof HTMLInputElement) || machine === null) return;
+    if (!(event.target instanceof HTMLInputElement)) return;
+    // Before the core loads there is no machine: keep the text, mount() replays it as the first SEARCH_CHANGE.
+    if (machine === null) {
+      query.value = event.target.value;
+      return;
+    }
     applyQuery(event.target.value);
     announceResultsSoon();
   }
@@ -541,11 +578,11 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
         move('prev');
         break;
       case 'Enter': {
-        const activeId = state.value?.activeId;
-        if (activeId != null) {
-          event.preventDefault();
-          select(activeId, event);
-        }
+        event.preventDefault();
+        whenSettled(() => {
+          const activeId = state.value?.activeId;
+          if (activeId != null) select(activeId, event);
+        });
         break;
       }
       case 'Escape':
@@ -583,9 +620,14 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
    * markup for the combobox. Any failure leaves the server-rendered link list in place: a working navigation block. */
   async function mount(): Promise<void> {
     if (!supportsIteratorHelpers()) return;
+    // Typing is accepted while the core loads and replayed as the first SEARCH_CHANGE once the machine exists.
+    editable.value = true;
     try {
       core = await import('modern-cmdk');
     } catch {
+      // The server link list stays; the input goes back to read-only and drops what was typed.
+      editable.value = false;
+      query.value = '';
       return;
     }
     if (disposed) return;
@@ -604,7 +646,7 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
 
     // createCommandMachine: core/machine.ts:58. `frecency.enabled` builds the engine on the default memory
     // storage (core/frecency/index.ts:74): nothing persists and IndexedDB is never touched. `loop: true` is
-    // core/types.ts:587. Groups are not registered, so the machine keeps the order of the item list.
+    // core/types.ts:190. Groups are not registered; groupedIds follows filteredIds (machine.ts:157-160): item-list order on the empty query, rank order otherwise.
     const loaded = core;
     machine = loaded.createCommandMachine({
       items: entries.map((entry) => ({
@@ -627,7 +669,7 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
     const root = elements.root.value;
     const hadFocus =
       root !== null && document.activeElement !== null && root.contains(document.activeElement);
-    const typedBeforeHydration = input?.value ?? '';
+    const typedBeforeHydration = input?.value ?? query.value;
     shortcutLabels.value = labels;
     ready.value = true;
 
@@ -670,7 +712,10 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
   return {
     headingId: `${uid}-h`,
     listId: `${uid}-list`,
+    ssrHeadingId: `${uid}-ssr-h`,
+    ssrHeading: computed(() => options.ssrHeading()),
     pageHref,
+    editable,
     ready,
     query,
     groups,
