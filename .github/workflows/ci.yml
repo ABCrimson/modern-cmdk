@@ -89,7 +89,7 @@ jobs:
         os: [ubuntu-26.04, macos-26, windows-2025-vs2026]
         # 26.4.0 = the engines.node floor; the other entry = .nvmrc
         # (a matrix cannot read the file — keep in sync).
-        node: ['26.4.0', '28.0.0-nightly20261106ec4d4c2950']
+        node: ['26.4.0', '28.0.0-nightly20261107a43bfb5bb2']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
