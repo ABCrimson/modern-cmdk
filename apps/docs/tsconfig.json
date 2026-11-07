@@ -4,7 +4,16 @@
     "types": ["vitepress/client", "node"],
     "noEmit": true,
     "declaration": false,
-    "isolatedDeclarations": false
+    "isolatedDeclarations": false,
+    "paths": {
+      "modern-cmdk": ["../../packages/modern-cmdk/src/core/index.ts"]
+    }
   },
-  "include": [".vitepress/config.ts", ".vitepress/theme/**/*.ts", ".vitepress/theme/**/*.vue"]
+  "include": [
+    ".vitepress/config.ts",
+    ".vitepress/theme/**/*.ts",
+    ".vitepress/theme/**/*.vue",
+    "scripts/**/*.ts",
+    "../../packages/modern-cmdk/src/core/es2026.d.ts"
+  ]
 }
