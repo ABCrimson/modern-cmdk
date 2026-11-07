@@ -132,6 +132,20 @@ export function classifyLink(url: string): RepoLink {
   return { kind: 'route', prefix: first === undefined ? '(repository)' : `/${first}`, fragment };
 }
 
+/** Removes every tag span (a `<`, at least one character, the first `>` after it) in one left-to-right pass, exactly what `replace(/<[^>]+>/g, '')` removed; a scanner rather than a replace call because CodeQL's js/incomplete-multi-character-sanitization query flags a one-pass regex strip (a nested `<scr<b>ipt>` leaves `<script`), and the input here is this repository's own heading text, never untrusted HTML (SEC-69). */
+function stripTags(text: string): string {
+  let out = '';
+  for (let i = 0; i < text.length; i++) {
+    const end: number = text[i] === '<' ? text.indexOf('>', i + 1) : -1;
+    if (end > i + 1) {
+      i = end;
+      continue;
+    }
+    out += text[i];
+  }
+  return out;
+}
+
 /** The anchor GitHub gives a heading's text (before the -1, -2 suffixes of duplicates); HTML tags and paired underscore emphasis delimiters are removed outside inline code spans only, code-span text stays literal. */
 export function slugify(heading: string): string {
   return heading
@@ -139,7 +153,7 @@ export function slugify(heading: string): string {
     .split(/(`+[^`]*`+)/)
     .map((part) => {
       if (part.startsWith('`')) return part.replace(/^`+|`+$/g, '');
-      let text: string = part.replace(/<[^>]+>/g, '');
+      let text: string = stripTags(part);
       for (let prev = ''; prev !== text; ) {
         prev = text;
         text = text.replace(EMPHASIS, '$2');
