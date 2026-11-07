@@ -181,7 +181,7 @@ html:root {
   --vp-c-warning-2: var(--mc-warning-2);
   --vp-c-warning-3: var(--mc-warning-3);
   --vp-c-warning-soft: var(--mc-warning-soft);
-  /* danger and caution are brand-1 ink on --mc-danger-soft; -2 is the ramp's darker step, -3 equals -1 */
+  /* danger and caution are brand-1 ink on --mc-danger-soft; -2 is the link-hover step, brand-2, -3 equals -1 */
   --vp-c-danger-1: var(--mc-brand-1);
   --vp-c-danger-2: var(--mc-brand-2);
   --vp-c-danger-3: var(--mc-brand-1);
@@ -236,7 +236,7 @@ html:root {
   --mc-dur-4: 500ms; /* palette frame entrance */
   --mc-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --mc-ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* was --ease-out-expo in vars.css */
-  /* the 29-stop curve of vars.css (--ease-spring), copied verbatim */
+  /* the 28-stop curve of vars.css (--ease-spring), copied verbatim */
   --mc-ease-spring: linear(
     0,
     0.009,
