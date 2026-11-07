@@ -41,9 +41,9 @@ const coreEntry = fileURLToPath(
 const fontPreload = /(instrument-sans|geist-mono)-latin-wght-normal\.[\w-]+\.woff2$/;
 
 // Shiki CSS-variables theme (createCssVariablesTheme, @shikijs/core/dist/index.d.mts:118-149):
-// `name` is the theme's unique name (l.123), `variablePrefix` the CSS variable prefix (l.129, default
-// '--shiki-'), `variableDefaults` fallbacks (l.135, unused: theme/styles/tokens.css declares every
-// variable), `fontStyle` whether italic and bold are emitted (l.141). VitePress takes a theme that is
+// `name` is the theme's unique name (l.124), `variablePrefix` the CSS variable prefix (l.130, default
+// '--shiki-'), `variableDefaults` fallbacks (l.136, unused: theme/styles/tokens.css declares every
+// variable), `fontStyle` whether italic and bold are emitted (l.142). VitePress takes a theme that is
 // not a {light, dark} pair as it is (ThemeOptions, vitepress/dist/node/index.d.ts:963-966).
 const codeTheme = createCssVariablesTheme({
   name: 'modern-cmdk',
@@ -87,7 +87,7 @@ export default defineConfig({
 
   // Per-page tags. The hook receives a TransformContext (vitepress/dist/node/index.d.ts:1283-1319):
   // `page` (l.1287) is the source file relative to the source root ('index.md', 'guide/frecency.md',
-  // '404.md'), `title` (l.1303) the full title with the site suffix, `description` (l.1311) the
+  // '404.md'), `title` (l.1303) the full title with the site suffix, `description` (l.1307) the
   // page's or the site's, `assets` (l.1319) every non-CSS build asset as a base-prefixed URL. It
   // returns head entries (l.1548), which the build merges over the static ones, one tag per key.
   transformHead({
@@ -96,20 +96,26 @@ export default defineConfig({
     description: pageDescription,
     assets,
   }: TransformContext): HeadConfig[] {
-    const url = page === 'index.md' ? siteUrl : `${siteUrl}${page.replace(/\.md$/, '.html')}`;
     const isNotFound = page === '404.md';
+    const socialTitle = isNotFound ? 'Page not found · modern-cmdk' : title;
     const head: HeadConfig[] = [
-      [
-        'meta',
-        { property: 'og:title', content: isNotFound ? 'Page not found · modern-cmdk' : title },
-      ],
+      ['meta', { property: 'og:title', content: socialTitle }],
       ['meta', { property: 'og:description', content: pageDescription }],
-      ['meta', { property: 'og:url', content: url }],
-      ['link', { rel: 'canonical', href: url }],
-      ['meta', { name: 'twitter:title', content: title }],
+      ['meta', { name: 'twitter:title', content: socialTitle }],
       ['meta', { name: 'twitter:description', content: pageDescription }],
     ];
-    if (isNotFound) head.push(['meta', { name: 'robots', content: 'noindex' }]);
+    if (isNotFound) {
+      // A noindex page declares neither a canonical URL nor an og:url.
+      head.push(['meta', { name: 'robots', content: 'noindex' }]);
+    } else {
+      // 'index.md' and '<dir>/index.md' map to the directory URL, any other page to its .html file:
+      // the sitemap's mapping (vitepress/dist/node/chunk-BjrVv9r8.js:24317; cleanUrls is unset).
+      const url = `${siteUrl}${page.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '.html')}`;
+      head.push(
+        ['meta', { property: 'og:url', content: url }],
+        ['link', { rel: 'canonical', href: url }],
+      );
+    }
     for (const asset of assets) {
       if (fontPreload.test(asset)) {
         head.push([
