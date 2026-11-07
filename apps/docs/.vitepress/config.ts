@@ -5,7 +5,15 @@
 // resolves here, so turning twoslash on is now possible. The root typescript 7.1 does not have
 // it: its package exports (node_modules/typescript/package.json) are "." = ./lib/version.cjs, ./package.json, the tsconfig and jsconfig schemas,
 // and the new API entry points sync and async (each with /transport), ast (/is, /factory, /utils, /scanner, /visitor, /clone), fs, path, proto, wasm and vscode.
-import { defineConfig, type MarkdownRenderer } from 'vitepress';
+import { fileURLToPath } from 'node:url';
+import { createCssVariablesTheme } from 'shiki/core';
+import {
+  defineConfig,
+  type HeadConfig,
+  type MarkdownRenderer,
+  type TransformContext,
+} from 'vitepress';
+import pkg from '../../../packages/modern-cmdk/package.json' with { type: 'json' };
 
 type FenceRule = NonNullable<MarkdownRenderer['renderer']['rules']['fence']>;
 
@@ -16,7 +24,32 @@ const base = '/modern-cmdk/';
 const siteUrl = `${origin}${base}`;
 const ogImage = `${siteUrl}og-image.png`;
 const description =
-  'Headless command palette engine for React 19. Framework-agnostic core, frecency ranking, full WAI-ARIA.';
+  'Headless command palette engine: a framework-agnostic TypeScript core with fuzzy search, frecency ranking and keyboard shortcuts, plus a React 19 adapter.';
+const ogImageAlt =
+  'modern-cmdk: one headless engine, any framework. A command palette filtering for ‘frec’.';
+const version: string = pkg.version;
+const repoUrl = 'https://github.com/ABCrimson/modern-cmdk';
+
+// The docs build compiles the core from source (the docs CI job installs and runs `pnpm docs:build`
+// without building packages), so the bare specifier `modern-cmdk` resolves to the core entry.
+const coreEntry = fileURLToPath(
+  new URL('../../../packages/modern-cmdk/src/core/index.ts', import.meta.url),
+);
+
+// The latin, normal-style, variable-weight files of the two Fontsource packages are the only font
+// files preloaded (design spec section 2.2).
+const fontPreload = /(instrument-sans|geist-mono)-latin-wght-normal\.[\w-]+\.woff2$/;
+
+// Shiki CSS-variables theme (createCssVariablesTheme, @shikijs/core/dist/index.d.mts:118-149):
+// `name` is the theme's unique name (l.123), `variablePrefix` the CSS variable prefix (l.129, default
+// '--shiki-'), `variableDefaults` fallbacks (l.135, unused: theme/styles/tokens.css declares every
+// variable), `fontStyle` whether italic and bold are emitted (l.141). VitePress takes a theme that is
+// not a {light, dark} pair as it is (ThemeOptions, vitepress/dist/node/index.d.ts:963-966).
+const codeTheme = createCssVariablesTheme({
+  name: 'modern-cmdk',
+  variablePrefix: '--shiki-',
+  fontStyle: true,
+});
 
 // A Mermaid fence renders client-side in <MermaidDiagram> (theme/components/MermaidDiagram.vue);
 // the diagram source travels as an escaped attribute so Vue never parses it as template syntax.
@@ -31,23 +64,71 @@ const escapeAttribute = (value: string): string =>
 
 export default defineConfig({
   title: 'modern-cmdk',
-  description: 'Headless command palette engine for React 19',
+  description,
   base,
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }],
-    ['meta', { property: 'og:title', content: 'modern-cmdk' }],
-    ['meta', { property: 'og:description', content: description }],
+    ['link', { rel: 'apple-touch-icon', href: `${base}apple-touch-icon.png` }],
+    // VitePress keys a meta tag by its first attribute other than `content` and keeps one tag per
+    // key (mergeHead in vitepress/dist/node), so `media` comes first: with `name` first the dark
+    // tag would replace the light one.
+    ['meta', { media: '(prefers-color-scheme: light)', name: 'theme-color', content: '#fcfcfe' }],
+    ['meta', { media: '(prefers-color-scheme: dark)', name: 'theme-color', content: '#0a0e27' }],
     ['meta', { property: 'og:image', content: ogImage }],
-    ['meta', { property: 'og:url', content: siteUrl }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
+    ['meta', { property: 'og:image:alt', content: ogImageAlt }],
     ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:site_name', content: 'modern-cmdk' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:title', content: 'modern-cmdk' }],
-    ['meta', { name: 'twitter:description', content: description }],
     ['meta', { name: 'twitter:image', content: ogImage }],
   ],
 
+  // Per-page tags. The hook receives a TransformContext (vitepress/dist/node/index.d.ts:1283-1319):
+  // `page` (l.1287) is the source file relative to the source root ('index.md', 'guide/frecency.md',
+  // '404.md'), `title` (l.1303) the full title with the site suffix, `description` (l.1311) the
+  // page's or the site's, `assets` (l.1319) every non-CSS build asset as a base-prefixed URL. It
+  // returns head entries (l.1548), which the build merges over the static ones, one tag per key.
+  transformHead({
+    page,
+    title,
+    description: pageDescription,
+    assets,
+  }: TransformContext): HeadConfig[] {
+    const url = page === 'index.md' ? siteUrl : `${siteUrl}${page.replace(/\.md$/, '.html')}`;
+    const isNotFound = page === '404.md';
+    const head: HeadConfig[] = [
+      [
+        'meta',
+        { property: 'og:title', content: isNotFound ? 'Page not found · modern-cmdk' : title },
+      ],
+      ['meta', { property: 'og:description', content: pageDescription }],
+      ['meta', { property: 'og:url', content: url }],
+      ['link', { rel: 'canonical', href: url }],
+      ['meta', { name: 'twitter:title', content: title }],
+      ['meta', { name: 'twitter:description', content: pageDescription }],
+    ];
+    if (isNotFound) head.push(['meta', { name: 'robots', content: 'noindex' }]);
+    for (const asset of assets) {
+      if (fontPreload.test(asset)) {
+        head.push([
+          'link',
+          { rel: 'preload', as: 'font', type: 'font/woff2', href: asset, crossorigin: '' },
+        ]);
+      }
+    }
+    return head;
+  },
+
+  vite: {
+    resolve: {
+      alias: [{ find: /^modern-cmdk$/, replacement: coreEntry }],
+    },
+  },
+
   markdown: {
+    theme: codeTheme,
     config(md: MarkdownRenderer): void {
       const fence = md.renderer.rules.fence;
       const render: FenceRule = (...args: Parameters<FenceRule>): ReturnType<FenceRule> => {
@@ -65,13 +146,28 @@ export default defineConfig({
   sitemap: { hostname: siteUrl },
 
   themeConfig: {
+    logo: '/favicon.svg',
     search: { provider: 'local' },
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'API', link: '/api/command' },
       { text: 'Examples', link: '/examples/basic' },
-      { text: 'Architecture', link: '/architecture/overview' },
-      { text: 'Benchmarks', link: '/benchmarks' },
+      { text: 'Recipes', link: '/recipes/file-picker' },
+      {
+        text: 'More',
+        items: [
+          { text: 'Architecture', link: '/architecture/overview' },
+          { text: 'Benchmarks', link: '/benchmarks' },
+        ],
+      },
+      {
+        text: `v${version}`,
+        items: [
+          { text: 'Release notes', link: `${repoUrl}/releases/tag/modern-cmdk@${version}` },
+          { text: 'Changelog', link: `${repoUrl}/blob/main/packages/modern-cmdk/CHANGELOG.md` },
+          { text: 'npm', link: 'https://www.npmjs.com/package/modern-cmdk' },
+        ],
+      },
     ],
     sidebar: {
       '/guide/': [
@@ -153,7 +249,23 @@ export default defineConfig({
           items: [{ text: 'Overview', link: '/architecture/overview' }],
         },
       ],
+      '/benchmarks': [
+        {
+          text: 'Internals',
+          items: [
+            { text: 'Architecture overview', link: '/architecture/overview' },
+            { text: 'Internals', link: '/guide/architecture' },
+            { text: 'Benchmarks', link: '/benchmarks' },
+          ],
+        },
+      ],
     },
-    socialLinks: [{ icon: 'github', link: 'https://github.com/ABCrimson/modern-cmdk' }],
+    socialLinks: [{ icon: 'github', link: repoUrl }],
+    // Rendered with v-html on pages without a sidebar. The two local hrefs are built from `base`;
+    // fonts-license.txt and licenses/lucide.txt are files in apps/docs/public.
+    footer: {
+      message: `Released under the <a href="${repoUrl}/blob/main/LICENSE">MIT License</a>. Set in Instrument Sans and Geist Mono (<a href="${base}fonts-license.txt">OFL-1.1</a>); icons from Lucide (<a href="${base}licenses/lucide.txt">ISC</a>).`,
+      copyright: `© 2026 Albert Badalov · modern-cmdk v${version}`,
+    },
   },
 });
