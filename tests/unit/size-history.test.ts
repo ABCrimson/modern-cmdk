@@ -1,9 +1,10 @@
 // tests/unit/size-history.test.ts
 // RDG-128: the 1.5.0 size record (benchmarks/size-history/1.5.0.json) and every sentence and table that cites it.
 // Every number below is read from the record (or from the 1.4.0 record for the "1.4" comparison figures); none is a
-// literal. The commit sha and blob id of the record itself are not asserted in the prose (the orchestrator fills the
-// blob links after the record commit): only the record's path inside those links is.
+// literal. The blob id the docs cite is computed from the record's bytes and asserted; the commit in the blob links is
+// not (the orchestrator fills it after the record commit), only the record's path inside those links is.
 
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -41,6 +42,12 @@ const RECORD = 'benchmarks/size-history/1.5.0.json';
 const record = JSON.parse(read(RECORD)) as SizeRecord;
 const previous = JSON.parse(read('benchmarks/size-history/1.4.0.json')) as SizeRecord;
 const day = record.date.slice(0, 10);
+const recordBytes = readFileSync(join(root, RECORD));
+const blob = createHash('sha1')
+  .update(`blob ${recordBytes.length}\0`)
+  .update(recordBytes)
+  .digest('hex')
+  .slice(0, 7);
 
 function entry(source: SizeRecord, name: string): Entry {
   const found = source.entries.find((candidate) => candidate.name === name);
@@ -205,6 +212,10 @@ describe('apps/docs/benchmarks.md: the bundle-size table', () => {
     );
   });
 
+  it('cites the git blob of the record as committed', () => {
+    expect(bundle).toContain(`(git blob \`${blob}\``);
+  });
+
   for (const [label, each, unit] of rows) {
     it(`quotes ${each.name}`, () => {
       expect(line(bundle, label)).toContain(`| ${each.size} ${unit} |`);
@@ -338,6 +349,10 @@ describe('apps/docs/guide/ssr.md: the Tree-Shaking figures', () => {
     expect(paragraph).toContain(
       `measured at \`${record.sha}\` with size-limit ${record.sizeLimit}`,
     );
+  });
+
+  it('cites the git blob of the record', () => {
+    expect(paragraph).toContain(`(git blob \`${blob}\``);
   });
 
   it('quotes the CommandSeparator-only figure against the whole adapter', () => {
