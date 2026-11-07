@@ -1,0 +1,313 @@
+/*
+ * Design tokens of the docs site (design-final.md 2.1, 2.3 and 4.6).
+ *
+ * Three layers: the `--mc-*` semantic tokens, a bridge that points the VitePress `--vp-*` variables and the
+ * Shiki `--shiki-*` variables at them, and the motion tokens with their one reduced-motion switch.
+ *
+ * The default theme sets `color-scheme: dark` on `:root:is(.dark)` and `light` on `:root:not(.dark)`
+ * (vitepress/dist/client/theme-default/styles/base.css:246-252), so `light-dark()` follows the VitePress toggle,
+ * not the operating system. `html:root` has specificity 0,1,1 and beats the theme's `:root` and `.dark` blocks
+ * (0,1,0; theme-default/styles/vars.css:137-195) whatever the chunk order. No `@layer`: only base.css is layered
+ * in the default theme, so a layered override would lose.
+ *
+ * Every colour is a literal `light-dark(<light>, <dark>)` pair, tints included: no relative colour syntax and no
+ * `color-mix()` over a `light-dark()` token. Hex in the comments is what the browser paints.
+ */
+
+html:root {
+  /* surfaces */
+  --mc-bg: light-dark(oklch(0.992 0.003 273), oklch(0.177 0.051 273)); /* #fcfcfe / #0a0e27 */
+  --mc-bg-alt: light-dark(
+    oklch(0.972 0.006 273),
+    oklch(0.152 0.044 273)
+  ); /* #f4f6fa / #06091e  sidebar, code blocks */
+  --mc-bg-soft: light-dark(
+    oklch(0.955 0.009 273),
+    oklch(0.225 0.055 273)
+  ); /* #eef0f6 / #141935  cards, install block */
+  --mc-bg-elv: light-dark(
+    oklch(1 0 0),
+    oklch(0.205 0.055 273)
+  ); /* #ffffff / #0f1430  palette panel, search modal */
+
+  /* inks */
+  --mc-text-1: light-dark(oklch(0.235 0.045 273), oklch(0.945 0.012 273)); /* #171c33 / #eaecf5 */
+  --mc-text-2: light-dark(oklch(0.42 0.035 273), oklch(0.79 0.025 273)); /* #474c61 / #b5bacb */
+  --mc-text-3: light-dark(
+    oklch(0.5 0.03 273),
+    oklch(0.68 0.03 273)
+  ); /* #5d6275 / #9297ab  passes 4.5 */
+
+  /* lines */
+  --mc-divider: light-dark(oklch(0.905 0.012 273), oklch(0.29 0.045 273)); /* #dddfe8 / #242a42 */
+  --mc-border-strong: light-dark(
+    oklch(0.6 0.025 273),
+    oklch(0.5 0.04 273)
+  ); /* #7b8090 / #5b627b  3:1 boundaries */
+
+  /* brand ramp (links, marks) */
+  --mc-brand-1: light-dark(
+    oklch(0.505 0.19 27.5),
+    oklch(0.72 0.165 22)
+  ); /* #b91c1c / #fb7475  links, active items */
+  --mc-brand-2: light-dark(
+    oklch(0.445 0.16 27),
+    oklch(0.8 0.11 20)
+  ); /* #991d1c / #fda1a0  link hover */
+  --mc-brand-3: oklch(0.577 0.215 27.3); /* #dc2626  focus ring, bars, gradient start */
+  --mc-brand-soft: light-dark(oklch(0.577 0.215 27.3 / 10%), oklch(0.72 0.165 22 / 14%));
+  --mc-hero-name-end: light-dark(oklch(0.505 0.19 27.5), oklch(0.72 0.165 22)); /* J2 */
+
+  /* primary button: its own ramp, the same in both schemes (J1) */
+  --mc-button-bg: oklch(0.577 0.215 27.3); /* #dc2626, white 4.83 */
+  --mc-button-hover-bg: oklch(0.505 0.19 27.5); /* #b91c1c, white 6.48 */
+  --mc-button-active-bg: oklch(0.445 0.16 27); /* #991d1c, white 8.26 */
+  --mc-button-text: oklch(1 0 0);
+
+  /* code */
+  --mc-code-ink: light-dark(
+    oklch(0.33 0.07 273),
+    oklch(0.88 0.035 273)
+  ); /* #2a3259 / #cfd7ef  inline code is ink, not brand */
+  --mc-code-bg: light-dark(oklch(0.235 0.045 273 / 6%), oklch(0.945 0.012 273 / 8%));
+
+  /* containers: -1 ink, -2 is -1 at L - 0.05, -3 equals -1, soft fill */
+  --mc-tip-1: light-dark(oklch(0.47 0.11 155), oklch(0.8 0.14 155)); /* #106c3e / #6ad895 */
+  --mc-tip-2: light-dark(oklch(0.42 0.11 155), oklch(0.75 0.14 155));
+  --mc-tip-3: light-dark(oklch(0.47 0.11 155), oklch(0.8 0.14 155));
+  --mc-tip-soft: light-dark(oklch(0.47 0.11 155 / 8%), oklch(0.8 0.14 155 / 12%));
+  --mc-warning-1: light-dark(oklch(0.5 0.105 65), oklch(0.84 0.13 80)); /* #8b5511 / #f7c15f */
+  --mc-warning-2: light-dark(oklch(0.45 0.105 65), oklch(0.79 0.13 80));
+  --mc-warning-3: light-dark(oklch(0.5 0.105 65), oklch(0.84 0.13 80));
+  --mc-warning-soft: light-dark(oklch(0.5 0.105 65 / 8%), oklch(0.84 0.13 80 / 12%));
+  --mc-important-1: light-dark(oklch(0.48 0.2 293), oklch(0.76 0.13 293)); /* #6738c1 / #b4a1fc */
+  --mc-important-2: light-dark(oklch(0.43 0.2 293), oklch(0.71 0.13 293));
+  --mc-important-3: light-dark(oklch(0.48 0.2 293), oklch(0.76 0.13 293));
+  --mc-important-soft: light-dark(oklch(0.48 0.2 293 / 8%), oklch(0.76 0.13 293 / 12%));
+  --mc-note-1: light-dark(oklch(0.47 0.13 250), oklch(0.78 0.11 245)); /* #065da0 / #78bff9 */
+  --mc-note-2: light-dark(oklch(0.42 0.13 250), oklch(0.73 0.11 245));
+  --mc-note-3: light-dark(oklch(0.47 0.13 250), oklch(0.78 0.11 245));
+  --mc-note-soft: light-dark(oklch(0.47 0.13 250 / 8%), oklch(0.78 0.11 245 / 12%));
+
+  /* danger = brand-1 ink on a brand-soft-strength tint */
+  --mc-danger-soft: light-dark(oklch(0.505 0.19 27.5 / 8%), oklch(0.72 0.165 22 / 12%));
+
+  /* nav glass */
+  --mc-nav-glass: light-dark(oklch(0.992 0.003 273 / 80%), oklch(0.177 0.051 273 / 80%));
+}
+
+/* Shiki: the 13 variables of createCssVariablesTheme({ variablePrefix: '--shiki-' }) (4.6) */
+html:root {
+  --shiki-foreground: light-dark(
+    oklch(0.235 0.045 273),
+    oklch(0.92 0.015 273)
+  ); /* #171c33 / #e1e4ef */
+  --shiki-background: transparent; /* the code block shows its own surface */
+  --shiki-token-comment: light-dark(oklch(0.5 0.03 273), oklch(0.68 0.03 273));
+  --shiki-token-keyword: light-dark(oklch(0.505 0.19 27.5), oklch(0.74 0.15 22));
+  --shiki-token-string: light-dark(oklch(0.47 0.11 155), oklch(0.82 0.13 155));
+  /* equals string: the theme sends string.quoted to string-expression, so a separate colour would split strings in two */
+  --shiki-token-string-expression: light-dark(oklch(0.47 0.11 155), oklch(0.82 0.13 155));
+  --shiki-token-function: light-dark(oklch(0.47 0.19 293), oklch(0.78 0.12 293)); /* also types */
+  --shiki-token-constant: light-dark(
+    oklch(0.5 0.11 60),
+    oklch(0.83 0.12 70)
+  ); /* also properties, support */
+  --shiki-token-parameter: light-dark(oklch(0.42 0.08 255), oklch(0.84 0.06 250));
+  --shiki-token-punctuation: light-dark(oklch(0.45 0.03 273), oklch(0.72 0.03 273));
+  --shiki-token-link: var(--mc-brand-1);
+  --shiki-token-inserted: var(--mc-tip-1);
+  --shiki-token-deleted: var(--mc-brand-1);
+  --shiki-token-changed: var(--mc-warning-1);
+}
+
+/* The bridge: VitePress variables point at the semantic tokens */
+html:root {
+  --vp-c-bg: var(--mc-bg);
+  --vp-c-bg-alt: var(--mc-bg-alt);
+  --vp-c-bg-soft: var(--mc-bg-soft);
+  --vp-c-bg-elv: var(--mc-bg-elv);
+  --vp-nav-screen-bg-color: var(--mc-bg);
+  --vp-sidebar-bg-color: var(--mc-bg-alt);
+
+  --vp-c-text-1: var(--mc-text-1);
+  --vp-c-text-2: var(--mc-text-2);
+  --vp-c-text-3: var(--mc-text-3);
+
+  --vp-c-divider: var(--mc-divider);
+  --vp-c-gutter: var(--mc-divider);
+  --vp-c-border: var(--mc-divider);
+
+  --vp-c-brand-1: var(--mc-brand-1);
+  --vp-c-brand-2: var(--mc-brand-2);
+  --vp-c-brand-3: var(--mc-brand-3);
+  --vp-c-brand-soft: var(--mc-brand-soft);
+
+  /* the theme's defaults put white on brand-2 (hover) and brand-1 (active), 1.95 and 2.67 in dark (vars.css:419-427) */
+  --vp-button-brand-bg: var(--mc-button-bg);
+  --vp-button-brand-hover-bg: var(--mc-button-hover-bg);
+  --vp-button-brand-active-bg: var(--mc-button-active-bg);
+  --vp-button-brand-text: var(--mc-button-text);
+  --vp-button-brand-hover-text: var(--mc-button-text);
+  --vp-button-brand-active-text: var(--mc-button-text);
+
+  --vp-code-color: var(--mc-code-ink);
+  --vp-code-bg: var(--mc-code-bg);
+  --vp-code-block-bg: var(--mc-bg-alt);
+  --vp-code-link-color: var(--mc-brand-1);
+  --vp-code-link-hover-color: var(--mc-brand-2);
+  --vp-code-line-highlight-color: var(--mc-brand-soft);
+  --vp-code-tab-active-bar-color: var(--mc-brand-3);
+  --vp-code-line-diff-add-color: var(--mc-tip-soft);
+  --vp-code-line-diff-add-symbol-color: var(--mc-tip-1);
+  --vp-code-line-diff-remove-color: var(--mc-danger-soft);
+  --vp-code-line-diff-remove-symbol-color: var(--mc-brand-1);
+  --vp-code-font-size: 0.875em; /* 0.875rem in a block (its parent is 1rem), 0.875em inline */
+  --vp-code-line-height: 1.7;
+
+  --vp-c-tip-1: var(--mc-tip-1);
+  --vp-c-tip-2: var(--mc-tip-2);
+  --vp-c-tip-3: var(--mc-tip-3);
+  --vp-c-tip-soft: var(--mc-tip-soft);
+  --vp-c-note-1: var(--mc-note-1);
+  --vp-c-note-2: var(--mc-note-2);
+  --vp-c-note-3: var(--mc-note-3);
+  --vp-c-note-soft: var(--mc-note-soft);
+  --vp-c-important-1: var(--mc-important-1);
+  --vp-c-important-2: var(--mc-important-2);
+  --vp-c-important-3: var(--mc-important-3);
+  --vp-c-important-soft: var(--mc-important-soft);
+  --vp-c-warning-1: var(--mc-warning-1);
+  --vp-c-warning-2: var(--mc-warning-2);
+  --vp-c-warning-3: var(--mc-warning-3);
+  --vp-c-warning-soft: var(--mc-warning-soft);
+  /* danger and caution are brand-1 ink on --mc-danger-soft; -2 is the ramp's darker step, -3 equals -1 */
+  --vp-c-danger-1: var(--mc-brand-1);
+  --vp-c-danger-2: var(--mc-brand-2);
+  --vp-c-danger-3: var(--mc-brand-1);
+  --vp-c-danger-soft: var(--mc-danger-soft);
+  --vp-c-caution-1: var(--mc-brand-1);
+  --vp-c-caution-2: var(--mc-brand-2);
+  --vp-c-caution-3: var(--mc-brand-1);
+  --vp-c-caution-soft: var(--mc-danger-soft);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    135deg,
+    var(--mc-brand-3),
+    var(--mc-hero-name-end)
+  );
+
+  --vp-nav-bg-color: var(--mc-nav-glass);
+  --vp-nav-backdrop-filter: saturate(160%) blur(12px);
+  --vp-nav-home-bg-color: transparent;
+
+  --vp-local-search-bg: var(--mc-bg-elv);
+  --vp-local-search-highlight-bg: var(--mc-brand-soft);
+  --vp-local-search-highlight-text: var(--mc-text-1);
+}
+
+/* Spacing (4 px base, written in rem), radius */
+html:root {
+  --mc-space-1: 0.25rem; /* 4 */
+  --mc-space-2: 0.5rem; /* 8 */
+  --mc-space-3: 0.75rem; /* 12 */
+  --mc-space-4: 1rem; /* 16 */
+  --mc-space-5: 1.5rem; /* 24 */
+  --mc-space-6: 2rem; /* 32 */
+  --mc-space-7: 3rem; /* 48 */
+  --mc-space-8: 4rem; /* 64 */
+  --mc-space-9: 6rem; /* 96 */
+  --mc-space-10: 8rem; /* 128 */
+
+  --mc-radius-xs: 4px; /* inline code, kbd */
+  --mc-radius-sm: 8px; /* chips, sidebar pill, palette buttons */
+  --mc-radius-md: 12px; /* code blocks, inputs, containers, tables */
+  --mc-radius-lg: 16px; /* feature cards, stat tiles, install block */
+  --mc-radius-xl: 22px; /* palette frame */
+  --mc-radius-pill: 999px; /* VitePress buttons, search button */
+}
+
+/* Motion tokens with one reduced-motion switch (2.3) */
+html:root {
+  --mc-dur-1: 120ms; /* hover, press, active-row change */
+  --mc-dur-2: 200ms; /* route transition, copy bubble */
+  --mc-dur-3: 320ms; /* reveals, appearance toggle */
+  --mc-dur-4: 500ms; /* palette frame entrance */
+  --mc-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --mc-ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* was --ease-out-expo in vars.css */
+  /* the 29-stop curve of vars.css (--ease-spring), copied verbatim */
+  --mc-ease-spring: linear(
+    0,
+    0.009,
+    0.035 2.1%,
+    0.141,
+    0.281 6.7%,
+    0.723 12.9%,
+    0.938 16.7%,
+    1.017,
+    1.077,
+    1.121,
+    1.149 24.3%,
+    1.159,
+    1.163,
+    1.161,
+    1.154 29.9%,
+    1.129 32%,
+    1.051 36.4%,
+    1.017 38.8%,
+    0.991,
+    0.977 43%,
+    0.974 44.8%,
+    0.975 47.2%,
+    0.997 53.3%,
+    1.003 55.5%,
+    1.003 58.1%,
+    1 63.2%,
+    0.999 70.2%,
+    1
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:root {
+    --mc-dur-1: 0s;
+    --mc-dur-2: 0s;
+    --mc-dur-3: 0s;
+    --mc-dur-4: 0s;
+  }
+}
+
+/* Registered properties (three): the palette's autoplay ring and the scroll-driven edge fades of motion.css */
+@property --mc-ring-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --mc-fade-start {
+  syntax: "<length>";
+  initial-value: 0px;
+  inherits: false;
+}
+
+@property --mc-fade-end {
+  syntax: "<length>";
+  initial-value: 0px;
+  inherits: false;
+}
+
+/* prefers-contrast: more (8): the divider becomes border-strong, text-2 and text-3 become text-1, soft fills go to 20% */
+@media (prefers-contrast: more) {
+  html:root {
+    --mc-divider: var(--mc-border-strong);
+    --mc-text-2: var(--mc-text-1);
+    --mc-text-3: var(--mc-text-1);
+    --mc-brand-soft: light-dark(oklch(0.577 0.215 27.3 / 20%), oklch(0.72 0.165 22 / 20%));
+    --mc-tip-soft: light-dark(oklch(0.47 0.11 155 / 20%), oklch(0.8 0.14 155 / 20%));
+    --mc-warning-soft: light-dark(oklch(0.5 0.105 65 / 20%), oklch(0.84 0.13 80 / 20%));
+    --mc-important-soft: light-dark(oklch(0.48 0.2 293 / 20%), oklch(0.76 0.13 293 / 20%));
+    --mc-note-soft: light-dark(oklch(0.47 0.13 250 / 20%), oklch(0.78 0.11 245 / 20%));
+    --mc-danger-soft: light-dark(oklch(0.505 0.19 27.5 / 20%), oklch(0.72 0.165 22 / 20%));
+  }
+}

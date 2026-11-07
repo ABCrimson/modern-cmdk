@@ -1,0 +1,112 @@
+/*
+ * Type of the docs site (design-final.md 2.2).
+ *
+ * Instrument Sans Variable (text, UI, display) and Geist Mono Variable (code, key caps) come from
+ * @fontsource-variable/instrument-sans and @fontsource-variable/geist-mono, imported as `wght.css` by the theme entry.
+ * Their licence text is public/fonts-license.txt.
+ */
+
+/*
+ * Fallback faces: the metric overrides keep the layout still while the web font loads (font-display: swap).
+ * Source: @capsizecss/metrics 4.4.0. Instrument Sans upm 1000, ascent 970, descent -250, xWidthAvg 458;
+ * Arial upm 2048, xWidthAvg 913; Geist Mono 1000, 1005, -295, 600; Courier New 2048, xWidthAvg 1229.
+ * size-adjust = (font xWidthAvg / upm) / (fallback xWidthAvg / upm); each override = metric / upm / size-adjust.
+ */
+@font-face {
+  font-family: "Instrument Sans Fallback";
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans");
+  size-adjust: 102.74%;
+  ascent-override: 94.42%;
+  descent-override: 24.33%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Geist Mono Fallback";
+  src: local("Courier New"), local("CourierNewPSMT"), local("Liberation Mono");
+  size-adjust: 99.98%;
+  ascent-override: 100.52%;
+  descent-override: 29.5%;
+  line-gap-override: 0%;
+}
+
+html:root {
+  --vp-font-family-base:
+    "Instrument Sans Variable", "Instrument Sans Fallback", system-ui, sans-serif;
+  --vp-font-family-mono: "Geist Mono Variable", "Geist Mono Fallback", ui-monospace, monospace;
+  font-synthesis: none; /* no faux bold or italic */
+}
+
+/*
+ * Scale: base 16 px, ratio 1.25, display steps fluid. Per step: --mc-step-N (size), -lh (line height),
+ * -weight and -tracking. Use of each step: -2 sidebar group titles, "On this page", table headers, eyebrow
+ * (uppercase, +0.06em); -1 captions, footnotes, palette rows, sidebar items, table cells; 0 body; 1 h3 and the hero
+ * tagline below 640 px; 2 h2; 3 doc h1; 4 hero text; 5 hero name (wordmark).
+ */
+html:root {
+  --mc-step--2: 0.75rem;
+  --mc-step--2-lh: 1.4;
+  --mc-step--2-weight: 600;
+  --mc-step--2-tracking: 0.06em;
+  --mc-step--1: 0.875rem;
+  --mc-step--1-lh: 1.55;
+  --mc-step--1-weight: 400;
+  --mc-step--1-tracking: normal;
+  --mc-step-0: 1rem;
+  --mc-step-0-lh: 1.75;
+  --mc-step-0-weight: 400;
+  --mc-step-0-tracking: normal;
+  --mc-step-1: 1.25rem;
+  --mc-step-1-lh: 1.4;
+  --mc-step-1-weight: 600;
+  --mc-step-1-tracking: -0.01em;
+  --mc-step-2: 1.5625rem;
+  --mc-step-2-lh: 1.3;
+  --mc-step-2-weight: 600;
+  --mc-step-2-tracking: -0.015em;
+  --mc-step-3: 2rem;
+  --mc-step-3-lh: 1.2;
+  --mc-step-3-weight: 650;
+  --mc-step-3-tracking: -0.02em;
+  --mc-step-4: clamp(2.25rem, 1.6rem + 2.6vw, 3.5rem);
+  --mc-step-4-lh: 1.08;
+  --mc-step-4-weight: 650;
+  --mc-step-4-tracking: -0.025em;
+  --mc-step-5: clamp(2.75rem, 1.9rem + 3.6vw, 4.5rem);
+  --mc-step-5-lh: 1;
+  --mc-step-5-weight: 700;
+  --mc-step-5-tracking: -0.03em;
+}
+
+/*
+ * Measure: 33em is 528 px at 16 px, about 72 characters of Instrument Sans (xWidthAvg 458/1000 em, so the full
+ * 688 px column is about 94). Code blocks, tables, custom containers, code groups and diagrams keep the full column,
+ * and so does the text inside a container, a table or a code group.
+ */
+.vp-doc
+  :is(p, ul, ol, blockquote, h1, h2, h3, h4, dl):not(
+    :is(.custom-block, table, .vp-code-group, [class*="language-"]) *
+  ) {
+  max-inline-size: 33em;
+}
+
+.VPHero .tagline {
+  max-inline-size: 34rem;
+}
+
+/* text-wrap: balance is Baseline 2024; pretty is not Baseline and harmless where unsupported */
+.vp-doc :is(h1, h2, h3, h4),
+.VPHero :is(.name, .text, .tagline),
+.VPFeature .title {
+  text-wrap: balance;
+}
+
+.vp-doc :is(p, li, blockquote) {
+  text-wrap: pretty;
+}
+
+/* Tables and the numbers row use tabular figures */
+.vp-doc table,
+.mc-numbers {
+  font-variant-numeric: tabular-nums;
+}
