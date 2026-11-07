@@ -698,5 +698,15 @@
     "id": "SEC-67",
     "test": "tests/unit/codemod-tarball-smoke.test.ts::SEC-67: a pnpm-workspace.yaml without a numeric minimumReleaseAge makes main exit 2 with the usage message, not an unhandled rejection",
     "status": "covered"
+  },
+  {
+    "id": "TUB-75",
+    "test": "tests/unit/size-history.test.ts::function sizesText(): string {",
+    "status": "covered"
+  },
+  {
+    "id": "TUB-76",
+    "test": "tests/dist/manifest.test.ts::function codemodChangelogVersion(): string {",
+    "status": "covered"
   }
 ]
