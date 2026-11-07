@@ -182,6 +182,9 @@ describe('migration guide: API differences', () => {
       'heading',
       'defaultOpen',
       'modal',
+      '`label` on `Command.Loading`',
+      '`value` on `Command.Group`',
+      '`role` on `Command.Input`',
     ]) {
       expect(table, needle).toContain(needle);
     }

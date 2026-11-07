@@ -330,6 +330,7 @@ cmdk 1.1.1 accepts props that modern-cmdk 1.x does not take (declarations in `cm
 - `value` on `Command.Group` (d.ts:104): not accepted. `CommandGroupProps` has no `value`.
 - A `ReactNode` `heading` on `Command.Group` (d.ts:102): `CommandGroupProps.heading` is a `string` (`packages/modern-cmdk/src/react/group.tsx:17`).
 - `asChild` on every part: not accepted. None of the prop types has it.
+- `role` on `Command.Input` (d.ts:124-128 omits only `onChange`, `value` and `type`): not accepted. `CommandInputProps` omits `role` (`packages/modern-cmdk/src/react/input.tsx:14`); the input always renders `role="combobox"`, as cmdk did over any role you passed.
 - `defaultValue` on `CommandDialog` (d.ts:178): not accepted. `CommandDialogProps` has no such prop.
 - `defaultOpen` and `modal` on `CommandDialog` (Radix `DialogProps`, which cmdk's `Dialog` takes at d.ts:155): not accepted. `CommandDialogProps` takes `open` and `onOpenChange` but neither of these.
 - `div` props on `CommandDialog` (`id`, `style`, `onKeyDown`, `data-*` and the rest; d.ts:155-159): not forwarded. tsc rejects `id`, `style`, `onKeyDown` and every other unhyphenated one; a `data-*` or `aria-*` attribute compiles and is dropped. `CommandDialogProps` takes `CommandMachineOptions` plus `children`, `className`, `overlayClassName`, `contentClassName`, `label`, `open`, `onOpenChange`, `description` and `container`.
@@ -451,6 +452,7 @@ function CommandPalette() {
 | `value` on `Command.Group` | Not accepted | Breaking change 9; no equivalent |
 | `ReactNode` `heading` on `Command.Group` | `heading` is a `string` | Breaking change 9 |
 | `asChild` on every part | Not accepted | Breaking change 9; no equivalent |
+| `role` on `Command.Input` | Not accepted | Breaking change 9; the input is always `combobox` |
 | `defaultValue` on `CommandDialog` | Not accepted | Breaking change 9; no equivalent |
 | `defaultOpen` and `modal` on `CommandDialog` | Not accepted | Breaking change 9; no equivalent |
 | `CommandDialog` `div` props | Not forwarded | Breaking change 9; tsc rejects the unhyphenated ones, a `data-*` or `aria-*` attribute compiles and is dropped |
