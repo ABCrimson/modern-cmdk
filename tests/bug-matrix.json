@@ -678,5 +678,25 @@
     "id": "DG-132",
     "test": "tests/unit/docs-wasm-samples.test.ts::DG-132: both wasm-search.md engine samples dispose the engine in the cleanup and when init resolves after it",
     "status": "covered"
+  },
+  {
+    "id": "CE-07",
+    "test": "tests/unit/machine-loading.test.ts::ARCH-59: LOADING with pending true adds its source and sets state.loading",
+    "status": "covered"
+  },
+  {
+    "id": "RDG-125",
+    "test": "tests/unit/release-workflow.test.ts::expect(lookup).toContain('\"packages/$dir/package.json\"');",
+    "status": "covered"
+  },
+  {
+    "id": "RDG-127",
+    "test": ".github/workflows/ci.yml::# The retry is for the apt mirror flake (run 42023125730",
+    "status": "gate"
+  },
+  {
+    "id": "SEC-67",
+    "test": "tests/unit/codemod-tarball-smoke.test.ts::SEC-67: a pnpm-workspace.yaml without a numeric minimumReleaseAge makes main exit 2 with the usage message, not an unhandled rejection",
+    "status": "covered"
   }
 ]
