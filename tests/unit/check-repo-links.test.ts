@@ -106,6 +106,9 @@ describe('slugify and headingAnchors', () => {
     expect(slugify('`pnpm check` & more_stuff')).toBe('pnpm-check--more_stuff');
     expect(slugify('Getting [started](https://x.dev) now')).toBe('getting-started-now');
     expect(slugify('Über café 2')).toBe('über-café-2');
+    // SEC-69: one left-to-right pass over tag spans; a nested tag's tail and a lone <> are ordinary characters
+    expect(slugify('A <b>bold</b> <scr<i>ipt>B')).toBe('a-bold-iptb');
+    expect(slugify('x <> y')).toBe('x--y');
     expect(slugify('Hyphen-ated')).toBe('hyphen-ated');
     expect(slugify('`<Command.Input>`')).toBe('commandinput');
     expect(slugify('`<Command>` props')).toBe('command-props');

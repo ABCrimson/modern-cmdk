@@ -202,7 +202,6 @@ jobs:
       state: ${{ steps.registry.outputs.state }}
       tarball: ${{ steps.hash.outputs.tarball }}
       sha256: ${{ steps.hash.outputs.sha256 }}
-      head: ${{ steps.scope.outputs.head }}
     steps:
       # changesets/action/version pushes changeset-release/<base branch> (live ref: changeset-release/main) and
       # opens the Version PR from it; its README documents pr-base-branch, which defaults to github.ref_name (main).
@@ -240,7 +239,6 @@ jobs:
             git diff --stat "$base" HEAD -- pnpm-lock.yaml
             exit 1
           fi
-          echo "head=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "Scope gate passed: $(git diff --name-only "$base" HEAD | wc -l) changed path(s), all version edits"
       - name: Read the version
         id: package
@@ -381,12 +379,15 @@ jobs:
     permissions:
       contents: read # actions/checkout
     steps:
-      # The commit first-publish-tarball scope-gated, not the moving Version PR ref: a push to the ref between the two jobs
-      # must not change the smoke script or its fixtures.
-      - name: Check out the scope-gated Version PR commit
+      # GITHUB_SHA, the CI-checked commit this run was triggered for, not the Version PR ref: the scope gate proved the
+      # Version PR head is GITHUB_SHA plus version edits (package.json version fields, CHANGELOGs, .changeset/*.md), so the
+      # smoke script and its fixtures are the same bytes here, and nothing pushed to the bot's branch between the two jobs
+      # can run in this job (a ref taken from another job's output is untrusted code to CodeQL's actions/untrusted-checkout
+      # and actions/cache-poisoning queries; SEC-68).
+      - name: Check out the CI-checked commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.first-publish-tarball.outputs.head }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
