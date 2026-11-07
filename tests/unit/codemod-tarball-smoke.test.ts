@@ -217,6 +217,30 @@ describe('npm release-age policy', () => {
     }
   });
 
+  it('SEC-67: a missing workspace file and an unsupported pnpm-workspace.yaml line make main exit 2 with the usage message too', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'codemod-smoke-sec67b-'));
+    const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    try {
+      const tarball = join(dir, 'modern-cmdk-codemod-1.0.0.tgz');
+      writeFileSync(tarball, '');
+      const missing = join(dir, 'missing.yaml');
+      expect(await main(['--codemod', tarball], missing)).toBe(2);
+      let written = stderr.mock.calls.map(([chunk]) => String(chunk)).join('');
+      expect(written).toContain(`cannot read ${missing}`);
+      expect(written).toContain('usage: node scripts/codemod-tarball-smoke.ts');
+      stderr.mockClear();
+      const unsupported = join(dir, 'pnpm-workspace.yaml');
+      writeFileSync(unsupported, 'some-key: 1\n');
+      expect(await main(['--codemod', tarball], unsupported)).toBe(2);
+      written = stderr.mock.calls.map(([chunk]) => String(chunk)).join('');
+      expect(written).toContain("unsupported line 'some-key: 1'");
+      expect(written).toContain('usage: node scripts/codemod-tarball-smoke.ts');
+    } finally {
+      stderr.mockRestore();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('SEC-64: every npm argv the smoke builds carries --min-release-age', () => {
     expect(npmInstallArgs(1, 'x.tgz')).toEqual([
       'install',
