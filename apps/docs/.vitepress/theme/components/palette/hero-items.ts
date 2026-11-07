@@ -110,7 +110,6 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     kind: 'Action',
     action: 'copy-install',
     shortcut: 'Alt+Shift+C',
-    keywords: ['pnpm', 'clipboard'],
   },
   {
     id: 'action-toggle-dark',
@@ -119,7 +118,6 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     kind: 'Action',
     action: 'toggle-dark',
     shortcut: 'Alt+Shift+D',
-    keywords: ['theme', 'light'],
   },
   {
     id: 'action-github',
@@ -127,7 +125,6 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Actions',
     kind: 'Action',
     href: 'https://github.com/ABCrimson/modern-cmdk',
-    keywords: ['source', 'repository'],
   },
   {
     id: 'action-npm',
@@ -135,7 +132,6 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Actions',
     kind: 'Action',
     href: 'https://www.npmjs.com/package/modern-cmdk',
-    keywords: ['package', 'registry'],
   },
 ];
 

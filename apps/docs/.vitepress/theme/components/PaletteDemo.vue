@@ -44,6 +44,10 @@ const palette: UnwrapNestedRefs<PaletteApi> = reactive(
     uid,
     items: () => entries.value,
     initialQuery: () => props.initialQuery,
+    ssrHeading: () => {
+      const first = props.ssrLinks[0];
+      return entries.value.find((entry) => entry.href === first?.href)?.group ?? '';
+    },
     elements: { root: rootEl, input: inputEl, list: listEl },
   }),
 );
@@ -82,14 +86,14 @@ onMounted(() => {
           data-mc="palette-input"
           type="text"
           :value="palette.query"
-          :readonly="!palette.ready"
+          :readonly="!palette.editable"
           placeholder="Search the docs or run a command…"
           autocomplete="off"
           autocapitalize="off"
           autocorrect="off"
           spellcheck="false"
           :role="palette.ready ? 'combobox' : undefined"
-          :aria-expanded="palette.ready ? 'true' : undefined"
+          :aria-expanded="palette.ready ? (palette.showEmpty ? 'false' : 'true') : undefined"
           :aria-controls="palette.ready ? palette.listId : undefined"
           :aria-activedescendant="palette.ready ? palette.activeOptionId : undefined"
           :aria-autocomplete="palette.ready ? 'list' : undefined"
@@ -99,7 +103,10 @@ onMounted(() => {
       </div>
 
       <div class="mc-scroller">
-        <ul v-if="!palette.ready" class="mc-ssr-list">
+        <template v-if="!palette.ready">
+          <!-- The same heading the mounted list opens with, so the first row keeps its y through hydration. -->
+          <div :id="palette.ssrHeadingId" class="mc-group-heading" :aria-hidden="palette.ssrHeading ? undefined : 'true'">{{ palette.ssrHeading }}</div>
+        <ul class="mc-ssr-list" :aria-labelledby="palette.ssrHeading ? palette.ssrHeadingId : undefined">
           <li v-for="link in ssrLinks" :key="link.href">
             <a class="mc-row" :href="palette.pageHref(link.href)">
               <span class="mc-label">{{ link.text }}</span>
@@ -107,6 +114,7 @@ onMounted(() => {
             </a>
           </li>
         </ul>
+        </template>
         <template v-else>
           <div v-show="!palette.showEmpty" :id="palette.listId" ref="list" class="mc-list" role="listbox" :aria-labelledby="palette.headingId">
             <div v-for="group in palette.groups" :key="group.key" class="mc-group" role="group" :aria-labelledby="group.headingId">
@@ -266,7 +274,7 @@ onMounted(() => {
   flex: 1;
   min-inline-size: 0;
   block-size: 100%;
-  padding: 0;
+  padding-inline: var(--mc-space-2);
   color: var(--mc-text-1);
   /* 1rem keeps iOS from zooming the page on focus. */
   font: inherit;
