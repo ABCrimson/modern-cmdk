@@ -1,0 +1,227 @@
+/*
+ * Motion of the docs site (design-final.md 5).
+ *
+ * Callers: .vitepress/theme/view-transitions.ts sets `data-mc-transition="route"` or `"appearance"` on <html> around
+ * each document.startViewTransition() call and this file styles the result; .vitepress/theme/Layout.vue provides
+ * 'toggle-appearance' (the call into transitionAppearance). Without those attributes none of the view-transition
+ * rules below match, so the default root cross-fade of the user agent stays as it is.
+ *
+ * Every duration and easing reads the --mc-dur-* and --mc-ease-* tokens of tokens.css; under prefers-reduced-motion
+ * the durations are 0s. Every movement uses the individual `translate` and `scale` properties.
+ *
+ * Opt-in classes for other items: .mc-reveal (scroll-driven reveal), .mc-enter and .mc-enter-frame (@starting-style
+ * entrances).
+ */
+
+/* Route change: the nav and the sidebar stay still, the old content fades, the new content rises 8 px */
+:root[data-mc-transition="route"] .VPNav {
+  view-transition-name: mc-nav;
+}
+
+:root[data-mc-transition="route"] .VPSidebar {
+  view-transition-name: mc-sidebar;
+}
+
+:root[data-mc-transition="route"]::view-transition-group(mc-nav),
+:root[data-mc-transition="route"]::view-transition-group(mc-sidebar) {
+  animation: none;
+}
+
+/* The old and new images are cross-faded with different durations, so the group needs its own opaque backdrop */
+:root[data-mc-transition="route"]::view-transition-group(root) {
+  background-color: var(--mc-bg);
+}
+
+:root[data-mc-transition="route"]::view-transition-old(root) {
+  animation: mc-vt-fade-out var(--mc-dur-1) var(--mc-ease-standard) both;
+  mix-blend-mode: normal;
+}
+
+:root[data-mc-transition="route"]::view-transition-new(root) {
+  animation: mc-vt-rise var(--mc-dur-2) var(--mc-ease-out) both;
+  mix-blend-mode: normal;
+}
+
+@keyframes mc-vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes mc-vt-rise {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/*
+ * Appearance toggle: the "On Appearance Toggle" recipe of vitepress.dev (https://vitepress.dev/guide/extending-default-theme#on-appearance-toggle,
+ * read 2026-11-07). transitionAppearance() in view-transitions.ts writes the click point and the radius that covers the
+ * viewport to --mc-switch-x, --mc-switch-y (percentages) and --mc-switch-r (px) on <html>. The two root images are
+ * stacked without blending and without the default animation; a circular
+ * clip-path grows from the click point on the new image when going to light and, played in reverse, shrinks onto it on the old image when
+ * going to dark (that image is stacked on top in both cases).
+ */
+:root[data-mc-transition="appearance"]::view-transition-old(root),
+:root[data-mc-transition="appearance"]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:root[data-mc-transition="appearance"]::view-transition-old(root) {
+  z-index: 1;
+}
+
+:root[data-mc-transition="appearance"]::view-transition-new(root) {
+  z-index: 2147483646;
+  animation: mc-vt-reveal var(--mc-dur-3) ease-in;
+}
+
+:root.dark[data-mc-transition="appearance"]::view-transition-old(root) {
+  z-index: 2147483646;
+  animation: mc-vt-reveal var(--mc-dur-3) ease-in reverse;
+}
+
+:root.dark[data-mc-transition="appearance"]::view-transition-new(root) {
+  z-index: 1;
+  animation: none;
+}
+
+@keyframes mc-vt-reveal {
+  from {
+    clip-path: circle(0 at var(--mc-switch-x) var(--mc-switch-y));
+  }
+
+  to {
+    clip-path: circle(var(--mc-switch-r) at var(--mc-switch-x) var(--mc-switch-y));
+  }
+}
+
+/*
+ * @starting-style entrances: palette frame, copy bubble, 404 key cap, finder rows, empty state. Where @starting-style
+ * is unsupported the end state shows at once. Under reduced motion the durations are 0s.
+ */
+.mc-enter {
+  transition:
+    opacity var(--mc-dur-2) var(--mc-ease-out),
+    translate var(--mc-dur-2) var(--mc-ease-out);
+}
+
+.mc-enter-frame {
+  transition:
+    opacity var(--mc-dur-4) var(--mc-ease-out),
+    scale var(--mc-dur-4) var(--mc-ease-spring),
+    translate var(--mc-dur-4) var(--mc-ease-spring);
+}
+
+@starting-style {
+  .mc-enter {
+    opacity: 0;
+    translate: 0 8px;
+  }
+
+  .mc-enter-frame {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 8px;
+  }
+}
+
+/* Scroll-driven animations: Baseline 2026 (MDN animation-timeline, read 2026-11-07). Content stays visible without them. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Home sections reveal as they enter the viewport */
+    .mc-reveal {
+      animation: mc-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 25%;
+    }
+
+    /* A 2 px reading bar under the nav on doc pages, scaled by the root scroll position */
+    :root:has(.VPDoc)::after {
+      content: "";
+      position: fixed;
+      inset-block-start: var(--vp-nav-height);
+      inset-inline: 0;
+      block-size: 2px;
+      background-color: var(--mc-brand-3);
+      pointer-events: none;
+      transform-origin: 0 50%;
+      z-index: var(--vp-z-index-nav);
+      animation: mc-reading-bar linear both;
+      animation-timeline: scroll(root block);
+    }
+
+    /*
+     * Edge fades on overflowing code blocks and tables: the scroll position of the element animates the two registered
+     * lengths of tokens.css, which are the soft ends of a mask gradient. The start fade grows over the first 1.5rem of
+     * scroll, the end fade shrinks over the last 1.5rem; a box that does not overflow has no scroll timeline, so the
+     * registered initial value 0px leaves it unmasked. The mask colour is opaque black: only its alpha is used.
+     */
+    .vp-doc [class*="language-"] pre,
+    .vp-doc table {
+      mask-image: linear-gradient(
+        to right,
+        transparent 0,
+        black var(--mc-fade-start),
+        black calc(100% - var(--mc-fade-end)),
+        transparent 100%
+      );
+      animation:
+        mc-fade-start linear both,
+        mc-fade-end linear both;
+      animation-timeline: scroll(self inline), scroll(self inline);
+      animation-range:
+        0 1.5rem,
+        calc(100% - 1.5rem) 100%;
+    }
+  }
+}
+
+@keyframes mc-reveal {
+  from {
+    opacity: 0.001;
+    translate: 0 16px;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes mc-reading-bar {
+  from {
+    scale: 0 1;
+  }
+
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes mc-fade-start {
+  from {
+    --mc-fade-start: 0px;
+  }
+
+  to {
+    --mc-fade-start: 1.5rem;
+  }
+}
+
+@keyframes mc-fade-end {
+  from {
+    --mc-fade-end: 1.5rem;
+  }
+
+  to {
+    --mc-fade-end: 0px;
+  }
+}
