@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-label="modern-cmdk: one headless engine, any framework">
+  <title>modern-cmdk: one headless engine, any framework</title>
+  <style>.s{font-family:'Instrument Sans Variable','Instrument Sans Fallback',Arial,sans-serif}.m{font-family:'Geist Mono Variable','Geist Mono Fallback','Courier New',monospace}</style>
+  <defs>
+    <linearGradient id="acc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dc2626"/><stop offset="1" stop-color="#f87171"/></linearGradient>
+    <radialGradient id="glow" gradientUnits="userSpaceOnUse" cx="1150" cy="330" r="520"><stop offset="0" stop-color="#dc2626" stop-opacity=".18"/><stop offset="1" stop-color="#dc2626" stop-opacity="0"/></radialGradient>
+    <clipPath id="card"><rect width="1280" height="400" rx="24"/></clipPath>
+  </defs>
+  <g clip-path="url(#card)">
+    <rect width="1280" height="400" fill="#fcfcfe"/>
+    
+    <g transform="translate(64 44) scale(0.81)">
+      <rect width="64" height="64" rx="15" fill="#0a0e27"/>
+      <rect x="10" y="10" width="44" height="44" rx="11" fill="none" stroke="url(#acc)" stroke-width="4"/>
+      <path d="M16 50h32" stroke="#dc2626" stroke-opacity=".45" stroke-width="2" stroke-linecap="round"/>
+      <path d="M25.5 21.5v21M38.5 21.5 27 32l11.5 10.5" fill="none" stroke="url(#acc)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text class="s" x="64" y="168" font-size="56" font-weight="650" letter-spacing="-1.68" fill="#171c33">modern-cmdk</text>
+    <text class="s" x="64" y="218" font-size="32" font-weight="500" fill="#474c61">One headless engine.</text>
+    <text class="s" x="64" y="258" font-size="32" font-weight="500" fill="#474c61">Any framework.</text>
+    <rect x="64.75" y="300.75" width="153.5" height="34.5" rx="17.25" fill="#eef0f6" stroke="#dddfe8" stroke-width="1.5"/><text class="m" x="141.5" y="323.44" font-size="16" text-anchor="middle" fill="#474c61">fuzzy search</text>
+    <rect x="231.75" y="300.75" width="115.5" height="34.5" rx="17.25" fill="#eef0f6" stroke="#dddfe8" stroke-width="1.5"/><text class="m" x="289.5" y="323.44" font-size="16" text-anchor="middle" fill="#474c61">frecency</text>
+    <rect x="360.75" y="300.75" width="115.5" height="34.5" rx="17.25" fill="#eef0f6" stroke="#dddfe8" stroke-width="1.5"/><text class="m" x="418.5" y="323.44" font-size="16" text-anchor="middle" fill="#474c61">WAI-ARIA</text>
+    <g transform="translate(720 40)">
+    <rect x=".75" y=".75" width="494.5" height="318.5" rx="20" fill="#ffffff" stroke="#7b8090" stroke-opacity="0.4" stroke-width="1.5"/>
+    <path d="M1.5 54V21.5A20 20 0 0 1 21.5 1.5H110" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="40" cy="30" r="8.5" fill="none" stroke="#5d6275" stroke-width="2.5"/><path d="m46.5 36.5 6 6" stroke="#5d6275" stroke-width="2.5" stroke-linecap="round"/>
+    <text class="m" x="68" y="39.48" font-size="22" fill="#171c33">frec</text>
+    <rect x="123.8" y="18.36" width="2" height="27.28" rx="1" fill="#b91c1c"/>
+    <path d="M0 64H496" stroke="#dddfe8" stroke-width="1.5"/>
+    <text class="s" x="28" y="90" font-size="12.5" font-weight="600" letter-spacing="1.6" fill="#5d6275">TOPICS</text>
+    <rect x="12" y="105" width="472" height="58" rx="12" fill="#dc2626" fill-opacity="0.1"/>
+    <rect x="12" y="118" width="3" height="32" rx="1.5" fill="#dc2626"/>
+    <text class="s" x="34" y="141.48" font-size="22" font-weight="600" fill="#171c33"><tspan fill="#b91c1c" style="text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px">Frec</tspan><tspan>ency ranking</tspan></text>
+    <text class="s" x="34" y="205.48" font-size="22" font-weight="500" fill="#171c33"><tspan fill="#b91c1c">Frec</tspan><tspan>ency example</tspan></text>
+    <path d="M0 264H496" stroke="#dddfe8" stroke-width="1.5"/>
+    <rect x="28" y="278" width="30" height="28" rx="7" fill="#f4f6fa" stroke="#7b8090" stroke-opacity=".6" stroke-width="1.5"/><text class="m" x="43" y="297" font-size="14" text-anchor="middle" fill="#474c61">↑</text><rect x="64" y="278" width="30" height="28" rx="7" fill="#f4f6fa" stroke="#7b8090" stroke-opacity=".6" stroke-width="1.5"/><text class="m" x="79" y="297" font-size="14" text-anchor="middle" fill="#474c61">↓</text><text class="s" x="104" y="297.5" font-size="15" fill="#5d6275">move</text>
+    <rect x="168" y="278" width="58" height="28" rx="7" fill="#f4f6fa" stroke="#7b8090" stroke-opacity=".6" stroke-width="1.5"/><text class="m" x="197" y="297" font-size="14" text-anchor="middle" fill="#474c61">Enter</text><text class="s" x="234" y="297.5" font-size="15" fill="#5d6275">open</text>
+    <rect x="294" y="278" width="46" height="28" rx="7" fill="#f4f6fa" stroke="#7b8090" stroke-opacity=".6" stroke-width="1.5"/><text class="m" x="317" y="297" font-size="14" text-anchor="middle" fill="#474c61">Esc</text><text class="s" x="348" y="297.5" font-size="15" fill="#5d6275">clear</text>
+    </g>
+  </g>
+  <rect x=".5" y=".5" width="1279" height="399" rx="23.5" fill="none" stroke="#dddfe8"/>
+</svg>

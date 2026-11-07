@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="modern-cmdk">
+  <title>modern-cmdk</title>
+  <defs><linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dc2626"/><stop offset="1" stop-color="#f87171"/></linearGradient></defs>
+  <rect width="64" height="64" rx="15" fill="#0a0e27"/>
+  <rect x="10" y="10" width="44" height="44" rx="11" fill="none" stroke="url(#accent)" stroke-width="4"/>
+  <path d="M16 50h32" stroke="#dc2626" stroke-opacity=".45" stroke-width="2" stroke-linecap="round"/>
+  <path d="M25.5 21.5v21M38.5 21.5 27 32l11.5 10.5" fill="none" stroke="url(#accent)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
