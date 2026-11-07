@@ -28,6 +28,17 @@ allowBuilds:
   # 2026-11-04: @vscode/vsce-sign (postinstall fetches a signing binary) arrives with @vscode/vsce; signing is publish-only and
   # `vsce package --no-dependencies` does not use it, so its build stays off (W2-03; .vsix listing proves packaging works).
   '@vscode/vsce-sign': false
+# Agent skills (pnpm 12.18.0 `pnpm approve`): tsdown ships a skills/ directory and pnpm links an approved skill into
+# .claude/skills/<name> on install (skills.dirs below), writing the managed .gitignore block there (committed). Approved by the owner on 2026-11-07 (G-43);
+# nothing else awaits approval (`pnpm install` lists any new package).
+permissions:
+  tsdown:
+    skills: true
+# skills.dirs (pnpm 12.11.0+) names the directory the approved skills are linked into; unset, pnpm picks the directories that
+# exist in the workspace root plus the one of the agent running it, so the link target would depend on who runs the install.
+skills:
+  dirs:
+    - .claude/skills
 # Supply-chain policy (pnpm 12.18.0). minimumReleaseAge is in minutes (1440 = 1 day, the built-in
 # default, written out so the policy is visible). minimumReleaseAgeStrict: true fails resolution when
 # no version in the requested range meets minimumReleaseAge instead of falling back to a younger one
