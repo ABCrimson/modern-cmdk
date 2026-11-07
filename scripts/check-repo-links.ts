@@ -34,8 +34,9 @@
 // wiki, the bare repository URL) is a route GitHub serves from repository state, not from the tree: it is counted
 // and its distinct prefixes are printed as unchecked.
 //
-// Output: one stderr line per dead link, `file:line: <url> — <reason>` (a control character a link decodes to is
-// printed as a \u{..} escape), then on stdout
+// Output: on stdout any fetch notes, the `unchecked:` lines and the `unchecked routes:` line, then one stderr line per
+// dead link, `file:line: <url> — <reason>` (a control, format or line/paragraph-separator character in any line
+// that carries link text, decoded or raw, is printed as a \u{..} escape), then on stdout
 // `check-repo-links: N links checked in M files, D dead, U unchecked routes`. Exit codes: 0 = no dead link,
 // 1 = a dead link, 2 = usage error.
 
@@ -85,7 +86,7 @@ const OK: Verdict = { status: 'ok' };
 const UNCHECKED: Verdict = { status: 'unchecked' };
 const dead = (reason: string): Verdict => ({ status: 'dead', reason });
 
-/** A line with control, format and line/paragraph-separator characters escaped, so one link stays one output line and a decoded link cannot start a workflow command. */
+/** Link text (a dead, `unchecked:` or `unchecked routes:` line) with control, format and line/paragraph-separator characters escaped, so one link stays one output line and a decoded link cannot start a workflow command. */
 const printable = (text: string): string =>
   text.replace(
     /[\p{Cc}\p{Cf}\u2028\u2029]/gu,
@@ -501,7 +502,7 @@ async function main(): Promise<number> {
   for (const note of checkout.notes) process.stdout.write(`${note}\n`);
   for (const line of uncheckedLines) process.stdout.write(`unchecked: ${line}\n`);
   if (routes > 0) {
-    process.stdout.write(`unchecked routes: ${[...prefixes].sort().join(' ')}\n`);
+    process.stdout.write(`${printable(`unchecked routes: ${[...prefixes].sort().join(' ')}`)}\n`);
   }
   if (deadLines.length > 0) process.stderr.write(`${deadLines.join('\n')}\n`);
   process.stdout.write(
