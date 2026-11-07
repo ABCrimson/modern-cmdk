@@ -197,7 +197,7 @@ describe('codemod files: discovery', () => {
     expect(await find(['nothing/*.ts'], 'modern-cmdk')).toEqual([]);
   });
 
-  it('CLI-10, SEC-29: modern-cmdk keeps 1.4 discovery: node_modules, dist, build and .next only, no .gitignore', async () => {
+  it("CLI-10, SEC-29: modern-cmdk keeps 1.4's excludes: node_modules, dist, build and .next only, no .gitignore", async () => {
     await touch('src/a.ts');
     for (const name of ['node_modules', 'dist', 'build', '.next', 'coverage', 'out']) {
       await touch(`src/${name}/z.ts`);

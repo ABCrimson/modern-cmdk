@@ -95,8 +95,8 @@ const GENERATED_REWRITTEN =
 
 /**
  * Written into the temp copy at test time (the repository's .gitignore would drop them). All four
- * are gitignored by mixed/_gitignore. `legacy` is whether the shim's 1.4 discovery (it ignores no
- * .gitignore and skips only node_modules, dist, build and .next) still reaches the file.
+ * are gitignored by mixed/_gitignore. `legacy` is whether the shim, which keeps 1.4's excludes (it ignores no
+ * .gitignore and skips only node_modules, dist, build and .next), still reaches the file.
  */
 const IGNORED: readonly { readonly path: string; readonly legacy: boolean }[] = [
   { path: 'gen/generated.tsx', legacy: true },
@@ -393,7 +393,7 @@ describe.skipIf(!built)('CLI-TEST: built bins over temp copies', () => {
     );
   });
 
-  it('CLI-TEST: the strict bin skips the gitignored and excluded files, the shim keeps 1.4 discovery (gen/ and coverage/ are reached, dist/ and node_modules/ are not)', async () => {
+  it("CLI-TEST: the strict bin skips the gitignored and excluded files, the shim keeps 1.4's excludes (gen/ and coverage/ are reached, dist/ and node_modules/ are not)", async () => {
     await withTemp(async (root) => {
       const strict = await stageMixed(await mkdtemp(join(root, 'a-')), {
         repo: true,
