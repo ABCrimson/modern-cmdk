@@ -1,8 +1,8 @@
 import type { PaletteEntry, PaletteLink } from './types';
 
-// The home hero's 18 rows (design-final.md §3.5): 7 Go to, 7 Topics, 4 Actions. Every site `href` is a
-// page under apps/docs (the commit that added this file records the existence check). The two external
-// Action rows carry absolute URLs; the install command the copy action writes lives in usePalette.ts.
+// The home hero's 19 rows (design-final.md §3.5, amended per report.md, fix round 2026-11-08): 8 Go to, 7 Topics, 4 Actions.
+// Every site `href` is a page under apps/docs (the commit that added this file records the existence check). The two
+// external Action rows carry absolute URLs; the install command the copy action writes lives in usePalette.ts.
 export const HERO_ITEMS: readonly PaletteEntry[] = [
   {
     id: 'go-getting-started',
@@ -24,7 +24,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Go to',
     kind: 'API',
     href: '/api/command',
-    keywords: ['sorted by frecency', 'register a shortcut'],
+    keywords: ['FrecencyOptions', 'shortcut utilities'],
   },
   {
     id: 'go-react-adapter',
@@ -32,7 +32,6 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Go to',
     kind: 'API',
     href: '/api/command-react',
-    keywords: ['theme hooks'],
   },
   {
     id: 'go-examples',
@@ -42,12 +41,20 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     href: '/examples/basic',
   },
   {
+    id: 'go-theming-example',
+    label: 'Theming example',
+    group: 'Go to',
+    kind: 'Example',
+    href: '/examples/theming',
+    keywords: ['theme switcher', 'css custom properties'],
+  },
+  {
     id: 'go-spotlight-recipe',
     label: 'Spotlight recipe',
     group: 'Go to',
     kind: 'Recipe',
     href: '/recipes/spotlight-search',
-    keywords: ['recent items by frecency', 'open with a shortcut'],
+    keywords: ['with frecency', 'keyboard shortcut'],
   },
   {
     id: 'go-migrate-from-cmdk',
@@ -70,7 +77,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Topics',
     kind: 'Guide',
     href: '/guide/shortcuts',
-    keywords: ['shortcut', 'hotkey', 'keybinding'],
+    keywords: ['shortcut'],
   },
   {
     id: 'topic-virtualization',
@@ -78,7 +85,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Topics',
     kind: 'Guide',
     href: '/guide/virtualization',
-    keywords: ['large list', 'performance'],
+    keywords: ['large datasets', 'performance'],
   },
   {
     id: 'topic-wasm-search',
@@ -94,7 +101,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Topics',
     kind: 'Guide',
     href: '/guide/accessibility',
-    keywords: ['aria', 'screen reader', 'a11y'],
+    keywords: ['aria', 'screen reader'],
   },
   {
     id: 'topic-ssr',
@@ -102,7 +109,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Topics',
     kind: 'Guide',
     href: '/guide/ssr',
-    keywords: ['server rendering'],
+    keywords: ['server component'],
   },
   {
     id: 'topic-theming',
@@ -146,14 +153,16 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
   },
 ];
 
-// What the server renders and a no-JS visitor gets: the seven Go to rows as plain links, in row order.
+// What the server renders and a no-JS visitor gets: the eight Go to rows as plain links, in row order.
 export const HERO_SSR_LINKS: readonly PaletteLink[] = HERO_ITEMS.filter(
   (entry): entry is PaletteEntry & { readonly href: string } =>
     entry.group === 'Go to' && entry.href !== undefined,
 ).map((entry): PaletteLink => ({ text: entry.label, href: entry.href, kind: entry.kind }));
 
-// The three words the hero types (usePalette.ts, design-final.md §3.5). Each fills at least three of the 18 rows and
-// tests/unit/docs-autoplay-queries.test.ts keeps that true. A keyword is a phrase the row's page really covers; the scorer
-// ranks a keyword that starts with the query above a label that merely contains it (core/search/default-scorer.ts:
-// starts-with 0.9 + 0.1 * query/target, substring 0.5 + ...), so the topic row carries the bare word and the others a phrase.
+// The three words the hero types (usePalette.ts, design-final.md §3.5). Each fills at least three of the 19 rows and
+// tests/unit/docs-autoplay-queries.test.ts keeps that true. A keyword of a row that opens a page is a phrase that page really
+// contains (counted with grep, case-insensitive; the commit that set them lists the counts); the two Action rows have no
+// page, so theirs name what the action does. The scorer ranks a keyword that starts with the query above a label that merely
+// contains it (core/search/default-scorer.ts: starts-with 0.9 + 0.1 * query/target, substring 0.5 + ...), so the topic row
+// carries the bare word and the others a phrase.
 export const HERO_AUTOPLAY_QUERIES = ['frec', 'short', 'theme'] as const;
