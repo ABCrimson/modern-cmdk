@@ -18,14 +18,16 @@ export interface CommandDialogProps extends CommandMachineOptions {
   readonly contentClassName?: string;
   readonly label?: string;
   /**
-   * Controlled open state. When defined, the dialog is open exactly while it is `true`: a request to close
-   * (Escape, a click outside, the overlay) calls `onOpenChange(false)` and changes nothing else, so a parent that
-   * keeps `open={true}` keeps the dialog open. Leave it `undefined` for the dialog to own its open state.
+   * Controlled open state. When defined, the dialog is open exactly while it is `true`: a request to open or close
+   * calls `onOpenChange` and changes nothing else, so the parent decides, and a parent that keeps `open={true}`
+   * keeps the dialog open. Leave it `undefined` for the dialog to own its open state.
    */
   readonly open?: boolean | undefined;
   /**
-   * Called with the next open state: for a controlled dialog when the user asks to open or close it, for an
-   * uncontrolled one when its open state changes. A change of the `open` prop does not call it.
+   * Called with the next open state. For a controlled dialog it reports each request once: the user's (Escape, a
+   * click outside, the overlay) and the palette's own (an item selection that closes it, `CLOSE`, `OPEN` or
+   * `TOGGLE` from a shortcut or a consumer's `send`). For an uncontrolled one it reports each change of its open
+   * state. A change of the `open` prop does not call it.
    */
   readonly onOpenChange?: (open: boolean) => void;
   /** Accessible description for screen readers (default: 'Type a command or search...') */
@@ -47,13 +49,20 @@ export function CommandDialog({
   container,
   ...machineOptions
 }: CommandDialogProps): ReactNode {
-  // The machine reports an open change to the consumer only while the dialog owns its open state; a controlled
-  // dialog reports the user's request from Radix instead (handleRadixOpenChange), never the machine's echo of the prop
+  // The machine reports every change of its open state. An uncontrolled dialog hands that report to the consumer. A
+  // controlled dialog hands it over only when it differs from `open`: the machine's own request (a selection that
+  // closes, CLOSE, OPEN, TOGGLE) is reported once, while the machine following the prop (the effect below) and the
+  // put-back of a state the parent refused report nothing. Radix's request goes through handleRadixOpenChange.
   const { machine, state, handleKeyDown, stableContextValue, stateContextValue } = useCommandSetup(
     {
       ...machineOptions,
       open: controlledOpen ?? false,
-      onOpenChange: controlledOpen === undefined ? onOpenChange : undefined,
+      onOpenChange:
+        controlledOpen === undefined
+          ? onOpenChange
+          : (next: boolean): void => {
+              if (next !== controlledOpen) onOpenChange?.(next);
+            },
     },
     label,
   );
@@ -73,7 +82,7 @@ export function CommandDialog({
   }, [handleKeyDown, open]);
 
   // A controlled dialog's machine follows the prop. The machine's state is a dependency so that a state the
-  // prop did not ask for is put back; sending the state it already has changes nothing.
+  // prop did not ask for is put back after it is reported; sending the state it already has changes nothing.
   useEffect(() => {
     if (controlledOpen !== undefined && controlledOpen !== state.open) {
       machine.send({ type: controlledOpen ? 'OPEN' : 'CLOSE' });
