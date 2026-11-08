@@ -273,7 +273,8 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
       // The list scrolls after the key presses: poll the position (it starts at 0)
       await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
 
-      // The active item lies inside the list's own viewport (the list's bottom edge can sit below the page's)
+      // The active item lies inside the list's own viewport
+      // (the list's bottom edge can sit below the page's)
       const activeItem = page.locator('[data-command-item][data-active]');
       await expect(activeItem).toBeVisible();
       await expect
