@@ -595,8 +595,16 @@ describe('Command — React Compound Components', () => {
               </Command.List>
             </Command>,
           );
-          expect(container.querySelector('[data-command-group]') !== null).toBe(rendered);
-          expect(container.querySelector('[data-command-group-heading]') !== null).toBe(rendered);
+          // A group without a listed item stays in the tree (its children keep their identity) with display: none
+          const shown = (selector: string): boolean => {
+            const element = container.querySelector(selector);
+            return (
+              element !== null &&
+              element.closest<HTMLElement>('[data-command-group]')?.style.display !== 'none'
+            );
+          };
+          expect(shown('[data-command-group]')).toBe(rendered);
+          expect(shown('[data-command-group-heading]')).toBe(rendered);
           expect(container.querySelector('#locked-one') !== null).toBe(rendered);
           expect(container.querySelector('#free')).not.toBeNull();
         });
@@ -1229,7 +1237,13 @@ describe('Command.Group heading counts only the group own items (CE-50)', () => 
       </Command>
     );
   }
-  const heading = (): Element | null => container.querySelector('[data-command-group-heading]');
+  // The heading of a group that is shown: a group without a match stays in the tree with display: none
+  const heading = (): Element | null => {
+    const element = container.querySelector('[data-command-group-heading]');
+    return element?.closest<HTMLElement>('[data-command-group]')?.style.display === 'none'
+      ? null
+      : element;
+  };
   const search = async (query: string): Promise<void> => {
     await typeInInput(container.querySelector('input') as HTMLInputElement, query);
   };
