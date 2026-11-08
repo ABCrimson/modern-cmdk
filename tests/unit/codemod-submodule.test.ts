@@ -1,4 +1,6 @@
+import { existsSync } from 'node:fs';
 import {
+  appendFile,
   chmod,
   copyFile,
   mkdir,
@@ -12,7 +14,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { Writable } from 'node:stream';
 import { stripVTControlCharacters } from 'node:util';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type CliDeps,
   run,
@@ -47,39 +49,133 @@ function capture(): {
   };
 }
 
-let dir: string;
-let origin: string;
+// One fixture root per file. Building a superproject with a submodule and a nested submodule, a
+// linked worktree and a nested repository takes many git subprocesses, so it is built once in
+// beforeAll and no test changes its git state (no commit, index or ref change); afterEach puts back
+// the files a test can change, and removes `inner/deep`, with plain fs calls (no git), and afterAll
+// removes the root and asserts that it is gone.
+let root: string;
 let configDir: string;
+let dir: string;
 let inner: string;
-let scratch: string[];
+let leafDir: string;
+let wtMain: string;
+let wt: string;
+let nestedOuter: string;
 
-beforeEach(async () => {
-  scratch = [];
-  dir = await mkdtemp(join(tmpdir(), 'modern-cmdk-sub-'));
-  origin = await mkdtemp(join(tmpdir(), 'modern-cmdk-sub-origin-'));
-  configDir = await mkdtemp(join(tmpdir(), 'modern-cmdk-sub-git-'));
+const allowFile = ['-c', 'protocol.file.allow=always'];
+// The build is about 25 git commands (the submodule adds clone internally) and one 100 MB copy of
+// node. Measured on 2026-11-08 on this Windows 11 host while other suites ran (9 runs): 5.1 s at
+// best, 14.9 s at worst. 60 s is four times the worst and applies to this hook only; every test
+// keeps the 30 s default.
+const BUILD_TIMEOUT_MS = 60_000;
+const RM_OPTIONS = { recursive: true, force: true, maxRetries: 5, retryDelay: 200 } as const;
+
+/** A planted git: a copy of this process's executable named as the platform's git, in `where`. */
+async function plantGit(where: string): Promise<void> {
+  await mkdir(where, { recursive: true });
+  const target = join(where, process.platform === 'win32' ? 'git.exe' : 'git');
+  await copyFile(process.execPath, target);
+  await chmod(target, 0o755);
+}
+
+/** A new committed repository with one file, f.tsx, at `repo`. */
+async function committedRepo(repo: string): Promise<void> {
+  await mkdir(repo, { recursive: true });
+  await git(repo, ['init', '-q']);
+  await writeFile(join(repo, 'f.tsx'), SOURCE);
+  await git(repo, ['add', '.']);
+  await git(repo, ['commit', '-q', '-m', 'first']);
+}
+
+/** An origin repository holding the given files, committed. */
+async function origin(repo: string, files: Record<string, string>): Promise<void> {
+  await mkdir(repo, { recursive: true });
+  await git(repo, ['init', '-q']);
+  for (const [name, content] of Object.entries(files)) await writeFile(join(repo, name), content);
+  await git(repo, ['add', '.']);
+  await git(repo, ['commit', '-q', '-m', 'origin']);
+}
+
+beforeAll(async () => {
+  // The root is assigned first so that afterAll removes it even when the build below throws.
+  root = await mkdtemp(join(tmpdir(), 'modern-cmdk-sub-'));
+  configDir = join(root, 'git-config');
+  await mkdir(configDir);
+  dir = join(root, 'super');
+  inner = join(dir, 'inner', 'n.tsx');
+  leafDir = join(dir, 'inner', 'leaf');
+  wtMain = join(root, 'wt-main');
+  wt = join(root, 'wt');
+  nestedOuter = join(root, 'nest-outer');
+  for (const [name, value] of Object.entries(gitEnv(configDir))) vi.stubEnv(name, value);
+  try {
+    const innerOrigin = join(root, 'inner-origin');
+    const leafOrigin = join(root, 'leaf-origin');
+    await Promise.all([
+      (async () => {
+        // The superproject: its submodule `inner` holds a submodule `leaf` of its own; both
+        // .gitignore files ignore skip.tsx.
+        await Promise.all([
+          origin(innerOrigin, { 'n.tsx': SOURCE, '.gitignore': 'skip.tsx\n' }),
+          origin(leafOrigin, { 'f.tsx': SOURCE, '.gitignore': 'skip.tsx\n' }),
+          mkdir(dir, { recursive: true }).then(async () => {
+            await git(dir, ['init', '-q']);
+            await writeFile(join(dir, 'a.tsx'), SOURCE);
+            await git(dir, ['add', '.']);
+            await git(dir, ['commit', '-q', '-m', 'parent']);
+          }),
+        ]);
+        await git(dir, [...allowFile, 'submodule', 'add', '-q', innerOrigin, 'inner']);
+        await git(join(dir, 'inner'), [...allowFile, 'submodule', 'add', '-q', leafOrigin, 'leaf']);
+        await git(join(dir, 'inner'), ['commit', '-q', '-m', 'leaf']);
+        await git(dir, ['add', 'inner']);
+        await git(dir, ['commit', '-q', '-m', 'submodule with leaf']);
+        // The planted git sits in the superproject without making it dirty.
+        await plantGit(join(dir, 'bin'));
+        await appendFile(join(dir, '.git', 'info', 'exclude'), 'bin/\n');
+      })(),
+      (async () => {
+        await committedRepo(wtMain);
+        await git(wtMain, ['worktree', 'add', '-q', '-b', 'linked', wt]);
+      })(),
+      (async () => {
+        await committedRepo(nestedOuter);
+        await mkdir(join(nestedOuter, 'nested'));
+        await git(join(nestedOuter, 'nested'), ['init', '-q']);
+      })(),
+    ]);
+    await resetSources();
+  } finally {
+    vi.unstubAllEnvs();
+  }
+}, BUILD_TIMEOUT_MS);
+
+/** Put back every file a test can change: a migration rewrites files, a dirty test edits one. */
+async function resetSources(): Promise<void> {
+  await Promise.all([
+    writeFile(inner, SOURCE),
+    writeFile(join(leafDir, 'f.tsx'), SOURCE),
+    writeFile(join(dir, 'inner', 'skip.tsx'), SOURCE),
+    writeFile(join(leafDir, 'skip.tsx'), SOURCE),
+    rm(join(dir, 'inner', 'deep'), RM_OPTIONS),
+  ]);
+}
+
+beforeEach(() => {
   for (const [name, value] of Object.entries(gitEnv(configDir))) vi.stubEnv(name, value);
   vi.spyOn(process, 'cwd').mockReturnValue(dir);
-  await git(origin, ['init', '-q']);
-  await writeFile(join(origin, 'n.tsx'), SOURCE);
-  await writeFile(join(origin, '.gitignore'), 'skip.tsx\n');
-  await git(origin, ['add', '.']);
-  await git(origin, ['commit', '-q', '-m', 'inner']);
-  await git(dir, ['init', '-q']);
-  await writeFile(join(dir, 'a.tsx'), SOURCE);
-  await git(dir, ['add', '.']);
-  await git(dir, ['commit', '-q', '-m', 'parent']);
-  await git(dir, ['-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', origin, 'inner']);
-  await git(dir, ['commit', '-q', '-m', 'submodule']);
-  await writeFile(join(dir, 'inner', 'skip.tsx'), SOURCE);
-  inner = join(dir, 'inner', 'n.tsx');
 });
 
 afterEach(async () => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
-  for (const d of [dir, origin, configDir, ...scratch])
-    await rm(d, { recursive: true, force: true });
+  await resetSources();
+});
+
+afterAll(async () => {
+  await rm(root, RM_OPTIONS);
+  expect(existsSync(root)).toBe(false);
 });
 
 describe('codemod CLI: git submodules', () => {
@@ -109,10 +205,6 @@ describe('codemod CLI: git submodules', () => {
 
   it('SEC-58: a PATH entry in the superproject is skipped when check-ignore runs in the submodule', async () => {
     const planted = join(dir, 'bin');
-    await mkdir(planted);
-    const target = join(planted, process.platform === 'win32' ? 'git.exe' : 'git');
-    await copyFile(process.execPath, target);
-    await chmod(target, 0o755);
     vi.stubEnv('PATH', `${planted}${delimiter}${process.env.PATH}`);
     expect(await run(['import-rewrite', 'inner'], capture().io, codemodDeps)).toBe(0);
     expect(await readFile(inner, 'utf-8')).toMatch(
@@ -123,26 +215,8 @@ describe('codemod CLI: git submodules', () => {
 });
 
 describe('codemod CLI: git submodules nested in a submodule', () => {
-  // The submodule `inner` of the superproject holds a submodule `leaf` of its own, with a
-  // .gitignore that ignores skip.tsx.
-  let leaf: string;
-
-  beforeEach(async () => {
-    leaf = await mkdtemp(join(tmpdir(), 'modern-cmdk-sub-leaf-'));
-    scratch.push(leaf);
-    await git(leaf, ['init', '-q']);
-    await writeFile(join(leaf, 'f.tsx'), SOURCE);
-    await writeFile(join(leaf, '.gitignore'), 'skip.tsx\n');
-    await git(leaf, ['add', '.']);
-    await git(leaf, ['commit', '-q', '-m', 'leaf']);
-    const allowFile = ['-c', 'protocol.file.allow=always'];
-    await git(join(dir, 'inner'), [...allowFile, 'submodule', 'add', '-q', leaf, 'leaf']);
-    await git(join(dir, 'inner'), ['commit', '-q', '-m', 'leaf']);
-    await git(dir, ['add', 'inner']);
-    await git(dir, ['commit', '-q', '-m', 'inner with leaf']);
-    await writeFile(join(dir, 'inner', 'leaf', 'skip.tsx'), SOURCE);
-  });
-
+  // The shared fixture's submodule `inner` holds a submodule `leaf` of its own, with a .gitignore
+  // that ignores skip.tsx (and an ignored skip.tsx in each of the two).
   it('SEC-56: strict discovery over a file in a submodule nested in a submodule runs check-ignore in the innermost repository, applies its .gitignore and migrates', async () => {
     const c = capture();
     expect(await run(['import-rewrite', 'inner'], c.io, codemodDeps)).toBe(0);
@@ -163,25 +237,6 @@ describe('codemod CLI: git submodules nested in a submodule', () => {
   });
 });
 
-/** A planted git: a copy of this process's executable named as the platform's git, in `where`. */
-async function plantGit(where: string): Promise<void> {
-  await mkdir(where, { recursive: true });
-  const target = join(where, process.platform === 'win32' ? 'git.exe' : 'git');
-  await copyFile(process.execPath, target);
-  await chmod(target, 0o755);
-}
-
-/** A new committed repository in a scratch directory that afterEach removes. */
-async function scratchRepo(prefix: string): Promise<string> {
-  const repo = await mkdtemp(join(tmpdir(), prefix));
-  scratch.push(repo);
-  await git(repo, ['init', '-q']);
-  await writeFile(join(repo, 'f.tsx'), SOURCE);
-  await git(repo, ['add', '.']);
-  await git(repo, ['commit', '-q', '-m', 'first']);
-  return repo;
-}
-
 describe('codemod files: the trust boundary of a submodule, a worktree and a nested repository', () => {
   it('SEC-59: inside a submodule the boundary is the superproject', async () => {
     const real = await realpath(dir);
@@ -191,35 +246,20 @@ describe('codemod files: the trust boundary of a submodule, a worktree and a nes
   });
 
   it('SEC-59: a submodule of a submodule climbs to the outermost superproject', async () => {
-    const leafOrigin = await scratchRepo('modern-cmdk-sub-leaf-');
-    const midOrigin = await scratchRepo('modern-cmdk-sub-mid-');
-    const allowFile = ['-c', 'protocol.file.allow=always'];
-    await git(midOrigin, [...allowFile, 'submodule', 'add', '-q', leafOrigin, 'leaf']);
-    await git(midOrigin, ['commit', '-q', '-m', 'leaf']);
-    await git(dir, [...allowFile, 'submodule', 'add', '-q', midOrigin, 'mid']);
-    await git(join(dir, 'mid'), [...allowFile, 'submodule', 'update', '--init', '-q']);
-    expect(await trustBoundary(join(dir, 'mid', 'leaf'))).toBe(await realpath(dir));
+    expect(await trustBoundary(leafDir)).toBe(await realpath(dir));
   });
 
   it('SEC-59: a planted git beside the superproject is skipped when cwd is the submodule', async () => {
-    await plantGit(join(dir, 'bin'));
     vi.stubEnv('PATH', `${join(dir, 'bin')}${delimiter}${process.env.PATH}`);
     expect(await findDirtyFiles([inner], join(dir, 'inner'))).toEqual({ kind: 'clean' });
   });
 
   it('SEC-59: a linked worktree is its own boundary, not the repository it was added from', async () => {
-    const main = await scratchRepo('modern-cmdk-wt-main-');
-    const wt = await mkdtemp(join(tmpdir(), 'modern-cmdk-wt-'));
-    scratch.push(wt);
-    await git(main, ['worktree', 'add', '-q', '-b', 'linked', wt]);
     expect(await trustBoundary(wt)).toBe(await realpath(wt));
   });
 
   it('SEC-59: an ordinary nested repository is its own boundary', async () => {
-    const outer = await scratchRepo('modern-cmdk-nest-');
-    const nested = join(outer, 'nested');
-    await mkdir(nested);
-    await git(nested, ['init', '-q']);
+    const nested = join(nestedOuter, 'nested');
     expect(await trustBoundary(nested)).toBe(await realpath(nested));
   });
 });
