@@ -40,7 +40,7 @@ function ShortcutPalette() {
 
 ## `<Command.Shortcut>` Display Component
 
-`<Command.Shortcut>` renders a platform-aware keyboard shortcut badge. On macOS it shows symbols like `Cmd`, on Windows/Linux it shows `Ctrl`:
+`<Command.Shortcut>` renders a platform-aware keyboard shortcut badge. On macOS it shows glyphs like `⌘`, on Windows/Linux it shows `Ctrl`. The platform is read through `useSyncExternalStore` with a neutral server snapshot: the server and the hydration pass render the text for `'other'` (`Ctrl+C`), so the HTML matches on every platform, and the client then re-renders with the detected platform (`packages/modern-cmdk/src/react/shortcut.tsx:21-30`):
 
 ```tsx
 import { Command } from 'modern-cmdk/react';
@@ -125,9 +125,9 @@ Modifier+Modifier+Key
 
 ## Utility Functions
 
-### `parseShortcut(shortcut)`
+### `parseShortcut(shortcut, platform?)`
 
-Parses a shortcut string into a structured `ParsedShortcut` object. It splits on `+`, resolves modifier aliases such as `Mod`, and normalizes the key:
+Parses a shortcut string into a structured `ParsedShortcut` object. It splits on `+`, resolves modifier aliases such as `Mod`, and normalizes the key. The optional `platform` is a `ShortcutPlatform` (`'mac' | 'other'`): `Mod` resolves to Meta on `'mac'` and to Ctrl on `'other'`. Without it the platform is read from `navigator` when the function is called (`'other'` where there is no `navigator`), so importing `modern-cmdk` reads no platform (`packages/modern-cmdk/src/core/keyboard/parser.ts:24-37`, `:60`):
 
 ```typescript
 import { parseShortcut } from 'modern-cmdk';
@@ -142,11 +142,14 @@ const parsed = parseShortcut('Mod+Shift+K');
 //   raw: 'Mod+Shift+K',
 //   normalized: 'ctrl+shift+k'  // 'meta+shift+k' on macOS
 // }
+
+parseShortcut('Mod+Shift+K', 'mac').normalized; // 'meta+shift+k' on every platform
+parseShortcut('Mod+Shift+K', 'other').normalized; // 'ctrl+shift+k' on every platform
 ```
 
-### `formatShortcut(parsed)`
+### `formatShortcut(parsed, platform?)`
 
-Formats a parsed shortcut (the result of `parseShortcut`) into a human-readable display string using the symbols for the current platform:
+Formats a parsed shortcut (the result of `parseShortcut`) into a human-readable display string using the symbols for the platform: the `platform` argument, or the platform read from `navigator` when the function is called. Pass `'other'` to render the same text on a server and in the hydration pass (`parser.ts:118-124`):
 
 ```typescript
 import { formatShortcut, parseShortcut } from 'modern-cmdk';
@@ -154,6 +157,8 @@ import { formatShortcut, parseShortcut } from 'modern-cmdk';
 formatShortcut(parseShortcut('Mod+Shift+K'));
 // macOS: '⌘⇧K'
 // Windows/Linux: 'Ctrl+Shift+K'
+
+formatShortcut(parseShortcut('Mod+Shift+K', 'other'), 'other'); // 'Ctrl+Shift+K' everywhere
 ```
 
 ### `detectConflicts(shortcuts)`
