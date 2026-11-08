@@ -100,7 +100,7 @@ Because disabled items are listed, they count: `filteredCount`, the result annou
 
 ## `aria-activedescendant` Updates
 
-Focus remains on the input at all times. The active item is communicated to assistive technology via `aria-activedescendant`, which updates as the user navigates with arrow keys:
+Focus remains on the input at all times. The active item is communicated to assistive technology via `aria-activedescendant`, which is set from the first render, to the item that is active then, and updates as the user navigates with arrow keys (`packages/modern-cmdk/src/react/input.tsx:91`; cmdk sets it only after the first arrow-key move):
 
 ```
 User presses ArrowDown
@@ -134,17 +134,17 @@ The live region uses `aria-live="polite"` so announcements wait until the user p
 
 ## `role="status"` for Empty State
 
-When no results match the query, `<Command.Empty>` renders with `role="status"` to announce the empty state:
+When no results match the query, `<Command.Empty>` renders with `role="status"` and `aria-live="polite"` to announce the empty state (`packages/modern-cmdk/src/react/empty.tsx:28`; cmdk renders it with `role="presentation"`):
 
 ```html
-<div role="status" data-command-empty>
+<div role="status" aria-live="polite" data-command-empty>
   No results found.
 </div>
 ```
 
 ## Loading State
 
-`<Command.Loading loading>` renders its own element and announces the loading state there: `role="status"`, `aria-live="assertive"` and `aria-busy` on that element, not on the list. Without the `loading` prop it renders only while the machine reports loading or a React transition is pending:
+`<Command.Loading loading>` renders its own element and announces the loading state there: `role="status"`, `aria-live="assertive"` and `aria-busy` on that element, not on the list. Without the `loading` prop it renders only while the machine reports loading (`state.loading`; `packages/modern-cmdk/src/react/loading.tsx:23-25`):
 
 ```html
 <div role="listbox" aria-busy="false" data-command-list>
