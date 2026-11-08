@@ -4,8 +4,9 @@
 // changeset is pending and from the CHANGELOG 1.5.0 entry once the Version PR has consumed it (TUB-75; DT-74's rule for
 // the bug-report template), and they quote the 1.5.0 record against the 1.4.0 record.
 // Every number below is read from the record (or from the 1.6.0 record for the "1.6" comparison figures); none is a
-// literal. The blob id the docs cite is computed from the record's bytes and asserted, and so is the commit that added
-// the record to the repository (b42c483), which the blob links name.
+// literal. The blob id the docs cite is computed from the record's bytes and asserted; the commit in the blob links is
+// not (D98: release/1.7.0 lands on main by a linear rebase, which rewrites it, and the orchestrator then updates the sha
+// in the docs), only the record's path inside those links and the shape of the sha are.
 
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -54,8 +55,8 @@ const blob = createHash('sha1')
   .update(recordBytes)
   .digest('hex')
   .slice(0, 7);
-/** The commit that added the record to the repository; the blob links of the docs name it. */
-const COMMIT = 'b42c483';
+const BLOB_LINK = /blob\/[0-9a-f]{7,40}\/benchmarks\/size-history\/1\.7\.0\.json/;
+const COMMITTED_IN = /committed in `[0-9a-f]{7,40}`/;
 
 function entry(source: SizeRecord, name: string): Entry {
   const found = source.entries.find((candidate) => candidate.name === name);
@@ -164,8 +165,8 @@ describe('packages/modern-cmdk/README.md: the Sizes section', () => {
 
   it('cites the record file, the measured sha, the date and the size-limit version', () => {
     expect(sizes).toContain(`benchmarks/size-history/1.7.0.json`);
-    expect(sizes).toContain(`blob/${COMMIT}/benchmarks/size-history/1.7.0.json`);
-    expect(sizes).toContain(`committed in \`${COMMIT}\``);
+    expect(sizes).toMatch(BLOB_LINK);
+    expect(sizes).toMatch(COMMITTED_IN);
     expect(sizes).toContain(
       `measured at \`${record.sha}\` on ${day} with size-limit ${record.sizeLimit}`,
     );
@@ -218,7 +219,7 @@ describe('apps/docs/benchmarks.md: the bundle-size table', () => {
 
   it('cites the record, the measured sha, the date, size-limit and Node', () => {
     expect(bundle).toContain('benchmarks/size-history/1.7.0.json');
-    expect(bundle).toContain(`blob/${COMMIT}/benchmarks/size-history/1.7.0.json`);
+    expect(bundle).toMatch(BLOB_LINK);
     expect(bundle).toContain(
       `measured at commit \`${record.sha}\` on ${day} with size-limit ${record.sizeLimit} on Node ${record.node}`,
     );
@@ -282,7 +283,7 @@ describe('ARCHITECTURE.md: the targets table and the lines that cite the record'
     expect(cite).toContain(
       '[`benchmarks/size-history/1.7.0.json`](benchmarks/size-history/1.7.0.json)',
     );
-    expect(cite).toContain(`committed in \`${COMMIT}\``);
+    expect(cite).toMatch(COMMITTED_IN);
     expect(cite).toContain(`size-limit ${record.sizeLimit}, measured ${day} at \`${record.sha}\``);
   });
 
@@ -398,7 +399,7 @@ describe('apps/docs/guide/ssr.md: the Tree-Shaking figures', () => {
 
   it('cites the 1.7.0 record at its measured sha', () => {
     expect(paragraph).toContain('benchmarks/size-history/1.7.0.json');
-    expect(paragraph).toContain(`blob/${COMMIT}/benchmarks/size-history/1.7.0.json`);
+    expect(paragraph).toMatch(BLOB_LINK);
     expect(paragraph).not.toContain('1.5.0.json');
     expect(paragraph).not.toContain('1.4.0.json');
     expect(paragraph).toContain(
