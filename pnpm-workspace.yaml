@@ -22,6 +22,11 @@ catalog:
 overrides:
   react: 'catalog:'
   react-dom: 'catalog:'
+  # SEC-71 (Dependabot alert #41, GHSA-g3hv-75wg-m249, fixed in minimatch 11.0.1): @vscode/vsce 4.1.1-0, a devDependency of
+  # packages/vscode-modern-cmdk (nothing published depends on it), declares minimatch ^10.2.6, which resolved to the vulnerable 10.2.6
+  # (every @vscode/vsce build declares ^10.2.6). Pinned to the newest minimatch (11.0.5, published 2026-11-05T23:30Z, BlueOak-1.0.0). Drop this
+  # override when a @vscode/vsce build declares minimatch 11.
+  minimatch: 11.0.5
 allowBuilds:
   esbuild: true
   lefthook: true
