@@ -307,31 +307,61 @@ describe('release.yml first-publish split (D62: the smoke job executes a fresh n
   });
 });
 
-describe('release.yml backfill job (D62)', () => {
-  const block = job('backfill');
+describe('release.yml has no backfill job and no dispatch trigger (D73)', () => {
+  const header = workflow.slice(0, workflow.indexOf('\njobs:'));
 
-  it('D62: backfill lists modern-cmdk-codemod@1.0.0 first with a computed sha and records each failure before exiting 1', () => {
-    const entries = [...block.matchAll(/^ {12}"([^"]+)"$/gm)].map((m) => m[1]);
-    expect(entries).toEqual([
-      'modern-cmdk-codemod@1.0.0|modern-cmdk-codemod|## 1.0.0|version-commit',
-      'modern-cmdk@1.2.2|modern-cmdk|## 1.2.2|33678255dcee29a02a1222c10f5698f47cf7f24c',
-      'create-modern-cmdk@1.2.1|create-modern-cmdk|## 1.2.1|33678255dcee29a02a1222c10f5698f47cf7f24c',
+  it('D73: the backfill job is absent and the job graph is the push graph alone', () => {
+    expect(jobNames()).toEqual([
+      'ci-gate',
+      'select-mode',
+      'version',
+      'first-publish-tarball',
+      'first-publish-smoke',
+      'first-publish-attest',
+      'pack',
+      'attest',
+      'publish',
     ]);
-    expect(block).toContain(
-      'sha=$(git log --reverse --format=%H -G "\\"version\\": \\"$' +
-        '{version//./\\\\.}\\"" -- "packages/$dir/package.json" | sed -n 1p) || return 1',
+    expect(job('backfill')).toBe('');
+    expect(workflow).not.toMatch(/backfill/i);
+  });
+
+  it('D73: no workflow_dispatch trigger, no task input and no job or expression reads them', () => {
+    expect(header).toMatch(/^on:\n {2}push:\n {4}branches: \[main\]\n\n/m);
+    expect(workflow).not.toContain('workflow_dispatch');
+    expect(workflow).not.toMatch(/inputs\./);
+    expect(workflow).not.toMatch(/^ {6}task:/m);
+    expect(workflow).not.toContain('github.event_name');
+  });
+
+  it('D73: every needs and every job-level if of the surviving graph is intact', () => {
+    const needs = Object.fromEntries(
+      jobNames().map((n) => {
+        const m = /^ {4}needs: (.+)$/m.exec(job(n));
+        return [n, m?.[1]?.replace(/[[\]\s]/g, '').split(',') ?? []];
+      }),
     );
-    const lookup = block.split('\n').find((l) => l.includes('git log --reverse')) ?? '';
-    expect(lookup).toContain('${version');
-    expect(lookup).toContain('"packages/$dir/package.json"');
-    expect(lookup).not.toContain('1.0.0');
-    expect(block).toContain('if [ "$GITHUB_REF" != refs/heads/main ]; then');
-    expect(block).toMatch(/failed\+=\("\$tag"\)/);
-    expect(block).toMatch(/::error::[^\n]*\$\{failed\[\*\]\}/);
-    // The failure list is checked after the loop, and the job then exits 1.
-    expect(block.indexOf('done\n')).toBeLessThan(block.search(/\$\{#failed\[@\]\}/));
-    expect(block).toMatch(/\$\{#failed\[@\]\}" -ne 0 \]; then[\s\S]*exit 1/);
-    expect(block).not.toMatch(/continue-on-error/);
+    expect(needs).toEqual({
+      'ci-gate': [],
+      'select-mode': ['ci-gate'],
+      version: ['select-mode'],
+      'first-publish-tarball': ['select-mode', 'version'],
+      'first-publish-smoke': ['first-publish-tarball'],
+      'first-publish-attest': ['first-publish-tarball', 'first-publish-smoke'],
+      pack: ['select-mode'],
+      attest: ['select-mode', 'pack'],
+      publish: ['pack', 'attest'],
+    });
+    expect(job('select-mode')).not.toMatch(/^ {4}if:/m);
+    expect(job('version')).toContain("if: needs.select-mode.outputs.mode == 'version'");
+    expect(job('pack')).toContain("if: needs.select-mode.outputs.mode == 'publish'");
+    expect(job('attest')).toContain("if: needs.select-mode.outputs.mode == 'publish'");
+  });
+
+  it('D73: the header graph names the push graph and no dispatch run', () => {
+    const prose = headerProse();
+    expect(prose).toContain('On a push to main: ci-gate -> select-mode ->');
+    expect(prose).not.toMatch(/manual dispatch|dispatched run/);
   });
 });
 
