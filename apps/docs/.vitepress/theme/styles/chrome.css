@@ -117,3 +117,17 @@ html:root .VPLocalNav .VPLocalNavOutlineDropdown > button {
   padding-block: 0.625rem 0.5625rem;
   line-height: 1.5rem;
 }
+
+/*
+ * Sidebar hover: an inactive row gets a bg-soft fill and text-1, so hover (neutral) and active (brand-1 text on the brand-soft
+ * pill) are different states. The theme paints hover in brand-1, the colour of the active item
+ * (VPSidebarItem.vue:142-147, specificity (0,8,0); this selector is (0,9,1)). text-1 on bg-soft is 14.7 / 14.65.
+ */
+html:root .VPSidebar .VPSidebarItem:not(.level-0):not(.is-active) > .item:hover {
+  border-radius: var(--mc-radius-sm);
+  background-color: var(--mc-bg-soft);
+}
+
+html:root .VPSidebar .VPSidebarItem:not(.level-0):not(.is-active) > .item > .link:hover .text {
+  color: var(--mc-text-1);
+}
