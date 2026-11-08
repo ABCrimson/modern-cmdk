@@ -47,7 +47,8 @@ export interface CommandMachine extends Disposable {
 
 /**
  * Creates a headless command palette state machine with search, frecency,
- * and keyboard shortcut support. Implements Disposable for `using` cleanup.
+ * and keyboard shortcut support. Implements Disposable and AsyncDisposable for
+ * `using` and `await using` cleanup (the latter awaits the pending frecency save).
  *
  * @example
  * ```ts
@@ -55,7 +56,9 @@ export interface CommandMachine extends Disposable {
  * machine.subscribe(() => console.log(machine.getState()));
  * ```
  */
-export function createCommandMachine(options: CommandMachineOptions = {}): CommandMachine {
+export function createCommandMachine(
+  options: CommandMachineOptions = {},
+): CommandMachine & AsyncDisposable {
   let state: CommandState = createInitialState(options);
 
   // O(1) membership check — kept in sync with filteredIds
@@ -92,9 +95,20 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   let frecencyEngine: FrecencyEngine | null = null;
   if (options.frecency?.enabled) {
     frecencyEngine = new FrecencyEngine(options.frecency);
-    // Fire-and-forget async hydration — loads persisted frecency data (IDB)
-    // so bonuses are available after the first microtask settles
-    void frecencyEngine.load();
+    // Hydrate persisted frecency data (IDB) in the background: once the engine has merged it, mark the
+    // results dirty so one refilter and one stateChange (through the batch commit, unless a batch is
+    // pending and commits them itself) take the loaded bonuses; a failed load is reported, not thrown
+    void frecencyEngine.load().then(
+      () => {
+        if (disposed) return;
+        dirty = true;
+        if (queued === 0) commit();
+      },
+      (error: unknown) => {
+        // biome-ignore lint/suspicious/noConsole: Load-time diagnostic for production debugging, like the engine's save warning
+        console.warn('[modern-cmdk] frecency load failed:', error);
+      },
+    );
   }
 
   // Batching: send() queues one scheduler closure per event. A handler's setState only marks the state
@@ -105,6 +119,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   let inHandler = false;
   let dirty = false;
   let changed = false;
+  let disposed = false; // set by dispose: a frecency load that settles later does nothing
 
   // Register initial items and groups
   if (options.items) {
@@ -349,7 +364,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     }
   }
 
-  const machine: CommandMachine = {
+  const machine: CommandMachine & AsyncDisposable = {
     getState(): CommandState {
       return state;
     },
@@ -400,6 +415,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     },
 
     [Symbol.dispose](): void {
+      disposed = true;
       queued = nextQueued = 0; // the scheduler drops its pending closures
       scheduler[Symbol.dispose]();
       registry[Symbol.dispose]();
@@ -407,6 +423,15 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       emitter[Symbol.dispose]();
       keyboardRegistry[Symbol.dispose]();
       frecencyEngine?.[Symbol.dispose]();
+    },
+
+    /** Awaits the pending frecency save, then disposes like [Symbol.dispose] — for `await using` */
+    async [Symbol.asyncDispose](): Promise<void> {
+      try {
+        await frecencyEngine?.flush();
+      } finally {
+        machine[Symbol.dispose]();
+      }
     },
   };
 
