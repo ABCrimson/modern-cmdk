@@ -5,7 +5,7 @@
 import type { CommandMachine } from 'modern-cmdk';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
-import { act, use, useLayoutEffect } from 'react';
+import { act, use, useLayoutEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -40,6 +40,19 @@ function MountCounter(): null {
     mounts += 1;
   }, []);
   return null;
+}
+
+/** The display value of the group around each `FirstCommit` at the commit that mounts it. */
+const displayAtMount: string[] = [];
+
+/** Records, in its layout effect, whether the group around it is hidden: the first commit's DOM, before any re-render. */
+function FirstCommit(): ReactNode {
+  const elementRef = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const group = elementRef.current?.closest<HTMLElement>('[data-command-group]');
+    displayAtMount.push(group?.style.display ?? 'missing');
+  }, []);
+  return <span ref={elementRef} />;
 }
 
 /** The machine the subtree holds, read from the stable context. */
@@ -104,5 +117,49 @@ describe('Command.Group', () => {
       ([event]) => event.type === 'UNREGISTER_ITEM' || event.type === 'REGISTER_ITEM',
     );
     expect(registrations).toEqual([]);
+  });
+
+  it('RP-31: a group the registry does not hold renders nothing under a non-empty query', async () => {
+    displayAtMount.length = 0;
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const current = root;
+    const ui = (late: boolean): ReactNode => (
+      <Command>
+        <Command.Input />
+        <Command.List>
+          <Command.Group heading="Fruit">
+            <Command.Item value="apple">Apple</Command.Item>
+          </Command.Group>
+          {late ? (
+            <Command.Group heading="Late">
+              <FirstCommit />
+              <Command.Item value="applesauce">Applesauce</Command.Item>
+            </Command.Group>
+          ) : null}
+        </Command.List>
+      </Command>
+    );
+    await act(async () => {
+      current.render(ui(false));
+    });
+    await settle();
+    const input = container.querySelector('input') as HTMLInputElement;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, 'zz');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await settle();
+
+    // The late group is new to the registry in its first render, and the query matches nothing: it is hidden at once.
+    await act(async () => {
+      current.render(ui(true));
+    });
+    expect(displayAtMount).toEqual(['none']);
+    await settle();
+    for (const group of container.querySelectorAll<HTMLElement>('[data-command-group]')) {
+      expect(group.style.display).toBe('none');
+    }
   });
 });
