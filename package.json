@@ -17,6 +17,7 @@
     "test:docs": "playwright test -c playwright.docs.config.ts",
     "bench": "vitest bench",
     "bench:compare": "node benchmarks/standalone/compare-baseline.ts",
+    "bench:record": "node benchmarks/standalone/record-baseline.ts",
     "lint": "biome check . --error-on-warnings",
     "lint:fix": "biome check . --write",
     "format": "biome format . --write",

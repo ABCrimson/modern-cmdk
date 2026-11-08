@@ -1,0 +1,19 @@
+{
+  "proves": "A benchmark-results artifact in the shape compare-baseline.ts writes (bench-<sha>.json), trimmed to the fields the recorder reads: its tasks cover exactly the rows of baseline.json, with medians that moved from that baseline.",
+  "schemaVersion": 1,
+  "commit": "836284049a6df5902bacbadf8ca777c9fae1906e",
+  "date": "2026-11-08T06:42:04.263Z",
+  "environment": {
+    "os": "linux 7.0.0-1019-azure",
+    "runner": "ubuntu26",
+    "runnerImageVersion": "20261101.186.1",
+    "node": "v28.0.0-nightly20261107a43bfb5bb2",
+    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "cpuCount": 4
+  },
+  "tasks": {
+    "search:ts-scorer-10k": { "median_ms": 3.5, "p99_ms": 6.25, "samples": 5000, "rme": 1.1 },
+    "stateUpdate:navigate": { "median_ms": 0.0009, "p99_ms": 0.0057, "samples": 5000, "rme": 8.9 },
+    "stateUpdate:searchChange": { "median_ms": 0.4, "p99_ms": 0.72, "samples": 5000, "rme": 0.7 }
+  }
+}
