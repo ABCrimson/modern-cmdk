@@ -1,6 +1,6 @@
 # Controlled Dialog
 
-`Command.Dialog` opens when its `open` prop becomes `true` and closes when it becomes `false`. Escape and overlay clicks close the dialog and then call `onOpenChange(false)`, so pass your setter (`onOpenChange={setOpen}`) to keep your state in step. Without `open`, nothing opens the dialog. Both go through the machine: Radix reports the close, the dialog sends `CLOSE`, and the machine handles it on its next scheduler batch (the next animation frame in a browser), calling `onOpenChange(false)` before it emits that batch's single `stateChange` (`react/dialog.tsx` `handleRadixOpenChange`; `core/machine.ts` `setOpen()` and `commit()`). The same holds for a change of the `open` prop: the dialog sends `OPEN` or `CLOSE`, and the machine calls `onOpenChange` with the new value.
+`Command.Dialog` opens when its `open` prop becomes `true` and closes when it becomes `false`. Escape and overlay clicks close the dialog and then call `onOpenChange(false)`, so pass your setter (`onOpenChange={setOpen}`) to keep your state in step. Without `open`, nothing opens the dialog. Every open change goes through the machine on its next scheduler batch (the next animation frame in a browser): the dialog sends `OPEN` or `CLOSE`, the machine calls `onOpenChange` with that value, and then it emits the batch's single `stateChange`, which closes or opens the DOM when React renders it (`react/dialog.tsx`; `core/machine.ts` `setOpen()`, `commit()`). The machine calls `onOpenChange` for every `OPEN` and `CLOSE` it handles, whether the value changed or not, so the callback also echoes your own prop: on mount and after every change of `open`, and a single user close (Escape, an overlay click) can call it more than once with the same value. A state setter ignores the repeats; make any other handler idempotent.
 
 ## Controlled Mode
 
@@ -46,6 +46,7 @@ function CommandPalette() {
     <Command.Dialog
       open={open}
       onOpenChange={(isOpen: boolean) => {
+        if (isOpen === open) return; // the machine also echoes the prop: do nothing when the URL already matches
         const next = new URLSearchParams(params);
         if (isOpen) next.set('cmd', '1');
         else next.delete('cmd');
