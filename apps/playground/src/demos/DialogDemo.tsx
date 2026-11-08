@@ -66,10 +66,10 @@ export function DialogDemo(): React.ReactNode {
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
 
-          <Command.Group heading="Navigation" forceId="dialog-group-nav">
+          <Command.Group heading="Navigation" id="dialog-group-nav">
             <Command.Item
               value="go to dashboard"
-              forceId="dialog-item-dashboard"
+              id="dialog-item-dashboard"
               onSelect={() => handleSelect('dashboard')}
             >
               <span className="item-content">
@@ -81,7 +81,7 @@ export function DialogDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="go to projects"
-              forceId="dialog-item-projects"
+              id="dialog-item-projects"
               onSelect={() => handleSelect('projects')}
             >
               <span className="item-content">
@@ -93,7 +93,7 @@ export function DialogDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="go to settings"
-              forceId="dialog-item-settings"
+              id="dialog-item-settings"
               onSelect={() => handleSelect('settings')}
             >
               <span className="item-content">
@@ -107,10 +107,10 @@ export function DialogDemo(): React.ReactNode {
 
           <Command.Separator />
 
-          <Command.Group heading="Actions" forceId="dialog-group-actions">
+          <Command.Group heading="Actions" id="dialog-group-actions">
             <Command.Item
               value="create project"
-              forceId="dialog-item-create-project"
+              id="dialog-item-create-project"
               onSelect={() => handleSelect('create project')}
               shortcut="Mod+Shift+P"
             >
@@ -124,7 +124,7 @@ export function DialogDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="invite member"
-              forceId="dialog-item-invite"
+              id="dialog-item-invite"
               onSelect={() => handleSelect('invite member')}
             >
               <span className="item-content">
@@ -136,7 +136,7 @@ export function DialogDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="export data"
-              forceId="dialog-item-export"
+              id="dialog-item-export"
               onSelect={() => handleSelect('export data')}
               disabled
             >
@@ -151,10 +151,10 @@ export function DialogDemo(): React.ReactNode {
 
           <Command.Separator />
 
-          <Command.Group heading="Account" forceId="dialog-group-account">
+          <Command.Group heading="Account" id="dialog-group-account">
             <Command.Item
               value="profile settings"
-              forceId="dialog-item-profile"
+              id="dialog-item-profile"
               onSelect={() => handleSelect('profile settings')}
             >
               <span className="item-content">
@@ -166,7 +166,7 @@ export function DialogDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="sign out"
-              forceId="dialog-item-signout"
+              id="dialog-item-signout"
               onSelect={() => handleSelect('sign out')}
             >
               <span className="item-content">

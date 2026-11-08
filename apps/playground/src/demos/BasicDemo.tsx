@@ -7,7 +7,10 @@
 import { Command, useCommandDevtools } from 'modern-cmdk/react';
 import { useCallback, useId } from 'react';
 
-/** Registers this palette on `globalThis.__CRIMSON_COMMAND_DEVTOOLS__` (dev builds only). */
+/**
+ * Registers this palette on `globalThis.__MODERN_CMDK_DEVTOOLS__` and fires `modern-cmdk-devtools`
+ * events (dev builds only).
+ */
 function DevtoolsBridge(): null {
   useCommandDevtools('basic');
   return null;
@@ -36,8 +39,8 @@ export function BasicDemo(): React.ReactNode {
           <Command.Empty>No results found.</Command.Empty>
 
           {/* Suggestions group */}
-          <Command.Group heading="Suggestions" forceId="group-suggestions">
-            <Command.Item value="apple" forceId="item-apple" onSelect={() => handleSelect('apple')}>
+          <Command.Group heading="Suggestions" id="group-suggestions">
+            <Command.Item value="apple" id="item-apple" onSelect={() => handleSelect('apple')}>
               <span className="item-content">
                 <span className="item-icon" aria-hidden="true">
                   {'\uD83C\uDF4E'}
@@ -45,11 +48,7 @@ export function BasicDemo(): React.ReactNode {
                 <span className="item-label">Apple</span>
               </span>
             </Command.Item>
-            <Command.Item
-              value="banana"
-              forceId="item-banana"
-              onSelect={() => handleSelect('banana')}
-            >
+            <Command.Item value="banana" id="item-banana" onSelect={() => handleSelect('banana')}>
               <span className="item-content">
                 <span className="item-icon" aria-hidden="true">
                   {'\uD83C\uDF4C'}
@@ -59,7 +58,7 @@ export function BasicDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="orange"
-              forceId="item-orange"
+              id="item-orange"
               onSelect={() => handleSelect('orange')}
               keywords={['citrus', 'fruit']}
             >
@@ -70,7 +69,7 @@ export function BasicDemo(): React.ReactNode {
                 <span className="item-label">Orange</span>
               </span>
             </Command.Item>
-            <Command.Item value="grape" forceId="item-grape" onSelect={() => handleSelect('grape')}>
+            <Command.Item value="grape" id="item-grape" onSelect={() => handleSelect('grape')}>
               <span className="item-content">
                 <span className="item-icon" aria-hidden="true">
                   {'\uD83C\uDF47'}
@@ -80,7 +79,7 @@ export function BasicDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="pear"
-              forceId="item-pear"
+              id="item-pear"
               onSelect={() => handleSelect('pear')}
               disabled
             >
@@ -96,10 +95,10 @@ export function BasicDemo(): React.ReactNode {
           <Command.Separator />
 
           {/* Actions group */}
-          <Command.Group heading="Actions" forceId="group-actions">
+          <Command.Group heading="Actions" id="group-actions">
             <Command.Item
               value="create new file"
-              forceId="item-create-file"
+              id="item-create-file"
               onSelect={() => handleSelect('create new file')}
               shortcut="Mod+N"
             >
@@ -113,7 +112,7 @@ export function BasicDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="open terminal"
-              forceId="item-open-terminal"
+              id="item-open-terminal"
               onSelect={() => handleSelect('open terminal')}
               shortcut="Mod+`"
             >
@@ -127,7 +126,7 @@ export function BasicDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="search files"
-              forceId="item-search-files"
+              id="item-search-files"
               onSelect={() => handleSelect('search files')}
               keywords={['find', 'lookup']}
             >
@@ -140,7 +139,7 @@ export function BasicDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="toggle sidebar"
-              forceId="item-toggle-sidebar"
+              id="item-toggle-sidebar"
               onSelect={() => handleSelect('toggle sidebar')}
               shortcut="Mod+B"
             >
@@ -154,7 +153,7 @@ export function BasicDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="run task"
-              forceId="item-run-task"
+              id="item-run-task"
               onSelect={() => handleSelect('run task')}
             >
               <span className="item-content">
@@ -169,10 +168,10 @@ export function BasicDemo(): React.ReactNode {
           <Command.Separator />
 
           {/* Settings group */}
-          <Command.Group heading="Settings" forceId="group-settings">
+          <Command.Group heading="Settings" id="group-settings">
             <Command.Item
               value="application settings"
-              forceId="item-app-settings"
+              id="item-app-settings"
               onSelect={() => handleSelect('application settings')}
               keywords={['preferences', 'config']}
             >
@@ -185,7 +184,7 @@ export function BasicDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="keyboard shortcuts"
-              forceId="item-keyboard-shortcuts"
+              id="item-keyboard-shortcuts"
               onSelect={() => handleSelect('keyboard shortcuts')}
             >
               <span className="item-content">
@@ -197,7 +196,7 @@ export function BasicDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="color theme"
-              forceId="item-color-theme"
+              id="item-color-theme"
               onSelect={() => handleSelect('color theme')}
               keywords={['dark', 'light', 'appearance']}
             >
@@ -210,7 +209,7 @@ export function BasicDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="user profile"
-              forceId="item-user-profile"
+              id="item-user-profile"
               onSelect={() => handleSelect('user profile')}
             >
               <span className="item-content">
@@ -222,7 +221,7 @@ export function BasicDemo(): React.ReactNode {
             </Command.Item>
             <Command.Item
               value="extensions"
-              forceId="item-extensions"
+              id="item-extensions"
               onSelect={() => handleSelect('extensions')}
               keywords={['plugins', 'addons']}
             >

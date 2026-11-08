@@ -74,7 +74,7 @@ export function VirtualizedDemo(): React.ReactNode {
           <Command.Item
             key={item.id}
             value={item.value}
-            forceId={item.id}
+            id={item.id}
             onSelect={() => handleSelect(item.value)}
           >
             <span className="item-content">
