@@ -1,7 +1,7 @@
 // benchmarks/standalone/compare-baseline.ts
-// The one standalone bench harness (`pnpm bench:compare`): runs the named operations 3x with
-// tinybench, averages the run statistics, writes benchmarks/results/bench-<shortsha>.json and
-// compares the medians with benchmarks/baseline.json.
+// The one standalone bench harness (`pnpm bench:compare`): runs the named operations 5x with
+// tinybench, takes per task the median of the 5 runs' p50, p99 and rme, writes
+// benchmarks/results/bench-<shortsha>.json and compares those p50 medians with benchmarks/baseline.json.
 // Verdicts come from compare-rules.ts: a median above its target_ms fails; a baseline median below
 // the floor (regressionThresholds.floor_ms, 0.01 ms; today only stateUpdate:navigate, 0.75 microseconds)
 // is reported, not compared, because run-to-run noise at that scale exceeds the thresholds; every
@@ -72,13 +72,23 @@ interface ComparisonRow extends Classification {
   readonly current_ms: number;
 }
 
-const RUNS = 3;
+const RUNS = 5;
 let currentTask = '(outside a task)';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const mean = (values: readonly number[]): number =>
   values.reduce((a, b) => a + b, 0) / values.length;
+
+/** The middle value of a sorted copy; for an even count the mean of the two middle values. Throws on an empty array. */
+function median(values: readonly number[]): number {
+  if (values.length === 0) throw new Error('median of an empty array');
+  const sorted = values.toSorted((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 === 1
+    ? (sorted[mid] as number)
+    : mean([sorted[mid - 1] as number, sorted[mid] as number]);
+}
 
 function isBaselineBenchmark(value: unknown): value is BaselineBenchmark {
   return (
@@ -93,7 +103,7 @@ function git(...args: string[]): string {
   return execFileSync('git', args, { encoding: 'utf-8' }).trim();
 }
 
-/** Runs the named operations RUNS times on the built core and averages the run statistics per task; undefined when a task did not complete. */
+/** Runs the named operations RUNS times on the built core and takes the median of the runs' p50, p99 and rme per task; undefined when a task did not complete. */
 async function measureLive(): Promise<Map<string, TaskStats> | undefined> {
   // Import built core package — a missing dist is a harness error (exit 2), not a pass
   const { Bench } = await import('tinybench');
@@ -212,14 +222,14 @@ async function measureLive(): Promise<Map<string, TaskStats> | undefined> {
     return undefined;
   }
 
-  // Average the run statistics per task
+  // Median of the runs' p50, p99 and rme per task; samples is the sum
   const measured = new Map<string, TaskStats>();
   for (const [name, acc] of perTask) {
     measured.set(name, {
-      median_ms: mean(acc.p50),
-      p99_ms: mean(acc.p99),
+      median_ms: median(acc.p50),
+      p99_ms: median(acc.p99),
       samples: acc.samples.reduce((a, b) => a + b, 0),
-      rme: mean(acc.rme),
+      rme: median(acc.rme),
     });
   }
 
