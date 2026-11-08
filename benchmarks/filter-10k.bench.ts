@@ -1,25 +1,8 @@
-import type { CommandItem } from 'modern-cmdk';
 import { createSearchEngine, itemId, scoreItem } from 'modern-cmdk';
 import { describe, test } from 'vitest';
+import { generateItems } from './fixtures.ts';
 
-const WORDS = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
-
-// ES2025 Iterator Helpers — generate benchmark items via iterator pipeline
-function generateItems(count: number): CommandItem[] {
-  return Iterator.from({
-    [Symbol.iterator]: function* () {
-      for (let i = 0; i < count; i++) yield i;
-    },
-  })
-    .map((i) => ({
-      id: itemId(`item-${i}`),
-      value: `${WORDS[i % WORDS.length]} ${i} action`,
-      keywords: [`kw-${i}`],
-    }))
-    .toArray();
-}
-
-const items10K = generateItems(10_000);
+const items10K = generateItems(10_000, 'basic', itemId);
 
 // Vitest 5 — `bench` is a test-context fixture FACTORY: bench(name, fn) registers,
 // and .run() actually executes/measures the task.
