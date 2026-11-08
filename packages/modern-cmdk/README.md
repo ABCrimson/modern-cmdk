@@ -135,7 +135,9 @@ const unsubscribe = machine.subscribe(() => {
 // send() is batched: the machine applies these three events on the next animation frame
 // (a microtask where requestAnimationFrame is absent, such as Node), commits one
 // stateChange for the batch (each SEARCH_CHANGE filters when it runs; registry events refilter once
-// per batch). getState() right after send() still returns the previous state.
+// per batch; with `frecency` on, the frecency load can commit one more stateChange when it settles
+// after the batch). getState() right after send() still returns the previous state.
+// The sample is for a browser: the copy item's onSelect uses getSelection() and navigator.clipboard.
 machine.send({ type: 'SEARCH_CHANGE', query: 'cop' });
 machine.send({ type: 'NAVIGATE', direction: 'next' });
 machine.send({ type: 'ITEM_SELECT', id: itemId('copy') });
