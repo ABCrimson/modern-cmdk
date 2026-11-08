@@ -125,6 +125,11 @@ describe('WASM engine dispose', () => {
   });
 });
 
+/** Runs a search to the end: the engine hands the crate its pending index before the first result. */
+function drain(engine: WasmSearchEngine): void {
+  void [...engine.search('x', [])];
+}
+
 describe('WASM engine index map', () => {
   const a = { id: 'a' as ItemId, value: 'Alpha' };
   const b = { id: 'b' as ItemId, value: 'Beta' };
@@ -133,7 +138,9 @@ describe('WASM engine index map', () => {
   it('CE-116: index() upserts into the kept map and hands the crate every indexed item', async () => {
     const engine = await loadWasmEngine();
     engine.index([a, b]);
+    drain(engine);
     engine.index([c]);
+    drain(engine);
     expect(payloads.map((p) => JSON.parse(p))).toEqual([
       [
         ['a', 'Alpha'],
@@ -151,6 +158,7 @@ describe('WASM engine index map', () => {
     const engine = await loadWasmEngine();
     engine.index([a, b]);
     engine.index([{ id: 'a' as ItemId, value: 'Alpha 2' }]);
+    drain(engine);
     expect(JSON.parse(payloads.at(-1) ?? '[]')).toEqual([
       ['a', 'Alpha 2'],
       ['b', 'Beta'],
@@ -161,6 +169,7 @@ describe('WASM engine index map', () => {
     const engine = await loadWasmEngine();
     engine.index([a, b, c]);
     engine.remove(new Set(['b' as ItemId, 'missing' as ItemId]));
+    drain(engine);
     expect(calls.clear).toBe(0);
     expect(JSON.parse(payloads.at(-1) ?? '[]')).toEqual([
       ['a', 'Alpha'],
@@ -174,7 +183,20 @@ describe('WASM engine index map', () => {
     engine.clear();
     expect(calls.clear).toBe(1);
     engine.index([c]);
+    drain(engine);
     expect(JSON.parse(payloads.at(-1) ?? '[]')).toEqual([['c', 'Gamma']]);
+  });
+
+  it('CE-116: three index() calls and one search hand the crate one index_items payload; a second search with no change hands none', async () => {
+    const engine = await loadWasmEngine();
+    engine.index([a]);
+    engine.index([b]);
+    engine.index([c]);
+    expect(calls.indexItems).toBe(0);
+    drain(engine);
+    expect(calls.indexItems).toBe(1);
+    drain(engine);
+    expect(calls.indexItems).toBe(1);
   });
 });
 
