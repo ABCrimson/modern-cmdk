@@ -406,7 +406,7 @@ Inherits all `CommandMachineOptions` props (`telemetry` included, forwarded as i
 | `label` | `string` | `'Command palette'` | Accessible label |
 | `description` | `string` | `'Type a command or search...'` | Accessible description for screen readers |
 | `open` | `boolean` | -- | Controlled open state. When defined, the dialog is open exactly while it is `true`: a request to open or close calls `onOpenChange(requested)` once and changes nothing else, so the parent decides, and a parent that keeps `open={true}` keeps the dialog open. When omitted the dialog starts closed, and nothing the component renders or binds opens it (it has no trigger and no open shortcut), so pass `open` |
-| `onOpenChange` | `(open: boolean) => void` | -- | Called with the requested open state. A controlled dialog reports each request once: the user's (Escape, a click outside, the overlay) and the palette's own (an item selection that closes it, `CLOSE`, `OPEN` or `TOGGLE` from a shortcut or a `send`). A change of the `open` prop does not call it |
+| `onOpenChange` | `(open: boolean) => void` | -- | Called with the requested open state. A controlled dialog reports each request once: the user's (Escape, a click outside, the overlay) and the palette's own (an item selection that closes it, `CLOSE`, `OPEN` or `TOGGLE` from a shortcut or a `send`). A dialog that drops its `open` prop after mount is uncontrolled and reports each change of its open state. A change of the `open` prop does not call it |
 | `container` | `HTMLElement \| null` | `document.body` | Portal container element |
 
 ### Data Attributes
