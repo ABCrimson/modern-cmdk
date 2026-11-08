@@ -42,7 +42,7 @@ The machine does what its documentation says: disabled items stay listed but can
 
 - `FrecencyEngine` saves 1000 ms after the last selection (a trailing debounce), when the page becomes hidden (`visibilitychange`) and on `pagehide`, besides `flush()` and dispose; before, it saved only on `flush()` and dispose, and a page reload runs neither (CE-01, CE-15, DG-62, SEC-02, DG-08). It disposes a storage it created only after every save settled.
 - `load()` merges into what the engine holds: frequencies add and the later `lastUsed` wins.
-- A save waits for the in-flight `load()`, so a selection made before the stored history arrives no longer overwrites it (CE-114).
+- A save waits for the in-flight `load()`, so a selection made before the stored history arrives no longer overwrites it (CE-114); a load that fails leaves the stored history untouched: the engine writes nothing after it (D96).
 - A storage passed in `frecency.storage` is the caller's to dispose; the engine disposes only the storage it created (D95). Under React StrictMode the development double-mount no longer leaves `<Command>` with a disposed storage (CE-115).
 - The machine handles its frecency load: it re-ranks once the data is hydrated (for a non-empty query with the filter on, the one case frecency re-ranks) and reports a failed load through `console.warn` (CE-14, SEC-27).
 - `createCommandMachine()` returns `CommandMachine & AsyncDisposable`: `await using` or `[Symbol.asyncDispose]()` awaits the pending frecency save, then disposes like `[Symbol.dispose]()`; the `CommandMachine` interface is unchanged (CE-02).
