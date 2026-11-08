@@ -1,11 +1,13 @@
 // tests/unit/react-hooks.test.tsx
-// T10: the public React hooks driven directly with react-dom/client and `await act(async ...)`:
+// T10: the public React hooks driven with react-dom/client inside `await act(async ...)`;
+// createKeydownHandler is called directly with KeyboardEvents against a machine:
 //   - useCommandState: render counts of a primitive slice and of the no-selector form
 //   - useRegisterItem / useRegisterGroup: the register/unregister lifecycle, the `id` option, the
 //     deprecated `forceId` alias and the once-only development warning when the two differ
 //   - useVirtualizer: the exact virtual window, overscan and its clamps, scrollToIndex alignments
 //   - useCommandDevtools: no event and no global in production, a mount and a state change
-//     included; `dev` is false where `process` does not exist
+//     included; with `dev` false the hook publishes nothing even where NODE_ENV is not
+//     production; `dev` is false where `process` does not exist
 //   - useCommand: the state, search and active-item actions it returns for a machine
 //   - createKeydownHandler: the key to machine-event mapping and the keys it leaves alone
 // RA-33: Command.Highlight ordering, the exclusive end index and highlightClassName. The other
@@ -548,11 +550,12 @@ describe('useVirtualizer', () => {
     });
     await narrow.resize(200);
     await narrow.scrollTo(400);
-    // First visible row 9 (it ends at 400) to the first row ending beyond 600
+    // Row 9 ends exactly at the viewport top (400) and the scan keeps it (the edges are
+    // inclusive): rows 9 to the first row ending beyond 600
     expect(windowOf(narrow.current())).toEqual(rows(9, 15, 40));
 
     await narrow.update({ count: 100, estimateSize: 40, overscan: 2 });
-    // Two rows more before the first visible row and two rows more of reach after the viewport
+    // Two rows more before row 9 and two rows more of reach after the viewport
     expect(windowOf(narrow.current())).toEqual(rows(7, 17, 40));
   });
 
@@ -565,7 +568,8 @@ describe('useVirtualizer', () => {
 
     await hook.scrollTo(3800);
     const last = hook.current().virtualItems;
-    // First visible row 94, less 8 rows of overscan, to the final row 99
+    // Row 94 ends exactly at the viewport top (3800) and the scan keeps it; less 8 rows of
+    // overscan, to the final row 99
     expect(last[0]).toMatchObject({ index: 86, start: 3440 });
     expect(last.at(-1)).toMatchObject({ index: 99, start: 3960 });
     expect(last).toHaveLength(14);
@@ -646,9 +650,13 @@ describe('useCommandDevtools: development against production', () => {
   const EVENTS = ['modern-cmdk-devtools', 'crimson-command-devtools'] as const;
 
   /** A fresh module graph so the module-scoped `dev` flag re-reads the stubbed NODE_ENV. */
-  async function mountFresh(label: string): Promise<{ readonly machine: CommandMachine }> {
+  async function mountFresh(
+    label: string,
+    afterImport?: () => void,
+  ): Promise<{ readonly machine: CommandMachine }> {
     vi.resetModules();
     const react: typeof import('modern-cmdk/react') = await import('modern-cmdk/react');
+    afterImport?.();
     let machine: CommandMachine | undefined;
     await mount(
       <react.Command label="devtools">
@@ -694,7 +702,38 @@ describe('useCommandDevtools: development against production', () => {
     expect(Reflect.has(globalThis, DEPRECATED_KEY)).toBe(false);
   });
 
-  it('T10: dev is false where process does not exist, so the hook stays inert', async () => {
+  it('T10: with dev false the hook publishes nothing even where NODE_ENV is not production', async () => {
+    // The production stub is live only while the module graph evaluates env.ts (dev === false);
+    // the unstub afterwards leaves NODE_ENV 'test', so only the `!dev` operand can stop the hook.
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
+    const received: string[] = [];
+    const listeners = EVENTS.map((name) => {
+      const listener = (): void => {
+        received.push(name);
+      };
+      globalThis.addEventListener(name, listener);
+      return [name, listener] as const;
+    });
+    try {
+      const { machine } = await mountFresh('dev-false-bridge', () => {
+        vi.unstubAllEnvs();
+      });
+      expect(process.env.NODE_ENV).toBe('test');
+      await act(async () => {
+        machine.send({ type: 'SEARCH_CHANGE', query: 'alp' });
+        vi.advanceTimersToNextFrame();
+      });
+      expect(machine.getState().search).toBe('alp');
+    } finally {
+      for (const [name, listener] of listeners) globalThis.removeEventListener(name, listener);
+    }
+    expect(received).toEqual([]);
+    expect(Reflect.has(globalThis, DEVTOOLS_KEY)).toBe(false);
+    expect(Reflect.has(globalThis, DEPRECATED_KEY)).toBe(false);
+  });
+
+  it('T10: dev is false where process does not exist', async () => {
     vi.resetModules();
     vi.stubGlobal('process', undefined);
     let flag: boolean;
@@ -822,7 +861,7 @@ describe('createKeydownHandler', () => {
   const frame = (): Promise<void> =>
     new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
-  /** Dispatches a cancelable keydown through `handler` and waits for the machine's frame. */
+  /** Calls `handler` with a cancelable keydown event and waits for the machine's frame. */
   async function press(
     handler: (event: KeyboardEvent) => void,
     key: string,
