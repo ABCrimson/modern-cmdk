@@ -229,7 +229,7 @@ const gid = groupId('navigation');  // type: GroupId (not string)
 
 ### `createSearchEngine(options?)`
 
-Creates a pluggable search engine with fuzzy scoring, incremental filtering, and Iterator Helpers pipeline.
+Creates a pluggable search engine with fuzzy scoring, incremental filtering, and Iterator Helpers pipeline. Incremental filtering applies to the default scorer only: when the lowercased query extends the previous lowercased query, only the previous matches are re-scored, and matching is case-insensitive. A custom `scorer` (and a machine `filter` function, which the machine wraps as a scorer) is called for every item on every non-empty query.
 
 ```ts
 import { createSearchEngine, itemId } from 'modern-cmdk';
@@ -264,8 +264,8 @@ for (const result of results) {
 | Field | Type | Description |
 |---|---|---|
 | `id` | `ItemId` | Matched item ID |
-| `score` | `number` | Match quality (0–1, higher = better) |
-| `matches` | `[number, number][]` | Character ranges for highlighting |
+| `score` | `number` | Match quality (higher = better; the default scorer returns 0–1) |
+| `matches` | `ReadonlyArray<readonly [number, number]>` | Half-open `[start, end)` character ranges for highlighting. With the default scorer they index the original `item.value`, not its lowercased copy. A match on `keywords` only reports `matches: []`: there is nothing in the value to highlight |
 
 ### `ScorerFn`
 
@@ -281,9 +281,9 @@ Custom scoring function. Return `null` for no match, or a `SearchResult` with sc
 
 | Function | Description |
 |---|---|
-| `scoreItem(query, item)` | Default scorer — exact, prefix, substring, word boundary, fuzzy |
-| `scoreItemAsync(query, item)` | Async version with `scheduler.yield()` for large datasets |
-| `batchScoreItems(query, items, batchSize?)` | Batch scoring with yielding between batches |
+| `scoreItem(query, item)` | Default scorer — tries exact (1), prefix (0.9–1), substring, word boundary, then fuzzy, and keeps the best score over `value` and `keywords`. A word-boundary hit scores in (0.65, 0.7), by contiguity and coverage, above every fuzzy score (at most 0.65). A query longer than 512 characters skips the word-boundary tier and falls to fuzzy |
+| `scoreItemAsync(query, item)` | `Promise` wrapper around `scoreItem` (a synchronous throw becomes a rejection); it does not yield |
+| `batchScoreItems(query, items)` | Scores every item in one synchronous pass inside a single `Promise` and resolves the matches sorted by score, best first; it does not yield between batches |
 
 ---
 
@@ -293,15 +293,46 @@ Custom scoring function. Return `null` for no match, or a `SearchResult` with sc
 
 Frequency x recency ranking with bucketed recency weights (hour, day, week, month, older). Items used recently and frequently get a bonus that is added to their match score for non-empty queries; an empty query keeps registry order.
 
-```ts
-import { FrecencyEngine, MemoryFrecencyStorage, itemId } from 'modern-cmdk';
+Through a machine, ranking is on only with `enabled: true`. Select an item, then search: its bonus outweighs the match score difference.
 
-using storage = new MemoryFrecencyStorage();
-using frecency = new FrecencyEngine({ storage, namespace: 'my-app' });
+```ts
+import { createCommandMachine, itemId, MemoryFrecencyStorage } from 'modern-cmdk';
+
+const settings = itemId('settings');
+const profile = itemId('profile');
+
+async function rank(): Promise<void> {
+  await using machine = createCommandMachine({
+    items: [
+      { id: settings, value: 'Settings' },
+      { id: profile, value: 'Profile' },
+    ],
+    frecency: { enabled: true, storage: new MemoryFrecencyStorage(), namespace: 'my-app' },
+  });
+
+  const committed = Promise.withResolvers<void>();
+  machine.subscribe(() => committed.resolve());
+  machine.send({ type: 'ITEM_SELECT', id: profile });
+  machine.send({ type: 'SEARCH_CHANGE', query: 'e' });
+  await committed.promise;
+
+  // 'e' alone ranks Settings first; the selection of Profile adds a bonus of 4.0 (one use, within the hour)
+  console.log(machine.getState().filteredIds); // [profile, settings]
+}
+```
+
+A `FrecencyEngine` also works on its own, and it has no `enabled` switch:
+
+```ts
+import { FrecencyEngine, itemId } from 'modern-cmdk';
+
+using frecency = new FrecencyEngine({ namespace: 'my-app' }); // MemoryFrecencyStorage by default
 
 frecency.recordSelection(itemId('settings'));
-const bonus = frecency.getBonus(itemId('settings')); // e.g., 4.0
+const bonus = frecency.getBonus(itemId('settings')); // 4.0: frequency 1 x hourWeight 4.0
 ```
+
+`FrecencyEngine` methods: `recordSelection(id)`, `getBonus(id, now?)`, `getAllBonuses(now?)`, `load()` (merges stored data: frequencies add, the later `lastUsed` wins; call it once per engine), `flush()` (saves dirty data and waits for saves in flight), `getData()`, `getConfig()`, `setConfig(config)`. Dirty data is saved 1000 ms after the last `recordSelection`, when the page becomes hidden (`visibilitychange`, `pagehide`), on `flush()` and on dispose. `computeFrecencyBonus(record, now?, config?)` is the pure function behind `getBonus`. Disposing an engine disposes its storage once the last save settles.
 
 ### `FrecencyOptions`
 
@@ -327,7 +358,7 @@ const bonus = frecency.getBonus(itemId('settings')); // e.g., 4.0
 | Class | Description |
 |---|---|
 | `MemoryFrecencyStorage` | In-memory storage (lost on page reload). Implements `Disposable`. |
-| `IdbFrecencyStorage` | IndexedDB persistence via `idb-keyval`. Implements `AsyncDisposable`. |
+| `IdbFrecencyStorage` | IndexedDB persistence via `idb-keyval`. `new IdbFrecencyStorage(dbName = 'modern-cmdk', storeName = 'frecency')`; also has `delete(namespace)`. Implements `Disposable` and `AsyncDisposable`. |
 
 ```ts
 import { IdbFrecencyStorage } from 'modern-cmdk';
@@ -353,7 +384,7 @@ interface FrecencyStorage extends Disposable {
 
 ### `KeyboardShortcutRegistry`
 
-Built-in keyboard shortcut management with cross-platform `Mod` key, and conflict detection.
+Built-in keyboard shortcut management with cross-platform `Mod` key, and conflict detection. Every normalized shortcut keeps a stack of bindings, one per item: the later registration wins the `keydown`, disposing it restores the earlier one, and `getConflicts()` reports the keys that two or more items bind. The same item registered again under the same key replaces its own binding in place and is no conflict.
 
 ```ts
 import { KeyboardShortcutRegistry, itemId } from 'modern-cmdk';
@@ -378,9 +409,14 @@ const conflicts = registry.getConflicts();
 | Method | Returns | Description |
 |---|---|---|
 | `register(shortcut, itemId, handler)` | `Disposable` | Bind a shortcut — `using` auto-unregisters |
-| `unregister(shortcut)` | `void` | Remove a binding by shortcut string |
-| `getConflicts()` | `ReadonlyMap<string, readonly ParsedShortcut[]>` | Normalized shortcut → conflicting bindings |
+| `unregister(shortcut)` | `void` | Remove every binding of that key (by shortcut string, normalized), whichever items hold them |
+| `unregisterByItem(itemId, keep?)` | `void` | Remove all bindings of an item. The optional `keep` shortcut string names one key whose binding stays (a re-bind then replaces it in place) |
+| `getBindings()` | `ReadonlyMap<string, binding>` | Snapshot of the winning binding of every key (normalized shortcut → the later registration) |
+| `getConflicts()` | `ReadonlyMap<string, readonly ParsedShortcut[]>` | Normalized shortcut → the shortcuts of the bindings that share the key, earliest first |
+| `setEnabled(enabled)` | `void` | Turn global `keydown` handling on or off |
 | `[Symbol.dispose]()` | `void` | Remove the global `keydown` listener and clear all bindings |
+
+A machine binds item shortcuts into its own registry (`machine.getKeyboardRegistry()`) when it is created and on `ITEMS_LOADED`, `REGISTER_ITEM` and `UPDATE_ITEM`, and unbinds them on `UNREGISTER_ITEM`. A disabled item is not bound. What a bound shortcut does is set by the [`shortcutAction`](#commandmachineoptions) option.
 
 ### Shortcut Utilities
 
@@ -424,7 +460,7 @@ Example: `"Mod+Shift+K"` → macOS: `⌘⇧K`, Windows: `Ctrl+Shift+K`
 
 ### `createTelemetryMiddleware(hooks)`
 
-Creates opt-in telemetry middleware for enterprise observability. Zero overhead when hooks are not provided.
+Creates opt-in telemetry middleware for enterprise observability. It returns a `TelemetryMiddleware` object (`onOpen()`, `onClose()`, `onSearch(query, resultCount, startTime)`, `onSelect(itemId, query, position)`) that forwards to your hooks. Nothing calls it automatically: the machine and the React components have no telemetry option, so call these methods yourself, for example from `onOpenChange` and `onSelect`.
 
 ```ts
 import { createTelemetryMiddleware } from 'modern-cmdk';
@@ -446,10 +482,10 @@ const telemetry = createTelemetryMiddleware({
 
 | Hook | Signature | Description |
 |---|---|---|
-| `onPaletteOpen` | `() => void` | Called when the palette opens |
-| `onPaletteClose` | `(durationMs: number) => void` | Called when it closes, with session duration |
-| `onSearchComplete` | `(query, resultCount, durationMs) => void` | Called after each search |
-| `onItemSelected` | `(itemId, searchQuery, position) => void` | Called when an item is selected |
+| `onPaletteOpen` | `() => void` | Called by `middleware.onOpen()` |
+| `onPaletteClose` | `(durationMs: number) => void` | Called by `middleware.onClose()`, with the time since `onOpen()` (not called if `onOpen()` did not run first) |
+| `onSearchComplete` | `(query, resultCount, durationMs) => void` | Called by `middleware.onSearch(query, resultCount, startTime)`, with `Date.now() - startTime` |
+| `onItemSelected` | `(itemId, searchQuery, position) => void` | Called by `middleware.onSelect(itemId, query, position)` |
 
 ---
 
@@ -477,12 +513,15 @@ Internal registry for items and groups. Access via `machine.getRegistry()`.
 
 ### `TypedEmitter`
 
-Type-safe event emitter holding strong references to listeners; `on()` returns a `Disposable` that removes the listener.
+Type-safe event emitter holding strong references to listeners; `on()` returns a `Disposable` that removes the listener. The event map is any object type (`TypedEmitter<T extends object>`): a type alias or an `interface`. A throwing listener does not stop the later ones; its error is rethrown from a microtask, so `emit()` itself does not throw.
 
 ```ts
 import { TypedEmitter } from 'modern-cmdk';
 
-type Events = { change: string; count: number };
+interface Events {
+  change: string;
+  count: number;
+}
 const emitter = new TypedEmitter<Events>();
 
 emitter.on('change', (value) => console.log(value));
@@ -491,15 +530,15 @@ emitter.emit('change', 'hello');
 
 ### `createScheduler()`
 
-Batched update scheduler with `requestAnimationFrame`, `scheduler.yield()`, and `isInputPending()` awareness.
+Batched update scheduler: `schedule(update)` coalesces updates into one pass on `requestAnimationFrame` in browsers and on `queueMicrotask` where it is absent (Node, SSR). A pass always runs whole, in the order scheduled; a throwing update is rethrown from a microtask and the rest still run. `flush()` applies the updates pending when it is called, synchronously and in order; an update scheduled during the flush runs on the next frame or microtask. Disposing drops pending updates.
 
 ```ts
 import { createScheduler } from 'modern-cmdk';
 
-const scheduler = createScheduler();
+using scheduler = createScheduler();
 const expensiveWork = (): void => console.log('batched');
 scheduler.schedule(() => expensiveWork());
-// Work is batched and yields to browser when input is pending
+scheduler.flush(); // logs 'batched' now instead of on the next frame or microtask
 ```
 
 ### Constants
@@ -507,7 +546,8 @@ scheduler.schedule(() => expensiveWork());
 | Constant | Value | Description |
 |---|---|---|
 | `DEFAULT_FRECENCY_DECAY` | `{ hourWeight: 4.0, dayWeight: 2.0, weekWeight: 1.5, monthWeight: 1.0, olderWeight: 0.5 }` | Default decay curve |
-| `DEFAULT_MACHINE_OPTIONS` | `{ loop: true, virtualizeThreshold: 100, open: false }` | Default machine options |
+| `DEFAULT_MACHINE_OPTIONS` | `{ loop: true, virtualizeThreshold: 100, open: false }` | Default machine options; the machine reads `loop` and `open` from it when its options leave them out (`virtualizeThreshold` is not read yet) |
+| `UNGROUPED_GROUP_ID` | `'__ungrouped'` (a `GroupId`) | The `groupedIds` key of items without a group. A group registered under this id shares the bucket, and the bucket takes that group's priority |
 
 ---
 
