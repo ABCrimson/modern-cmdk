@@ -383,6 +383,27 @@ describe('Command.AsyncItems registration', () => {
     expect(spy.ids).toEqual(['one']);
   });
 
+  it('ARCH-12: a static Command.Item inside the AsyncItems render prop does not warn', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const spy = new Spy();
+    const batch = Promise.resolve(batchOf([['one', 'Alpha']], vi.fn()));
+    const render = (items: readonly CommandItem[]): ReactNode => (
+      <>
+        {renderItems(vi.fn())(items)}
+        <Command.Item value="Create new">Create new</Command.Item>
+      </>
+    );
+    await mount(palette(spy, batch, render));
+    await settle();
+
+    // One loaded entry and one static entry: no id is shared, so the warning's "two entries" would be false.
+    expect(spy.ids).toHaveLength(2);
+    const warnings = warn.mock.calls
+      .map((args) => String(args[0]))
+      .filter((text) => text.startsWith('[modern-cmdk]') && text.includes('AsyncItems'));
+    expect(warnings).toHaveLength(0);
+  });
+
   it('ARCH-12: an item without an id inside AsyncItems warns once in development', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const spy = new Spy();
