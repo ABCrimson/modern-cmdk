@@ -1196,8 +1196,8 @@
   },
   {
     "id": "W05",
-    "test": null,
-    "status": "pending"
+    "test": "packages/command-search-wasm/src/wasm-engine.real.test.ts::W05: remove() drops only the given ids",
+    "status": "covered"
   },
   {
     "id": "T41",
@@ -1211,8 +1211,8 @@
   },
   {
     "id": "W44",
-    "test": null,
-    "status": "pending"
+    "test": "packages/command-search-wasm/src/wasm-engine.real.test.ts::W44: search() returns only ids among the passed items",
+    "status": "covered"
   },
   {
     "id": "RA-34",
@@ -1291,8 +1291,8 @@
   },
   {
     "id": "CE-116",
-    "test": null,
-    "status": "pending"
+    "test": "packages/command-search-wasm/src/wasm-engine.real.test.ts::CE-116: two index() batches through the machine are both searchable in the real wasm build",
+    "status": "covered"
   },
   {
     "id": "CE-117",
