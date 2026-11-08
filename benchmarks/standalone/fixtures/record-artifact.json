@@ -1,6 +1,6 @@
 {
   "proves": "A benchmark-results artifact (5 runs) in the shape compare-baseline.ts writes (bench-<sha>.json), trimmed to the fields the recorder reads: its tasks cover exactly the rows of baseline.json, with medians that moved from that baseline. The commit and date are placeholders: the test rewrites them to a throwaway repository's HEAD and 2026-11-08 before it names the file.",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "commit": "836284049a6df5902bacbadf8ca777c9fae1906e",
   "date": "2026-11-08T06:42:04.263Z",
   "environment": {

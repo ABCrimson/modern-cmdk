@@ -4,31 +4,31 @@ This page lists only figures that come from a committed benchmark record. Nothin
 
 ## Benchmark Results
 
-The figures below are copied by hand from [`benchmarks/baseline.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/baseline.json) and the run it was taken from, [`benchmarks/history/2026-11-04-45a9134.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/history/2026-11-04-45a9134.json).
+The figures below are copied by hand from [`benchmarks/baseline.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/baseline.json) and the run it was taken from, [`benchmarks/history/2026-11-08-201f701.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/history/2026-11-08-201f701.json): the record of the AMD EPYC 7763 in `benchmarks/baseline.json`.
 
 | Field | Value |
 |-------|-------|
-| Date | 2026-11-04 |
-| Commit | `45a9134` (version 1.2.3) |
-| Node | v28.0.0-nightly2026110370074c6f98 |
-| OS / runner | linux 7.0.0-1017-azure, GitHub-hosted `ubuntu26` (image 20261026.180.1) |
+| Date | 2026-11-08 |
+| Commit | `201f701` (version 1.4.0) |
+| Node | v28.0.0-nightly20261107a43bfb5bb2 |
+| OS / runner | linux 7.0.0-1019-azure, GitHub-hosted `ubuntu26` (image 20261101.186.1) |
 | CPU | AMD EPYC 7763 64-Core Processor, 4 cores |
-| Method | 3 runs of 1000 samples each, averaged (3000 samples per task) |
+| Method | 5 runs of 1000 samples each; the median of the runs' p50 and p99 (5000 samples per task) |
 
 > [!WARNING]
-> Runner noise is +/-20-40 %. Each CI comparison is the median of five runs on one shared runner, so the 5 % and 15 % comparison below is a coarse tripwire, not a precise regression gate, and CI goes red only when a re-run of the comparison also fails (see [Regression Tracking](#regression-tracking)); the one sub-0.01 ms baseline (`stateUpdate:navigate`, 0.75 microseconds) is reported below a 0.01 ms floor instead of compared, and a median above its `target_ms` still fails. Run `pnpm bench:compare` locally for numbers from your own machine.
+> Runner noise is +/-20-40 %. Each CI comparison is the median of five runs on one shared runner, so the 5 % and 15 % comparison below is a coarse tripwire, not a precise regression gate, and CI goes red only when a re-run of the comparison also fails (see [Regression Tracking](#regression-tracking)); the one sub-0.01 ms baseline (`stateUpdate:navigate`, 0.902 microseconds) is reported below a 0.01 ms floor instead of compared, and a median above its `target_ms` still fails. Run `pnpm bench:compare` locally for numbers from your own machine.
 
 ### Gated tasks
 
-Three tasks are gated. Median and P99 are the mean of the three runs’ medians and p99s, in milliseconds; the target is the budget recorded in the baseline.
+Three tasks are gated. Median and P99 are the median of the five runs’ p50 and p99, in milliseconds; the target is the budget recorded in the baseline.
 
 | Task | Median | P99 | Target |
 |------|--------|-----|--------|
-| `search:ts-scorer-10k` (TypeScript scorer over 10K items) | 3.46 ms | 7.03 ms | 16 ms |
-| `stateUpdate:navigate` (arrow-key navigation) | 0.00075 ms | 0.0078 ms | 1 ms |
-| `stateUpdate:searchChange` (search change) | 0.37 ms | 0.61 ms | 4 ms |
+| `search:ts-scorer-10k` (TypeScript scorer over 10K items) | 3.79 ms | 7.92 ms | 16 ms |
+| `stateUpdate:navigate` (arrow-key navigation) | 0.000902 ms | 0.0070 ms | 1 ms |
+| `stateUpdate:searchChange` (search change) | 0.39 ms | 0.72 ms | 4 ms |
 
-The relative margin of error (tinybench `rme`, averaged over the three runs) of `stateUpdate:navigate` in that run was 11 %, so treat its figure as an order of magnitude.
+The relative margin of error (tinybench `rme`, the median over the five runs) of `stateUpdate:navigate` in that run was 13 %, so treat its figure as an order of magnitude.
 
 ### Bundle size
 
@@ -78,4 +78,4 @@ What the code does, as of 1.6.0:
 
 ## Regression Tracking
 
-CI runs `pnpm bench:compare`, which runs the three gated tasks five times, takes per task the median of the five runs' p50 and compares it with the record of the run's CPU model in `benchmarks/baseline.json`, which keeps one record per CPU model. A regression above 5 % prints a warning annotation; above 15 %, above a task's `target_ms`, or a harness error it exits 2. After a first exit 2 the CI step re-runs the comparison once: a passing re-run leaves a warning annotation, a second exit 2 fails the job. The baseline above was recorded under the earlier rule (the mean of three runs) and is re-recorded from the `benchmark-results` artifact of the first green run after each Node pin bump. A baseline below the 0.01 ms floor (only `stateUpdate:navigate`) is reported, not compared. Given the noise above, a single flagged run is a prompt to re-run, not proof of a regression. Thresholds judge a run only against the record of its own CPU: a run on a CPU without a record prints the comparison with every record, each row naming both CPUs, says that no threshold applies and exits 0. When the record's Node differs from the machine's, the tool says so before the table.
+CI runs `pnpm bench:compare`, which runs the three gated tasks five times, takes per task the median of the five runs' p50 and compares it with the record of the run's CPU model in `benchmarks/baseline.json`, which keeps one record per CPU model. A regression above 5 % prints a warning annotation; above 15 %, above a task's `target_ms`, or a harness error it exits 2. After a first exit 2 the CI step re-runs the comparison once: a passing re-run leaves a warning annotation, a second exit 2 fails the job. The baseline above is the median of five runs’ p50 (D93), and each record is re-recorded from the `benchmark-results` artifact of the first green run after each Node pin bump. A baseline below the 0.01 ms floor (only `stateUpdate:navigate`) is reported, not compared. Given the noise above, a single flagged run is a prompt to re-run, not proof of a regression. Thresholds judge a run only against the record of its own CPU: a run on a CPU without a record prints the comparison with every record, each row naming both CPUs, says that no threshold applies and exits 0. When the record's Node differs from the machine's, the tool says so before the table.
