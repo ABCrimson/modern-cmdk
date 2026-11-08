@@ -472,3 +472,73 @@ test.describe('Virtualization — Large Item Set', () => {
     expect(wideCount).toBeLessThan(100);
   });
 });
+
+test.describe('Virtualization — scroll to the active row (CE-119)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(virtualizationUrl);
+    await expect(page.locator('[data-command-item]').first()).toBeVisible();
+  });
+
+  test('CE-119: hovering a row already in view does not scroll the virtual list', async ({
+    page,
+  }) => {
+    const list = page.locator('[data-command-list]');
+    await list.evaluate((el) => {
+      el.scrollTop = 1_003;
+    });
+    await expect(page.locator('[data-command-item]').first()).toBeVisible();
+    const scrollTop = await list.evaluate((el) => el.scrollTop);
+    expect(scrollTop).toBeGreaterThan(900);
+
+    // Rows with at least one visible pixel, as the viewport sees them: the first and last may be partial
+    const visible = await list.evaluate((el) => {
+      const view = el.getBoundingClientRect();
+      return [...el.querySelectorAll<HTMLElement>('[data-command-item]')]
+        .map((row) => {
+          const box = row.getBoundingClientRect();
+          return { id: row.id, top: box.top, bottom: box.bottom, x: box.left + box.width / 2 };
+        })
+        .filter((row) => row.bottom > view.top && row.top < view.bottom)
+        .map((row) => ({
+          ...row,
+          // A point of the row that lies inside the viewport
+          y: (Math.max(row.top, view.top) + Math.min(row.bottom, view.bottom)) / 2,
+          partial: row.top < view.top || row.bottom > view.bottom,
+        }));
+    });
+    expect(visible.length).toBeGreaterThan(3);
+    // The viewport's offset into the rows is not a multiple of the row height: an edge row is partial
+    expect(visible.some((row) => row.partial)).toBe(true);
+
+    for (const row of visible) {
+      await page.mouse.move(row.x, row.y);
+      await expect(page.locator(`[data-command-item][data-active][id="${row.id}"]`)).toHaveCount(1);
+      expect(await list.evaluate((el) => el.scrollTop)).toBe(scrollTop);
+    }
+  });
+
+  test('CE-119: keyboard navigation to a row below the viewport scrolls it just into view', async ({
+    page,
+  }) => {
+    const input = page.getByRole('combobox');
+    await input.focus();
+    const list = page.locator('[data-command-list]');
+
+    // The list shows a few rows more than ten; ArrowDown walks past its bottom edge
+    for (let i = 0; i < 30; i++) await input.press('ArrowDown');
+    const activeItem = page.locator('[data-command-item][data-active]');
+    await expect(activeItem).toHaveId('virt-item-30');
+
+    // The row's bottom edge meets the viewport's bottom edge (the scroll is no further than needed)
+    await expect
+      .poll(async () => {
+        const [row, view] = await Promise.all([
+          activeItem.evaluate((el) => el.getBoundingClientRect().bottom),
+          list.evaluate((el) => el.getBoundingClientRect().bottom),
+        ]);
+        return Math.abs(view - row);
+      })
+      .toBeLessThanOrEqual(1);
+    await expect(activeItem).toBeInViewport({ ratio: 1 });
+  });
+});
