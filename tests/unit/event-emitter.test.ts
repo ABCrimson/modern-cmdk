@@ -1,5 +1,5 @@
 import { TypedEmitter } from 'modern-cmdk';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 type TestEvents = {
   message: string;
@@ -7,7 +7,40 @@ type TestEvents = {
   data: { x: number; y: number };
 };
 
+// An interface has no implicit index signature, unlike a type alias: this is the shape that users write.
+interface InterfaceEvents {
+  message: string;
+  data: { x: number; y: number };
+}
+
 describe('TypedEmitter', () => {
+  it('TUB-05: accepts an interface event map and keeps on() and emit() payloads typed', () => {
+    using emitter = new TypedEmitter<InterfaceEvents>();
+    const messages: string[] = [];
+    const points: Array<{ x: number; y: number }> = [];
+
+    using _sub1 = emitter.on('message', (text) => {
+      expectTypeOf(text).toEqualTypeOf<string>();
+      messages.push(text);
+    });
+    using _sub2 = emitter.on('data', (point) => {
+      expectTypeOf(point).toEqualTypeOf<{ x: number; y: number }>();
+      points.push(point);
+    });
+
+    emitter.emit('message', 'hello');
+    emitter.emit('data', { x: 1, y: 2 });
+    // Never called: it only has to fail to compile, so the payload types of emit() stay enforced.
+    const wrongPayload = (): void => {
+      // @ts-expect-error a number is not the payload of 'message'
+      emitter.emit('message', 42);
+    };
+    expectTypeOf(wrongPayload).toBeFunction();
+
+    expect(messages).toEqual(['hello']);
+    expect(points).toEqual([{ x: 1, y: 2 }]);
+  });
+
   it('should emit and receive events', () => {
     using emitter = new TypedEmitter<TestEvents>();
     const handler = vi.fn();
