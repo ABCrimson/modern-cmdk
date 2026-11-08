@@ -378,7 +378,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
 
   /**
    * Ends a batch: one refilter if a registry event ran, then one stateChange and the telemetry
-   * reports, both even if the refilter throws.
+   * reports, both even if the refilter throws. A telemetry hook that throws is rethrown on its own
+   * microtask, so it never replaces the refilter's error.
    */
   function commit(): void {
     try {
@@ -388,7 +389,13 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
         changed = false;
         emitter.emit('stateChange', state);
       }
-      report();
+      try {
+        report();
+      } catch (error: unknown) {
+        queueMicrotask(() => {
+          throw error;
+        });
+      }
     }
   }
 
