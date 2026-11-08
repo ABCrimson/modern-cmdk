@@ -134,6 +134,7 @@ class RenderCounter {
 
 const apple: CommandItem = { id: itemId('apple'), value: 'apple' };
 const banana: CommandItem = { id: itemId('banana'), value: 'banana' };
+const cherry: CommandItem = { id: itemId('cherry'), value: 'cherry' };
 
 const inputOf = (host: HTMLElement): HTMLInputElement => {
   const input = host.querySelector('input');
@@ -373,7 +374,6 @@ describe('React lifecycle (C1)', () => {
   });
 
   it('an items prop change registers added items and unregisters removed ones', async () => {
-    const cherry: CommandItem = { id: itemId('cherry'), value: 'cherry' };
     const spy = new Spy();
     const tree = (items: readonly CommandItem[]): ReactNode => (
       <Command items={items}>
@@ -466,6 +466,81 @@ describe('React lifecycle (C1)', () => {
     await update(tree('show'));
     await settle();
     expect(spy.machine.getState().filteredIds).toEqual([apple.id, banana.id]);
+  });
+
+  it('a disabledItems change in the same commit as removing the first item does not re-register it', async () => {
+    // The items prop: apple leaves in the render that switches disabledItems from show to hide
+    const spy = new Spy();
+    const withItems = (
+      items: readonly CommandItem[],
+      disabledItems: 'show' | 'hide',
+    ): ReactNode => (
+      <Command items={items} disabledItems={disabledItems}>
+        <spy.Probe />
+      </Command>
+    );
+    await mount(withItems([apple, banana, cherry], 'show'));
+    await settle();
+    await update(withItems([banana, cherry], 'hide'));
+    await settle();
+    expect(
+      spy.machine
+        .getRegistry()
+        .getItems()
+        .map((item) => item.id),
+    ).toEqual([banana.id, cherry.id]);
+    expect(spy.machine.getState().filteredIds).toEqual([banana.id, cherry.id]);
+
+    // A child item: it unregisters in the same commit that switches disabledItems
+    const mounted = root;
+    root = undefined;
+    await act(async () => {
+      mounted?.unmount();
+    });
+    container?.remove();
+    const childSpy = new Spy();
+    const withChildren = (showApple: boolean, disabledItems: 'show' | 'hide'): ReactNode => (
+      <Command disabledItems={disabledItems}>
+        <childSpy.Probe />
+        <Command.List>
+          {showApple && <Command.Item value="apple">Apple</Command.Item>}
+          <Command.Item value="banana">Banana</Command.Item>
+          <Command.Item value="cherry">Cherry</Command.Item>
+        </Command.List>
+      </Command>
+    );
+    const host = await mount(withChildren(true, 'show'));
+    await settle();
+    expect(host.querySelectorAll('[data-command-item]')).toHaveLength(3);
+    await update(withChildren(false, 'hide'));
+    await settle();
+    expect(
+      childSpy.machine
+        .getRegistry()
+        .getItems()
+        .map((item) => item.value),
+    ).toEqual(['banana', 'cherry']);
+    expect(childSpy.machine.getState().filteredCount).toBe(2);
+    expect(host.querySelectorAll('[data-command-item]')).toHaveLength(2);
+  });
+
+  it('a disabledItems change on a palette with no items registers nothing', async () => {
+    const spy = new Spy();
+    const tree = (disabledItems: 'show' | 'hide'): ReactNode => (
+      <Command disabledItems={disabledItems}>
+        <spy.Probe />
+      </Command>
+    );
+    await mount(tree('show'));
+    await settle();
+    await update(tree('hide'));
+    await settle();
+    await update(tree('show'));
+    await settle();
+
+    expect(spy.machine.getRegistry().getItems()).toEqual([]);
+    expect(spy.machine.getState().filteredCount).toBe(0);
+    expect(spy.machine.getState().activeId).toBeNull();
   });
 
   it('onSearchChange is not called twice for one query', async () => {
