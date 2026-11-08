@@ -8,16 +8,6 @@ import { CommandStableContext, CommandStateContext } from '../context.js';
 // Module-scoped declaration: no @types/node needed, nothing global leaks.
 declare const process: { readonly env: { readonly NODE_ENV?: string } };
 
-// Same semantics as core/utils/env.ts isDev, kept here so dist/react carries no core region:
-// true unless NODE_ENV is 'production'; an unbundled browser module (no `process`) counts as production.
-const isDev: boolean = (() => {
-  try {
-    return process.env.NODE_ENV !== 'production';
-  } catch {
-    return false;
-  }
-})();
-
 interface DevtoolsState {
   readonly registeredItems: number;
   readonly filteredItems: number;
@@ -56,8 +46,10 @@ export function useCommandDevtools(label: string = 'default'): void {
 
   useEffect(() => {
     // Guard inside effect body — hooks are always called (Rules of Hooks compliant)
-    // isDev is false where the bundler folds NODE_ENV to "production", so the effect exits at once
-    if (!isDev) return;
+    // Inline comparison, so a consumer minifier that defines NODE_ENV as "production" folds the branch
+    // and drops the registry code below; `typeof process` keeps an unbundled browser import (no `process`)
+    // from throwing, and there the hook counts as production.
+    if (typeof process === 'undefined' || process.env.NODE_ENV === 'production') return;
     if (!stable || !stateCtx) return;
 
     const update = (): void => {
