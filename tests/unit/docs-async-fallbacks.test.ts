@@ -6,22 +6,18 @@
 //           state.loading or isPending; the machine sets state.loading true while a LOADING event is pending: src/core/machine.ts:314-318, sent by <Command.AsyncItems> while its fallback is mounted, src/react/async-items.tsx:48-60), so
 //           fallback={<Command.Loading>...</Command.Loading>} without
 //           the loading prop renders nothing while pending.
-// Scope: every ts, tsx and typescript fence of apps/docs/**/*.md and of three of the six READMEs the docs-samples gate reads
-// (scripts/check-doc-samples.ts DEFAULT_FILES): README.md, packages/modern-cmdk/README.md and packages/create-modern-cmdk/README.md,
-// fragment fences included; the fence regex is that script's (:76).
+// Scope: every ts, tsx and typescript fence of apps/docs/**/*.md and of every README the docs-samples gate reads
+// (scripts/check-doc-samples.ts DEFAULT_FILES, imported, six entries today: TEB-99), fragment fences included; the fence regex is that script's (:77).
 
 import { existsSync, globSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_FILES } from '../../scripts/check-doc-samples.ts';
 
 const root: string = resolve(import.meta.dirname, '../..');
 const SKIP_DIRS: ReadonlySet<string> = new Set(['node_modules', 'cache', 'dist', '.git']);
 const LANGS: ReadonlySet<string> = new Set(['ts', 'tsx', 'typescript']);
-const READMES: readonly string[] = [
-  'README.md',
-  'packages/modern-cmdk/README.md',
-  'packages/create-modern-cmdk/README.md',
-];
+const READMES: readonly string[] = DEFAULT_FILES; // TEB-99: the gate's own list, so a README added there is scanned here
 
 /** Index of the `>` that closes the opening tag starting at `start`, skipping `{...}` expressions and quoted strings. */
 function tagEnd(code: string, start: number): number {
@@ -81,7 +77,7 @@ function scanAsyncFallbacks(code: string): { loading: number[]; suspense: number
   return { loading, suspense };
 }
 
-/** Every ts, tsx or typescript fence of a page, fragment fences included (the gate skips those); fence regex of scripts/check-doc-samples.ts:76. */
+/** Every ts, tsx or typescript fence of a page, fragment fences included (the gate skips those); fence regex of scripts/check-doc-samples.ts:77. */
 function fences(markdown: string): { line: number; code: string }[] {
   const found: { line: number; code: string }[] = [];
   const lines: string[] = markdown.split(/\r?\n/);
@@ -125,9 +121,11 @@ function offenders(kind: 'loading' | 'suspense'): string[] {
 }
 
 describe('docs async fallbacks', () => {
-  it('scans the docs pages and the three READMEs', () => {
+  it('scans the docs pages and every README the docs-samples gate reads', () => {
     const list: string[] = files();
-    for (const readme of READMES) expect(list).toContain(readme);
+    expect(list.filter((file) => !file.startsWith('apps/docs/'))).toEqual(
+      [...DEFAULT_FILES].toSorted(),
+    );
     expect(list.some((file) => file.startsWith('apps/docs/'))).toBe(true);
     expect(list.some((file) => file.includes('node_modules'))).toBe(false);
   });

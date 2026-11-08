@@ -42,6 +42,7 @@ const OUT_DIR: string = join(ROOT, 'node_modules/.cache/doc-samples');
 const TSC: string = join(ROOT, 'node_modules/typescript/bin/tsc');
 const SKIP_DIRS: ReadonlySet<string> = new Set(['node_modules', 'cache', 'dist', '.git']);
 const LANGS: ReadonlySet<string> = new Set(['ts', 'tsx', 'typescript']);
+// Exported: tests/unit/docs-async-fallbacks.test.ts imports this list for its fallback-shape scan (TEB-99).
 export const DEFAULT_FILES: readonly string[] = [
   'README.md',
   'packages/modern-cmdk/README.md',
