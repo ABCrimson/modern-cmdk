@@ -7,6 +7,27 @@ import type { CommandGroup, CommandItem, GroupId, ItemId } from 'modern-cmdk';
 import { groupId, itemId } from 'modern-cmdk';
 import { useId, useLayoutEffect, useRef } from 'react';
 import { useStableContext } from '../context.js';
+import { dev } from '../env.js';
+
+// Module-scoped declaration: no @types/node needed, and nothing global leaks.
+declare const process: { readonly env: { readonly NODE_ENV?: string } };
+
+/** Set once the `id` / `forceId` conflict warning has fired, so it fires once per page load. */
+let warnedIdConflict = false;
+
+/** `id ?? forceId ?? generated`; in development, warns once when `id` and `forceId` are both given and differ. */
+function resolveId(id: string | undefined, forceId: string | undefined, generated: string): string {
+  if (dev && process.env.NODE_ENV !== 'production') {
+    if (id !== undefined && forceId !== undefined && id !== forceId && !warnedIdConflict) {
+      warnedIdConflict = true;
+      // biome-ignore lint/suspicious/noConsole: development-only misuse diagnostic, gated on NODE_ENV
+      console.warn(
+        `[modern-cmdk] \`id\` ("${id}") and \`forceId\` ("${forceId}") are both set and differ; \`id\` is used. \`forceId\` is deprecated: pass only \`id\`.`,
+      );
+    }
+  }
+  return id ?? forceId ?? generated;
+}
 
 /** Options for item registration */
 export interface RegisterItemOptions {
@@ -16,6 +37,9 @@ export interface RegisterItemOptions {
   readonly disabled?: boolean;
   readonly onSelect?: () => void;
   readonly data?: Readonly<Record<string, unknown>>;
+  /** The registration id; defaults to a `useId` id. Wins over the deprecated `forceId`. */
+  readonly id?: string | undefined;
+  /** @deprecated Use `id`. Removed in 2.0. */
   readonly forceId?: string;
 }
 
@@ -24,7 +48,7 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
   const stable = useStableContext('useRegisterItem');
 
   const generatedId = useId();
-  const id: ItemId = itemId(options?.forceId ?? generatedId);
+  const id: ItemId = itemId(resolveId(options?.id, options?.forceId, generatedId));
 
   // Stabilize onSelect via ref — inline arrow functions won't cause re-registration
   const onSelectRef = useRef(options?.onSelect);
@@ -80,6 +104,9 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
 /** Options for group registration */
 export interface RegisterGroupOptions {
   readonly priority?: number;
+  /** The registration id; defaults to a `useId` id. Wins over the deprecated `forceId`. */
+  readonly id?: string | undefined;
+  /** @deprecated Use `id`. Removed in 2.0. */
   readonly forceId?: string;
 }
 
@@ -88,7 +115,7 @@ export function useRegisterGroup(heading?: string, options?: RegisterGroupOption
   const stable = useStableContext('useRegisterGroup');
 
   const generatedId = useId();
-  const id: GroupId = groupId(options?.forceId ?? generatedId);
+  const id: GroupId = groupId(resolveId(options?.id, options?.forceId, generatedId));
 
   useLayoutEffect(() => {
     const group: CommandGroup = {
