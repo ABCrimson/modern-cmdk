@@ -6,16 +6,23 @@
 // What counts as a write: an assignment (`=`, `+=`, ...), an increment or decrement, a destructuring assignment whose
 // target holds a `.current` member, and `Object.assign(<target>, { current: ... })`; the member may be written
 // `.current` or `['current']`, with a TypeScript wrapper (`!`, `as`) around it.
-// What counts as render time: the module-level function's own body; the callbacks that run during render, that is the
-// first argument of `useMemo` and `useState` and the first and third of `useReducer`; an immediately invoked function;
-// and a call, in that body, of a helper declared in that body whose own body writes `.current`. Any other nested
-// function (an effect, a `useCallback` callback, an event handler, a ref callback) runs later and is not flagged.
-// The one exemption is react.dev's lazy initializer, `if (ref.current === null) { ... ref.current = x }`.
-// The walker is itself tested on source strings at the end of this file.
+// What counts as render time: the module-level function's own body; the first argument of `useMemo`
+// and `useState` and the first and third of `useReducer` when written inline; an immediately
+// invoked function; and a direct call, in that body, of a helper declared in that body whose own
+// body writes `.current`. Every other nested function is treated as running later and is not
+// checked; that is right for an effect, a `useCallback` callback, an event handler and a ref
+// callback, and wrong for an array-method callback (`map`, `forEach`) or a render-prop child called
+// while rendering. The one exemption is react.dev's lazy initializer,
+// `if (ref.current === null) { ... ref.current = x }`. The walker is itself tested on source
+// strings at the end of this file.
 //
-// Blind spots: a helper that reaches a write only through another helper, a write through `Reflect.set`,
-// `Object.defineProperty` or a `for (ref.current of ...)` head, and a class property arrow, which is flagged although
-// it runs in a handler, because a class is not a function.
+// Blind spots: those callbacks; a helper passed by reference (`useState(init)`), called optionally
+// (`f?.()`) or through `.call`, or reached through another helper; `useSyncExternalStore`'s
+// snapshot getters; a component returned by a module-level factory; `Reflect.set`,
+// `Object.defineProperty`, `Object.assign` with a non-literal source and a
+// `for (ref.current of ...)` head. Every method of a module-level class and every module-level
+// function is checked as if it rendered, so a class property arrow or a lifecycle method that
+// writes `.current` is flagged although it runs later.
 //
 // Every file parses with JSX enabled: primitives.ts holds JSX in a .ts file.
 //
