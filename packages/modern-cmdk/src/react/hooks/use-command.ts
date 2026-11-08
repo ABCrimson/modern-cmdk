@@ -1,35 +1,34 @@
 // packages/modern-cmdk/src/react/hooks/use-command.ts
-// Core hook — useSyncExternalStore (native React 19), useTransition (optimistic active item only), useOptimistic, useId
+// Core hook — useSyncExternalStore (native React 19) and useId; the active item is the machine's own
 // Isolated declarations: explicit return types on all exports
 // Branded CommandRootId type for type-safe ID propagation
 
 import type { CommandMachine, CommandState, ItemId } from 'modern-cmdk';
-import {
-  useCallback,
-  useId,
-  useMemo,
-  useOptimistic,
-  useSyncExternalStore,
-  useTransition,
-} from 'react';
+import { useCallback, useId, useMemo, useSyncExternalStore } from 'react';
 import type { CommandRootId } from '../context.js';
 
 export interface UseCommandReturn {
   readonly state: CommandState;
-  /** True while an optimistic active-item transition is in flight. Search updates never set it: the machine applies them on its own scheduler tick, outside React. */
+  /**
+   * Always `false`: the active item is the machine's own, so no render is pending on it, and search updates run on the machine's scheduler tick, outside React.
+   * @deprecated Read `state.loading` for the machine's loading state. Removed in 2.0.
+   */
   readonly isPending: boolean;
   /** Queue a search query on the machine. Not a React update: Command.Input owns the urgent input value. */
   readonly updateSearch: (query: string) => void;
+  /**
+   * Sends `ITEM_ACTIVATE` for a non-null `id` and does nothing for `null`: no core event clears the active item.
+   * @deprecated Send `ITEM_ACTIVATE` through the machine. Removed in 2.0.
+   */
   readonly setOptimisticActiveId: (id: ItemId | null) => void;
   /** O(1) membership set for filtered items — used by Item component */
   readonly filteredIdSet: ReadonlySet<ItemId>;
   readonly id: CommandRootId;
 }
 
-/** Core hook that binds a CommandMachine to React via useSyncExternalStore, useOptimistic, and a transition for optimistic active-item updates. */
+/** Core hook that binds a CommandMachine to React via useSyncExternalStore; `state` is the machine's own snapshot. */
 export function useCommand(machine: CommandMachine): UseCommandReturn {
   const id = useId() as CommandRootId;
-  const [isPending, startTransition] = useTransition();
 
   // Native useSyncExternalStore — machine.subscribe is already compatible (returns cleanup fn)
   const state: CommandState = useSyncExternalStore(
@@ -45,20 +44,12 @@ export function useCommand(machine: CommandMachine): UseCommandReturn {
     [state.filteredIds, machine],
   );
 
-  // Optimistic active item — instant visual feedback before filter completes
-  const [optimisticActiveId, rawSetOptimisticActiveId] = useOptimistic<ItemId | null>(
-    state.activeId,
-  );
-
-  // Wrap the optimistic setter in startTransition — React 19 requires useOptimistic
-  // setters to be called inside a transition or action, not in plain event handlers
+  // ITEM_ACTIVATE is an event on the machine's scheduler like any other; null has no event, so it is a no-op.
   const setOptimisticActiveId = useCallback(
-    (id: ItemId | null): void => {
-      startTransition(() => {
-        rawSetOptimisticActiveId(id);
-      });
+    (activeId: ItemId | null): void => {
+      if (activeId !== null) machine.send({ type: 'ITEM_ACTIVATE', id: activeId });
     },
-    [rawSetOptimisticActiveId],
+    [machine],
   );
 
   // machine.send only enqueues the event on the machine's scheduler (rAF in browsers); filtering
@@ -71,13 +62,9 @@ export function useCommand(machine: CommandMachine): UseCommandReturn {
     [machine],
   );
 
-  // Build merged state with optimistic activeId overlay
-  const mergedState: CommandState =
-    optimisticActiveId !== state.activeId ? { ...state, activeId: optimisticActiveId } : state;
-
   return {
-    state: mergedState,
-    isPending,
+    state,
+    isPending: false,
     updateSearch,
     setOptimisticActiveId,
     filteredIdSet,

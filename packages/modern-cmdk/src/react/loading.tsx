@@ -20,7 +20,7 @@ export function CommandLoading({
 }: CommandLoadingProps): ReactNode {
   const stateCtx = useStateContext('Command.Loading');
 
-  const isLoading: boolean = loadingOverride ?? (stateCtx.state.loading || stateCtx.isPending);
+  const isLoading: boolean = loadingOverride ?? stateCtx.state.loading;
 
   if (!isLoading) return null;
 
