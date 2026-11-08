@@ -232,17 +232,23 @@ const largeDataset: readonly CommandItem[] = Array.from({ length: 50_000 }, (_, 
   value: `Item ${i}`,
 }));
 
-await using searchEngine = await createWasmSearchEngine();
+const searchEngine = await createWasmSearchEngine();
 
-using machine = createCommandMachine({
+const machine = createCommandMachine({
   search: searchEngine,
   items: largeDataset,
 });
 
-// The machine now uses WASM-accelerated fuzzy search for all queries
+// The machine calls the engine only for a non-empty query with the filter on. An empty query, or
+// `filter: false`, lists the items without calling it.
+
+// Dispose on teardown, not at module top level. Disposing the machine disposes the engine it was given.
+export function teardown(): void {
+  machine[Symbol.dispose]();
+}
 ```
 
-The machine disposes the search engine it is given when it is itself disposed, so the engine's own `await using` is a safety net (disposing twice frees once); do not reuse an engine after its machine is disposed. A disposed WASM engine throws from `index`, `search`, `remove` and `clear`.
+The machine disposes the search engine it is given when it is itself disposed, so `teardown()` does not dispose the engine separately (disposing twice frees once); do not reuse an engine after its machine is disposed. A disposed WASM engine throws from `index`, `search`, `remove` and `clear`.
 
 Or via the React adapter's `search` prop:
 

@@ -42,7 +42,7 @@ function paste(): void {
   void navigator.clipboard.readText().then((text) => console.log('pasted', text));
 }
 
-using machine = createCommandMachine({
+const machine = createCommandMachine({
   items: [
     { id: itemId('copy'), value: 'Copy', shortcut: 'Mod+C', onSelect: () => copy() },
     { id: itemId('paste'), value: 'Paste', shortcut: 'Mod+V', onSelect: () => paste() },
@@ -52,10 +52,15 @@ using machine = createCommandMachine({
 });
 
 // send() is scheduled: subscribe first, the listener runs once the batch has committed.
-machine.subscribe(() => console.log(machine.getState().filteredIds));
+const unsubscribe = machine.subscribe(() => console.log(machine.getState().filteredIds));
 machine.send({ type: 'SEARCH_CHANGE', query: 'cop' });
-// `using` disposes at the end of its block and drops events that have not run: here (module top level) the
-// SEARCH_CHANGE above never runs. Await the commit inside the scope (see Scheduling), or keep a long-lived machine in a `const` and dispose it on teardown.
+
+// Dispose on teardown, not at module top level: dispose drops events still pending and removes the
+// global shortcut listener, so `using machine = ...` here would end the shortcuts and the listener at once.
+export function teardown(): void {
+  unsubscribe();
+  machine[Symbol.dispose]();
+}
 ```
 
 ### `CommandMachineOptions`
