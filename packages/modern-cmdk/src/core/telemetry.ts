@@ -1,12 +1,13 @@
 // Opt-in telemetry hooks for enterprise observability.
 // The machine calls the hooks of its `telemetry` option (CommandMachineOptions; `<Command>` and
 // `<Command.Dialog>` take it as a prop) at the end of each batch, after its state reports.
-// createTelemetryMiddleware is for callers that drive the hooks themselves. Durations are
-// differences of performance.now() readings, so a wall-clock step never changes them (`onSearch`
-// with a `Date.now()` startTime excepted, see `TelemetryMiddleware.onSearch`). With no `telemetry`
-// option the machine calls no hook. It still reads performance.now() once per OPEN that opens the
-// palette, once per CLOSE that closes it, twice per SEARCH_CHANGE that changes the query and once
-// per SEARCH_CHANGE that repeats it.
+// createTelemetryMiddleware is the standalone helper for callers that drive the hooks themselves;
+// the machine does not use it. Durations are differences of performance.now() readings, so a
+// wall-clock step never changes them (`onSearch` with a `Date.now()` startTime excepted, see
+// `TelemetryMiddleware.onSearch`). With no `telemetry` option the machine calls no hook. It still
+// reads performance.now() once at a batch's first SEARCH_CHANGE and once at the end of a batch
+// whose committed open state turned open; a duration is read at a batch's end only for a hook
+// that is set.
 
 import type { ItemId } from './types.js';
 
@@ -20,7 +21,8 @@ export interface CommandTelemetryHooks {
   /**
    * Called when a batch ends with the committed open state turned open since the last report, which
    * starts closed (`OPEN`, or `TOGGLE` of a closed palette). A machine created with `open: true`
-   * reports one `onPaletteOpen` at its first commit. A plain `<Command>` constructs `open` from its
+   * reports one `onPaletteOpen` at its first commit (for a React root, its first item registration
+   * or input; with neither, its first event). A plain `<Command>` constructs `open` from its
    * `open` prop, so it starts closed unless that prop is true. A batch that opens and closes again
    * reports nothing.
    */
@@ -28,7 +30,8 @@ export interface CommandTelemetryHooks {
   /**
    * Called when a batch ends with the committed open state turned closed after a reported open,
    * with the milliseconds since that open. An `OPEN` while open and a `CLOSE` while closed report
-   * nothing.
+   * nothing. A palette unmounted while open reports no close: a `Command.Dialog` rendered as
+   * `{show && <Command.Dialog open>}` reports an open at each mount and no close.
    */
   readonly onPaletteClose?: ((durationMs: number) => void) | undefined;
   /**
