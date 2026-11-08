@@ -60,6 +60,11 @@ export interface CommandMachine extends Disposable {
   suspend?(): void;
   /** Take back the holds `suspend()` released (the keydown listener, the page-exit listeners). Idempotent; does nothing after dispose. */
   resume?(): void;
+  /**
+   * The terminal teardown. Afterwards `send()` reduces nothing, calls no option callback and queues nothing, and a
+   * batch that is running when dispose is called stops: the rest of the batch and its commit do not run.
+   * `suspend()` and `resume()` are the reversible pause.
+   */
   [Symbol.dispose](): void;
 }
 
@@ -171,7 +176,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   let inHandler = false;
   let dirty = false;
   let changed = false;
-  let disposed = false; // set by dispose: a disposed machine refuses every event, and a frecency load that settles later does nothing
+  let disposed = false; // set by dispose: the scheduler queues nothing for a disposed machine, a batch stops at the next event and skips its commit, and a frecency load that settles later does nothing
   let announce = false; // set after the initial filter: a controlled activeId then hears the refilter's candidate
 
   // Register initial items and groups
@@ -441,7 +446,6 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     },
 
     send(event: CommandEvent): void {
-      if (disposed) return; // a disposed machine reduces nothing and calls no option callback
       queued++;
       if (inHandler) nextQueued++;
       scheduler.schedule(() => {
@@ -455,7 +459,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
           if (--queued === nextQueued) {
             // Last event of the batch: commit once
             nextQueued = 0;
-            commit();
+            if (!disposed) commit();
           }
         }
       });

@@ -462,15 +462,21 @@ describe('a disposed machine (CE-78, CE-113, CE-107)', () => {
   });
 
   it('CE-113: send() after dispose reduces nothing and calls no option callback', () => {
+    using raf = vi.spyOn(globalThis, 'requestAnimationFrame');
+    using microtask = vi.spyOn(globalThis, 'queueMicrotask');
     const onOpenChange = vi.fn();
     const onSearchChange = vi.fn();
     const onSelect = vi.fn();
     const machine = createCommandMachine({ items: abc, onOpenChange, onSearchChange, onSelect });
     machine[Symbol.dispose]();
+    raf.mockClear();
+    microtask.mockClear();
 
     machine.send({ type: 'OPEN' });
     machine.send({ type: 'SEARCH_CHANGE', query: 'item' });
     machine.send({ type: 'ITEM_SELECT', id: itemId('a') });
+    expect(raf).not.toHaveBeenCalled();
+    expect(microtask).not.toHaveBeenCalled();
     nextBatch();
 
     expect(machine.getState().open).toBe(false);
@@ -503,6 +509,27 @@ describe('a disposed machine (CE-78, CE-113, CE-107)', () => {
     nextBatch();
     expect(machine.getState().open).toBe(false);
     expect(onOpenChange).not.toHaveBeenCalled();
+    expect(stateChange).not.toHaveBeenCalled();
+  });
+
+  it('D107: a listener that disposes the machine mid-batch gets no stateChange and no option callback after the dispose', () => {
+    // A controlled activeId reports the refilter's candidate: the batch's commit would refilter the registered item and report it.
+    const onActiveChange = vi.fn();
+    const machine = createCommandMachine({
+      items: abc,
+      activeId: itemId('a'),
+      onActiveChange,
+      onOpenChange: () => machine[Symbol.dispose](),
+    });
+    const stateChange = vi.fn();
+    machine.subscribeState(stateChange);
+
+    // One batch: REGISTER_ITEM marks the filter dirty, OPEN disposes the machine through its callback.
+    machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('d'), value: 'd' } });
+    machine.send({ type: 'OPEN' });
+    nextBatch();
+
+    expect(onActiveChange).not.toHaveBeenCalled();
     expect(stateChange).not.toHaveBeenCalled();
   });
 });
