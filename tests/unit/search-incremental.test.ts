@@ -245,6 +245,25 @@ describe('Incremental Filtering', () => {
     );
   });
 
+  describe('the incremental check compares lowercased queries', () => {
+    it('CE-105: should rescan every item when only the raw queries extend each other (final sigma lowercases differently)', () => {
+      using engine = createSearchEngine();
+      // 'ΑΣ'.toLowerCase() is 'ας' (word-final sigma) but 'ΑΣΑ'.toLowerCase() is 'ασα': the raw
+      // query 'ΑΣΑ' extends 'ΑΣ', the lowered one 'ασα' does not extend 'ας'
+      const greek = [makeItem('asa', 'ασα'), makeItem('as', 'ας')];
+      engine.index(greek);
+
+      const first = engine.search('ΑΣ', greek).toArray();
+      expect(first.map((r) => r.id)).toEqual([itemId('as')]);
+      scoreSpy.mockClear();
+
+      const second = engine.search('ΑΣΑ', greek).toArray();
+
+      expect(scoreSpy).toHaveBeenCalledTimes(greek.length);
+      expect(second.map((r) => r.id)).toEqual([itemId('asa')]);
+    });
+  });
+
   describe('custom scorers are never pruned', () => {
     const items = [makeItem('apple', 'Apple'), makeItem('banana', 'Banana')];
 
