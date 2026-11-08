@@ -1,10 +1,13 @@
 // packages/modern-cmdk/src/core/utils/scheduler.ts
-// Batched update scheduler — rAF in browsers, queueMicrotask in Node.js/tests
-// Uses scheduler.yield() when available for input-responsive large batches
+// Batched update scheduler — rAF in browsers, queueMicrotask where requestAnimationFrame is absent (Node.js, SSR)
+// No isInputPending/scheduler.yield() gate. MDN (read 2026-11-07) marks isInputPending deprecated and experimental, Chromium-only
+// (https://developer.mozilla.org/en-US/docs/Web/API/Scheduling/isInputPending), and scheduler.yield() not Baseline (no Safari).
+// The gate re-queued whole batches, so flush() could apply nothing; a batch now always runs whole.
 
 /**
  * Batched update scheduler that coalesces state updates into a single tick.
- * Uses requestAnimationFrame in browsers, queueMicrotask in Node.js/tests.
+ * Uses requestAnimationFrame in browsers, queueMicrotask where requestAnimationFrame is absent (Node.js, SSR).
+ * flush() synchronously applies the updates pending when it is called, in the order scheduled; one scheduled during the flush runs on the next frame or microtask.
  */
 export interface Scheduler extends Disposable {
   schedule(update: () => void): void;
@@ -15,15 +18,9 @@ export interface Scheduler extends Disposable {
 /** Whether we're in a browser environment with rAF available */
 const hasRAF: boolean = typeof requestAnimationFrame === 'function';
 
-/** Feature detection for cutting-edge scheduling APIs, read through globalThis: typeof guards only a bare
- * identifier, so `typeof navigator?.scheduling` would throw where navigator is undeclared (runtimes without one). */
-const canYield: boolean = typeof globalThis.scheduler?.yield === 'function';
-const hasInputPending: boolean =
-  typeof globalThis.navigator?.scheduling?.isInputPending === 'function';
-
 /**
  * Creates a batched update scheduler. Coalesces rapid state updates into a single
- * execution pass using rAF (browser) or queueMicrotask (Node.js).
+ * execution pass using rAF (browser) or queueMicrotask (where rAF is absent: Node.js, SSR).
  */
 export function createScheduler(): Scheduler {
   let pending: Array<() => void> = [];
@@ -37,19 +34,6 @@ export function createScheduler(): Scheduler {
     pending = [];
     rafId = null;
     microtaskScheduled = false;
-
-    // For large batches, check if the browser has pending user input
-    // and yield to the main thread to keep the UI responsive
-    if (batch.length > 10 && hasInputPending && navigator.scheduling?.isInputPending?.()) {
-      // Re-queue unprocessed updates so user input is handled first
-      pending = [...batch, ...pending];
-      if (canYield) {
-        void globalThis.scheduler?.yield?.().then(() => void executeBatch());
-      } else {
-        rafId ??= requestAnimationFrame(() => void executeBatch());
-      }
-      return;
-    }
 
     // Execute each update with error isolation — one failing update
     // must not kill the rest of the batch

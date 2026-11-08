@@ -1,5 +1,5 @@
 import { createScheduler } from 'modern-cmdk';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, type MockInstance, vi } from 'vitest';
 
 describe('Scheduler', () => {
   it('should create a scheduler', () => {
@@ -127,6 +127,91 @@ describe('Scheduler', () => {
     } finally {
       if (descriptor) Object.defineProperty(globalThis, 'navigator', descriptor);
       vi.resetModules();
+    }
+  });
+
+  it('flush() applies every update synchronously and in order on a Chromium with input pending (ARCH-44, DAE-76, SPEC-32, CE-34)', async () => {
+    const isInputPending = vi.fn(() => true);
+    const yieldToMain = vi.fn(() => Promise.resolve());
+    vi.stubGlobal('navigator', { scheduling: { isInputPending } });
+    vi.stubGlobal('scheduler', { yield: yieldToMain });
+    try {
+      vi.resetModules();
+      const fresh = await import('modern-cmdk');
+      using scheduler = fresh.createScheduler();
+      const order: number[] = [];
+      for (let i = 0; i < 25; i++) scheduler.schedule(() => order.push(i));
+
+      scheduler.flush();
+
+      // No await: the whole batch must already be applied when flush() returns.
+      expect(order).toEqual(Array.from({ length: 25 }, (_, i) => i));
+      expect(isInputPending).not.toHaveBeenCalled();
+      expect(yieldToMain).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+      vi.resetModules();
+    }
+  });
+
+  it('runs a scheduled batch after one microtask turn where requestAnimationFrame is absent (TUB-13)', async () => {
+    vi.stubGlobal('requestAnimationFrame', undefined);
+    vi.stubGlobal('cancelAnimationFrame', undefined);
+    let queue: MockInstance<typeof queueMicrotask> | undefined;
+    try {
+      vi.resetModules();
+      const fresh = await import('modern-cmdk');
+      queue = vi.spyOn(globalThis, 'queueMicrotask');
+      using scheduler = fresh.createScheduler();
+      const order: number[] = [];
+      scheduler.schedule(() => order.push(1));
+      scheduler.schedule(() => order.push(2));
+      scheduler.schedule(() => order.push(3));
+
+      expect(order, 'the update must not run synchronously').toEqual([]);
+      expect(queue).toHaveBeenCalledOnce();
+
+      // The batch microtask was queued before this await's continuation, so it runs first.
+      await Promise.resolve();
+      expect(order).toEqual([1, 2, 3]);
+      expect(queue).toHaveBeenCalledOnce();
+    } finally {
+      queue?.mockRestore();
+      vi.unstubAllGlobals();
+      vi.resetModules();
+    }
+  });
+
+  it('isolates a throwing update and rethrows its error through queueMicrotask (TUB-13)', () => {
+    const rethrown: Array<() => void> = [];
+    const queue = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((callback) => {
+      rethrown.push(callback);
+    });
+    try {
+      using scheduler = createScheduler();
+      const boom = new Error('update failed');
+      const before = vi.fn();
+      const after = vi.fn();
+      scheduler.schedule(before);
+      scheduler.schedule(() => {
+        throw boom;
+      });
+      scheduler.schedule(after);
+
+      scheduler.flush();
+
+      expect(before).toHaveBeenCalledOnce();
+      expect(after).toHaveBeenCalledOnce();
+      expect(rethrown).toHaveLength(1);
+      let thrown: unknown;
+      try {
+        rethrown[0]?.();
+      } catch (error: unknown) {
+        thrown = error;
+      }
+      expect(thrown).toBe(boom);
+    } finally {
+      queue.mockRestore();
     }
   });
 });
