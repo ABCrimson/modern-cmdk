@@ -66,14 +66,17 @@ export interface CommandItem {
 
 /**
  * A command group for categorizing items.
- * Groups are rendered with headings and sorted by priority.
+ * Groups are rendered with headings; React renders `<Command.Group>` elements in JSX order.
  */
 export interface CommandGroup {
   /** Unique identifier (branded type) */
   readonly id: GroupId;
   /** Display heading text (rendered above the group's items) */
   readonly heading?: string | undefined;
-  /** Sort priority — lower values appear first (default: 0) */
+  /**
+   * Orders the keys of `CommandState.groupedIds` and `getGroups()`: lower first, stable for equal
+   * values (default: 0). The React adapter renders groups in JSX order.
+   */
   readonly priority?: number | undefined;
 }
 
