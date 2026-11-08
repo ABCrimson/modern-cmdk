@@ -92,6 +92,12 @@ export function LocalizedList() {
 | `aria-labelledby` | Group | Points to the group heading element ID |
 | `aria-keyshortcuts` | Item | Keyboard shortcut for the item (if registered) |
 
+### Disabled items
+
+A disabled item (`disabled` on `Command.Item`, or `disabled: true` on a core item) stays in the list, rendered with `aria-disabled="true"` and `data-disabled`, under every query. It is never the active item, `ArrowDown`, `ArrowUp`, `Home` and `End` skip it, and `Enter`, a click and an `ITEM_SELECT` event do not select it. Its keyboard shortcut is not bound, so the shortcut does not fire its `onSelect` and leaves the key to the page. Pass `disabledItems="hide"` to `<Command>` (`disabledItems: 'hide'` to `createCommandMachine`) to drop disabled items from the results instead of rendering them (`core/machine.ts`: `navIds`, `bind()`, `refilter()`).
+
+Because disabled items are listed, they count: `filteredCount`, the result announcement and the virtualization threshold include them, a group that holds only disabled items still shows, and `Command.Empty` does not appear while only disabled items match.
+
 ## `aria-activedescendant` Updates
 
 Focus remains on the input at all times. The active item is communicated to assistive technology via `aria-activedescendant`, which updates as the user navigates with arrow keys:
@@ -211,7 +217,7 @@ This applies to:
 - Dialog enter/exit animations (`@starting-style`, `scale`, `translate`, `opacity`)
 - Item highlight transitions (`background-color`)
 - List height transitions (`--command-list-height`)
-- Scroll-driven animations (`animation-timeline`)
+- Scroll-driven animations (`animation-timeline`; the stylesheet applies them only where `@supports (animation-timeline: scroll())` holds, Chrome and Edge 115, Firefox 159, Safari 26, so the list fade edges stay hidden in older browsers)
 - Loading spinner animations
 
 ## `prefers-contrast: more` Enhancements
