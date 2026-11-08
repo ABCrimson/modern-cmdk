@@ -1,0 +1,119 @@
+/*
+ * Chrome of the docs site: outline, sidebar, nav, search button, mobile nav, local nav (design-final.md 4.7).
+ *
+ * Class names are those of vitepress/dist/client/theme-default/components (VPDocAsideOutline, VPDocOutlineItem,
+ * VPSidebar, VPSidebarItem, VPNavBarSearchButton, VPNavMenuLink, VPNavMenuGroup, VPMenuLink, VPLocalNav,
+ * VPLocalNavOutlineDropdown). Their styles are scoped (a data-v attribute adds 0,1,0), so each rule here starts with
+ * `html:root` (0,1,1) to win whatever the order of the CSS chunks. The surfaces (--vp-sidebar-bg-color, the frosted
+ * --vp-nav-bg-color), the forced-colours nav icons and the scroll padding are tokens.css and a11y.css.
+ * Every colour is a --mc-* or --vp-* variable.
+ */
+
+/* Nav: the logo height is the theme's default, written down because the spec names it */
+html:root {
+  --vp-nav-logo-height: 1.5rem;
+}
+
+/* Outline: step -2 uppercase title in text-3, step -1 links (text-2, text-1 when active), a 2 px brand-3 marker */
+html:root .VPDocAsideOutline .outline-title {
+  font-size: var(--mc-step--2);
+  font-weight: var(--mc-step--2-weight);
+  letter-spacing: var(--mc-step--2-tracking);
+  text-transform: uppercase;
+  color: var(--mc-text-3);
+}
+
+html:root .VPDocOutlineItem .outline-link {
+  font-size: var(--mc-step--1);
+}
+
+html:root .VPDocAsideOutline .outline-marker {
+  background-color: var(--mc-brand-3);
+}
+
+/*
+ * Sidebar. Group titles (level 0) are step -2 uppercase text-3. Items are step -1 text-2 in 32 px rows. The active item is
+ * brand-1 text at 600 (the theme sets its colour) on a brand-soft pill with a 2 px brand-1 bar on the inline-start edge,
+ * so the state is shown by shape and fill, not by colour alone. The bar is brand-1, not brand-3: brand-3 on the dark pill
+ * is only 3.12:1.
+ */
+html:root .VPSidebar .VPSidebarItem.level-0 > .item > .text {
+  padding-inline: var(--mc-space-3);
+  font-size: var(--mc-step--2);
+  font-weight: var(--mc-step--2-weight);
+  letter-spacing: var(--mc-step--2-tracking);
+  text-transform: uppercase;
+  color: var(--mc-text-3);
+}
+
+html:root .VPSidebar .VPSidebarItem:not(.level-0) > .item > .link {
+  min-block-size: 2rem;
+}
+
+html:root .VPSidebar .VPSidebarItem:not(.level-0) > .item .text {
+  padding-inline: var(--mc-space-3);
+  font-size: var(--mc-step--1);
+  font-weight: var(--mc-step--1-weight);
+}
+
+html:root .VPSidebar .VPSidebarItem:not(.level-0).is-active > .item {
+  border-radius: var(--mc-radius-sm);
+  background-color: var(--mc-brand-soft);
+}
+
+html:root .VPSidebar .VPSidebarItem:not(.level-0).is-active > .item .text {
+  font-weight: 600;
+}
+
+/* The theme draws the bar outside the row for level 2 and deeper; here it is inside the pill at every level */
+html:root .VPSidebar .VPSidebarItem:not(.level-0).is-active > .item > .indicator {
+  inset-inline-start: 0;
+  background-color: var(--mc-brand-1);
+}
+
+/* Search button (from 48rem the theme shows its text and keys): a key-cap pill, the chip in kbd style */
+@media (min-width: 48rem) {
+  html:root .VPNavBarSearchButton {
+    border: 1px solid var(--mc-divider);
+    border-radius: var(--mc-radius-pill);
+    background-color: var(--mc-bg-soft);
+  }
+
+  html:root .VPNavBarSearchButton .keys {
+    border-color: var(--mc-border-strong);
+    border-block-end-width: 2px;
+    background-color: var(--mc-bg-soft);
+    font-family: var(--vp-font-family-mono);
+    color: var(--mc-text-1);
+  }
+}
+
+/* Mobile nav: links step 1 at 600 with 12 px row padding (a 28 px line, so rows are 52 px) and a 48 px minimum target */
+html:root .VPNavScreenMenuLink,
+html:root .VPNavScreenMenuGroup .button {
+  box-sizing: border-box;
+  min-block-size: 3rem;
+  padding-block: 0.75rem;
+  font-size: var(--mc-step-1);
+  font-weight: 600;
+  line-height: var(--mc-step-1-lh);
+}
+
+html:root .VPNavScreenMenuLink {
+  display: flex;
+  align-items: center;
+}
+
+html:root .VPNavScreen .VPNavScreenMenuGroupLink {
+  display: flex;
+  align-items: center;
+  min-block-size: 3rem;
+  font-size: var(--mc-step-0);
+}
+
+/* Local nav ("Menu" and "On this page"): 44 px tall, 24 px line plus 10 px and 9 px padding plus the 1 px rule below */
+html:root .VPLocalNav .menu,
+html:root .VPLocalNav .VPLocalNavOutlineDropdown > button {
+  padding-block: 0.625rem 0.5625rem;
+  line-height: 1.5rem;
+}
