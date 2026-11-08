@@ -224,7 +224,7 @@ describe('Type Foundation', () => {
     });
   });
 
-  describe('Default values with satisfies', () => {
+  describe('Default values extend their option types and hold the documented numbers', () => {
     it('DEFAULT_FRECENCY_DECAY should satisfy Required<FrecencyDecayConfig>', () => {
       expectTypeOf(DEFAULT_FRECENCY_DECAY).toExtend<Required<FrecencyDecayConfig>>();
       // Vitest — soft assertions to report all mismatched defaults at once
