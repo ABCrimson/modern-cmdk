@@ -13,33 +13,29 @@ const nextFrame = (): Promise<void> =>
 /** The most major collections one `collectGarbage` call runs while its predicate stays false. */
 const MAX_COLLECTIONS = 20;
 
-/** Collections a `collectGarbage` call without a predicate runs. */
-const FIXED_COLLECTIONS = 3;
-
 /**
- * Runs major GCs until `settled()` is true, at most MAX_COLLECTIONS of them; without a predicate it
- * runs FIXED_COLLECTIONS passes. TUB-81: a single major GC can leave one of many young objects
- * uncollected (CI run 42455685144: 9999 of 10000 WeakRefs cleared, one survived), so the loop
- * repeats the collection until the refs settle. Each pass is
- * `gc({ type: 'major', execution: 'async', flavor: 'last-resort' })`, awaited, then a macrotask
- * turn: a WeakRef target created or dereferenced in a task stays alive until the microtask queue
- * drains (V8 clears kept objects at the end of the microtask checkpoint; an await is not enough),
- * and FinalizationRegistry callbacks run in their own tasks. The predicate only decides when to
- * stop: callers still assert the strict zero afterwards, so a ref that survives all
- * MAX_COLLECTIONS passes (a real leak) still fails. Fails loudly when the worker has no gc().
+ * Runs major GCs until `settled()` is true, at most MAX_COLLECTIONS of them. TUB-81: one major GC
+ * left one of 10000 WeakRef targets uncollected in CI run 42455685144 (the react-floor lane), so
+ * the loop repeats the collection until the caller's refs settle. Each pass is
+ * `gc({ type: 'major', execution: 'async', flavor: 'last-resort' })`, awaited: the async
+ * collection runs as its own task after the caller's microtask checkpoint, so a target the
+ * predicate just dereferenced is not pinned by that deref (a synchronous gc() would keep it).
+ * The `setImmediate` turn after each pass lets FinalizationRegistry callbacks run before the
+ * predicate is read. The predicate only decides when to stop: callers still assert the strict
+ * zero afterwards, so a ref that survives all MAX_COLLECTIONS passes (a real leak) still fails.
+ * Fails loudly when the worker has no gc().
  */
-async function collectGarbage(settled?: () => boolean): Promise<void> {
+async function collectGarbage(settled: () => boolean): Promise<void> {
   const gc = globalThis.gc;
   if (typeof gc !== 'function') {
     throw new Error(
       'gc() is missing: the unit project must run with --expose-gc (vitest.config.ts execArgv)',
     );
   }
-  const passes = settled === undefined ? FIXED_COLLECTIONS : MAX_COLLECTIONS;
-  for (let pass = 0; pass < passes; pass++) {
+  for (let pass = 0; pass < MAX_COLLECTIONS; pass++) {
     await gc({ type: 'major', execution: 'async', flavor: 'last-resort' });
     await setImmediate();
-    if (settled?.()) return;
+    if (settled()) return;
   }
 }
 
