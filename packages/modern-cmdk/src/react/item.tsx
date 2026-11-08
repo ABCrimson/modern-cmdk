@@ -3,7 +3,13 @@
 // React 19: use() for context
 // Isolated declarations: explicit return types on all exports
 
-import type { ComponentPropsWithRef, CSSProperties, ReactNode } from 'react';
+import type {
+  ComponentPropsWithRef,
+  CSSProperties,
+  MouseEvent,
+  PointerEvent,
+  ReactNode,
+} from 'react';
 import { use, useCallback, useRef } from 'react';
 import { CommandGroupContext, useStableContext, useStateContext } from './context.js';
 import { useRegisterItem } from './hooks/use-register.js';
@@ -19,6 +25,14 @@ export interface CommandItemProps extends Omit<ComponentPropsWithRef<'div'>, 'on
   readonly id?: string | undefined;
   /** @deprecated Use `id`. Removed in 2.0. */
   readonly forceId?: string;
+  /**
+   * How the props you pass meet the item's own handlers and style. The default `'override'` spreads your props last, so
+   * an `onClick`, `onPointerMove` or `style` of yours replaces the item's. `'compose'` spreads them first: your
+   * `onClick` and `onPointerMove` run, then the item selects or activates unless the event is default-prevented, your
+   * `style` merges under the virtual position, and the `id`, `role` and `aria-*` attributes the item manages win.
+   * The default becomes `'compose'` in 2.0.
+   */
+  readonly propsMerge?: 'override' | 'compose' | undefined;
 }
 
 /** Individual selectable item in the command list with keyboard and pointer activation. */
@@ -32,6 +46,7 @@ export function CommandItem({
   shortcut,
   id: idProp,
   forceId,
+  propsMerge = 'override',
   ...props
 }: CommandItemProps): ReactNode {
   const stable = useStableContext('Command.Item');
@@ -82,8 +97,11 @@ export function CommandItem({
       ? { position: 'absolute', top: 0, left: 0, width: '100%', translate: `0 ${virtualStart}px` }
       : undefined;
 
+  const composing: boolean = propsMerge === 'compose';
+
   return (
     <div
+      {...(composing ? props : undefined)}
       ref={ref}
       data-command-item=""
       data-active={isActive ? '' : undefined}
@@ -94,10 +112,24 @@ export function CommandItem({
       aria-selected={isActive}
       aria-disabled={disabled || undefined}
       aria-keyshortcuts={shortcut ?? undefined}
-      onClick={handleSelect}
-      onPointerMove={handlePointerMove}
-      style={virtualStyle}
-      {...props}
+      onClick={
+        composing
+          ? (event: MouseEvent<HTMLDivElement>): void => {
+              props.onClick?.(event);
+              if (!event.defaultPrevented) handleSelect();
+            }
+          : handleSelect
+      }
+      onPointerMove={
+        composing
+          ? (event: PointerEvent<HTMLDivElement>): void => {
+              props.onPointerMove?.(event);
+              if (!event.defaultPrevented) handlePointerMove();
+            }
+          : handlePointerMove
+      }
+      style={composing ? { ...props.style, ...virtualStyle } : virtualStyle}
+      {...(composing ? undefined : props)}
     >
       {children}
     </div>

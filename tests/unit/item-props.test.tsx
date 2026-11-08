@@ -188,10 +188,6 @@ class SizedObserver {
   disconnect(): void {}
 }
 
-// The props are spread from constants so this file type-checks before and after `propsMerge` is declared.
-const COMPOSE = { propsMerge: 'compose' } as const;
-const OVERRIDE = { propsMerge: 'override' } as const;
-
 describe('Command.Item propsMerge', () => {
   it('RA-13: propsMerge compose calls the consumer onClick and still selects', async () => {
     const calls: string[] = [];
@@ -203,7 +199,7 @@ describe('Command.Item propsMerge', () => {
         <Command.List>
           <Command.Item
             value="alpha"
-            {...COMPOSE}
+            propsMerge="compose"
             onSelect={onSelect}
             onClick={(): number => calls.push('consumer')}
             onPointerMove={(): number => calls.push('move')}
@@ -213,7 +209,7 @@ describe('Command.Item propsMerge', () => {
           </Command.Item>
           <Command.Item
             value="beta"
-            {...COMPOSE}
+            propsMerge="compose"
             onSelect={blocked}
             onClick={(event: MouseEvent<HTMLDivElement>): void => event.preventDefault()}
             role="button"
@@ -267,7 +263,7 @@ describe('Command.Item propsMerge', () => {
         <Command.List virtualize>
           <Command.Item
             value="alpha"
-            {...OVERRIDE}
+            propsMerge="override"
             onSelect={onSelect}
             onClick={(): number => calls.push('consumer')}
             style={{ color: 'red' }}
