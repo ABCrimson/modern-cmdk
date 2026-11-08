@@ -377,7 +377,10 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     }
   }
 
-  /** Ends a batch: one refilter if a registry event ran, then one stateChange even if the refilter throws. */
+  /**
+   * Ends a batch: one refilter if a registry event ran, then one stateChange and the telemetry
+   * reports, both even if the refilter throws.
+   */
   function commit(): void {
     try {
       if (dirty) refilter(state.search);
@@ -386,8 +389,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
         changed = false;
         emitter.emit('stateChange', state);
       }
+      report();
     }
-    report();
   }
 
   function handleEvent(event: CommandEvent): void {
