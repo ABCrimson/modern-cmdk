@@ -151,8 +151,9 @@ function createLiveOptions(
  * no global reference, and the core's FinalizationRegistry disposes the search engine the
  * machine created once the machine is collected.
  *
- * A change of the `disabledItems` or `activeId` prop calls `machine.refresh()` after the commit's item and group
- * diffs: the machine refilters once over the registry as it then reads, and a controlled `activeId` is mirrored in
+ * A change of the `disabledItems`, `activeId` or `filter` prop calls `machine.refresh()` after the commit's item and
+ * group diffs: the machine refilters the current query once over the registry as it then reads (a `filter` of the
+ * other kind than the first render's refilters with the first render's, per `createLiveOptions`), and a controlled `activeId` is mirrored in
  * the state (`null` while that item is not listed or is disabled) without a call to `onActiveChange`.
  *
  * The machine's options object is built once, over a ref that holds the latest props. The ref starts as the
@@ -237,7 +238,7 @@ export function useCommandSetup(
   // Every commit: in development, warn about a changed init-only prop; publish the props to the options object, then
   // register what changed. `UPDATE_ITEM` upserts, so it serves a new item and a changed one. StrictMode's replay and
   // a re-render from the machine's own state pass the same arrays, so the diff sends nothing. A change of
-  // `disabledItems` or `activeId` is a change of what the machine reads in its refilter, so the effect ends with
+  // `disabledItems`, `activeId` or `filter` is a change of what the machine reads in its refilter, so the effect ends with
   // `machine.refresh()`: one batch slot, queued after the diffs' sends and after the UNREGISTER sends of children
   // unmounted in this commit (their layout cleanups run in the mutation phase, before this effect). Its refilter
   // therefore sees the final registry, and it reports no candidate: the prop is the caller's own change.
@@ -271,7 +272,11 @@ export function useCommandSetup(
       (group) => machine.send({ type: 'REGISTER_GROUP', group }),
       ({ id }) => machine.send({ type: 'UNREGISTER_GROUP', id }),
     );
-    if (previous.disabledItems !== options.disabledItems || previous.activeId !== options.activeId)
+    if (
+      previous.disabledItems !== options.disabledItems ||
+      previous.activeId !== options.activeId ||
+      previous.filter !== options.filter
+    )
       machine.refresh?.();
   });
 

@@ -745,6 +745,54 @@ describe('React lifecycle (C1)', () => {
     expect(onSearchChange.mock.calls).toEqual([['ap'], ['ban'], ['ap']]);
   });
 
+  it('a filter prop change refilters the current query', async () => {
+    const spy = new Spy();
+    const containing = (item: CommandItem, query: string): number | false =>
+      item.value.includes(query) ? 1 : false;
+    const onlyBanana = (item: CommandItem): number | false => (item.id === banana.id ? 1 : false);
+    const tree = (filter: (item: CommandItem, query: string) => number | false): ReactNode => (
+      <Command items={[apple, banana]} filter={filter}>
+        <spy.Probe />
+        <Command.Input />
+      </Command>
+    );
+    const host = await mount(tree(containing));
+    await settle();
+    await typeInto(inputOf(host), 'a');
+    expect(spy.machine.getState().filteredIds).toEqual([apple.id, banana.id]);
+
+    await update(tree(onlyBanana));
+    await settle();
+
+    expect(spy.machine.getState().search).toBe('a');
+    expect(spy.machine.getState().filteredIds).toEqual([banana.id]);
+  });
+
+  it('a parent that passes an inline filter function does not loop', async () => {
+    const counter = new RenderCounter();
+    const tree = (tick: number): ReactNode => (
+      <Command
+        items={[apple, banana]}
+        filter={(item: CommandItem): number | false => (item.value.length > tick ? 1 : false)}
+      >
+        <counter.Probe />
+        <Command.Input />
+      </Command>
+    );
+    const host = await mount(tree(0));
+    await typeInto(inputOf(host), 'a');
+    for (const tick of [1, 2, 3]) {
+      await update(tree(tick));
+      await settle();
+    }
+    const afterUpdates = counter.renders;
+    await settle();
+    await settle();
+
+    expect(counter.renders).toBe(afterUpdates);
+    expect(afterUpdates).toBeLessThan(30);
+  });
+
   it('a parent that passes an inline items array does not loop', async () => {
     const counter = new RenderCounter();
     const tree = (tick: number): ReactNode => (
