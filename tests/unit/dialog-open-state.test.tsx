@@ -225,6 +225,72 @@ describe('Command.Dialog open state (C1)', () => {
     expect(probe.current.getState().open).toBe(true);
   });
 
+  it('a controlled dialog reports a machine-originated close once and stays open until the parent changes open', async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    const tree = (open: boolean): ReactNode => (
+      <Command.Dialog open={open} onOpenChange={onOpenChange}>
+        <probe.Probe />
+        <Command.Input />
+      </Command.Dialog>
+    );
+    await mount(tree(true));
+    await settle();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      probe.current.send({ type: 'CLOSE' });
+    });
+    await settle();
+
+    // The palette's own request reaches the consumer once; the parent keeps `open`, so the dialog stays
+    expect(onOpenChange.mock.calls).toEqual([[false]]);
+    expect(document.querySelector('[data-command-dialog]')?.getAttribute('data-state')).toBe(
+      'open',
+    );
+    expect(probe.current.getState().open).toBe(true);
+
+    // The parent then closes: the prop change reports nothing
+    await update(tree(false));
+    await settle();
+    expect(document.querySelector('[data-command-dialog]')).toBeNull();
+    expect(probe.current.getState().open).toBe(false);
+    expect(onOpenChange.mock.calls).toEqual([[false]]);
+  });
+
+  it('a controlled dialog reports a machine-originated open once while the parent keeps it closed', async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    const tree = (open: boolean): ReactNode => (
+      <Command.Dialog open={open} onOpenChange={onOpenChange}>
+        <probe.Probe />
+        <Command.Input />
+      </Command.Dialog>
+    );
+    // Open first so the probe records the machine, then the parent closes the dialog
+    await mount(tree(true));
+    await update(tree(false));
+    await settle();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      probe.current.send({ type: 'TOGGLE' });
+    });
+    await settle();
+
+    expect(onOpenChange.mock.calls).toEqual([[true]]);
+    expect(document.querySelector('[data-command-dialog]')).toBeNull();
+    expect(probe.current.getState().open).toBe(false);
+
+    // The parent opens: the prop change reports nothing
+    await update(tree(true));
+    await settle();
+    expect(document.querySelector('[data-command-dialog]')?.getAttribute('data-state')).toBe(
+      'open',
+    );
+    expect(onOpenChange.mock.calls).toEqual([[true]]);
+  });
+
   it('RA-X3: the dialog focuses its input when the portal container is inside a shadow root', async () => {
     const host = document.createElement('div');
     document.body.appendChild(host);
