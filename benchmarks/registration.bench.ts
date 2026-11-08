@@ -16,8 +16,9 @@
 //
 // The statistic is the median latency (tinybench's latency.p50, ms per iteration) divided by N; the
 // ratio is per-item(10K) / per-item(1K). Measured on the landed 1.6.0 core (Node 28 nightly, Windows 11,
-// 9 runs of this file on one host, 2026-11-08): register 1.14-2.12x, unregister 1.18-1.95x, register +
-// shortcuts 1.08-1.97x, unregister + shortcuts 1.20-2.13x. The pre-1.6.0 core refiltered on every send;
+// 14 runs of this file on 2026-11-08 on one development host, idle and under load (30 load threads on 24 cores);
+// per path: register 1.14-2.12x, unregister 1.18-1.95x, register + shortcuts 1.08-1.97x (the 9 runs that
+// recorded every path), unregister + shortcuts 1.20-2.36x (all 14, 2.36x under load). The pre-1.6.0 core refiltered on every send;
 // mount.bench.ts measured REGISTER_ITEM x N at ~70-90 ms for 1K and ~9-10 s for 10K, a per-item ratio
 // of ~13. The self-check at the end of this file measures a deliberately quadratic stand-in at 8-18x
 // (measured on one host on 2026-11-08, Intel Core Ultra 9 290HX, Windows: 8.25x to 17.7x).
@@ -31,12 +32,12 @@ import { describe, expect, test } from 'vitest';
 import { generateItems } from './fixtures.ts';
 
 /**
- * The most the per-item time may grow from 1K to 10K items. Linear work measures ~1-2x here (the fixed
+ * The most the per-item time may grow from 1K to 10K items. Linear work measures ~1-2.4x here (the fixed
  * cost of one scheduler batch (one requestAnimationFrame callback) and one refilter weighs more at
  * 1K, a bigger working set costs more cache misses and GC at 10K); a quadratic path measures ~10x or more (13x on the
  * pre-1.6.0 core, 8-18x for the self-check stand-in, measured on one host on 2026-11-08: Intel Core Ultra 9 290HX,
- * Windows, 8.25x to 17.7x). True O(N^2) at 10x N gives a 10x per-item ratio. 4x sits about twice the highest linear
- * ratio measured (2.13x) and under half the lowest quadratic one measured (8.25x), which leaves room for CI noise in
+ * Windows, 8.25x to 17.7x). True O(N^2) at 10x N gives a 10x per-item ratio. 4x is about 1.7 times the highest linear
+ * ratio measured (2.36x, under load) and under half of the lowest quadratic one (8.25x), which leaves room for CI noise in
  * both directions.
  */
 const GROWTH_FACTOR = 4;
