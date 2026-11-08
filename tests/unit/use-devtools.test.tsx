@@ -6,7 +6,7 @@ import type { CommandMachine } from 'modern-cmdk';
 import type * as ReactEntry from 'modern-cmdk/react';
 import { act, use } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 const DEVTOOLS_KEY = '__MODERN_CMDK_DEVTOOLS__';
 const DEPRECATED_KEY = '__CRIMSON_COMMAND_DEVTOOLS__';
@@ -31,7 +31,7 @@ interface Mounted {
 /** Fresh module graph so the hook's module-scoped dev check re-reads the stubbed NODE_ENV. */
 async function mountDevtools(
   label: string,
-  options?: { readonly redactQuery?: boolean },
+  options?: { readonly redactQuery?: boolean | undefined },
 ): Promise<Mounted> {
   vi.resetModules();
   const { Command, CommandStableContext, useCommandDevtools }: typeof ReactEntry = await import(
@@ -151,7 +151,7 @@ describe('useCommandDevtools', () => {
   /** Mounts with the option, sends one search change and returns the registry entry and the event detail. */
   async function searchWith(
     label: string,
-    options?: { readonly redactQuery?: boolean },
+    options?: { readonly redactQuery?: boolean | undefined },
   ): Promise<{ entry: unknown; detail: unknown }> {
     vi.stubEnv('NODE_ENV', 'development');
     vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
@@ -185,5 +185,17 @@ describe('useCommandDevtools', () => {
     const { entry, detail } = await searchWith('unit-raw');
     expect(entry).toMatchObject({ searchQuery: 'secret' });
     expect(detail).toMatchObject({ state: { searchQuery: 'secret' } });
+  });
+
+  it('ARCH-30: useCommandDevtools accepts redactQuery: undefined', async () => {
+    type Options = Parameters<typeof ReactEntry.useCommandDevtools>[1];
+    // exactOptionalPropertyTypes is on: only `| undefined` on the property admits an explicit undefined.
+    expectTypeOf<{ readonly redactQuery: undefined }>().toExtend<NonNullable<Options>>();
+    expectTypeOf<{ readonly redactQuery: boolean | undefined }>().toExtend<NonNullable<Options>>();
+
+    vi.stubEnv('NODE_ENV', 'development');
+    ({ cleanup } = await mountDevtools('unit-undefined', { redactQuery: undefined }));
+    const registry = Reflect.get(globalThis, DEVTOOLS_KEY) as Map<string, unknown> | undefined;
+    expect(registry?.has('unit-undefined')).toBe(true);
   });
 });

@@ -81,7 +81,7 @@ function registry(): DevtoolsRegistry {
  */
 export function useCommandDevtools(
   label: string = 'default',
-  options?: { readonly redactQuery?: boolean },
+  options?: { readonly redactQuery?: boolean | undefined },
 ): void {
   const stable = use(CommandStableContext);
   const redactQuery = options?.redactQuery ?? false;
