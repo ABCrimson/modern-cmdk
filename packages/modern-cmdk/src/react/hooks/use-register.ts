@@ -73,11 +73,16 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
 
   // Stabilize onSelect via ref — inline arrow functions won't cause re-registration
   const onSelectRef = useRef(options?.onSelect);
-  onSelectRef.current = options?.onSelect;
 
   // Stabilize data via ref — inline objects won't cause re-registration, and the item reads the latest one
   const dataRef = useRef(options?.data);
-  dataRef.current = options?.data;
+
+  // Commit the latest onSelect and data after every render, declared before the registration effect so that effect
+  // and later events read the committed values
+  useLayoutEffect(() => {
+    onSelectRef.current = options?.onSelect;
+    dataRef.current = options?.data;
+  });
 
   // Stable dep for keywords — join to string for identity comparison
   const keywordsDep = options?.keywords?.join('\x00');
