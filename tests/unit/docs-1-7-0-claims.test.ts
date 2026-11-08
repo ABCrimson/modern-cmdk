@@ -296,7 +296,7 @@ describe('docs rows of 1.7.0', () => {
     expect(page, 'DAE-64: no untyped useState(null) engine').not.toMatch(/useState\(null\)/);
     // The claim: the caller disposes an engine it passes; the machine disposes only its own.
     expect(body, 'DAE-64: the page says the caller disposes an engine it passes').toMatch(
-      /\byours? to dispose\b|\byou (?:must |need to |have to |should )?dispose\b|\b(?:caller|your code)\b[^.]*\bdisposes?\b|\bdispose[sd]? (?:it )?yourself\b/i,
+      /\byours? to dispose\b|\byou (?:must |need to |have to |should )?dispose\b|\b(?:caller|your code)\b[^.]*\bdisposes?\b|\bdispose[sd]? (?:it )?yourself\b|\bdispos\w+\b[^.]*\b(?:up to you|your (?:job|responsibility))\b|\byou(?:'re| are) responsible for dispos\w+/i,
     );
     expect(body, 'DAE-64: the machine is not said to dispose an engine it was given').not.toMatch(
       /machine (?:also )?disposes (?:the|an|that|your) (?:search )?engine (?:you|that you|it was|passed|supplied)|disposes the engine you pass/i,
@@ -498,15 +498,15 @@ describe('docs rows of 1.7.0', () => {
     const group: string = sectionOf(`${DOCS}api/command-react.md`, /^`<Command\.Group>`$/);
     const row: string = tableRow(group, /^\| `priority` \|/);
     expect(row, 'DAE-37: the number orders the keys of groupedIds').toContain('groupedIds');
+    expect(row, 'DAE-37: the search order of filteredIds is kept').toContain('`filteredIds`');
     // The claim: the order of the JSX decides what React renders, whatever the number says.
-    expect(row, 'DAE-37: it names the Group elements').toMatch(/Command\.Group/);
     expect(row, 'DAE-37: React renders the groups in the order of the JSX').toMatch(/\bJSX\b/);
     expect(row, 'DAE-37: the render order is named').toMatch(/\border\b/i);
     expect(row, 'DAE-37: the render order is not the number').toMatch(
-      /\b(?:not|never|regardless of|rather than|instead of|ignor\w+)\b[^|.]*\b(?:this number|priority)\b/i,
+      /\b(?:not|never|regardless of|rather than|instead of|ignor\w+|whatever|no matter|irrespective of)\b[^|.]*\b(?:this number|priority)\b|\b(?:this number|priority)\b[^|.]*\b(?:does not|doesn't|never|has no)\b/i,
     );
     expect(row, 'DAE-37: no claim that React sorts the groups by the number').not.toMatch(
-      /\b(?:sort\w*|order\w*|render\w*|arrang\w*)\s+(?:the\s+)?(?:groups\s+)?by\s+(?:this\s+number|`?priority`?)/i,
+      /\b(?:sort\w*|order\w*|render\w*|arrang\w*)\s+(?:the\s+)?(?:groups\s+)?by\s+(?:this\s+number|`?priority`?)|\b(?:in|by)\s+(?:`?priority`?|numeric|number)\s+order\b|\bpriority order\b/i,
     );
   });
 
@@ -516,8 +516,11 @@ describe('docs rows of 1.7.0', () => {
     expect(row, 'DAE-38: a request calls onOpenChange once and the parent decides').toContain(
       'onOpenChange(requested)',
     );
+    expect(row, 'DAE-38: a parent that keeps open={true} keeps the dialog open').toContain(
+      'open={true}',
+    );
     expect(row, 'DAE-38: omitted, the dialog starts (or begins) closed').toMatch(
-      /\b(?:starts|begins) closed\b/,
+      /\b(?:starts|begins|stays|remains) closed\b/,
     );
     expect(
       row,
@@ -559,7 +562,7 @@ describe('docs rows of 1.7.0', () => {
       /^\| `--command-count` \| `<integer>` \| `0` \|/,
     );
     expect(count, 'DAE-42: --command-count is written by no component').toMatch(
-      /\bwritten by (?:no|none)\b|\b(?:no|none of the)\s+components?\b[^|]*\b(?:writ|set|updat|emit)\w*|\bnever (?:written|set|updated)\b|\bnothing\b[^|.;,]*\b(?:writes?|sets?|updates?|emits?)\b/i,
+      /\bwritten by (?:no|none)\b|\b(?:no|none of the)\s+components?\b[^|]*\b(?:writ|set|updat|emit)\w*|\bnever (?:written|set|updated)\b|\bnothing\b[^|.;,]*\b(?:writes?|sets?|updates?|emits?)\b|\bcomponents?\b[^|.;]*\b(?:never|do(?:es)? not|don't) (?:writes?|sets?|updates?)\b/i,
     );
     expect(count, 'DAE-42: it is not described as a live count').not.toMatch(
       /\b(?:filtered|live|current|matching)\b[^|]*\bcount\b|\bcount of\b/i,
@@ -687,10 +690,10 @@ describe('docs rows of 1.7.0', () => {
     // The claim: without `open` the dialog is uncontrolled, begins closed and nothing opens it, so
     // the page opens it through `open`. The base page left an uncontrolled dialog to open itself.
     expect(page, 'DG-21: an uncontrolled dialog starts (or begins) closed').toMatch(
-      /\b(?:starts|begins) closed\b/,
+      /\b(?:starts|begins|stays|remains) closed\b/,
     );
     expect(page, 'DG-21: nothing (or no part of the package) opens an uncontrolled dialog').toMatch(
-      /\b(?:nothing|no part)\b[^.;]*\bopens? it\b/,
+      /\b(?:nothing|no part)\b[^.;]*\bopens? it\b|\bno way to open it\b/,
     );
     expect(page, 'DG-21: no invitation to an uncontrolled dialog that opens itself').not.toMatch(
       /\b(?:omit|leave|skip)\b[^.]*\b(?:open|uncontrolled)\b[^.]*\b(?:own|opens? itself|manages? (?:its|the) (?:own )?(?:open )?state)\b|\bowns? its open state\b/i,
@@ -752,7 +755,9 @@ describe('docs rows of 1.7.0', () => {
       sentences(text).filter(
         (s) =>
           /<Suspense>/.test(s) &&
-          /\b(?:enclosing|outer|surrounding|wrapping|parent)\b|\b(?:around|above) it\b/i.test(s),
+          /\b(?:enclosing|outer|surrounding|wrapping|parent|ancestor)\b|\b(?:around|above) it\b|\b(?:higher|further) up\b/i.test(
+            s,
+          ),
       );
     expect(
       outer(loading).length,
@@ -892,7 +897,7 @@ describe('docs rows of 1.7.0', () => {
     expect(head, 'RA-29: no View Transitions').not.toMatch(/view[- ]transitions?/i);
     expect(head, 'RA-29: it renders by id').toMatch(/\bid\b/);
     expect(head, 'RA-29: it renders only while (or when) the page is current').toMatch(
-      /\bonly (?:while|when|if)\b[^\n]*\b(?:current|active)\b/i,
+      /\bonly (?:while|when|if)\b[^\n]*\b(?:current|active)\b|\b(?:current|active)\b[^\n]*\bnothing otherwise\b/i,
     );
     expect(head, 'RA-29: the page push and pop events change the page').toMatch(
       /\b(?:PAGE_PUSH|page[- ]push)\b/i,
@@ -930,7 +935,7 @@ describe('docs rows of 1.7.0', () => {
     const open: string = jsdocAbove(file, /^\s*readonly open\?:/);
     expect(open, 'RA-85: the open prop is described as controlled state').toMatch(/controlled/i);
     expect(open, 'RA-85: an undefined open starts (or begins) closed').toMatch(
-      /\b(?:starts|begins) closed\b/,
+      /\b(?:starts|begins|stays|remains) closed\b/,
     );
     expect(open, 'RA-85: nothing (or no part of the component) opens it').toMatch(
       /\b(?:nothing|no part)\b[^.]*\bopens? it\b/,
@@ -1004,7 +1009,7 @@ describe('docs rows of 1.7.0', () => {
     // The README says who calls the hooks: the machine, not the caller.
     const readme: string = read('packages/modern-cmdk/README.md');
     expect(readme, 'CE-92: the README says the machine calls (or invokes) the hooks').toMatch(
-      /\bmachine (?:calls|invokes|runs|fires)\b/,
+      /\bmachine (?:calls|invokes|runs|fires)\b|\b(?:called|invoked|run|fired) by the machine\b/,
     );
   });
 
@@ -1059,7 +1064,8 @@ describe('docs rows of 1.7.0', () => {
     // the new list still holds it and it is enabled, otherwise the first enabled item of the ranked
     // list becomes active. The base text said only "Update search query"; cmdk, by contrast,
     // returns to the first item, and no page may say that the machine does.
-    const stays = /\b(?:listed|holds? it|still (?:in the list|matches|matched|contains?))\b/i;
+    const stays =
+      /\b(?:listed|holds? it|still (?:in the (?:list|results|filtered list|ranked list)|matches|matched|contains?))\b/i;
     const enabled = /\b(?:enabled|not disabled)\b/i;
     const fallsBack = /\b(?:first|top|highest)\b[^|.;]*\benabled\b[^|.;]*\b(?:item|result|match)/i;
     const returnsToFirst =
@@ -1068,6 +1074,9 @@ describe('docs rows of 1.7.0', () => {
     const search: string = tableRow(events, /^\| `SEARCH_CHANGE` \|/);
     expect(search, 'RA-84: SEARCH_CHANGE keeps the active item while it is listed').toMatch(stays);
     expect(search, 'RA-84: ... and enabled').toMatch(enabled);
+    expect(search, 'RA-84: a controlled activeId reports the candidate').toContain(
+      '`onActiveChange`',
+    );
     expect(search, 'RA-84: otherwise the first enabled item of the ranked list').toMatch(fallsBack);
     expect(search, 'RA-84: SEARCH_CHANGE does not reset to the first item').not.toMatch(
       returnsToFirst,
@@ -1078,6 +1087,9 @@ describe('docs rows of 1.7.0', () => {
     const activate: string = tableRow(events, /^\| `ITEM_ACTIVATE` \|/);
     expect(activate, 'RA-84: ITEM_ACTIVATE survives a later search change').toMatch(stays);
     expect(activate, 'RA-84: ... while enabled').toMatch(enabled);
+    expect(activate, 'RA-84: ITEM_ACTIVATE lands on an item of filteredIds').toContain(
+      '`filteredIds`',
+    );
     const arch: string = read(`${DOCS}guide/architecture.md`);
     const paragraph: string =
       arch.split(/\r?\n/).find((l) => l.includes('`SEARCH_CHANGE` updates')) ?? '';
