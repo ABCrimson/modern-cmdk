@@ -1,6 +1,6 @@
 # Theming
 
-`modern-cmdk/styles.css` is themed through `--command-*` custom properties declared on `[data-command-root]` and through `data-*` attribute selectors. The OKLCH tokens below (`--color-hue`, `--color-*`, `--ease-*`, `--transition-*`) belong to this documentation site's theme (`apps/docs/.vitepress/theme/styles/vars.css`). They are an example to copy into your own stylesheet.
+`modern-cmdk/styles.css` is themed through `--command-*` custom properties declared on `[data-command-root]` and through `data-*` attribute selectors. The OKLCH tokens below (`--color-hue`, `--color-*`, `--ease-*`, `--transition-*`) are an example token layer to copy into your own stylesheet. Neither `modern-cmdk/styles.css` nor this documentation site defines them: the site's own theme is built from `--mc-*` tokens (`apps/docs/.vitepress/theme/styles/tokens.css`).
 
 ## OKLCH Design Tokens
 
