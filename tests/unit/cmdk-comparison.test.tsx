@@ -96,13 +96,28 @@ afterEach(async () => {
   container.remove();
 });
 
+/**
+ * Resolves after the next animation frame. The machine's scheduler batches its events with
+ * requestAnimationFrame (happy-dom's is setImmediate-backed and FIFO), so a frame queued after
+ * a machine.send() runs after the machine's batch has been applied.
+ */
+const nextFrame = (): Promise<void> => new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+/**
+ * nextFrame inside act(): the machine's rAF batch commits its stateChange, which React renders.
+ * Measured: act()'s own exit already yields a macrotask that drains the setImmediate-backed frame
+ * (with nextFrame replaced by an immediate resolve every React test here still passes; only the
+ * two machine-only tests in 17a, which have no act(), fail), so this wait states the dependency
+ * on the batch instead of relying on act()'s internals. cmdk is not rAF-batched: it renders
+ * inside act() itself, so the extra frame is harmless for it.
+ */
+const flushFrame = (): Promise<void> => act(async () => await nextFrame());
+
 async function render(ui: ReactNode): Promise<void> {
   await act(async () => {
     root.render(ui);
   });
-  await act(async () => {
-    await new Promise<void>((r) => queueMicrotask(r));
-  });
+  await flushFrame();
 }
 
 async function typeInInput(input: HTMLInputElement, value: string): Promise<void> {
@@ -113,9 +128,7 @@ async function typeInInput(input: HTMLInputElement, value: string): Promise<void
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  await act(async () => {
-    await new Promise<void>((r) => queueMicrotask(r));
-  });
+  await flushFrame();
 }
 
 async function pressKey(key: string, opts?: KeyboardEventInit): Promise<void> {
@@ -123,9 +136,7 @@ async function pressKey(key: string, opts?: KeyboardEventInit): Promise<void> {
     const target = document.querySelector('[data-command-root]') ?? document;
     target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...opts }));
   });
-  await act(async () => {
-    await new Promise<void>((r) => queueMicrotask(r));
-  });
+  await flushFrame();
 }
 
 function getItems(): NodeListOf<Element> {
@@ -874,7 +885,7 @@ describe('8. Dialog Variant', () => {
       await new Promise<void>((r) => setTimeout(r, 0));
     });
 
-    // Radix 1.6 DismissableLayer dismisses on a full outside click (pointerdown +
+    // Radix's DismissableLayer dismisses on a full outside click (pointerdown +
     // pointerup + click), not a bare pointerdown — simulate a real mouse click.
     const overlay = container.querySelector('[data-command-overlay]') as Element;
     await act(async () => {
@@ -882,9 +893,7 @@ describe('8. Dialog Variant', () => {
       overlay.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
       overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    await act(async () => {
-      await new Promise<void>((r) => queueMicrotask(r));
-    });
+    await flushFrame();
 
     await vi.waitFor(() => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
@@ -959,9 +968,7 @@ describe('10. Disabled Items', () => {
     await act(async () => {
       el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    await act(async () => {
-      await new Promise<void>((r) => queueMicrotask(r));
-    });
+    await flushFrame();
   }
 
   it('should not fire onSelect on disabled items (same as cmdk)', async () => {
@@ -1470,9 +1477,7 @@ describe('16. onSelect Callback', () => {
     await act(async () => {
       item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    await act(async () => {
-      await new Promise<void>((r) => queueMicrotask(r));
-    });
+    await flushFrame();
 
     await vi.waitFor(() => {
       expect(onSelect).toHaveBeenCalledTimes(1);
@@ -1581,10 +1586,10 @@ describe('17. NEW Features Not In cmdk (Superset)', () => {
       });
 
       machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
-      // Machine scheduler batches events — flush with multiple microtasks + setTimeout
-      await new Promise<void>((r) => queueMicrotask(r));
-      await new Promise<void>((r) => queueMicrotask(r));
-      await new Promise<void>((r) => setTimeout(r, 10));
+      expect(machine.getState().search).toBe(''); // queued, not applied yet
+      // The scheduler batches the event with requestAnimationFrame (happy-dom has one): the frame
+      // queued here runs after the machine's batch, so the state is applied when it resolves
+      await nextFrame();
 
       const state = machine.getState();
       expect(state.search).toBe('app');
@@ -1596,10 +1601,10 @@ describe('17. NEW Features Not In cmdk (Superset)', () => {
 
       const unsub = machine.subscribe(callback);
       machine.send({ type: 'SEARCH_CHANGE', query: 'test' });
-      // Machine scheduler batches via microtask — flush multiple times
-      await new Promise<void>((r) => queueMicrotask(r));
-      await new Promise<void>((r) => queueMicrotask(r));
-      await new Promise<void>((r) => setTimeout(r, 10));
+      expect(callback).not.toHaveBeenCalled(); // queued, not emitted yet
+      // The scheduler batches the event with requestAnimationFrame: one frame later the batch's
+      // stateChange has been emitted
+      await nextFrame();
 
       expect(callback).toHaveBeenCalled();
       unsub();
