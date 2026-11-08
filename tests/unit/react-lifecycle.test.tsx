@@ -383,6 +383,50 @@ describe('React lifecycle (C1)', () => {
     expect(second.mock.calls).toEqual([['ap']]);
   });
 
+  it('a loop prop change after mount changes wrap-around', async () => {
+    const spy = new Spy();
+    const tree = (loop: boolean): ReactNode => (
+      <Command items={[apple, banana]} loop={loop}>
+        <spy.Probe />
+      </Command>
+    );
+    await mount(tree(true));
+    await settle();
+    await update(tree(false));
+    await settle();
+    await act(async () => {
+      spy.machine.send({ type: 'NAVIGATE', direction: 'last' });
+    });
+    await settle();
+    await act(async () => {
+      spy.machine.send({ type: 'NAVIGATE', direction: 'next' });
+    });
+    await settle();
+
+    expect(spy.machine.getState().activeId).toBe(banana.id);
+  });
+
+  it('a disabledItems prop change refilters', async () => {
+    const spy = new Spy();
+    const items: readonly CommandItem[] = [apple, { ...banana, disabled: true }];
+    const tree = (disabledItems: 'show' | 'hide'): ReactNode => (
+      <Command items={items} disabledItems={disabledItems}>
+        <spy.Probe />
+      </Command>
+    );
+    await mount(tree('show'));
+    await settle();
+    expect(spy.machine.getState().filteredIds).toEqual([apple.id, banana.id]);
+
+    await update(tree('hide'));
+    await settle();
+    expect(spy.machine.getState().filteredIds).toEqual([apple.id]);
+
+    await update(tree('show'));
+    await settle();
+    expect(spy.machine.getState().filteredIds).toEqual([apple.id, banana.id]);
+  });
+
   it('onSearchChange is not called twice for one query', async () => {
     const onSearchChange = vi.fn();
     const spy = new Spy();
