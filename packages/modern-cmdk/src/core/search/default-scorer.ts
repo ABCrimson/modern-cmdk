@@ -25,48 +25,34 @@ function isWordSeparator(code: number): boolean {
  * Multi-strategy: exact → prefix → substring → word-boundary → fuzzy.
  * Returns null if no match. For batch use, prefer the search engine
  * which pre-caches lowercase and normalizes query once.
+ *
+ * `matches` are half-open ranges into `item.value` itself (UTF-16 indices of the original
+ * string, even where lowercasing changes its length, as 'İ' → 'i̇' does). A match on a keyword
+ * has no range on the value, so it reports `matches: []`.
  */
 export function scoreItem(query: string, item: CommandItem): SearchResult | null {
   if (query === '') {
     return { id: item.id, score: 1, matches: [] };
   }
 
-  const lowerQuery = query.toLowerCase();
-
-  // Inline target iteration — no array allocation
-  // Score value first, then keywords, keep best
-  let bestScore = 0;
-  let bestMatches: Array<readonly [number, number]> | null = null;
-
-  const valueResult = scoreTarget(lowerQuery, item.value.toLowerCase());
-  if (valueResult !== null) {
-    bestScore = valueResult.score;
-    bestMatches = valueResult.matches;
-    if (bestScore >= 1) return { id: item.id, score: 1, matches: bestMatches };
-  }
-
-  const kw = item.keywords;
-  if (kw !== undefined) {
-    for (let i = 0; i < kw.length; i++) {
-      const result = scoreTarget(lowerQuery, (kw[i] as string).toLowerCase());
-      if (result !== null && result.score > bestScore) {
-        bestScore = result.score;
-        bestMatches = result.matches;
-        if (bestScore >= 1) break;
-      }
-    }
-  }
-
-  return bestMatches !== null ? { id: item.id, score: bestScore, matches: bestMatches } : null;
+  return scoreItemPreLowered(
+    query.toLowerCase(),
+    item.id,
+    item.value,
+    item.value.toLowerCase(),
+    item.keywords?.map((keyword) => keyword.toLowerCase()),
+  );
 }
 
 /**
  * Internal fast path: called by search engine with pre-lowered query and targets.
- * Eliminates all toLowerCase() calls on the hot path.
+ * Eliminates all toLowerCase() calls on the hot path. `value` is the original text, which the
+ * ranges index (see {@link scoreItem}).
  */
 export function scoreItemPreLowered(
   lowerQuery: string,
   id: import('../types.js').ItemId,
+  value: string,
   lowerValue: string,
   lowerKeywords: readonly string[] | undefined,
 ): SearchResult | null {
@@ -76,7 +62,7 @@ export function scoreItemPreLowered(
   const valueResult = scoreTarget(lowerQuery, lowerValue);
   if (valueResult !== null) {
     bestScore = valueResult.score;
-    bestMatches = valueResult.matches;
+    bestMatches = toOriginalRanges(value, lowerValue, valueResult.matches);
     if (bestScore >= 1) return { id, score: 1, matches: bestMatches };
   }
 
@@ -85,13 +71,40 @@ export function scoreItemPreLowered(
       const result = scoreTarget(lowerQuery, lowerKeywords[i] as string);
       if (result !== null && result.score > bestScore) {
         bestScore = result.score;
-        bestMatches = result.matches;
+        bestMatches = [];
         if (bestScore >= 1) break;
       }
     }
   }
 
   return bestMatches !== null ? { id, score: bestScore, matches: bestMatches } : null;
+}
+
+/**
+ * Maps ranges found in `lowerValue` back onto `value`. Lowercasing changes the length of a few
+ * characters ('İ' → 'i' + U+0307), which shifts every later index, so when the lengths differ each
+ * lowered unit is traced to the character it came from: a range starts at the start of the
+ * character holding its first unit and ends at the end of the character holding its last.
+ * Equal lengths (the common case; the final sigma lowers to 'ς' or 'σ', both one unit) need no map.
+ */
+function toOriginalRanges(
+  value: string,
+  lowerValue: string,
+  ranges: Array<readonly [number, number]>,
+): Array<readonly [number, number]> {
+  if (value.length === lowerValue.length) return ranges;
+  // Original index of the character holding lowered unit `unit`: its start (`after` 0) or its end (1)
+  const locate = (unit: number, after: 0 | 1): number => {
+    let from = 0;
+    let lowered = 0;
+    for (const char of value) {
+      lowered += char.toLowerCase().length;
+      if (lowered > unit) return from + after * char.length;
+      from += char.length;
+    }
+    return from;
+  };
+  return ranges.map(([start, end]) => [locate(start, 0), locate(end - 1, 1)]);
 }
 
 function scoreTarget(
