@@ -1,7 +1,7 @@
 import { expect, test as it, type Page } from '@playwright/test';
 
 // Route view transitions (apps/docs/.vitepress/theme/view-transitions.ts; design-final.md 5). The spec runs against
-// `vitepress preview` of the built site, so `pnpm docs:build` comes first. document.startViewTransition is wrapped in an
+// the built site (scripts/serve-dist.mjs), so `pnpm docs:build` comes first. document.startViewTransition is wrapped in an
 // init script that records, per call, the h1 on screen when the update callback finishes and whether the transition was
 // skipped, so a transition that released early (the old page animating into itself) is visible to the test.
 

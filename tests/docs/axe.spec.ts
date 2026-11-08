@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test as it, type Page } from '@playwright/test';
 
-// axe-core over the pages the redesign changed (design-final.md 8), light and dark, against `vitepress preview`.
+// axe-core over the pages the redesign changed (design-final.md 8), light and dark, against scripts/serve-dist.mjs.
 // The run uses reduced motion: the home sections reveal on scroll (opacity 0.001 to 1 under `animation-timeline: view()`,
 // motion.css), and axe measures the colour of text that is half revealed; with reduced motion they are painted in full,
 // which is what a visitor who has not scrolled yet has no way to read anyway.
