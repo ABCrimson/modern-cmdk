@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 const root = resolve(import.meta.dirname, '../..');
 const workflow = readFileSync(resolve(root, '.github/workflows/ci.yml'), 'utf8');
+const harnessSource = readFileSync(resolve(root, 'benchmarks/browser/run.ts'), 'utf8');
 
 /** The lines of one job (its key line included) up to the next two-space-indented key or comment. */
 function job(name: string): string {
@@ -47,7 +48,7 @@ describe('ci.yml', () => {
     expect(job('e2e')).toMatch(/^ {6}- run: pnpm playwright test$/m);
     expect(job('consumers')).toMatch(/^ {6}- run: pnpm run test:consumers /m);
     expect(job('docs')).toMatch(/^ {6}- run: pnpm test:docs$/m);
-    expect(job('browser-bench')).toMatch(/^ {6}- run: node benchmarks\/browser\/run\.ts$/m);
+    expect(job('browser-bench')).toMatch(/^ {6}- run: node benchmarks\/browser\/run\.ts /m);
   });
 
   it('RDG-126, RDG-130: the consumers and package jobs take no pnpm store cache', () => {
@@ -82,13 +83,26 @@ describe('ci.yml', () => {
     expect(download.exec(block)?.[0]).toBe(e2eDownload);
     // Order: install Chromium, then the harness (its own step), then the upload
     const install = block.indexOf('- name: Install Chromium (bounded retry on the apt mirror)');
-    const harness = block.indexOf('      - run: node benchmarks/browser/run.ts\n');
+    const harness = block.indexOf('      - run: node benchmarks/browser/run.ts ');
     const upload = block.indexOf('actions/upload-artifact@');
     expect(install).toBeGreaterThan(-1);
     expect(harness).toBeGreaterThan(install);
     expect(upload).toBeGreaterThan(harness);
     expect(block.slice(upload)).toMatch(/^ {8}if: always\(\)$/m);
-    expect(block.slice(upload)).toContain('path: benchmarks/browser/results/');
+    // The harness writes outside the checkout, so a committed results file can never stand in for this run:
+    // when the harness dies before writing, the upload finds nothing and if-no-files-found fails it
+    const outPath = '"$RUNNER_TEMP/browser-bench/results.json"';
+    expect(block).toContain(`- run: node benchmarks/browser/run.ts --out ${outPath}`);
+    expect(block.slice(upload)).toContain(`path: \${{ runner.temp }}/browser-bench/`);
+    expect(block.slice(upload)).toContain('if-no-files-found: error');
+    expect(block).not.toContain('path: benchmarks/browser/results');
+    // The job timeout sits well above the harness deadline plus setup, so the harness fails loudly first
+    const deadlineMinutes = Number(
+      /const HARNESS_DEADLINE_MS = (\d+) \* 60_000;/.exec(harnessSource)?.[1],
+    );
+    const jobMinutes = Number(/^ {4}timeout-minutes: (\d+)$/m.exec(block)?.[1]);
+    expect(deadlineMinutes).toBeGreaterThan(0);
+    expect(jobMinutes).toBeGreaterThanOrEqual(deadlineMinutes + 10);
     // No mask: a failing gate fails the job
     expect(block).not.toContain('continue-on-error');
     expect(block).not.toContain('|| true');

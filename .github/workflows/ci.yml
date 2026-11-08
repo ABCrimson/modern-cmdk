@@ -523,14 +523,20 @@ jobs:
   # drives its /bench route in Chromium at 1K and 10K items (1 warm-up + 7 measured runs each) and exits
   # 0 when the 10K mount median is at or below 50 ms, 1 when it is above, 2 on a harness error. Any
   # non-zero exit fails the job: the threshold is absolute (no relative comparison before CodSpeed at
-  # 1.9, D20), not a warning and never masked. The results JSON is uploaded whatever the verdict.
+  # 1.9, D20), not a warning and never masked. The harness writes its results JSON outside the checkout
+  # (--out), so the committed results files cannot stand in for this run: when the harness dies before
+  # writing, the upload finds nothing and fails. The JSON is uploaded whatever the verdict.
   browser-bench:
     name: Browser bench (Chromium, 10K mount gate)
     needs: build
     runs-on: ubuntu-26.04
-    # A hang bound, not a mask: the harness takes ~4 minutes on a developer laptop (8 runs of ~23 s at 10K
-    # while the mount is unbatched, 8 of ~0.5 s at 1K) and fails each wait on its own bound
-    timeout-minutes: 20
+    # A hang bound, not a mask. The harness takes 3 minutes (185 s on the author's laptop, 181 s on the
+    # verifier's: 8 runs of ~23 s at 10K while the mount is unbatched, 8 of ~0.5 s at 1K) and fails each wait
+    # on its own bound, but the worst case of those bounds added up is far past any sane limit, so the
+    # harness carries an overall deadline (HARNESS_DEADLINE_MS, 15 minutes) that fails it loudly (exit 2,
+    # naming where it was) first. This timeout is that deadline plus 10 minutes of checkout, install,
+    # dist download and Chromium install with its bounded retry.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -563,12 +569,12 @@ jobs:
             if ! sudo apt-get update; then echo "::warning::apt-get update failed before attempt $((i + 1))"; fi
             sleep 15
           done
-      - run: node benchmarks/browser/run.ts
+      - run: node benchmarks/browser/run.ts --out "$RUNNER_TEMP/browser-bench/results.json"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: browser-bench-results
-          path: benchmarks/browser/results/
+          path: ${{ runner.temp }}/browser-bench/
           if-no-files-found: error
           retention-days: 30
 
