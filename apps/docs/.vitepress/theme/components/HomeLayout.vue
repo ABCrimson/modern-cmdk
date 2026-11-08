@@ -133,7 +133,14 @@ const releaseUrl = `https://github.com/ABCrimson/modern-cmdk/releases/tag/modern
 }
 
 @media (min-width: 60rem) {
+  /* The palette centres against the text column, and the hero gives up its bottom padding so every home section is one 96 px
+     step apart (it was 152 px from the hero to the features and 88 px to the content). */
+  .VPHome :deep(.VPHero) {
+    padding-bottom: 0;
+  }
+
   .VPHome :deep(.VPHero .container) {
+    align-items: center;
     gap: var(--mc-space-7);
   }
 
@@ -147,13 +154,6 @@ const releaseUrl = `https://github.com/ABCrimson/modern-cmdk/releases/tag/modern
   }
 }
 
-/* Feature cards: radius lg, an icon tile of 40 px with a 24 px brand-1 glyph on brand-soft */
-.VPHome :deep(.VPFeature) {
-  border-color: var(--mc-divider);
-  border-radius: var(--mc-radius-lg);
-}
-
-.VPHome :deep(.VPFeature .icon) {
 /* The reveal is on each card, not on the whole features section (motion.css .mc-reveal): a section taller than the phone viewport
    was still translucent with its first card fully on screen. Same animation and range. */
 @supports (animation-timeline: view()) {
@@ -166,6 +166,13 @@ const releaseUrl = `https://github.com/ABCrimson/modern-cmdk/releases/tag/modern
   }
 }
 
+/* Feature cards: radius lg, an icon tile of 40 px with a 24 px brand-1 glyph on brand-soft */
+.VPHome :deep(.VPFeature) {
+  border-color: var(--mc-divider);
+  border-radius: var(--mc-radius-lg);
+}
+
+.VPHome :deep(.VPFeature .icon) {
   inline-size: 2.5rem;
   block-size: 2.5rem;
   border-radius: var(--mc-radius-sm);

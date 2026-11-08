@@ -3,7 +3,7 @@ layout: home
 hero:
   name: modern-cmdk
   text: One headless engine.<br>Any framework.
-  tagline: Fuzzy search, frecency ranking and keyboard shortcuts in a typed TypeScript state machine, plus a React 19 adapter that renders a WAI-ARIA combobox.
+  tagline: Fuzzy search, frecency ranking and keyboard shortcuts in a typed TypeScript state machine, plus a React&nbsp;19 adapter that renders a WAI-ARIA combobox.
   actions:
     - { theme: brand, text: Get started, link: /guide/getting-started }
     - { theme: alt, text: API reference, link: /api/command }
