@@ -841,8 +841,8 @@
   },
   {
     "id": "P06",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/search-incremental.test.ts::should call a custom scorer once per item on a query extension (full rescan)",
+    "status": "covered"
   },
   {
     "id": "P07",
@@ -851,8 +851,8 @@
   },
   {
     "id": "P19",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/search.test.ts::should rank word-boundary hits against each other (CE-35)",
+    "status": "covered"
   },
   {
     "id": "P20",
@@ -951,23 +951,23 @@
   },
   {
     "id": "CE-77",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/scheduler.test.ts::flush() applies every update synchronously and in order on a Chromium with input pending (ARCH-44, DAE-76, SPEC-32, CE-34)",
+    "status": "covered"
   },
   {
     "id": "CE-35",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/search.test.ts::should score a word-boundary hit by contiguity and coverage (CE-35)",
+    "status": "covered"
   },
   {
     "id": "CE-36",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/search.test.ts::should backtrack to a shorter run so a later word start can finish the cover (CE-36)",
+    "status": "covered"
   },
   {
     "id": "CE-37",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/search-incremental.test.ts::should find items for a longer query after a shorter one matched nothing (min-length scorer)",
+    "status": "covered"
   },
   {
     "id": "CE-78",
@@ -976,8 +976,8 @@
   },
   {
     "id": "CE-88",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/search-incremental.test.ts::should score only the previous matches when %s becomes %s (case-only change)",
+    "status": "covered"
   },
   {
     "id": "PGX-12",
@@ -1006,6 +1006,16 @@
   },
   {
     "id": "DA-12",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-104",
+    "test": "tests/unit/search.test.ts::should not hang on a query with a separator against doubled separators",
+    "status": "covered"
+  },
+  {
+    "id": "CE-105",
     "test": null,
     "status": "pending"
   }
