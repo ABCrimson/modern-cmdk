@@ -550,14 +550,14 @@ sequenceDiagram
 
 What resolves today:
 
-- Item background: `[data-command-item]` declares a `background-color` transition over `--command-duration-item` (120ms) with a `linear()` ease (styles.css:213); it runs on the background the app sets for `[data-active]` (the library sets one only under `forced-colors`, :570). `content-visibility: auto` skips off-screen item rendering (:215).
-- List height: `[data-command-list]` declares `transition: height` over `--command-duration-list` with `--command-spring-easing` and sets `will-change: height` (styles.css:195-196). Both tokens resolve because the list sits inside `[data-command-root]`. The library sets only `--command-list-height` on the list (list.tsx:107), not `height`, so the transition interpolates once the app sets `height: var(--command-list-height)` on `[data-command-list]` (apps/docs/guide/migration-from-cmdk.md:111).
-- Virtual positioning: each virtual item is absolutely positioned and offset with the `translate` property (`translate: 0 <start>px`, item.tsx:79), and the virtual list sets `will-change: transform` (styles.css:234). The motion is transform-based, which keeps it off the layout path.
-- Overlay tint: `--command-overlay-opacity` is a registered property (:30) read by the overlay background (:140) and set to 0 or 0.4 by the state rules (:324, :334). The value switches with `data-state`; the `transition` declarations beside it (:326-331, :335-341) read unset tokens, so it does not interpolate.
+- Item background: `[data-command-item]` declares a `background-color` transition over `--command-duration-item` (120ms) with a `linear()` ease (styles.css:207); it runs on the background the app sets for `[data-active]` (the library sets one only under `forced-colors`, :571). `content-visibility: auto` skips off-screen item rendering (:209).
+- List height: `[data-command-list]` declares `transition: height` over `--command-duration-list` with `--command-spring-easing` and sets `will-change: height` (styles.css:188-189). Both tokens resolve because the list sits inside `[data-command-root]`. The library sets only `--command-list-height` on the list (list.tsx:105), not `height`, so the transition interpolates once the app sets `height: var(--command-list-height)` on `[data-command-list]` (the sample in apps/docs/guide/migration-from-cmdk.md).
+- Virtual positioning: each virtual item is absolutely positioned and offset with the `translate` property (`translate: 0 <start>px`, item.tsx:78), and the virtual list sets `will-change: transform` (styles.css:228). The motion is transform-based, which keeps it off the layout path.
+- Overlay tint: `--command-overlay-opacity` is a registered property (:24) read by the overlay background (:134) and set to 0 or 0.4 by the state rules (:319, :329). The value switches with `data-state`; the `transition` declarations beside it (:321-325, :331-335) read unset tokens, so it does not interpolate.
 
 What is declared and inert until DT-19:
 
-The tokens are declared only in `[data-command-root]` (styles.css:51-104). The overlay and dialog elements sit outside it: `dialog.tsx` renders the Command root inside the dialog content (dialog.tsx:116). Every `transition`, `backdrop-filter` and size declaration that reads an unset token is invalid at computed-value time, so the dialog and overlay open and close transitions (styles.css:319-380) do not run. DT-19 moves the tokens to a selector the overlay and dialog match. Until then an app sets all twelve tokens on `[data-command-overlay], [data-command-dialog]`; see `apps/docs/guide/theming.md` (Library Tokens).
+The tokens are declared only in `[data-command-root]` (styles.css:45-103). The overlay and dialog elements sit outside it: `dialog.tsx` renders the Command root inside the dialog content (dialog.tsx:114). Every `transition`, `backdrop-filter` and size declaration that reads an unset token is invalid at computed-value time, so the dialog and overlay open and close transitions (styles.css:312-374) do not run. DT-19 moves the tokens to a selector the overlay and dialog match. Until then an app sets all twelve tokens on `[data-command-overlay], [data-command-dialog]`; see `apps/docs/guide/theming.md` (Library Tokens).
 
 ```
 declared (inert until DT-19)
@@ -574,27 +574,32 @@ Dialog close:
   -> 150ms cubic-bezier(0.4, 0, 1, 1)  // quicker, no spring overshoot
 ```
 
-The spring easings are `linear()` stop lists (styles.css:52-90): `--command-spring-easing` rises to 1 without overshoot (critically damped), and `--command-spring-easing-bouncy` peaks at 1.033 before settling. They also live in `[data-command-root]`, so only the list height transition reads them today, and it animates only when the app sets the list height (see above).
+The spring easings are `linear()` stop lists (styles.css:46-84): `--command-spring-easing` rises to 1 without overshoot (critically damped), and `--command-spring-easing-bouncy` peaks at 1.033 before settling. They also live in `[data-command-root]`, so only the list height transition reads them today, and it animates only when the app sets the list height (see above).
 
-`@starting-style` (CSS Transitions Level 2) is written for the overlay (:320-323) and the dialog (:348-354). Once the tokens resolve, the browser interpolates from the starting style to the final style on first render. `display` and `overlay` transitions use `allow-discrete` to animate to and from `display: none`.
+`@starting-style` (CSS Transitions Level 2) is written for the overlay (:315-318) and the dialog (:341-347). Once the tokens resolve, the browser interpolates from the starting style to the final style on first render. `display` and `overlay` transitions use `allow-discrete` to animate to and from `display: none`.
 
 ### Scroll-Driven Animations
 
 `styles.css` declares a `scroll-timeline` on the list and a matching progress-indicator
-rule driven by it:
+rule driven by it. Both are wrapped in `@supports (animation-timeline: scroll())` (styles.css:433-458), and the timeline is declared without an axis, because `block` is the default:
 
 ```css
-[data-command-list] {
-  scroll-timeline: --list-scroll block;
-}
+@supports (animation-timeline: scroll()) {
+  [data-command-list] {
+    scroll-timeline: --list-scroll;
+    /* ... the ::before / ::after fade edges use the same timeline ... */
+  }
 
-[data-command-scroll-indicator] {
-  animation: scroll-progress linear;
-  animation-timeline: --list-scroll;
+  [data-command-scroll-indicator] {
+    animation: scroll-progress linear both;
+    animation-timeline: --list-scroll;
+  }
 }
 ```
 
-No JavaScript scroll event listeners. Zero main-thread cost.
+The guard is there because Safari before 26 and Firefox before 159 lack `animation-timeline` (the stylesheet comment, from web-features 3.45.0-dev read 2026-11-08): without it a time-based run would settle in its end state. At the Safari 18.4 / Firefox 131 floor the fade edges and the progress bar therefore stay static.
+
+No JavaScript scroll event listeners. Zero main-thread cost where the timeline is supported.
 
 > [!NOTE]
 > The timeline is declared, but **no built-in component renders a
@@ -725,12 +730,12 @@ The interactive playground (`apps/playground`) uses **Vite 8.3.6** with `@vitejs
 
 ### Why `@starting-style` over JavaScript animations?
 
-This is the design intent. The dialog and overlay transitions are declared in `styles.css` (:319-380) and inert until DT-19 moves their tokens (see Animations and transitions). `@starting-style` is meant to give CSS-only entry animations:
+This is the design intent. The dialog and overlay transitions are declared in `styles.css` (:312-374) and inert until DT-19 moves their tokens (see Animations and transitions). `@starting-style` is meant to give CSS-only entry animations:
 - No JavaScript is needed to set up the animation
 - Opacity, scale and translate changes can be handled by the browser without React state
 - Works with `display: none` transitions via `allow-discrete`
 - Gracefully degrades in older browsers (no animation, but no breakage)
-- Respects `prefers-reduced-motion` via one media query (styles.css:513-530)
+- Respects `prefers-reduced-motion` via one media query (styles.css:515-532)
 
 JavaScript animation libraries (Framer Motion, React Spring) would add 10-30 KB to the bundle and require main-thread execution.
 
