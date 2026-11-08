@@ -1043,5 +1043,275 @@
     "id": "CE-115",
     "test": "tests/unit/frecency-strict-mode.test.tsx::CE-115, D95: the caller storage ends undisposed and a selection is saved once",
     "status": "covered"
+  },
+  {
+    "id": "CE-13",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-08",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-13",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-58",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-60",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-64",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-65",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-66",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-67",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-68",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-69",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-20",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-22",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-23",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-03",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-12",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-17",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-18",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-19",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "T06",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-03",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-04",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-05",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-13",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-16",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-17",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-18",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-19",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-21",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ACT-1",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "W05",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "T41",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-48",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "W44",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-34",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-35",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-36",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-78",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-39",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-45",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-46",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-X3",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DGX-ASYNC-4",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DGX-CD-5",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-107",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-110",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-111",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-112",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-113",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-116",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-117",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-118",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-119",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-124",
+    "test": null,
+    "status": "pending"
   }
 ]
