@@ -15,6 +15,9 @@ export interface CommandItemProps extends Omit<ComponentPropsWithRef<'div'>, 'on
   readonly onSelect?: () => void;
   readonly disabled?: boolean;
   readonly shortcut?: string;
+  /** The registration id and the DOM id; defaults to a `useId` id. Wins over the deprecated `forceId`. */
+  readonly id?: string | undefined;
+  /** @deprecated Use `id`. Removed in 2.0. */
   readonly forceId?: string;
 }
 
@@ -27,6 +30,7 @@ export function CommandItem({
   onSelect,
   disabled = false,
   shortcut,
+  id: idProp,
   forceId,
   ...props
 }: CommandItemProps): ReactNode {
@@ -41,6 +45,7 @@ export function CommandItem({
     ...(shortcut !== undefined && { shortcut }),
     disabled,
     ...(onSelect !== undefined && { onSelect }),
+    ...(idProp !== undefined && { id: idProp }),
     ...(forceId !== undefined && { forceId }),
     ...(groupCtx !== null && { groupId: groupCtx.groupId }),
   });

@@ -20,7 +20,9 @@ export interface CommandGroupProps extends ComponentPropsWithRef<'div'> {
    * of the group elements, not by this number.
    */
   readonly priority?: number;
-  /** Force a specific ID */
+  /** The registration id, also the id of the group element; the registration id defaults to a `useId` id. Wins over the deprecated `forceId`. */
+  readonly id?: string | undefined;
+  /** @deprecated Use `id`. Removed in 2.0. */
   readonly forceId?: string;
 }
 
@@ -30,6 +32,7 @@ export function CommandGroup({
   children,
   heading,
   priority,
+  id,
   forceId,
   ...props
 }: CommandGroupProps): ReactNode {
@@ -39,6 +42,7 @@ export function CommandGroup({
   const headingId: string = useId();
   const groupId = useRegisterGroup(heading, {
     ...(priority !== undefined && { priority }),
+    ...(id !== undefined && { id }),
     ...(forceId !== undefined && { forceId }),
   });
 
@@ -70,6 +74,7 @@ export function CommandGroup({
       <div
         ref={ref}
         data-command-group=""
+        id={id}
         role="group"
         aria-labelledby={heading ? headingId : undefined}
         {...props}
