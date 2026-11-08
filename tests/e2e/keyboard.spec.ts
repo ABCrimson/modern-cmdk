@@ -1,12 +1,41 @@
-import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { expect, open, test } from './fixtures';
 
 // Locator-first assertions throughout
 test.describe('Keyboard Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await open(page, '/');
     // Wait for hydration using locator-first pattern
     await expect(page.locator('[data-command-root]')).toBeVisible();
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
+  });
+
+  // ---------- T22: item-count preconditions ----------
+
+  test('T22: BasicDemo renders 15 items before the keyboard cases run', async ({ page }) => {
+    await expect(page.locator('[data-command-item]')).toHaveCount(15);
+    await expect(page.locator('[data-command-item]:not([data-disabled])')).toHaveCount(14);
+  });
+
+  test('T22: the keyboard and basic specs assert their item count instead of returning early', () => {
+    // Each pattern keeps one character in a class so that this file never matches itself
+    const earlyReturns = [
+      /\bi[f] \(.*\bcount\b.*\) return\b/,
+      /has[T]rigger/,
+      /count [>] 0/,
+      /isVisible\(\)\)\) retur[n]/,
+    ];
+    const offenders: string[] = [];
+    for (const file of ['basic.spec.ts', 'keyboard.spec.ts']) {
+      const lines = readFileSync(join(import.meta.dirname, file), 'utf8').split('\n');
+      lines.forEach((line, index) => {
+        if (earlyReturns.some((pattern) => pattern.test(line))) {
+          offenders.push(`${file}:${index + 1}`);
+        }
+      });
+    }
+    expect(offenders, 'early-return guards in the e2e specs').toEqual([]);
   });
 
   // ---------- Arrow Key Navigation ----------
@@ -206,7 +235,7 @@ test.describe('Keyboard Navigation', () => {
   // ---------- Escape to Close ----------
 
   test('should close the palette with Escape', async ({ page }) => {
-    await page.goto('/dialog');
+    await open(page, '/dialog');
 
     // Open the dialog first
     await page.locator('[data-command-trigger]').click();
@@ -311,7 +340,7 @@ test.describe('Keyboard Navigation', () => {
   // ---------- Keyboard Shortcut Registration ----------
 
   test('should register and respond to Ctrl+K shortcut for dialog toggle', async ({ page }) => {
-    await page.goto('/dialog');
+    await open(page, '/dialog');
 
     // Press Ctrl+K to toggle
     await page.keyboard.press('Control+k');
