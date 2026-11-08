@@ -404,13 +404,19 @@ function paste(): void {
   void navigator.clipboard.readText().then((text) => console.log('pasted', text));
 }
 
-using registry = new KeyboardShortcutRegistry();
+const registry = new KeyboardShortcutRegistry();
 registry.register('Mod+C', itemId('copy'), () => copy());
 registry.register('Mod+V', itemId('paste'), () => paste());
 
 // Detect conflicts
 const conflicts = registry.getConflicts();
 // conflicts: ReadonlyMap<string, readonly ParsedShortcut[]> (normalized shortcut → conflicting bindings)
+
+// Dispose on teardown, not at module top level: the constructor installs the global keydown listener and
+// dispose removes it and clears the bindings.
+export function teardown(): void {
+  registry[Symbol.dispose]();
+}
 ```
 
 | Method | Returns | Description |
