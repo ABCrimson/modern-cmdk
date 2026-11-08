@@ -1,0 +1,5 @@
+[
+  "line 5: group-data-[selected=true]: styles this element by the state of another element (an ancestor or a sibling) that need not be a cmdk element, so it cannot be migrated automatically; left unchanged: check it by hand",
+  "line 5: peer-has-data-[disabled=true]: styles this element by the state of another element (an ancestor or a sibling) that need not be a cmdk element, so it cannot be migrated automatically; left unchanged: check it by hand",
+  "line 6: not-in-data-[selected=true]: styles this element by the state of another element (an ancestor or a sibling) that need not be a cmdk element, so it cannot be migrated automatically; left unchanged: check it by hand"
+]

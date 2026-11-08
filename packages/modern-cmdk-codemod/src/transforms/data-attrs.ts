@@ -99,11 +99,11 @@ const ATTRIBUTE_SELECTOR =
 const PARTIAL_ATTRIBUTE_SELECTOR = /\[\s*([A-Za-z_][\w-]*)(?=\s*[~|^$*]?=|\s*$)/dy;
 
 /** Tailwind presence form of the two state attributes: data-[selected]:, data-[disabled]/name:. */
-const TAILWIND_PRESENCE = /(?<!\w)data-\[(selected|disabled)\](?=[:/])/g;
+const TAILWIND_PRESENCE = /(?<!\w)data-\[((?i:selected|disabled))\](?=[:/])/g;
 
 /** Tailwind value variants of the two state attributes: data-[selected=true]:, data-[disabled='false']/name:. */
 const TAILWIND_STATE =
-  /(?<!\w)data-\[(selected|disabled)=(?:(["'])(true|false)\2|(true|false))\](?=[:/])/g;
+  /(?<!\w)data-\[((?i:selected|disabled))=(?:(["'])(true|false)\2|(true|false))\](?=[:/])/g;
 
 /** Whitespace that only pads a closing parenthesis, a comma or a combinator inside parentheses. */
 const ARGUMENT_PADDING = /\s*[),>+~]/y;
@@ -495,18 +495,35 @@ function rewriteTailwind(text: string, report: SiteReport): string {
 }
 
 /**
- * Reports a `group-`, `peer-` or `in-` data variant (it tests the state of an ancestor or a sibling,
- * which need not be a cmdk element) and returns true; false for a variant on the element itself.
+ * Reports a data variant that tests the state of another element and returns true; false for a
+ * variant on the element itself. Those are the `group-`, `peer-` and `in-` variants, their
+ * `-has-` forms and `not-` forms: they style an element by the state of an ancestor or a sibling,
+ * which need not be a cmdk element (a cmdk item has no cmdk ancestor with a selected state), so
+ * rewriting them to data-active would be a guess. A bare `has-` tests the descendants, which are
+ * cmdk items in the common case, and stays rewritable.
  */
 function reportedAsOther(text: string, m: RegExpExecArray, report: SiteReport): boolean {
-  const start = /(?<![\w-])(?:group|peer|in)-$/.exec(text.slice(0, m.index))?.index;
+  const start = /(?<![\w-])(?:not-)?(?:(?:group|peer)(?:-has)?|in)-$/.exec(
+    text.slice(0, m.index),
+  )?.index;
   if (start === undefined) return false;
   const variant = text.slice(start, m.index + m[0].length);
   report(
     start,
-    `${variant}: styles this element by the state of another element (an ancestor or a sibling) that need not be a cmdk element, so it cannot be migrated automatically; left unchanged`,
+    `${variant}: styles this element by the state of another element (an ancestor or a sibling) that need not be a cmdk element, so it cannot be migrated automatically; left unchanged: check it by hand`,
   );
   return true;
+}
+
+/**
+ * Reports the other-element data variants of a class list on an element that is not cmdk-bound:
+ * nothing there is rewritten, but a `group-data-[selected=true]:` under a cmdk item stops working
+ * once the item renders data-active.
+ */
+function reportOtherElements(text: string, report: SiteReport): void {
+  for (const pattern of [TAILWIND_PRESENCE, TAILWIND_STATE]) {
+    for (const m of text.matchAll(pattern)) reportedAsOther(text, m, report);
+  }
 }
 
 /** The edits rewriteTailwind applies, as ranges of `text`. */
@@ -514,7 +531,7 @@ function tailwindEdits(text: string, report: SiteReport): Edit[] {
   const edits: Edit[] = [];
   for (const m of text.matchAll(TAILWIND_PRESENCE)) {
     if (reportedAsOther(text, m, report)) continue;
-    const name = `data-${m[1]}`;
+    const name = `data-${(m[1] as string).toLowerCase()}`;
     const presence = STATE_ATTRS.get(name) as string;
     report(
       m.index,
@@ -523,7 +540,7 @@ function tailwindEdits(text: string, report: SiteReport): Edit[] {
   }
   for (const m of text.matchAll(TAILWIND_STATE)) {
     if (reportedAsOther(text, m, report)) continue;
-    const presence = STATE_ATTRS.get(`data-${m[1]}`) as string;
+    const presence = STATE_ATTRS.get(`data-${(m[1] as string).toLowerCase()}`) as string;
     const value = m[3] ?? m[4];
     if (value === 'true') {
       edits.push({ start: m.index, end: m.index + m[0].length, text: presence });
@@ -687,7 +704,7 @@ function applyCookedEdits(inner: string, decoded: Decoded, edits: readonly Edit[
  */
 export default function transform(fileInfo: FileInfo, api: API): string {
   // Quick bail — skip files with no cmdk references at all
-  if (!fileInfo.source.includes('cmdk')) {
+  if (!/cmdk/i.test(fileInfo.source)) {
     return fileInfo.source;
   }
 
@@ -724,17 +741,19 @@ export default function transform(fileInfo: FileInfo, api: API): string {
 
   // Literals inside the class attributes of bound elements get the Tailwind rewrite as well.
   const tailwind = new WeakSet<object>();
+  // Literals inside the class attributes of every other element: only reported (DA-13).
+  const unbound = new WeakSet<object>();
   root.find(j.JSXAttribute).forEach((path) => {
     const attrName = path.node.name;
     if (attrName.type !== 'JSXIdentifier' || !CLASS_ATTRS.has(attrName.name)) return;
     const element = path.parent?.node as { name?: unknown } | undefined;
-    if (!isBound(element?.name)) return;
+    const into = isBound(element?.name) ? tailwind : unbound;
     j(path)
       .find(j.Literal)
-      .forEach((p) => void tailwind.add(p.node));
+      .forEach((p) => void into.add(p.node));
     j(path)
       .find(j.TemplateLiteral)
-      .forEach((p) => void tailwind.add(p.node));
+      .forEach((p) => void into.add(p.node));
   });
 
   // 1. JSX attribute names: <div cmdk-root="" /> -> <div data-command-root="" />
@@ -769,6 +788,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
     const raw = rawOf(node);
     const inJsxAttribute = path.parent?.node?.type === 'JSXAttribute';
     const useTailwind = tailwind.has(path.node);
+    const reportOther = unbound.has(path.node);
     sites.push({
       pos: startOf(node),
       run: () => {
@@ -776,6 +796,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
         const hasQuotes = quote === '"' || quote === "'";
         if (!hasQuotes) {
           const report = reportAt(original, node.loc?.start?.line);
+          if (reportOther) reportOtherElements(original, report);
           let rewritten = rewriteSelectors(original, false, report, useTailwind);
           if (useTailwind) rewritten = rewriteTailwind(rewritten, report);
           if (rewritten === original) return;
@@ -795,6 +816,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
             }
           : decodeRaw(inner);
         const report = reportAt(decoded.cooked, node.loc?.start?.line);
+        if (reportOther) reportOtherElements(decoded.cooked, report);
         const edits = selectorEdits(decoded.cooked, false, report, useTailwind);
         if (useTailwind) edits.push(...tailwindEdits(decoded.cooked, report));
         if (edits.length === 0) return;
@@ -812,6 +834,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
   root.find(j.TemplateLiteral).forEach((path) => {
     const literal = path.node as unknown as LooseTemplate;
     const useTailwind = tailwind.has(path.node);
+    const reportOther = unbound.has(path.node);
     sites.push({
       pos: startOf(literal),
       run: () => {
@@ -838,6 +861,7 @@ export default function transform(fileInfo: FileInfo, api: API): string {
           }
           api.report(line + message.replaceAll(PLACEHOLDER, PLACEHOLDER_TEXT));
         };
+        if (reportOther) reportOtherElements(original, report);
         let rewritten = rewriteSelectors(original, false, report, useTailwind);
         if (useTailwind) rewritten = rewriteTailwind(rewritten, report);
         if (rewritten === original) return;
