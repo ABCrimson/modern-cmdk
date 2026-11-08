@@ -136,11 +136,12 @@
 /* Scroll-driven animations: Baseline 2026 (MDN animation-timeline, read 2026-11-07). Content stays visible without them. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    /* Home sections reveal as they enter the viewport */
+    /* Home sections and feature cards reveal as they enter the viewport, fully opaque once fully inside it. A range running into
+       cover left a card fully on screen at 0.66 opacity on a phone, where the features section is taller than the viewport. */
     .mc-reveal {
       animation: mc-reveal linear both;
       animation-timeline: view();
-      animation-range: entry 0% cover 25%;
+      animation-range: entry 0% entry 100%;
     }
 
     /*
