@@ -165,7 +165,8 @@ export function createDistServer({ root, base, openFile = (path) => open(path, '
 
 // import.meta.main is true only in the entry point (added v24.2.0 / v22.18.0; the repository floor is Node >= 26.4.0; read in
 // https://nodejs.org/download/nightly/v28.0.0-nightly20261107a43bfb5bb2/docs/api/esm.html, "import.meta.main"), so importing
-// this module from tests/unit/serve-dist.test.ts starts no server
+// this module from tests/unit/serve-dist.test.ts starts no server. Those docs mark it "Stability: 1.0 - Early development"; the
+// property is the same one the other scripts of this repository use (check-doc-samples.ts, check-package.ts).
 if (import.meta.main) {
   const repository = resolve(import.meta.dirname, '..');
   const { values } = parseArgs({
