@@ -32,12 +32,13 @@
     <text class="m" x="68" y="46.84" font-size="26" fill="#eaecf5">frec</text>
     <rect x="133.4" y="21.88" width="2" height="32.24" rx="1" fill="#fb7475"/>
     <path d="M0 76H488" stroke="#242a42" stroke-width="1.5"/>
-    <text class="s" x="28" y="108" font-size="12" font-weight="600" letter-spacing="1.6" fill="#9297ab">TOPICS</text>
-    <rect x="12" y="127" width="464" height="66" rx="12" fill="#fb7475" fill-opacity="0.14"/>
-    <rect x="12" y="144" width="3" height="32" rx="1.5" fill="#dc2626"/>
-    <text class="s" x="34" y="168.16" font-size="24" font-weight="600" fill="#eaecf5"><tspan fill="#fb7475" style="text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px">Frec</tspan><tspan>ency ranking</tspan></text>
-    <text class="s" x="34" y="240.16" font-size="24" font-weight="500" fill="#eaecf5"><tspan fill="#fb7475">Frec</tspan><tspan>ency example</tspan></text>
-    <text class="s" x="34" y="312.16" font-size="24" font-weight="500" fill="#eaecf5"><tspan>Keyboard shortcuts</tspan></text>
+    <text class="s" x="28" y="104" font-size="12" font-weight="600" letter-spacing="1.6" fill="#9297ab">TOPICS</text>
+    <rect x="12" y="114" width="464" height="56" rx="12" fill="#fb7475" fill-opacity="0.14"/>
+    <rect x="12" y="126" width="3" height="32" rx="1.5" fill="#dc2626"/>
+    <text class="s" x="34" y="150.16" font-size="24" font-weight="600" fill="#eaecf5"><tspan fill="#fb7475" style="text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px">Frec</tspan><tspan>ency ranking</tspan></text>
+    <text class="s" x="28" y="198" font-size="12" font-weight="600" letter-spacing="1.6" fill="#9297ab">GO TO</text>
+    <text class="s" x="34" y="240.16" font-size="24" font-weight="500" fill="#eaecf5"><tspan>Core API</tspan></text>
+    <text class="s" x="34" y="300.16" font-size="24" font-weight="500" fill="#eaecf5"><tspan>Spotlight recipe</tspan></text>
     <path d="M0 372H488" stroke="#242a42" stroke-width="1.5"/>
     <rect x="28" y="391" width="30" height="28" rx="7" fill="#141935" stroke="#5b627b" stroke-opacity=".6" stroke-width="1.5"/><text class="m" x="43" y="410" font-size="14" text-anchor="middle" fill="#b5bacb">↑</text><rect x="64" y="391" width="30" height="28" rx="7" fill="#141935" stroke="#5b627b" stroke-opacity=".6" stroke-width="1.5"/><text class="m" x="79" y="410" font-size="14" text-anchor="middle" fill="#b5bacb">↓</text><text class="s" x="104" y="410.5" font-size="15" fill="#9297ab">move</text>
     <rect x="168" y="391" width="58" height="28" rx="7" fill="#141935" stroke="#5b627b" stroke-opacity=".6" stroke-width="1.5"/><text class="m" x="197" y="410" font-size="14" text-anchor="middle" fill="#b5bacb">Enter</text><text class="s" x="234" y="410.5" font-size="15" fill="#9297ab">open</text>
