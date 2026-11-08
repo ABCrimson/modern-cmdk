@@ -20,9 +20,10 @@
 //   - `list.label`: cmdk `<Command.List label>`. modern-cmdk documents no List label prop: its
 //     List spreads the caller's props after its own `aria-label` (src/react/list.tsx), so an
 //     `aria-label` passed to `<Command.List>` overrides the root label; that is the translation.
-// An intent with no counterpart renders nothing in the other library: cmdk's `forceMount` and
-// `vimBindings`, `defaultValue` and `disablePointerSelection` have no modern-cmdk prop, and modern-cmdk's item `id` is a plain div attribute in
-// cmdk, which then overwrites it. The case records the difference.
+// An intent with no counterpart renders nothing in the other library: cmdk's `forceMount`,
+// `vimBindings`, `defaultValue` and `disablePointerSelection` have no modern-cmdk prop, and
+// modern-cmdk's item `id` is a plain div attribute in cmdk, which then overwrites it. The case
+// records the difference.
 
 import { Command as CmdkCommand } from 'cmdk';
 import { type CommandItem as CoreCommandItem, itemId } from 'modern-cmdk';
@@ -102,7 +103,7 @@ export interface RootOptions {
   readonly filter?: 'off' | ScoreFunction;
   /** cmdk only (`vimBindings`). modern-cmdk has no vim bindings, so it renders without. */
   readonly vimBindings?: boolean;
-  /** cmdk only (`defaultValue`, the initial active value). modern-cmdk has none, so it renders without. */
+  /** cmdk only (`defaultValue`, the initial active value); modern-cmdk renders without. */
   readonly defaultValue?: string;
   /** cmdk only (`disablePointerSelection`). modern-cmdk has none, so it renders without. */
   readonly disablePointerSelection?: boolean;

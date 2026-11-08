@@ -776,7 +776,7 @@ const cases: readonly ParityCase[] = [
   },
   {
     id: 'default-value',
-    title: 'a defaultValue on the root makes that item active at mount',
+    title: 'a defaultValue on the root decides which item is active at mount',
     run: async (adapter: ParityAdapter): Promise<Json> => {
       const session = await mountParity(adapter, {
         root: { defaultValue: 'banana' },
@@ -787,7 +787,7 @@ const cases: readonly ParityCase[] = [
   },
   {
     id: 'disable-pointer-selection',
-    title: 'disablePointerSelection stops a pointer move from making an item active',
+    title: 'disablePointerSelection decides whether a pointer move makes an item active',
     run: async (adapter: ParityAdapter): Promise<Json> => {
       const session = await mountParity(adapter, {
         root: { disablePointerSelection: true },
