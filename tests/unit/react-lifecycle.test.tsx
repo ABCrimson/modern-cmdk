@@ -395,6 +395,46 @@ describe('React lifecycle (C1)', () => {
     expect(onActiveChange).not.toHaveBeenCalled();
   });
 
+  it('an item the machine chose on its own is still reported when it is activated after an Activity hide/show', async () => {
+    const onActiveChange = vi.fn();
+    const spy = new Spy();
+    const tree = (mode: 'visible' | 'hidden'): ReactNode =>
+      activityTree(mode, spy, { onActiveChange });
+    await mount(tree('visible'));
+    await settle();
+    expect(spy.machine.getState().activeId).toBe('fixed-a');
+    onActiveChange.mockClear();
+
+    await update(tree('hidden'));
+    await settle();
+    await update(tree('visible'));
+    await settle();
+    expect(spy.machine.getState().activeId).toBe('fixed-a');
+
+    await act(async () => {
+      spy.machine.send({ type: 'ITEM_ACTIVATE', id: itemId('fixed-a') });
+    });
+    await settle();
+
+    expect(onActiveChange.mock.calls).toEqual([['fixed-a']]);
+  });
+
+  it('an item the machine chose on its own is still reported when it is activated under StrictMode', async () => {
+    const onActiveChange = vi.fn();
+    const spy = new Spy();
+    await mount(<StrictMode>{activityTree('visible', spy, { onActiveChange })}</StrictMode>);
+    await settle();
+    expect(spy.machine.getState().activeId).toBe('fixed-a');
+    onActiveChange.mockClear();
+
+    await act(async () => {
+      spy.machine.send({ type: 'ITEM_ACTIVATE', id: itemId('fixed-a') });
+    });
+    await settle();
+
+    expect(onActiveChange.mock.calls).toEqual([['fixed-a']]);
+  });
+
   it('a controlled activeId survives Activity hide/show without a report', async () => {
     const onActiveChange = vi.fn();
     const spy = new Spy();
