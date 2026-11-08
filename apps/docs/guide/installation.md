@@ -4,9 +4,14 @@
 
 | | Version | Notes |
 |---|---|---|
-| **Runtime** | no version check | `modern-cmdk` declares no `engines` (from 1.4.0). The published code uses ES2025 iterator helpers (`.values().map()`, `.toArray()`), `Symbol.dispose` and `Symbol.asyncDispose`, and `Array.prototype.toSorted` and `toSpliced`; run it on an engine that has them. |
+| **Runtime** | no version check | `modern-cmdk` declares no `engines` (from 1.4.0). The published code uses ES2025 iterator helpers (`.values().map()`, `.toArray()`) and `Array.prototype.toSorted` and `toSpliced`; run it on an engine that has them (browser floor below). `Symbol.dispose` and `Symbol.asyncDispose` are installed by the package where missing. |
+| **Browsers** | Chrome, Chrome for Android, Edge 122; Firefox, Firefox for Android 131; Safari, iOS Safari 18.4 | Read from `tests/unit/browser-floor.json` (web-features 3.45.0-dev-20261103105955-64427e2, published 2026-11-03): the per-browser maximum over the web-features entries the built core and React code use without feature detection. `iterator-methods` sets it; `array-by-copy` is also listed and is older (Chrome 110, Firefox 115, Safari 16). |
 | **Node.js (tools)** | >= 26.4.0 | The two tool packages, `modern-cmdk-codemod` (bin `modern-cmdk-codemod`) and `create-modern-cmdk`, declare `engines.node` >= 26.4.0. The `modern-cmdk` bin (`dist/codemod/bin.mjs`) is deprecated: it is a shim that warns once and runs the bundled codemod until 2.0, and `modern-cmdk` itself declares no `engines`. |
 | **TypeScript** | >= 5.6 | Measured consumer floor, with `"lib": ["ESNext", "DOM"]` (the `.d.mts` files use `IteratorObject`, `Disposable` and `AsyncDisposable`). 5.5.4 fails with `Cannot find name 'IteratorObject'`. The package is *built* with TypeScript 7.1.0-dev.20261107.1, which is a separate fact from the floor. Method below. |
+
+The same test fails when the built code uses a newer API (`Promise.try`, `Math.sumPrecise`, `RegExp.escape`, `Iterator.concat`, `Uint8Array.fromBase64` and `fromHex`, `Error.isError`, `DisposableStack`, `using` declarations). `Symbol.dispose` and `Symbol.asyncDispose` are not part of the floor: they are not Baseline, so the core assigns the registered symbols `Symbol.for('Symbol.dispose')` and `Symbol.for('Symbol.asyncDispose')` where the browser lacks them (`packages/modern-cmdk/src/core/frecency/idb-storage.ts`), and the published code contains no `using` declaration.
+
+The stylesheet adds scroll-driven animations (the list fade edges, and the progress animation of a `[data-command-scroll-indicator]` element, which no component renders) only where `@supports (animation-timeline: scroll())` holds: Chrome and Edge 115, Firefox 159, Safari 26 (web-features `scroll-driven-animations`, same version, read 2026-11-08). At the floor above, Safari and Firefox do not show the fade edges (they stay at `opacity: 0`) and nothing else changes.
 
 ### How the TypeScript floor was measured
 
