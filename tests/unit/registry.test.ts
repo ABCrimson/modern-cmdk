@@ -195,3 +195,44 @@ describe('CommandRegistry order (CE-56, P40)', () => {
     expect(ids(registry)).toEqual(['a', 'c']);
   });
 });
+
+describe('CommandRegistry disposers (CE-54)', () => {
+  it('a stale registerItem handle does not remove a newer item with the same id', () => {
+    using registry = new CommandRegistry();
+    const stale = registry.registerItem(makeItem('a', 'old'));
+    const next = makeItem('a', 'new');
+    registry.registerItem(next);
+    stale[Symbol.dispose]();
+    expect(registry.getItem(itemId('a'))).toBe(next);
+    expect(registry.size).toBe(1);
+  });
+
+  it('a live registerItem handle still removes its item', () => {
+    using registry = new CommandRegistry();
+    const handle = registry.registerItem(makeItem('a'));
+    handle[Symbol.dispose]();
+    expect(registry.size).toBe(0);
+  });
+
+  it('a stale registerItems handle removes only the ids still mapped to its batch', () => {
+    using registry = new CommandRegistry();
+    const stale = registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
+    const newer = makeItem('b', 'new');
+    registry.registerItem(newer);
+    stale[Symbol.dispose]();
+    expect(registry.getItems()).toEqual([newer]);
+    expect([...registry.getItemIds()]).toEqual(['b']);
+  });
+
+  it('a stale registerGroup handle does not remove a newer group with the same id', () => {
+    using registry = new CommandRegistry();
+    const stale = registry.registerGroup({ id: groupId('g'), heading: 'Old' });
+    const next = { id: groupId('g'), heading: 'New' };
+    registry.registerGroup(next);
+    stale[Symbol.dispose]();
+    expect(registry.getGroup(groupId('g'))).toBe(next);
+    const live = registry.registerGroup({ id: groupId('h'), heading: 'H' });
+    live[Symbol.dispose]();
+    expect(registry.getGroup(groupId('h'))).toBeUndefined();
+  });
+});
