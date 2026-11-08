@@ -74,7 +74,15 @@ const TITLES: Readonly<Record<string, string>> = {
   '29-attribute-name-case':
     'DA-11: cmdk attribute names match case-insensitively, as in an HTML document: [CMDK-ITEM], [DATA-SELECTED] and a CMDK-ROOT JSX attribute are rewritten, CMDK-LABEL is reported',
   '30-tailwind-group-peer':
-    "DA-12: group-, peer- and in- data variants style a bound element by another element's state and are reported, not rewritten; the element's own data-[selected=true]: still is",
+    "DA-12: group-, peer-, in- data variants (also -has- and not- forms) style a bound element by another element's state and are reported, not rewritten; the element's own data-[selected=true]: and a bare has-data-[selected=true]: still are",
+  '31-attribute-case-only':
+    'DA-11: a file whose only cmdk reference is [CMDK-ITEM] is not skipped by the quick bail',
+  '32-jsx-case-only':
+    'DA-11: a file whose only cmdk reference is a CMDK-ROOT JSX attribute is not skipped by the quick bail',
+  '33-tailwind-name-case':
+    'DA-11: Tailwind data-[Selected=true]: is rewritten and data-[DISABLED]: is reported, as their lower-case forms are',
+  '34-unbound-group-peer':
+    'DA-13: group-, peer-, in- data variants on an element that is not cmdk-bound, in a file that references cmdk, are reported and left unchanged',
 };
 
 const cases = listCases('data-attrs');
