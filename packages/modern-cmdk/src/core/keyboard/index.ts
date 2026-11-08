@@ -18,10 +18,12 @@ interface ShortcutBinding {
 /**
  * Manages keyboard shortcut bindings with global keydown listening.
  * Supports `using` for automatic cleanup of both individual bindings and the
- * global document listener. Detects conflicts with the local mapGroupBy helper (core/utils/group-by.ts).
+ * global document listener. Every normalized shortcut keeps a stack of bindings, one per item: the later
+ * binding wins the keydown, disposing it restores the earlier one, and `getConflicts()` reports the keys with
+ * two or more bindings (through `detectConflicts`, which groups with the local mapGroupBy helper).
  */
 export class KeyboardShortcutRegistry implements Disposable {
-  #bindings = new Map<string, ShortcutBinding>();
+  #bindings = new Map<string, ShortcutBinding[]>();
   #globalListener: ((event: KeyboardEvent) => void) | null = null;
   #enabled = true;
 
@@ -34,20 +36,27 @@ export class KeyboardShortcutRegistry implements Disposable {
   register(shortcutStr: string, itemId: ItemId, handler: () => void): Disposable {
     const shortcut = parseShortcut(shortcutStr);
 
-    this.#bindings.set(shortcut.normalized, {
-      shortcut,
-      itemId,
-      handler,
-    });
+    const binding: ShortcutBinding = { shortcut, itemId, handler };
+    const stack = this.#bindings.get(shortcut.normalized) ?? [];
+    // The same item again under the same key replaces its own binding in place: not a conflict
+    const own = stack.findIndex((b) => b.itemId === itemId);
+    if (own < 0) stack.push(binding);
+    else stack[own] = binding;
+    this.#bindings.set(shortcut.normalized, stack);
 
     return {
-      [Symbol.dispose]: (): void => {
-        this.#bindings.delete(shortcut.normalized);
-      },
+      [Symbol.dispose]: (): void => this.#remove(shortcut.normalized, (b) => b === binding),
     };
   }
 
-  /** Unregister a shortcut by its string representation */
+  /** Drops the bindings of one key that the predicate selects; an emptied key goes away */
+  #remove(key: string, drop: (binding: ShortcutBinding) => boolean): void {
+    const rest = this.#bindings.get(key)?.filter((b) => !drop(b));
+    if (rest?.length) this.#bindings.set(key, rest);
+    else this.#bindings.delete(key);
+  }
+
+  /** Unregister a shortcut by its string representation — every binding of that key */
   unregister(shortcutStr: string): void {
     const shortcut = parseShortcut(shortcutStr);
     this.#bindings.delete(shortcut.normalized);
@@ -55,16 +64,14 @@ export class KeyboardShortcutRegistry implements Disposable {
 
   /** Unregister all shortcuts for a given item — Map spec allows deletion during iteration */
   unregisterByItem(itemId: ItemId): void {
-    for (const [key, binding] of this.#bindings) {
-      if (binding.itemId === itemId) this.#bindings.delete(key);
-    }
+    for (const key of this.#bindings.keys()) this.#remove(key, (b) => b.itemId === itemId);
   }
 
-  /** Check for conflicting shortcuts */
+  /** Keys bound by two or more items (normalized shortcut -> the parsed shortcuts, earliest first) */
   getConflicts(): ReadonlyMap<string, readonly ParsedShortcut[]> {
     const shortcuts = this.#bindings
       .values()
-      .map((b) => b.shortcut)
+      .flatMap((stack) => stack.map((b) => b.shortcut))
       .toArray();
     return detectConflicts(shortcuts);
   }
@@ -74,9 +81,11 @@ export class KeyboardShortcutRegistry implements Disposable {
     this.#enabled = enabled;
   }
 
-  /** Get all registered bindings */
+  /** The winning binding of every key (a snapshot: the later of the bindings that share a key) */
   getBindings(): ReadonlyMap<string, ShortcutBinding> {
-    return this.#bindings;
+    return new Map(
+      this.#bindings.entries().map(([key, stack]) => [key, stack.at(-1) as ShortcutBinding]),
+    );
   }
 
   #attachGlobalListener(): void {
@@ -86,7 +95,8 @@ export class KeyboardShortcutRegistry implements Disposable {
       if (!this.#enabled) return;
 
       // for...of — hot keydown path, short-circuits on first match (no closure overhead)
-      for (const binding of this.#bindings.values()) {
+      for (const stack of this.#bindings.values()) {
+        const binding = stack.at(-1) as ShortcutBinding;
         if (matchesShortcut(event, binding.shortcut)) {
           event.preventDefault();
           event.stopPropagation();
