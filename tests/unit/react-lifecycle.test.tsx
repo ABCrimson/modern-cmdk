@@ -10,7 +10,7 @@ import type { CommandItem, CommandMachine, FrecencyStorage, ItemId } from 'moder
 import { createSearchEngine, itemId } from 'modern-cmdk';
 import { Command, CommandStableContext, useCommandState } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
-import { Activity, act, StrictMode, use } from 'react';
+import { Activity, act, StrictMode, Suspense, use } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -130,6 +130,12 @@ class RenderCounter {
     this.renders++;
     return null;
   };
+}
+
+/** Suspends on every render until `promise` settles: React discards the attempt, with whatever it built. */
+function Suspends({ promise }: { readonly promise: Promise<void> }): null {
+  use(promise);
+  return null;
 }
 
 const apple: CommandItem = { id: itemId('apple'), value: 'apple' };
@@ -306,9 +312,10 @@ describe('React lifecycle (C1)', () => {
   it("D102: an unmounted Command's machine is collectable", async () => {
     using warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const weak = new WeakSpy();
-    // A shortcut item gives the machine a global keydown listener, which a machine left resumed would keep reachable.
+    // A shortcut item with an `onSelect` is bound under the default 'direct' shortcut action, which gives the
+    // machine a global keydown listener; a machine left resumed would keep it reachable through that listener.
     await mount(
-      <Command items={[{ ...apple, shortcut: 'Ctrl+K' }, banana]}>
+      <Command items={[{ ...apple, shortcut: 'Ctrl+K', onSelect: () => {} }, banana]}>
         <weak.Probe />
         <Command.Input />
         <Command.List>
@@ -443,6 +450,35 @@ describe('React lifecycle (C1)', () => {
     expect(spy.machine.getRegistry().getItems()).toEqual([]);
     expect(onActiveChange).not.toHaveBeenCalled();
     expect(onSearchChange).not.toHaveBeenCalled();
+  });
+
+  it('D102: a Command whose child suspends before the first commit binds its shortcut once', async () => {
+    const onSelect = vi.fn();
+    let resolve: () => void = () => {};
+    const pending = new Promise<void>((done) => {
+      resolve = done;
+    });
+    await mount(
+      <Suspense fallback={null}>
+        <Command items={[{ ...apple, shortcut: 'Ctrl+K', onSelect }]}>
+          <Suspends promise={pending} />
+          <Command.Input />
+        </Command>
+      </Suspense>,
+    );
+    await act(async () => {
+      resolve();
+    });
+    await settle();
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
+      );
+    });
+    await settle();
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
   it("D103: a caller's searchEngine is not disposed by the machine and keeps working after an Activity hide/show", async () => {
