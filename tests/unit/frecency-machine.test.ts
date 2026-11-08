@@ -385,7 +385,7 @@ describe('machine frecency persistence', () => {
     expect(await until(() => storage.saved)).toBe(true);
     await settle();
     expect(storage.disposed).toBe(false);
-    // The storage still works: the caller's later save lands next to the machine's
+    // The storage still works: the caller's later save to the same namespace replaces the machine's records
     await storage.save('default', {
       records: new Map([[itemId('late'), { frequency: 9, lastUsed: Date.now() }]]),
     });

@@ -48,7 +48,7 @@ export function useCommandSetup(
   const inputId = `${id}-input`;
 
   // Dispose machine on unmount — prevents resource leaks (scheduler, emitter, search engine)
-  // Nulls the ref so Strict Mode remount creates a fresh machine
+  // Nulls the ref; the next render of the root creates a fresh machine, and until then the subtree holds the disposed one (CE-124)
   useEffect(() => {
     return (): void => {
       machineRef.current?.[Symbol.dispose]();
