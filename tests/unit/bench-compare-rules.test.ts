@@ -2,7 +2,9 @@
 // F-02: the bench:compare verdict rules. A sub-microsecond median must not fail the gate on
 // run-to-run noise, while the published target_ms stays an absolute contract.
 
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
+import { itemSeeds } from '../../apps/playground/src/bench/dataset.ts';
 import { classify } from '../../benchmarks/standalone/compare-rules.ts';
 
 const thresholds = { warning: 0.05, failure: 0.15, floor_ms: 0.01 } as const;
@@ -83,5 +85,18 @@ describe('bench:compare classify()', () => {
     expect(() => classify({ baseline_ms: 0.00075166, current_ms: 0.0009, thresholds })).toThrow(
       /^baseline median .* no target_ms/,
     );
+  });
+});
+
+// TEB-33: benchmarks/baseline.json was recorded on the 'basic' 10K dataset. This literal is the sha256
+// of that dataset's JSON, computed from the generator compare-baseline.ts had before the shared
+// dataset replaced it. Change the dataset and the recorded baseline stops describing what is measured:
+// re-record baseline.json and update the literal in the same change.
+describe('TEB-33: the shared dataset is the one benchmarks/baseline.json was recorded on', () => {
+  it("itemSeeds(10_000, 'basic') hashes to the baseline's recorded dataset", () => {
+    const hash = createHash('sha256')
+      .update(JSON.stringify(itemSeeds(10_000, 'basic')))
+      .digest('hex');
+    expect(hash).toBe('1a425a65e961e300a33be57eb4d03e3df31db69625fb04c5e5a02d9fad6cfacc');
   });
 });

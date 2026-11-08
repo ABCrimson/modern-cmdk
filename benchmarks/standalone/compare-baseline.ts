@@ -17,6 +17,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
+import { generateItems } from '../fixtures.ts';
 import { type Classification, classify, type Thresholds } from './compare-rules.ts';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -92,19 +93,10 @@ async function main(): Promise<number> {
     '../../packages/modern-cmdk/dist/core/index.mjs'
   );
 
-  // 3. Prepare test data — ES2025 Iterator Helpers pipeline
-  const words = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
-  const items10K = Iterator.from({
-    [Symbol.iterator]: function* () {
-      for (let i = 0; i < 10_000; i++) yield i;
-    },
-  })
-    .map((i: number) => ({
-      id: itemId(`item-${i}`),
-      value: `${words[i % words.length]} ${i} action`,
-      keywords: [`kw-${i}`],
-    }))
-    .toArray();
+  // 3. Prepare test data: the 'basic' variant, the dataset benchmarks/baseline.json was recorded on
+  //    (pinned by tests/unit/bench-compare-rules.test.ts). The core comes from dist, so its itemId is
+  //    passed to the generator.
+  const items10K = generateItems(10_000, 'basic', itemId);
   const items1K = items10K.slice(0, 1_000);
   const items100 = items10K.slice(0, 100);
 

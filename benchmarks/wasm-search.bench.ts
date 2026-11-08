@@ -1,4 +1,3 @@
-import type { CommandItem } from 'modern-cmdk';
 import { createSearchEngine, itemId } from 'modern-cmdk';
 import {
   createWasmSearchEngine,
@@ -6,51 +5,15 @@ import {
   type WasmSearchEngine,
 } from 'modern-cmdk-search-wasm';
 import { beforeAll, describe, test } from 'vitest';
+import { generateItems } from './fixtures.ts';
 
 // ---------------------------------------------------------------------------
-// Item generation
+// Items: the 'wide' variant of the shared dataset (benchmarks/fixtures.ts)
 // ---------------------------------------------------------------------------
 
-const words = [
-  'apple',
-  'banana',
-  'cherry',
-  'date',
-  'elderberry',
-  'fig',
-  'grape',
-  'honeydew',
-  'kiwi',
-  'lemon',
-  'mango',
-  'nectarine',
-  'orange',
-  'papaya',
-  'quince',
-  'raspberry',
-  'strawberry',
-  'tangerine',
-  'watermelon',
-];
-
-// ES2025 Iterator Helpers — generate benchmark items via iterator pipeline
-function generateItems(count: number): CommandItem[] {
-  return Iterator.from({
-    [Symbol.iterator]: function* () {
-      for (let i = 0; i < count; i++) yield i;
-    },
-  })
-    .map((i) => ({
-      id: itemId(`item-${i}`),
-      value: `${words[i % words.length]} ${Math.floor(i / 100)} action ${words[(i + 7) % words.length]}`,
-      keywords: [`kw-${i % 500}`, `alias-${i % 200}`],
-    }))
-    .toArray();
-}
-
-const items100 = generateItems(100);
-const items1K = generateItems(1_000);
-const items10K = generateItems(10_000);
+const items100 = generateItems(100, 'wide', itemId);
+const items1K = generateItems(1_000, 'wide', itemId);
+const items10K = generateItems(10_000, 'wide', itemId);
 
 // ---------------------------------------------------------------------------
 // Initialize a shared WASM engine once, before any benchmark in this file runs
