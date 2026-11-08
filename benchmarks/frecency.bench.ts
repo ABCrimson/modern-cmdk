@@ -1,6 +1,10 @@
 import type { FrecencyRecord, ItemId } from 'modern-cmdk';
 import { computeFrecencyBonus, FrecencyEngine, itemId, MemoryFrecencyStorage } from 'modern-cmdk';
 import { beforeAll, describe, test } from 'vitest';
+import {
+  FRECENCY_FIXTURE_COUNT,
+  generateFrecencyRecords,
+} from '../tests/fixtures/frecency/generate.ts';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -11,24 +15,6 @@ const NOW = Date.now();
 function makeRecord(hoursAgo: number, frequency: number): FrecencyRecord {
   const msAgo = hoursAgo * 3_600_000;
   return { lastUsed: NOW - msAgo, frequency };
-}
-
-// ES2025 Iterator Helpers — generate frecency records via iterator pipeline. The ages spread over every
-// decay bucket of computeFrecencyBonus: with (i * 7) % 2000 hours, 10K records land 5 under an hour, 115
-// under a day, 720 under a week, 2760 under a month and 6400 older.
-function generateRecords(count: number): Map<ItemId, FrecencyRecord> {
-  return new Map(
-    Iterator.from({
-      [Symbol.iterator]: function* () {
-        for (let i = 0; i < count; i++) yield i;
-      },
-    })
-      .map((i): [ItemId, FrecencyRecord] => [
-        itemId(`item-${i}`),
-        makeRecord((i * 7) % 2000, (i % 20) + 1),
-      ])
-      .toArray(),
-  );
 }
 
 // Vitest 5 — `bench` is a fixture factory; .run() executes/measures the task.
@@ -82,9 +68,12 @@ describe('computeFrecencyBonus — Pure Function', () => {
 describe('FrecencyEngine.getBonus — 10K Records', () => {
   // TEB-21: the engine is seeded through storage, not recordSelection (which stamps Date.now() and
   // would put all 10K records in the under-an-hour bucket, so getAllBonuses would time one decay
-  // branch). The seeded storage holds generateRecords(10_000); load() hydrates the engine from it.
-  // beforeAll runs before any bench of this describe (describe callbacks stay synchronous).
-  const records = generateRecords(10_000);
+  // branch). The seeded storage holds the shared fixture (tests/fixtures/frecency/generate.ts: seeded
+  // PRNG, records spread uniformly over the five recency buckets of computeFrecencyBonus). It is
+  // generated relative to NOW, the same clock getAllBonuses(NOW) reads, so those ages stay as the
+  // fixture draws them; load() hydrates the engine from the storage. beforeAll runs before any bench
+  // of this describe (describe callbacks stay synchronous).
+  const records = generateFrecencyRecords(FRECENCY_FIXTURE_COUNT, { now: NOW });
   const ids = [...records.keys()];
   const storage = new MemoryFrecencyStorage();
   storage.save('default', { records });
@@ -93,9 +82,9 @@ describe('FrecencyEngine.getBonus — 10K Records', () => {
   beforeAll(async () => {
     await engine.load();
     const held = engine.getData().records.size;
-    if (held !== ids.length) {
+    if (held !== FRECENCY_FIXTURE_COUNT) {
       throw new Error(
-        `frecency fixture: engine holds ${held} of ${ids.length} records after load()`,
+        `frecency fixture: engine holds ${held} of ${FRECENCY_FIXTURE_COUNT} records after load()`,
       );
     }
   });
