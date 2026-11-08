@@ -1001,13 +1001,13 @@
   },
   {
     "id": "DA-11",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-11: a file whose only cmdk reference is [CMDK-ITEM] is not skipped by the quick bail",
+    "status": "covered"
   },
   {
     "id": "DA-12",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-12: group-, peer-, in- data variants (also -has- and not- forms) style a bound element by another element's state and are reported, not rewritten; the element's own data-[selected=true]: and a bare has-data-[selected=true]: still are",
+    "status": "covered"
   },
   {
     "id": "CE-104",
@@ -1021,7 +1021,7 @@
   },
   {
     "id": "DA-13",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/codemod-data-attrs.test.ts::DA-13: group-, peer-, in- data variants on an element that is not cmdk-bound, in a file that references cmdk, are reported and left unchanged",
+    "status": "covered"
   }
 ]
