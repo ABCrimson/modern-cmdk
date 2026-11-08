@@ -713,8 +713,10 @@ Every stateful object (machine, registry, emitter, scheduler, search engine, fre
 
 ```ts
 // Automatic cleanup -- no manual teardown
-using machine = createCommandMachine({ ... });
-// machine is disposed when the block exits
+export function run(): void {
+  using machine = createCommandMachine({ ... });
+  // machine is disposed when the function returns
+}
 
 // In React components
 useEffect(() => {
