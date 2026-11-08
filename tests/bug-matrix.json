@@ -1316,7 +1316,7 @@
   },
   {
     "id": "SEC-73",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/release-workflow.test.ts::SEC-73: the seeded syft version and digest agree across ci.yml and release.yml",
+    "status": "covered"
   }
 ]
