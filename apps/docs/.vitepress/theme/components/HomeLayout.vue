@@ -47,7 +47,7 @@ const releaseUrl = `https://github.com/ABCrimson/modern-cmdk/releases/tag/modern
         </div>
       </template>
     </VPHomeHero>
-    <VPHomeFeatures class="mc-reveal" />
+    <VPHomeFeatures />
     <VPHomeContent v-if="frontmatter.markdownStyles !== false"><Content /></VPHomeContent>
     <Content v-else />
   </main>
@@ -154,6 +154,18 @@ const releaseUrl = `https://github.com/ABCrimson/modern-cmdk/releases/tag/modern
 }
 
 .VPHome :deep(.VPFeature .icon) {
+/* The reveal is on each card, not on the whole features section (motion.css .mc-reveal): a section taller than the phone viewport
+   was still translucent with its first card fully on screen. Same animation and range. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .VPHome :deep(.VPFeatures .item) {
+      animation: mc-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+
   inline-size: 2.5rem;
   block-size: 2.5rem;
   border-radius: var(--mc-radius-sm);
