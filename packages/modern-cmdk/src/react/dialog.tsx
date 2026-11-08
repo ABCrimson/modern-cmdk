@@ -52,10 +52,15 @@ export function CommandDialog({
   // The machine reads `open` once, at construction, and the effect below makes it follow the prop afterwards, so
   // the setup gets the first render's value on every render: its init-only warning for `open` stays silent here.
   const [initialOpen] = useState(controlledOpen ?? false);
+  // The open state the effect below last asked the machine for. The machine applies the request on its next frame, so
+  // a parent that changes `open` again in between sees the earlier request reported late: that report is the
+  // machine following the prop, and the next report is a request again.
+  const followed = useRef<boolean | undefined>(undefined);
   // The machine reports every change of its open state. An uncontrolled dialog hands that report to the consumer. A
-  // controlled dialog hands it over only when it differs from `open`: the machine's own request (a selection that
-  // closes, CLOSE, OPEN, TOGGLE) is reported once, while the machine following the prop (the effect below) and the
-  // put-back of a state the parent refused report nothing. Radix's request goes through handleRadixOpenChange.
+  // controlled dialog hands it over only when it differs from `open` and is not the machine following the prop: the
+  // machine's own request (a selection that closes, CLOSE, OPEN, TOGGLE) is reported once, while the machine following
+  // the prop (the effect below) and the put-back of a state the parent refused report nothing. Radix's request goes
+  // through handleRadixOpenChange.
   const { machine, state, handleKeyDown, stableContextValue, stateContextValue } = useCommandSetup(
     {
       ...machineOptions,
@@ -64,7 +69,9 @@ export function CommandDialog({
         controlledOpen === undefined
           ? onOpenChange
           : (next: boolean): void => {
-              if (next !== controlledOpen) onOpenChange?.(next);
+              const following = next === followed.current;
+              followed.current = undefined;
+              if (next !== controlledOpen && !following) onOpenChange?.(next);
             },
     },
     label,
@@ -88,6 +95,7 @@ export function CommandDialog({
   // prop did not ask for is put back after it is reported; sending the state it already has changes nothing.
   useEffect(() => {
     if (controlledOpen !== undefined && controlledOpen !== state.open) {
+      followed.current = controlledOpen;
       machine.send({ type: controlledOpen ? 'OPEN' : 'CLOSE' });
     }
   }, [controlledOpen, state.open, machine]);
