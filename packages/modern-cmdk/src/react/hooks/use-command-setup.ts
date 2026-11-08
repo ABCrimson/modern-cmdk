@@ -21,8 +21,17 @@ const initOnlyValues = (o: CommandMachineOptions): unknown[] => [
   o.search,
   o.searchEngine,
   typeof o.filter === 'function',
+  o.open,
 ];
-const INIT_ONLY = ['shortcutAction', 'frecency', 'frecency', 'search', 'searchEngine', 'filter'];
+const INIT_ONLY = [
+  'shortcutAction',
+  'frecency',
+  'frecency',
+  'search',
+  'searchEngine',
+  'filter',
+  'open',
+];
 
 export interface UseCommandSetupReturn {
   readonly machine: CommandMachine;
