@@ -94,6 +94,25 @@ html:root {
   max-inline-size: 34rem;
 }
 
+/*
+ * The hero's type scale (design-final.md 2.4): the wordmark is step 5 and the headline step 4. VPHero.vue:139-184 (the
+ * theme's own scoped rules) sets both at 2rem, 3rem and 3.5rem (700, -0.4px) with scoped .name and .text rules of specificity (0,2,0);
+ * html:root .VPHero .name is (0,3,1), so it wins without !important.
+ */
+html:root .VPHero .name {
+  font-size: var(--mc-step-5);
+  line-height: var(--mc-step-5-lh);
+  font-weight: var(--mc-step-5-weight);
+  letter-spacing: var(--mc-step-5-tracking);
+}
+
+html:root .VPHero .text {
+  font-size: var(--mc-step-4);
+  line-height: var(--mc-step-4-lh);
+  font-weight: var(--mc-step-4-weight);
+  letter-spacing: var(--mc-step-4-tracking);
+}
+
 /* text-wrap: balance is Baseline 2024; pretty is not Baseline and harmless where unsupported */
 .vp-doc :is(h1, h2, h3, h4),
 .VPHero :is(.name, .text, .tagline),
