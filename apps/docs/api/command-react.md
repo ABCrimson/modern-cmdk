@@ -58,10 +58,12 @@ function Palette({ children }: { children: ReactNode }) {
 | `label` | `string` | `'Command palette'` | Accessible label (`aria-label`) |
 | `items` | `CommandItem[]` | `[]` | Pre-registered items |
 | `groups` | `CommandGroup[]` | `[]` | Pre-registered groups |
-| `filter` | `Function \| false` | built-in | Custom filter function, or `false` to disable |
+| `filter` | `Function \| false` | built-in | Custom filter function `(item, query) => number \| false` (above 0 keeps the item, higher ranks first; `false`, `0` or a negative number excludes it), or `false` to disable. Not consulted when `search` is given |
 | `search` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM) |
 | `frecency` | `FrecencyOptions` | -- | Frecency ranking configuration; ranking is on only with `enabled: true` (`enabled` is optional, default `false`) |
 | `loop` | `boolean` | `true` | Whether keyboard navigation wraps |
+| `disabledItems` | `'show' \| 'hide'` | `'show'` | `'show'` renders disabled items (`aria-disabled`, `data-disabled`), skipped by navigation and selection under every query; `'hide'` drops them from the list. See [Disabled items](/api/command#disabled-items) |
+| `shortcutAction` | `'direct' \| 'select'` | `'direct'` | What an item's `shortcut` does: `'direct'` calls its `onSelect`; `'select'` dispatches `ITEM_SELECT` (frecency, the root `onSelect` and the disabled guard apply). A disabled item's shortcut never fires. 2.0 flips the default to `'select'` |
 | `open` | `boolean` | `false` | Initial open state |
 | `onSelect` | `(id: ItemId) => void` | -- | Fired when an item is selected |
 | `onActiveChange` | `(id: ItemId \| null) => void` | -- | Fired when the active item changes |
@@ -216,8 +218,8 @@ Extends `ComponentPropsWithRef<'div'>` (excluding `onSelect`, `value`).
 | `value` | `string` | Required | Display text and primary search target |
 | `keywords` | `readonly string[]` | -- | Additional searchable terms |
 | `onSelect` | `() => void` | -- | Callback when the item is selected; called with no argument (the item value arrives as the first argument in 2.0) |
-| `disabled` | `boolean` | `false` | Whether the item is disabled |
-| `shortcut` | `string` | -- | Keyboard shortcut string (e.g., `"Mod+K"`) |
+| `disabled` | `boolean` | `false` | A disabled item is still filtered and rendered (`aria-disabled`, `data-disabled`) but skipped by keyboard navigation, never active, not selectable by click or Enter, and its `shortcut` does not fire. With the root's `disabledItems="hide"` it is not rendered |
+| `shortcut` | `string` | -- | Keyboard shortcut string (e.g., `"Mod+K"`); bound while the item is enabled |
 | `forceId` | `string` | -- | Override the auto-generated item ID |
 
 ### Data Attributes
@@ -263,7 +265,7 @@ Extends `ComponentPropsWithRef<'div'>`.
 |---|---|---|---|
 | `ref` | `Ref<HTMLDivElement>` | -- | Ref to the group container |
 | `heading` | `string` | -- | Heading text displayed above the group |
-| `priority` | `number` | -- | Sort priority (lower = higher in list) |
+| `priority` | `number` | -- | Orders the keys of `CommandState.groupedIds` (lower first). React renders the groups in the JSX order of the `<Command.Group>` elements, not by this number, and `filteredIds` and keyboard navigation keep the search order |
 | `forceId` | `string` | -- | Override the auto-generated group ID |
 
 ### Data Attributes
@@ -421,7 +423,7 @@ const highlight = (
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `text` | `string` | Required | Full text to display |
-| `ranges` | `[number, number][]` | Required | Match ranges from search scorer |
+| `ranges` | `ReadonlyArray<readonly [number, number]>` | Required | Match ranges from search scorer: half-open `[start, end)` indices into `text` (the default scorer indexes the item's original `value`; a keyword-only match gives `[]`) |
 | `highlightClassName` | `string` | -- | Class name for `<mark>` elements |
 
 Data attribute: `data-command-highlight` on each `<mark>` element.
@@ -578,7 +580,7 @@ Returns `UseCommandReturn`:
 
 ### `useRegisterItem(value, options?)`
 
-Register a command item imperatively — auto-deregisters on unmount. Returns the branded `ItemId`. Options: `keywords`, `groupId`, `shortcut`, `disabled`, `onSelect`, `data`, `forceId`.
+Register a command item imperatively — auto-deregisters on unmount. Returns the branded `ItemId`. Options: `keywords`, `groupId`, `shortcut`, `disabled`, `onSelect`, `data`, `forceId`. When `value`, `keywords`, `groupId`, `shortcut` or `disabled` change, the item is updated in place (an `UPDATE_ITEM` event: its position and the active item are kept) instead of being unregistered and registered again. `onSelect` and `data` are read through refs, so a new function or object per render does not update the item.
 
 ### `useRegisterGroup(heading?, options?)`
 
