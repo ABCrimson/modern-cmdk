@@ -1,4 +1,4 @@
-import type { FrecencyRecord, ItemId } from 'modern-cmdk';
+import type { FrecencyDecayConfig, FrecencyRecord, ItemId } from 'modern-cmdk';
 import {
   computeFrecencyBonus,
   DEFAULT_FRECENCY_DECAY,
@@ -84,6 +84,56 @@ describe('computeFrecencyBonus', () => {
 
     const bonus = computeFrecencyBonus(record, now, { hourWeight: 10.0 });
     expect(bonus).toBe(10.0);
+  });
+});
+
+describe('computeFrecencyBonus bucket boundaries', () => {
+  const NOW = 1_700_000_000_000;
+  const HOUR_MS = 3_600_000;
+  const at = (hours: number, offsetMs = 0): FrecencyRecord => ({
+    frequency: 1,
+    lastUsed: NOW - hours * HOUR_MS + offsetMs,
+  });
+
+  // A record used exactly h hours ago is in the NEXT bucket (each comparison is hours < boundary),
+  // one millisecond younger it is still in the lower bucket.
+  it.for([
+    { hours: 1, below: 'hourWeight', above: 'dayWeight' },
+    { hours: 24, below: 'dayWeight', above: 'weekWeight' },
+    { hours: 168, below: 'weekWeight', above: 'monthWeight' },
+    { hours: 720, below: 'monthWeight', above: 'olderWeight' },
+  ] as const)(
+    'TUB-45: at $hours h a record 1 ms younger gets $below and exactly $hours h or older gets $above',
+    ({ hours, below, above }) => {
+      expect(computeFrecencyBonus(at(hours, 1), NOW)).toBe(DEFAULT_FRECENCY_DECAY[below]);
+      expect(computeFrecencyBonus(at(hours), NOW)).toBe(DEFAULT_FRECENCY_DECAY[above]);
+      expect(computeFrecencyBonus(at(hours, -1), NOW)).toBe(DEFAULT_FRECENCY_DECAY[above]);
+    },
+  );
+
+  it('TUB-45: a partial decay config falls back to the default weight of every bucket it omits', () => {
+    const partial: FrecencyDecayConfig = { hourWeight: 10 };
+    expect(computeFrecencyBonus(at(0.5), NOW, partial)).toBe(10);
+    expect(computeFrecencyBonus(at(12), NOW, partial)).toBe(DEFAULT_FRECENCY_DECAY.dayWeight);
+    expect(computeFrecencyBonus(at(100), NOW, partial)).toBe(DEFAULT_FRECENCY_DECAY.weekWeight);
+    expect(computeFrecencyBonus(at(400), NOW, partial)).toBe(DEFAULT_FRECENCY_DECAY.monthWeight);
+    expect(computeFrecencyBonus(at(1000), NOW, partial)).toBe(DEFAULT_FRECENCY_DECAY.olderWeight);
+  });
+
+  const SAMPLES = [
+    ['hourWeight', 0.5],
+    ['dayWeight', 12],
+    ['weekWeight', 100],
+    ['monthWeight', 400],
+    ['olderWeight', 1000],
+  ] as const;
+
+  it.for(SAMPLES)('TUB-45: a config that sets only %s changes only the bucket at %d h', ([key]) => {
+    const config: FrecencyDecayConfig = { [key]: 99 };
+    const weights = SAMPLES.map(([, hours]) => computeFrecencyBonus(at(hours), NOW, config));
+    expect(weights).toEqual(
+      SAMPLES.map(([bucket]) => (bucket === key ? 99 : DEFAULT_FRECENCY_DECAY[bucket])),
+    );
   });
 });
 
