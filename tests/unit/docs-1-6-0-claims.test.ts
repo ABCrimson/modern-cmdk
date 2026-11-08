@@ -118,7 +118,7 @@ describe('docs rows of 1.6.0', () => {
   });
 
   it('DG-09: guide/frecency.md passes a module-scope storage with no view object and says a passed storage is yours to dispose', () => {
-    // apps/docs/guide/frecency.md:51 (const storage = new IdbFrecencyStorage()), :59-60 (enabled: true, storage), :79 (the ownership paragraph).
+    // apps/docs/guide/frecency.md:53 (const storage = new IdbFrecencyStorage()), :59-60 (enabled: true, storage), :79 (the ownership paragraph).
     const file = 'apps/docs/guide/frecency.md';
     const markdown: string = read(file);
     const sample: Fence = fenceWith(file, /frecency=\{\{[^}]*\bstorage\b/);
@@ -275,25 +275,9 @@ describe('docs rows of 1.6.0', () => {
       .toContain('machine[Symbol.dispose]();');
   });
 
-  it('guard: no ts/tsx sample declares a module-top-level using machine or await using storage outside the allow-list', () => {
+  it('guard: no ts/tsx sample declares a module-top-level using machine or await using storage', () => {
     // Column 0 of a fenced sample is module top level: there `using` disposes when the module finishes evaluating (the DAE-15 defect),
-    // and `await using` of a storage disposes it before the UI exists. Allowed: the three construction-only samples below.
-    const reason =
-      'a construction-only sample: the machine is built and nothing outlives the block, so disposal at module end changes no behaviour shown';
-    const allowed: ReadonlyMap<string, string> = new Map([
-      [
-        'packages/command-search-wasm/README.md:56',
-        `${reason} (the WASM engine, then the machine, top-level await before it)`,
-      ],
-      [
-        'packages/command-search-wasm/README.md:77',
-        `${reason} (the worker engine, top-level await before it)`,
-      ],
-      [
-        'apps/docs/api/command-search-wasm.md:226',
-        `${reason} (await using searchEngine first, then machine; the block awaits inside the module)`,
-      ],
-    ]);
+    // and `await using` of a storage disposes it before the UI exists. No sample is exempt: a sample that needs disposal wraps it in a function.
     const docs: string[] = globSync('apps/docs/**/*.md', {
       cwd: root,
       exclude: (name: string) => SKIP_DIRS.has(basename(name)),
@@ -319,16 +303,7 @@ describe('docs rows of 1.6.0', () => {
       }
     }
     expect
-      .soft(
-        found.filter((site) => !allowed.has(site)),
-        'a sample declares a top-level using machine / await using storage',
-      )
-      .toEqual([]);
-    expect
-      .soft(
-        [...allowed.keys()].filter((site) => !found.includes(site)),
-        'an allow-list entry no longer matches a sample: remove or re-line it',
-      )
+      .soft(found, 'a sample declares a top-level using machine / await using storage at file:line')
       .toEqual([]);
   });
 });
