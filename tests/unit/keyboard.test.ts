@@ -2,6 +2,7 @@ import type { ParsedShortcut } from 'modern-cmdk';
 import {
   createCommandMachine,
   detectConflicts,
+  findMatchingShortcut,
   formatShortcut,
   itemId,
   KeyboardShortcutRegistry,
@@ -137,6 +138,56 @@ describe('matchesShortcut', () => {
     const shortcut = parseShortcut('Ctrl+K');
     const event = makeEvent('j', { ctrlKey: true });
     expect(matchesShortcut(event, shortcut)).toBe(false);
+  });
+});
+
+describe('findMatchingShortcut()', () => {
+  function keydown(key: string, modifiers: KeyboardEventInit = {}): KeyboardEvent {
+    return new KeyboardEvent('keydown', { key, ...modifiers });
+  }
+
+  it('T11: returns the parsed shortcut itself (same reference) that the event matches', () => {
+    const open = parseShortcut('Ctrl+K');
+    const other = parseShortcut('Ctrl+J');
+    expect(findMatchingShortcut(keydown('k', { ctrlKey: true }), [other, open])).toBe(open);
+  });
+
+  it('T11: returns null when no shortcut matches, and for an empty list', () => {
+    const shortcuts = [parseShortcut('Ctrl+K'), parseShortcut('Shift+P')];
+    expect(findMatchingShortcut(keydown('x', { ctrlKey: true }), shortcuts)).toBeNull();
+    expect(findMatchingShortcut(keydown('k'), [])).toBeNull();
+  });
+
+  it('T11: compares all four modifiers exactly, so an extra or a missing modifier is no match', () => {
+    const ctrlK = parseShortcut('Ctrl+K');
+    expect(
+      findMatchingShortcut(keydown('k', { ctrlKey: true, shiftKey: true }), [ctrlK]),
+    ).toBeNull();
+    expect(findMatchingShortcut(keydown('k', { ctrlKey: true, altKey: true }), [ctrlK])).toBeNull();
+    expect(
+      findMatchingShortcut(keydown('k', { ctrlKey: true, metaKey: true }), [ctrlK]),
+    ).toBeNull();
+    expect(findMatchingShortcut(keydown('k'), [ctrlK])).toBeNull();
+    // The modifier aliases parse to the same four flags the event is compared on
+    expect(
+      findMatchingShortcut(keydown('k', { metaKey: true }), [parseShortcut('Cmd+K')]),
+    ).not.toBeNull();
+    expect(
+      findMatchingShortcut(keydown('n', { altKey: true }), [parseShortcut('Option+N')]),
+    ).not.toBeNull();
+  });
+
+  it('T11: lower-cases the event key, so Shift+K matches an event whose key is the capital K', () => {
+    const shiftK = parseShortcut('Shift+K');
+    expect(findMatchingShortcut(keydown('K', { shiftKey: true }), [shiftK])).toBe(shiftK);
+  });
+
+  it('T11: with several matching candidates the first in list order wins', () => {
+    const first = parseShortcut('Ctrl+K');
+    const duplicate = parseShortcut('ctrl+k');
+    const event = keydown('k', { ctrlKey: true });
+    expect(findMatchingShortcut(event, [first, duplicate])).toBe(first);
+    expect(findMatchingShortcut(event, [duplicate, first])).toBe(duplicate);
   });
 });
 
