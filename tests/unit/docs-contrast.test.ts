@@ -9,7 +9,10 @@
 // ratio (https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio).
 //
 // Each pair asserts its floor (4.5 for text, 3 for large text and non-text) and that the computed ratio is within 0.05 of the
-// figure printed in the spec table, so a token edit that moves a ratio fails here rather than drifting silently.
+// figure in TABLE and SHIKI: the spec's own figure, except the 14 the spec printed wrongly (listed above TABLE), where it is the
+// recomputed one. Every token VALUE is asserted too, against EXPECTED_BASE and EXPECTED_CONTRAST below (design-final.md 2.1
+// and 4.6), because item 1's acceptance delegates "every value in tokens.css equals 2.1 and 4.6" to this file: a token edit that
+// moves a value or a ratio fails here rather than drifting silently.
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -262,7 +265,7 @@ const pair = (
     ? { name, foreground, surface, floor }
     : { name, foreground, surface, floor, expected: { light, dark } };
 
-// design-final.md 2.1, contrast table, row by row. Sixteen printed figures are not reproduced, and the figures below are the
+// design-final.md 2.1, contrast table, row by row. Fourteen printed figures are not reproduced, and the figures below are the
 // recomputed ones: every pair whose surface is a soft fill composited over another surface (the sidebar pill and its bar,
 // the active palette row, the feature tile, the container titles) was printed from final-pairs.mjs, which passes an already
 // linear colour to over(), and over() converts OKLCH to linear again. The pill in light was printed 5.55 and is 5.14; a hex
@@ -402,7 +405,6 @@ function ratio(entry: Pair, scheme: Scheme, tokens: ReadonlyMap<string, string>)
 }
 
 /** One message per pair and scheme that is under its floor or off the printed figure; empty when every pair holds. */
-/** One message per pair and scheme that is under its floor or off the printed figure; empty when every pair holds. */
 function violations(
   entries: readonly Pair[],
   tokens: ReadonlyMap<string, string>,
@@ -422,7 +424,128 @@ function violations(
   return found;
 }
 
+// Token values. EXPECTED_BASE is every --mc-* and --shiki-* declaration of the base blocks, EXPECTED_CONTRAST the declarations of
+// the prefers-contrast: more block, whitespace-normalised. The colour values are design-final.md 2.1 (lines 55-92) and 4.6, typed
+// out here; the rest are the documented derivations: each container's -2 is its -1 at L - 0.05 and -3 equals -1 (2.1), with the
+// light -2 chroma of tip, warning and note cut to the sRGB edge (0.103, 0.101, 0.119: the largest three-decimal chroma inside
+// sRGB at this file's 1e-4 tolerance; tip-2 at 0.104 overshoots by 0.00011); spacing, radius, motion are 2.3; the
+// prefers-contrast block is 8 with the light crimson fills at 16% (a 20% fill leaves brand-1 text under 4.5:1).
+const EXPECTED_BASE: readonly (readonly [string, string])[] = [
+  ['--mc-bg', 'light-dark(oklch(0.992 0.003 273), oklch(0.177 0.051 273))'],
+  ['--mc-bg-alt', 'light-dark(oklch(0.972 0.006 273), oklch(0.152 0.044 273))'],
+  ['--mc-bg-soft', 'light-dark(oklch(0.955 0.009 273), oklch(0.225 0.055 273))'],
+  ['--mc-bg-elv', 'light-dark(oklch(1 0 0), oklch(0.205 0.055 273))'],
+  ['--mc-text-1', 'light-dark(oklch(0.235 0.045 273), oklch(0.945 0.012 273))'],
+  ['--mc-text-2', 'light-dark(oklch(0.42 0.035 273), oklch(0.79 0.025 273))'],
+  ['--mc-text-3', 'light-dark(oklch(0.5 0.03 273), oklch(0.68 0.03 273))'],
+  ['--mc-divider', 'light-dark(oklch(0.905 0.012 273), oklch(0.29 0.045 273))'],
+  ['--mc-border-strong', 'light-dark(oklch(0.6 0.025 273), oklch(0.5 0.04 273))'],
+  ['--mc-brand-1', 'light-dark(oklch(0.505 0.19 27.5), oklch(0.72 0.165 22))'],
+  ['--mc-brand-2', 'light-dark(oklch(0.445 0.16 27), oklch(0.8 0.11 20))'],
+  ['--mc-brand-3', 'oklch(0.577 0.215 27.3)'],
+  ['--mc-brand-soft', 'light-dark(oklch(0.577 0.215 27.3 / 10%), oklch(0.72 0.165 22 / 14%))'],
+  ['--mc-hero-name-end', 'light-dark(oklch(0.505 0.19 27.5), oklch(0.72 0.165 22))'],
+  ['--mc-button-bg', 'oklch(0.577 0.215 27.3)'],
+  ['--mc-button-hover-bg', 'oklch(0.505 0.19 27.5)'],
+  ['--mc-button-active-bg', 'oklch(0.445 0.16 27)'],
+  ['--mc-button-text', 'oklch(1 0 0)'],
+  ['--mc-code-ink', 'light-dark(oklch(0.33 0.07 273), oklch(0.88 0.035 273))'],
+  ['--mc-code-bg', 'light-dark(oklch(0.235 0.045 273 / 6%), oklch(0.945 0.012 273 / 8%))'],
+  ['--mc-tip-1', 'light-dark(oklch(0.47 0.11 155), oklch(0.8 0.14 155))'],
+  ['--mc-tip-2', 'light-dark(oklch(0.42 0.103 155), oklch(0.75 0.14 155))'],
+  ['--mc-tip-3', 'light-dark(oklch(0.47 0.11 155), oklch(0.8 0.14 155))'],
+  ['--mc-tip-soft', 'light-dark(oklch(0.47 0.11 155 / 8%), oklch(0.8 0.14 155 / 12%))'],
+  ['--mc-warning-1', 'light-dark(oklch(0.5 0.105 65), oklch(0.84 0.13 80))'],
+  ['--mc-warning-2', 'light-dark(oklch(0.45 0.101 65), oklch(0.79 0.13 80))'],
+  ['--mc-warning-3', 'light-dark(oklch(0.5 0.105 65), oklch(0.84 0.13 80))'],
+  ['--mc-warning-soft', 'light-dark(oklch(0.5 0.105 65 / 8%), oklch(0.84 0.13 80 / 12%))'],
+  ['--mc-important-1', 'light-dark(oklch(0.48 0.2 293), oklch(0.76 0.13 293))'],
+  ['--mc-important-2', 'light-dark(oklch(0.43 0.2 293), oklch(0.71 0.13 293))'],
+  ['--mc-important-3', 'light-dark(oklch(0.48 0.2 293), oklch(0.76 0.13 293))'],
+  ['--mc-important-soft', 'light-dark(oklch(0.48 0.2 293 / 8%), oklch(0.76 0.13 293 / 12%))'],
+  ['--mc-note-1', 'light-dark(oklch(0.47 0.13 250), oklch(0.78 0.11 245))'],
+  ['--mc-note-2', 'light-dark(oklch(0.42 0.119 250), oklch(0.73 0.11 245))'],
+  ['--mc-note-3', 'light-dark(oklch(0.47 0.13 250), oklch(0.78 0.11 245))'],
+  ['--mc-note-soft', 'light-dark(oklch(0.47 0.13 250 / 8%), oklch(0.78 0.11 245 / 12%))'],
+  ['--mc-danger-soft', 'light-dark(oklch(0.505 0.19 27.5 / 8%), oklch(0.72 0.165 22 / 12%))'],
+  ['--mc-nav-glass', 'light-dark(oklch(0.992 0.003 273 / 80%), oklch(0.177 0.051 273 / 80%))'],
+  ['--shiki-foreground', 'light-dark(oklch(0.235 0.045 273), oklch(0.92 0.015 273))'],
+  ['--shiki-background', 'transparent'],
+  ['--shiki-token-comment', 'light-dark(oklch(0.5 0.03 273), oklch(0.68 0.03 273))'],
+  ['--shiki-token-keyword', 'light-dark(oklch(0.505 0.19 27.5), oklch(0.74 0.15 22))'],
+  ['--shiki-token-string', 'light-dark(oklch(0.47 0.11 155), oklch(0.82 0.13 155))'],
+  ['--shiki-token-string-expression', 'light-dark(oklch(0.47 0.11 155), oklch(0.82 0.13 155))'],
+  ['--shiki-token-function', 'light-dark(oklch(0.47 0.19 293), oklch(0.78 0.12 293))'],
+  ['--shiki-token-constant', 'light-dark(oklch(0.5 0.11 60), oklch(0.83 0.12 70))'],
+  ['--shiki-token-parameter', 'light-dark(oklch(0.42 0.08 255), oklch(0.84 0.06 250))'],
+  ['--shiki-token-punctuation', 'light-dark(oklch(0.45 0.03 273), oklch(0.72 0.03 273))'],
+  ['--shiki-token-link', 'var(--mc-brand-1)'],
+  ['--shiki-token-inserted', 'var(--mc-tip-1)'],
+  ['--shiki-token-deleted', 'var(--mc-brand-1)'],
+  ['--shiki-token-changed', 'var(--mc-warning-1)'],
+  ['--mc-space-1', '0.25rem'],
+  ['--mc-space-2', '0.5rem'],
+  ['--mc-space-3', '0.75rem'],
+  ['--mc-space-4', '1rem'],
+  ['--mc-space-5', '1.5rem'],
+  ['--mc-space-6', '2rem'],
+  ['--mc-space-7', '3rem'],
+  ['--mc-space-8', '4rem'],
+  ['--mc-space-9', '6rem'],
+  ['--mc-space-10', '8rem'],
+  ['--mc-radius-xs', '4px'],
+  ['--mc-radius-sm', '8px'],
+  ['--mc-radius-md', '12px'],
+  ['--mc-radius-lg', '16px'],
+  ['--mc-radius-xl', '22px'],
+  ['--mc-radius-pill', '999px'],
+  ['--mc-dur-1', '120ms'],
+  ['--mc-dur-2', '200ms'],
+  ['--mc-dur-3', '320ms'],
+  ['--mc-dur-4', '500ms'],
+  ['--mc-ease-standard', 'cubic-bezier(0.2, 0, 0, 1)'],
+  ['--mc-ease-out', 'cubic-bezier(0.16, 1, 0.3, 1)'],
+  [
+    '--mc-ease-spring',
+    'linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32%, 1.051 36.4%, 1.017 38.8%, 0.991, 0.977 43%, 0.974 44.8%, 0.975 47.2%, 0.997 53.3%, 1.003 55.5%, 1.003 58.1%, 1 63.2%, 0.999 70.2%, 1)',
+  ],
+];
+
+const EXPECTED_CONTRAST: readonly (readonly [string, string])[] = [
+  ['--mc-divider', 'var(--mc-border-strong)'],
+  ['--mc-text-2', 'var(--mc-text-1)'],
+  ['--mc-text-3', 'var(--mc-text-1)'],
+  ['--mc-brand-soft', 'light-dark(oklch(0.577 0.215 27.3 / 16%), oklch(0.72 0.165 22 / 20%))'],
+  ['--mc-tip-soft', 'light-dark(oklch(0.47 0.11 155 / 20%), oklch(0.8 0.14 155 / 20%))'],
+  ['--mc-warning-soft', 'light-dark(oklch(0.5 0.105 65 / 20%), oklch(0.84 0.13 80 / 20%))'],
+  ['--mc-important-soft', 'light-dark(oklch(0.48 0.2 293 / 20%), oklch(0.76 0.13 293 / 20%))'],
+  ['--mc-note-soft', 'light-dark(oklch(0.47 0.13 250 / 20%), oklch(0.78 0.11 245 / 20%))'],
+  ['--mc-danger-soft', 'light-dark(oklch(0.505 0.19 27.5 / 16%), oklch(0.72 0.165 22 / 20%))'],
+];
+
+const normalise = (value: string): string =>
+  value.replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')').trim();
+
+/** The tokens of a block this file owns (the bridge's --vp-* variables are not values of the design), as sorted "name: value". */
+function ownTokens(tokens: ReadonlyMap<string, string>): readonly string[] {
+  return [...tokens]
+    .filter(([name]) => name.startsWith('--mc-') || name.startsWith('--shiki-'))
+    .map(([name, value]) => `${name}: ${normalise(value)}`)
+    .sort();
+}
+
+const expectedLines = (table: readonly (readonly [string, string])[]): readonly string[] =>
+  table.map(([name, value]) => `${name}: ${value}`).sort();
+
 describe('docs colour tokens (tokens.css)', () => {
+  it('declares exactly the token values of the spec, none missing and none extra', () => {
+    expect(ownTokens(baseTokens)).toEqual(expectedLines(EXPECTED_BASE));
+  });
+
+  it('declares exactly the prefers-contrast overrides of the spec', () => {
+    expect(ownTokens(contrastOverrides)).toEqual(expectedLines(EXPECTED_CONTRAST));
+  });
+
   it('reads the base tokens and the prefers-contrast overrides', () => {
     expect(baseTokens.size).toBeGreaterThan(60);
     expect([...contrastOverrides.keys()].sort()).toEqual([
@@ -457,7 +580,7 @@ describe('docs colour tokens (tokens.css)', () => {
     expect(checked).toBeGreaterThan(150);
   });
 
-  it('meets every pair of the 2.1 contrast table, both schemes, within 0.05 of the printed figure', () => {
+  it('meets every pair of the 2.1 contrast table, both schemes, within 0.05 of the table figure (recomputed where the spec printed it wrongly)', () => {
     expect(violations(TABLE, baseTokens)).toEqual([]);
   });
 
@@ -497,7 +620,7 @@ describe('docs colour tokens (tokens.css)', () => {
     );
   });
 
-  it('keeps the pairs readable under prefers-contrast: more, where the soft fills go to 20%', () => {
+  it('keeps the pairs readable under prefers-contrast: more, where the soft fills go to 20% (16% for the two light crimson fills)', () => {
     expect(violations(MORE_CONTRAST, moreContrastTokens)).toEqual([]);
   });
 });
