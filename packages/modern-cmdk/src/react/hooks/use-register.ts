@@ -37,6 +37,17 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
   // Stable dep for keywords — join to string for identity comparison
   const keywordsDep = options?.keywords?.join('\x00');
 
+  // Mounted and registered: the first effect unregisters on unmount or a change of machine or id,
+  // the second registers on mount and then updates the item in place (position kept)
+  const registeredRef = useRef(false);
+  useLayoutEffect(
+    () => (): void => {
+      registeredRef.current = false;
+      stable.machine.send({ type: 'UNREGISTER_ITEM', id });
+    },
+    [stable.machine, id],
+  );
+
   // useLayoutEffect ensures registration happens before paint
   // biome-ignore lint/correctness/useExhaustiveDependencies: keywordsDep is a derived string for stable identity; options.keywords is read via ref-like pattern
   useLayoutEffect(() => {
@@ -51,11 +62,8 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
       data: dataRef.current,
     };
 
-    stable.machine.send({ type: 'REGISTER_ITEM', item });
-
-    return (): void => {
-      stable.machine.send({ type: 'UNREGISTER_ITEM', id });
-    };
+    stable.machine.send({ type: registeredRef.current ? 'UPDATE_ITEM' : 'REGISTER_ITEM', item });
+    registeredRef.current = true;
   }, [
     stable.machine,
     id,

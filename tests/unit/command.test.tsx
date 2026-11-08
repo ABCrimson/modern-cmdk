@@ -1037,3 +1037,98 @@ describe('Command — React Compound Components', () => {
     });
   });
 });
+
+describe('Command — item updates keep their position (ARCH-20)', () => {
+  function three(b: { value?: string; disabled?: boolean; forceId?: string } = {}): ReactNode {
+    return (
+      <Command>
+        <Command.Input />
+        <Command.List>
+          <Command.Item value="a" forceId="a">
+            A
+          </Command.Item>
+          <Command.Item
+            value={b.value ?? 'b'}
+            forceId={b.forceId ?? 'b'}
+            disabled={b.disabled ?? false}
+          >
+            B
+          </Command.Item>
+          <Command.Item value="c" forceId="c">
+            C
+          </Command.Item>
+        </Command.List>
+      </Command>
+    );
+  }
+  const isActive = (id: string): boolean | undefined =>
+    container.querySelector(`#${id}`)?.hasAttribute('data-active');
+
+  it('toggling disabled on the middle item keeps it between its neighbours in navigation', async () => {
+    await render(three());
+    await render(three({ disabled: true }));
+    await render(three({ disabled: false }));
+    await vi.waitFor(() => {
+      expect(isActive('a')).toBe(true);
+    });
+    await pressKey('ArrowDown');
+    await vi.waitFor(() => {
+      expect(isActive('b')).toBe(true);
+    });
+    await pressKey('ArrowDown');
+    await vi.waitFor(() => {
+      expect(isActive('c')).toBe(true);
+    });
+  });
+
+  it('changing the value of the middle item keeps it between its neighbours in navigation', async () => {
+    await render(three());
+    await render(three({ value: 'b2' }));
+    await vi.waitFor(() => {
+      expect(container.querySelector('#b')?.getAttribute('data-value')).toBe('b2');
+    });
+    await pressKey('ArrowDown');
+    await vi.waitFor(() => {
+      expect(isActive('b')).toBe(true);
+    });
+  });
+
+  it('an id change unregisters the old id and registers the new one', async () => {
+    await render(three());
+    await render(three({ forceId: 'b2' }));
+    await vi.waitFor(() => {
+      expect(container.querySelector('#b')).toBeNull();
+      expect(container.querySelectorAll('[data-command-item]').length).toBe(3);
+    });
+    // The new id is a new registration: it is appended, so a -> c -> b2
+    await pressKey('ArrowDown');
+    await pressKey('ArrowDown');
+    await vi.waitFor(() => {
+      expect(isActive('b2')).toBe(true);
+    });
+  });
+
+  it('unmounting an item unregisters it', async () => {
+    await render(three());
+    await render(
+      <Command>
+        <Command.Input />
+        <Command.List>
+          <Command.Item value="a" forceId="a">
+            A
+          </Command.Item>
+          <Command.Item value="c" forceId="c">
+            C
+          </Command.Item>
+        </Command.List>
+      </Command>,
+    );
+    await vi.waitFor(() => {
+      expect(container.querySelectorAll('[data-command-item]').length).toBe(2);
+    });
+    await pressKey('ArrowDown');
+    await vi.waitFor(() => {
+      expect(isActive('c')).toBe(true);
+    });
+  });
+});
