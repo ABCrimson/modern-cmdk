@@ -589,7 +589,7 @@ Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnp
 
 `pnpm bench:compare` runs the named operations 5 times and takes, per task, the median of the 5 runs' p50, p99 and rme. A median more than 5 % above its baseline warns (exit 1); more than 15 % above, or above its target, fails (exit 2, which also covers a harness error). CI is red only on two consecutive fails: after a first exit 2 the step re-runs `pnpm bench:compare` once; a passing re-run leaves a warning annotation, a second exit 2 an error. `benchmarks/baseline.json` is re-recorded from the `benchmark-results` artifact of the first green run after each Node pin bump. `pnpm bench:record benchmarks/history/<YYYY-MM-DD>-<sha7>.json` does the re-record from the committed copy of that artifact (it records the history file as `source`, takes `version` from the commit's manifest, carries each row's `target_ms` over and needs `--target <category>:<key>=<ms>` for a new row).
 
-`pnpm bench` (Vitest bench, the `perf` project) also times incremental filtering (`filter-10k`, `filter-100k`), frecency, the headless machine's mount at 1K and 10K items (`mount.bench.ts`) and registration (`registration.bench.ts`), but those suites have no baseline entry and no target. One of them asserts: `registration.bench.ts` fails when the per-item time of a register or unregister path at 10K items exceeds `GROWTH_FACTOR` (4) times its per-item time at 1K, so CI's `pnpm bench --run` goes red on quadratic registration work (ledger P33). The mount gate itself is the browser bench (`node benchmarks/browser/run.ts`, CI job "Browser bench (Chromium, 10K mount gate)": the 10K mount median must be at most 50 ms). `wasm-search.bench.ts` is excluded from the project until the engine initialises (W01).
+`pnpm bench` (Vitest bench, the `perf` project) also times incremental filtering (`filter-10k`, `filter-100k`), frecency, the headless machine's mount at 1K and 10K items (`mount.bench.ts`) and registration (`registration.bench.ts`), but those suites have no baseline entry and no target. Only one of them carries a time budget: `registration.bench.ts` fails when the per-item time of a register or unregister path at 10K items exceeds `GROWTH_FACTOR` (4) times its per-item time at 1K, so CI's `pnpm bench --run` goes red on quadratic registration work (ledger P33). The mount gate itself is the browser bench (`node benchmarks/browser/run.ts`, CI job "Browser bench (Chromium, 10K mount gate)": the 10K mount median must be at most 50 ms). `wasm-search.bench.ts` is excluded from the project until the engine initialises (W01).
 
 ---
 
@@ -689,7 +689,7 @@ chore: bump Biome to 2.6.6
 
 5. **CI checks** -- The CI pipeline runs:
    - Lint and type-check (`pnpm lint`, `pnpm typecheck`)
-   - Phantom claims (`scripts/check-claims.mjs` against the wiki) and links (lychee over the shipped Markdown, then `pnpm check:repo-links`)
+   - Phantom claims (`scripts/check-claims.mjs` over the READMEs, ARCHITECTURE.md, CONTRIBUTING.md, SECURITY.md, apps/docs and the wiki) and links (lychee over the shipped Markdown, then `pnpm check:repo-links`)
    - Unit tests (3 OS, on Node 26.4.0 and the `.nvmrc` Node), React lanes, built-package tests, coverage with the ratchet
    - Rust & WASM, E2E tests (Chromium), docs build and render tests
    - Bundle size check (`size-limit`)
@@ -699,7 +699,7 @@ chore: bump Biome to 2.6.6
    - Browser bench (Chromium, 10K mount gate): `node benchmarks/browser/run.ts` builds the playground, drives its `/bench` route at 1K and 10K items (1 warm-up and 7 measured runs each) and fails the job when the 10K mount median is above 50 ms or the harness errors (exit 1 or 2); the results JSON is uploaded as the `browser-bench-results` artifact
    - Security audit (`pnpm audit`)
 
-   "CI Summary" needs all 19 jobs of `ci.yml` and fails unless every one succeeded.
+   "CI Summary" needs the other 19 jobs of `ci.yml` and fails unless every one succeeded.
 
 6. **Review** -- The `main` ruleset requires a pull request (0 approvals), the "CI Summary" check must pass, and force-pushes and deletion of `main` are blocked.
 
