@@ -1,10 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, open, test } from './fixtures';
 
 // Locator-first assertions with @axe-core/playwright (AxeBuilder)
-test.describe('Accessibility — WCAG 2.1 AA', () => {
+test.describe('Accessibility — WCAG 2.1 AA', { tag: '@a11y' }, () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await open(page, '/');
     // Wait for hydration — items must be visible
     await expect(page.getByRole('combobox')).toBeVisible();
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
@@ -362,7 +362,7 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     page,
   }) => {
     await page.emulateMedia({ forcedColors: 'active' });
-    await page.goto('/high-contrast');
+    await open(page, '/high-contrast');
 
     const disabled = page.locator('[data-command-item][data-disabled]');
     await expect(disabled).toHaveCount(1);
@@ -472,8 +472,8 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
   // ---------- Dialog Accessibility ----------
 
-  test('should have correct dialog ARIA structure', async ({ page }) => {
-    await page.goto('/dialog');
+  test('should have correct dialog ARIA structure', { tag: '@dialog' }, async ({ page }) => {
+    await open(page, '/dialog');
 
     const trigger = page.locator('[data-command-trigger]');
     await expect(trigger).toBeVisible();
@@ -495,8 +495,8 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     expect(results.violations).toEqual([]);
   });
 
-  test('should trap focus inside open dialog', async ({ page }) => {
-    await page.goto('/dialog');
+  test('should trap focus inside open dialog', { tag: '@dialog' }, async ({ page }) => {
+    await open(page, '/dialog');
 
     const trigger = page.locator('[data-command-trigger]');
     await expect(trigger).toBeVisible();
@@ -532,7 +532,7 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
   test('should be usable in forced-colors mode', async ({ page }) => {
     // Emulate forced-colors: active
     await page.emulateMedia({ forcedColors: 'active' });
-    await page.goto('/');
+    await open(page, '/');
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
     // Ensure the palette still renders and is interactive

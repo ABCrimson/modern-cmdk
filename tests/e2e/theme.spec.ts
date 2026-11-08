@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, type Page, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, open, test } from './fixtures';
 
 // The OS colour scheme decides the initial playground theme; the toggle label must agree with it.
 
@@ -27,14 +28,14 @@ test.describe('Initial theme follows prefers-color-scheme', () => {
     test.use({ colorScheme: 'light' });
 
     test('starts light and the toggle offers dark', async ({ page }) => {
-      await page.goto('/');
+      await open(page, '/');
       await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
       await expect(page.getByRole('button', { name: 'Switch to dark mode' })).toBeVisible();
       await expect.poll(() => bodyLuminance(page)).toBeGreaterThan(0.5);
     });
 
     test('clicking the toggle switches to dark and flips the name', async ({ page }) => {
-      await page.goto('/');
+      await open(page, '/');
       await page.getByRole('button', { name: 'Switch to dark mode' }).click();
       await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
       await expect(page.getByRole('button', { name: 'Switch to light mode' })).toBeVisible();
@@ -46,7 +47,7 @@ test.describe('Initial theme follows prefers-color-scheme', () => {
     test.use({ colorScheme: 'dark' });
 
     test('starts dark and the toggle offers light', async ({ page }) => {
-      await page.goto('/');
+      await open(page, '/');
       await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
       await expect(page.getByRole('button', { name: 'Switch to light mode' })).toBeVisible();
       await expect.poll(() => bodyLuminance(page)).toBeLessThan(0.5);
@@ -54,7 +55,7 @@ test.describe('Initial theme follows prefers-color-scheme', () => {
 
     // accessibility.spec.ts runs on Playwright's default light scheme; this gates the dark ramp.
     test('dark theme has no colour-contrast violations', async ({ page }) => {
-      await page.goto('/');
+      await open(page, '/');
       await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
       // withRules alone: in @axe-core/playwright withRules and withTags each replace runOnly, so a
       // tag filter before withRules would be discarded (its JSDoc: "Cannot be used with withRules").
