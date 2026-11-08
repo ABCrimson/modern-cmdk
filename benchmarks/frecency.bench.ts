@@ -1,6 +1,6 @@
 import type { FrecencyRecord, ItemId } from 'modern-cmdk';
 import { computeFrecencyBonus, FrecencyEngine, itemId, MemoryFrecencyStorage } from 'modern-cmdk';
-import { describe, test } from 'vitest';
+import { beforeAll, describe, test } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -13,8 +13,10 @@ function makeRecord(hoursAgo: number, frequency: number): FrecencyRecord {
   return { lastUsed: NOW - msAgo, frequency };
 }
 
-// ES2025 Iterator Helpers — generate frecency records via iterator pipeline
-function _generateRecords(count: number): Map<ItemId, FrecencyRecord> {
+// ES2025 Iterator Helpers — generate frecency records via iterator pipeline. The ages spread over every
+// decay bucket of computeFrecencyBonus: with (i * 7) % 2000 hours, 10K records land 5 under an hour, 115
+// under a day, 720 under a week, 2760 under a month and 6400 older.
+function generateRecords(count: number): Map<ItemId, FrecencyRecord> {
   return new Map(
     Iterator.from({
       [Symbol.iterator]: function* () {
@@ -78,17 +80,19 @@ describe('computeFrecencyBonus — Pure Function', () => {
 // ---------------------------------------------------------------------------
 
 describe('FrecencyEngine.getBonus — 10K Records', () => {
-  const engine = new FrecencyEngine({ enabled: true, storage: new MemoryFrecencyStorage() });
+  // TEB-21: the engine is seeded through storage, not recordSelection (which stamps Date.now() and
+  // would put all 10K records in the under-an-hour bucket, so getAllBonuses would time one decay
+  // branch). The seeded storage holds generateRecords(10_000); load() hydrates the engine from it.
+  // beforeAll runs before any bench of this describe (describe callbacks stay synchronous).
+  const records = generateRecords(10_000);
+  const ids = [...records.keys()];
+  const storage = new MemoryFrecencyStorage();
+  storage.save('default', { records });
+  const engine = new FrecencyEngine({ enabled: true, storage });
 
-  // Populate engine with 10K records
-  const ids: ItemId[] = [];
-  for (let i = 0; i < 10_000; i++) {
-    const id = itemId(`item-${i}`);
-    ids.push(id);
-    for (let j = 0; j < (i % 5) + 1; j++) {
-      engine.recordSelection(id);
-    }
-  }
+  beforeAll(async () => {
+    await engine.load();
+  });
 
   test('single getBonus lookup', async ({ bench }) => {
     await bench('single getBonus lookup', () => {
