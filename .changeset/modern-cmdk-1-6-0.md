@@ -11,7 +11,7 @@ The machine does what its documentation says: disabled items stay listed but can
 
 **Search**
 
-- A custom `filter` that returns `0` or a negative number now excludes the item, as `false` does (ARCH-14). Results from a pluggable `search` engine, including `createSearchEngine({ scorer })`, are used as returned.
+- A custom `filter` that returns `0` or a negative number now excludes the item, as `false` does (ARCH-14). Results from a pluggable `search` engine, including `createSearchEngine({ scorer })`, are used in their order, except that frecency, when enabled, re-ranks them by score plus bonus and `disabledItems: 'hide'` drops disabled items; the engine is not called for an empty query or with `filter: false`.
 - The word-boundary tier scores in the open range (0.65, 0.7), by contiguity (`0.03 * squares / qLen^2`) and coverage (`0.02 * qLen / tLen`) on top of 0.65, where every hit scored a flat 0.7; the cover backtracks, and a separator in the query no longer hangs the scorer (CE-35, P19, CE-36, TUB-34). A query over 512 characters skips the word-boundary tier and falls to the fuzzy tier.
 - Incremental filtering (re-scoring only the previous matches when the lowercased query extends the previous one) runs with the default scorer only, and compares lowercased queries (CE-37, P06, CE-88, TUB-19, TUB-20). A custom scorer, and a `filter` function, rescan every item on every non-empty query. `SearchEngine.remove()` deletes from the incremental cache in place (P40).
 - `SearchResult.matches` are half-open ranges into the original `item.value`, also where lowercasing changes its length (`'İ'`) (P20). A match through `keywords` only reports `matches: []`; when the value matched as well, the value's own ranges stay (D92).
@@ -27,7 +27,7 @@ The machine does what its documentation says: disabled items stay listed but can
 
 **Machine**
 
-- One refilter and one `stateChange` per scheduler batch for registry events (REGISTER, UNREGISTER, UPDATE, `ITEMS_LOADED`): the machine refilters once at the end of the batch (CE-20, ARCH-24, P05, RA-49). A `SEARCH_CHANGE` still filters when it runs. The emit order changed: `onOpenChange`, `onSearchChange` and the `openChange` event run while the batch handles its events, before the batch's single `stateChange`. An active item survives an `UNREGISTER_ITEM` and `REGISTER_ITEM` of the same id in one batch.
+- One refilter and one `stateChange` per scheduler batch for registry events (REGISTER, UNREGISTER, UPDATE, `ITEMS_LOADED`): the machine refilters once at the end of the batch (CE-20, ARCH-24, P05, RA-49). A `SEARCH_CHANGE` still filters when it runs. A `NAVIGATE` or `ITEM_ACTIVATE` that follows a registry event in the same batch refilters first, so navigation reads current ids (machine.ts:275-278). The emit order changed: `onOpenChange`, `onSearchChange` and the `openChange` event run while the batch handles its events, before the batch's single `stateChange`. An active item survives an `UNREGISTER_ITEM` and `REGISTER_ITEM` of the same id in one batch.
 - New event `UPDATE_ITEM` upserts an item in place; `useRegisterItem` sends it, instead of re-registering, when an item's props change (ARCH-20, CE-49).
 - `groupedIds` keys follow group priority, lower first; `filteredIds` and navigation are unchanged and React renders groups in JSX order (TUB-06). `Command.Group` counts only its own items for its heading (CE-50).
 - `UNGROUPED_GROUP_ID` (`'__ungrouped'`) is a public export of the core entry (CE-50).
