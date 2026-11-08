@@ -291,6 +291,39 @@ describe('Command.Dialog open state (C1)', () => {
     expect(onOpenChange.mock.calls).toEqual([[true]]);
   });
 
+  it('a controlled dialog the parent closes before the machine has followed its opening stays closed and reports nothing', async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    const tree = (open: boolean): ReactNode => (
+      <Command.Dialog open={open} onOpenChange={onOpenChange}>
+        <probe.Probe />
+        <Command.Input />
+      </Command.Dialog>
+    );
+    await mount(tree(false));
+    await settle();
+
+    // The parent opens and closes within one frame: the machine's OPEN, sent when the prop turned true, is still
+    // queued when the prop turns false. Its report is the machine following the prop, not a request to open.
+    const frames: FrameRequestCallback[] = [];
+    using _request = vi
+      .spyOn(globalThis, 'requestAnimationFrame')
+      .mockImplementation((callback: FrameRequestCallback): number => frames.push(callback));
+    await update(tree(true));
+    await update(tree(false));
+    // Run the frames as they are requested: the first applies the stale OPEN, the second the put-back CLOSE
+    for (let round = 0; round < 3; round++) {
+      await act(async () => {
+        for (const callback of frames.splice(0)) callback(performance.now());
+      });
+    }
+    await settle();
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-command-dialog]')).toBeNull();
+    expect(probe.current.getState().open).toBe(false);
+  });
+
   it('RA-X3: the dialog focuses its input when the portal container is inside a shadow root', async () => {
     const host = document.createElement('div');
     document.body.appendChild(host);
