@@ -78,7 +78,7 @@ Change `--color-hue` to shift the entire color palette:
 
 ```css
 :root {
-  /* List height — set automatically on Command.List via ResizeObserver */
+  /* List height — set automatically on Command.List via ResizeObserver; while the list is virtual it keeps its last non-virtual value */
   --command-list-height: 0px;
 }
 ```
@@ -200,8 +200,8 @@ but they are implementation surface rather than a component-per-attribute mappin
 |---|---|---|
 | `[data-command-state]` | `Command` | Root open state -- the value is `"open"` or `"closed"` |
 | `[data-command-group-items]` | `Command.Group` | Wrapper around a group's options |
-| `[data-command-list-inner]` | `Command.List` | Content wrapper, rendered **only** when not virtualizing |
-| `[data-command-list-virtual]` | `Command.List` | Sized spacer, rendered **only** while virtualizing |
+| `[data-command-list-inner]` | `Command.List` | Content wrapper, carries the attribute **only** when not virtualizing |
+| `[data-command-list-virtual]` | `Command.List` | Sized spacer, carries the attribute **only** while virtualizing |
 | `[data-command-list-status]` | `Command.List` | Portal target for `Command.Empty`, kept outside the listbox for valid ARIA |
 | `[data-command-aria-live]` | `Command.List` | Visually hidden result-count live region |
 

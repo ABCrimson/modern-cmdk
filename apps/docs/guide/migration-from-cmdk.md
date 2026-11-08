@@ -144,7 +144,7 @@ cmdk marks its elements with `cmdk-*` attributes; `modern-cmdk/react` renders `d
 | `[cmdk-root]` | `[data-command-root]` | `data-attrs` | |
 | `[cmdk-input]` | `[data-command-input]` | `data-attrs` | |
 | `[cmdk-list]` | `[data-command-list]` | `data-attrs` | |
-| `[cmdk-list-sizer]` | `[data-command-list-inner]` | `data-attrs` | The element the list measures into `--command-list-height`; not rendered while the list is virtualized, which renders `[data-command-list-virtual]` instead |
+| `[cmdk-list-sizer]` | `[data-command-list-inner]` | `data-attrs` | The element the list measures into `--command-list-height`; the same element carries `[data-command-list-virtual]` instead while the list is virtualized |
 | `[cmdk-item]` | `[data-command-item]` | `data-attrs` | |
 | `[cmdk-group]` | `[data-command-group]` | `data-attrs` | |
 | `[cmdk-group-heading]` | `[data-command-group-heading]` | `data-attrs` | |
