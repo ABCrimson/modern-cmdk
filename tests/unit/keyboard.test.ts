@@ -280,8 +280,44 @@ describe('KeyboardShortcutRegistry conflicts (CE-08, DAE-32)', () => {
     registry.register('Ctrl+K', a, () => {});
     registry.unregister('Ctrl+K');
     registry.register('Ctrl+K', b, () => {});
-    registry.unregisterByItem(a);
+    const filter = vi.spyOn(Array.prototype, 'filter');
+    try {
+      registry.unregisterByItem(a);
+      expect(filter).not.toHaveBeenCalled();
+    } finally {
+      filter.mockRestore();
+    }
     expect(registry.getBindings().get(parseShortcut('Ctrl+K').normalized)?.itemId).toBe(b);
+  });
+
+  it("CE-08: an index entry left by unregister(shortcut) does not make unregisterByItem filter another item's stack", () => {
+    using registry = new KeyboardShortcutRegistry();
+    registry.register('Ctrl+K', a, () => {});
+    registry.unregister('Ctrl+K');
+    registry.register('Ctrl+K', b, () => {});
+    const filter = vi.spyOn(Array.prototype, 'filter');
+    try {
+      registry.unregisterByItem(a);
+      expect(filter).not.toHaveBeenCalled();
+    } finally {
+      filter.mockRestore();
+    }
+    expect(registry.getBindings().get(parseShortcut('Ctrl+K').normalized)?.itemId).toBe(b);
+  });
+
+  it('CE-08: disposing a later binding drops its index entry while an earlier binding on the key stays', () => {
+    using registry = new KeyboardShortcutRegistry();
+    registry.register('Ctrl+K', a, () => {});
+    const later = registry.register('Ctrl+K', b, () => {});
+    later[Symbol.dispose]();
+    const filter = vi.spyOn(Array.prototype, 'filter');
+    try {
+      registry.unregisterByItem(b);
+      expect(filter).not.toHaveBeenCalled();
+    } finally {
+      filter.mockRestore();
+    }
+    expect(registry.getBindings().get(parseShortcut('Ctrl+K').normalized)?.itemId).toBe(a);
   });
 
   it('DAE-32: two Command items with the same shortcut are reported by the machine keyboard registry', () => {
