@@ -7,7 +7,7 @@
  * The default theme sets `color-scheme: dark` on `:root:is(.dark)` and `light` on `:root:not(.dark)`
  * (vitepress/dist/client/theme-default/styles/base.css:246-252), so `light-dark()` follows the VitePress toggle,
  * not the operating system. `html:root` has specificity 0,1,1 and beats the theme's `:root` and `.dark` blocks
- * (0,1,0; theme-default/styles/vars.css:137-195) whatever the chunk order. No `@layer`: only base.css is layered
+ * (0,1,0; theme-default/styles/vars.css:137-196) whatever the chunk order. No `@layer`: only base.css is layered
  * in the default theme, so a layered override would lose.
  *
  * Every colour is a literal `light-dark(<light>, <dark>)` pair, tints included: no relative colour syntax and no
@@ -143,7 +143,7 @@ html:root {
   --vp-c-brand-3: var(--mc-brand-3);
   --vp-c-brand-soft: var(--mc-brand-soft);
 
-  /* the theme's defaults put white on brand-2 (hover) and brand-1 (active), 1.95 and 2.67 in dark (vars.css:419-427) */
+  /* the theme's defaults put white on brand-2 (hover) and brand-1 (active), 1.95 and 2.67 in dark (theme-default/styles/vars.css:419-427) */
   --vp-button-brand-bg: var(--mc-button-bg);
   --vp-button-brand-hover-bg: var(--mc-button-hover-bg);
   --vp-button-brand-active-bg: var(--mc-button-active-bg);
@@ -235,8 +235,8 @@ html:root {
   --mc-dur-3: 320ms; /* reveals, appearance toggle */
   --mc-dur-4: 500ms; /* palette frame entrance */
   --mc-ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --mc-ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* was --ease-out-expo in vars.css */
-  /* the 28-stop curve of vars.css (--ease-spring), copied verbatim */
+  --mc-ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* long-tail ease-out */
+  /* spring easing: a 28-stop linear() curve that overshoots to 1.16 and settles at 1 */
   --mc-ease-spring: linear(
     0,
     0.009,
