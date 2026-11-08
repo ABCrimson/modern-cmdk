@@ -10,6 +10,7 @@ The palette's lifecycle, ids and telemetry are specified and tested: the open st
 - One Escape in `Command.Dialog` calls `onOpenChange(false)` once: Radix owns Escape inside the dialog, and the keydown handler skips an Escape that is already default-prevented (CE-118, RA-34).
 - A controlled `Command.Dialog` follows its `open` prop: a parent that keeps `open={true}` keeps the dialog open after Escape or an outside click (RA-35, DG-20).
 - A controlled `Command.Dialog` reports the palette's own open and close requests (a selection that closes, `CLOSE`, `OPEN` or `TOGGLE` from a shortcut or `send`) once through `onOpenChange` and keeps the `open` you pass (D109).
+- A controlled `Command.Dialog` whose parent closes it before the machine has followed its opening stays closed and reports nothing, and a refused close is put back even when a second request lands in the put-back frame (RA-80, RA-81).
 - `Command.Dialog` focuses its input when the portal container is inside a shadow root (RA-X3).
 
 **Lifecycle: StrictMode, Activity, dispose**
