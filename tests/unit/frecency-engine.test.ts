@@ -605,7 +605,7 @@ describe('FrecencyEngine save and load ordering', () => {
     expect(storage[Symbol.dispose]).toHaveBeenCalledTimes(1);
   });
 
-  it('CE-114: a load that rejects releases the save, which writes the new selection alone', async () => {
+  it('D96: a rejected load turns persistence off: flush and dispose settle and nothing is written', async () => {
     const storage = makeStorage();
     const loading = Promise.withResolvers<FrecencyData>();
     storage.load.mockReturnValueOnce(loading.promise);
@@ -621,8 +621,11 @@ describe('FrecencyEngine save and load ordering', () => {
     await rejection;
     await tick();
 
-    expect(storage.save).toHaveBeenCalledTimes(1);
-    expect([...(storage.save.mock.calls[0]?.[1].records.keys() ?? [])]).toEqual([A]);
+    await engine.flush();
+    engine.recordSelection(B);
+    await engine[Symbol.asyncDispose]();
+
+    expect(storage.save).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
   });
 });
