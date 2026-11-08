@@ -1,5 +1,5 @@
 import type { CommandItem, ScorerFn } from 'modern-cmdk';
-import { createSearchEngine, itemId } from 'modern-cmdk';
+import { createCommandMachine, createSearchEngine, itemId } from 'modern-cmdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { scoreItemPreLowered } from '../../packages/modern-cmdk/src/core/search/default-scorer.js';
 
@@ -264,6 +264,33 @@ describe('Incremental Filtering', () => {
     });
   });
 
+  describe('the cache is invalidated when items are indexed', () => {
+    it('TUB-68: should find an item indexed after a search whose query the next one extends', () => {
+      using engine = createSearchEngine();
+      const apple = makeItem('apple', 'Apple');
+      engine.index([apple]);
+      expect(
+        engine
+          .search('ap', [apple])
+          .toArray()
+          .map((r) => r.id),
+      ).toEqual([itemId('apple')]);
+
+      const apex = makeItem('apex', 'Apex');
+      const both = [apple, apex];
+      engine.index([apex]);
+      scoreSpy.mockClear();
+
+      const ids = engine
+        .search('ape', both)
+        .toArray()
+        .map((r) => r.id);
+
+      expect(ids).toContain(itemId('apex'));
+      expect(scoreSpy).toHaveBeenCalledTimes(both.length);
+    });
+  });
+
   describe('custom scorers are never pruned', () => {
     const items = [makeItem('apple', 'Apple'), makeItem('banana', 'Banana')];
 
@@ -302,6 +329,28 @@ describe('Incremental Filtering', () => {
 
       expect(scorer).toHaveBeenCalledTimes(items.length);
       expect(scoreSpy).not.toHaveBeenCalled();
+    });
+
+    it('P33: should find items for a longer query through the machine filter option after a shorter one matched nothing', async () => {
+      // The machine wraps a `filter` function into a custom scorer; this one is non-monotone:
+      // it rejects every item for the 1-character query and admits them for the 2-character one
+      const filter = (_item: CommandItem, query: string): number | false =>
+        query.length >= 2 ? 1 : false;
+      using machine = createCommandMachine({ items, filter });
+      // send() batches the state update into one animation frame; this callback is queued after it
+      const nextFrame = (): Promise<void> =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+      machine.send({ type: 'SEARCH_CHANGE', query: 'a' });
+      await nextFrame();
+      expect(machine.getState().search).toBe('a');
+      expect(machine.getState().filteredIds).toEqual([]);
+
+      machine.send({ type: 'SEARCH_CHANGE', query: 'ab' });
+      await nextFrame();
+
+      expect(machine.getState().search).toBe('ab');
+      expect(machine.getState().filteredIds).toEqual([itemId('apple'), itemId('banana')]);
     });
   });
 });
