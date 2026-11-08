@@ -1,7 +1,7 @@
 // packages/modern-cmdk/src/core/search/default-scorer.ts
-// Hot-path optimized: toLowerCase (not locale), inline iteration, no regex split,
-// plain arithmetic (no Math.sumPrecise on 2-5 values), zero unnecessary allocations.
-// Items validated at itemId() creation — no isWellFormed() re-checks in scoring.
+// Hot-path optimized: toLowerCase (not locale), charCode scans, no regex split,
+// plain arithmetic (no Math.sumPrecise on 2-5 values).
+// value/keywords scored as raw UTF-16; no isWellFormed() checks on the hot path (only ids are normalized by itemId()).
 
 import type { CommandItem } from '../types.js';
 import type { SearchResult } from './types.js';
