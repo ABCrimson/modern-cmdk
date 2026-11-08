@@ -24,8 +24,8 @@ const MAC_PLATFORM_RE: RegExp = /Mac|iPod|iPhone|iPad/;
 export type ShortcutPlatform = 'mac' | 'other';
 
 /**
- * Reads the platform from `navigator` at call time, preferring `navigator.userAgentData` over the
- * deprecated `navigator.platform`. Without `navigator` the platform is `'other'`.
+ * Reads the platform from `navigator` at call time: `'mac'` when `navigator.userAgentData.platform` is
+ * `'macOS'` or `navigator.platform` names an Apple device, else `'other'` (also without `navigator`).
  */
 function detectPlatform(): ShortcutPlatform {
   return typeof navigator !== 'undefined' &&
