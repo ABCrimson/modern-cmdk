@@ -291,3 +291,62 @@ it("D112: a refilter that throws at the commit still reports that batch's teleme
   expect(onSearchComplete).toHaveBeenCalledTimes(1);
   expect(onItemSelected).toHaveBeenCalledTimes(1);
 });
+
+it("CE-18: each batch's onSearchComplete is timed from that batch's first SEARCH_CHANGE", () => {
+  let now = 0;
+  vi.spyOn(performance, 'now').mockImplementation(() => now);
+  const onSearchComplete = vi.fn();
+  using machine = createCommandMachine({ items, telemetry: { onSearchComplete } });
+  nextBatch();
+
+  now = 100;
+  machine.send({ type: 'SEARCH_CHANGE', query: 'a' });
+  nextBatch();
+  now = 200;
+  machine.send({ type: 'SEARCH_CHANGE', query: 'a' }); // the committed query: reports nothing
+  nextBatch();
+  now = 5000;
+  machine.send({ type: 'SEARCH_CHANGE', query: 'ap' });
+  nextBatch();
+
+  expect(onSearchComplete).toHaveBeenCalledTimes(2);
+  expect(onSearchComplete.mock.calls.map((call) => call[2])).toEqual([0, 0]);
+});
+
+it('CE-18: onItemSelected reports each select once', () => {
+  const onItemSelected = vi.fn();
+  using machine = createCommandMachine({ items, telemetry: { onItemSelected } });
+  nextBatch();
+
+  machine.send({ type: 'ITEM_SELECT', id: itemId('pineapple') });
+  nextBatch();
+  expect(onItemSelected).toHaveBeenCalledTimes(1);
+
+  machine.send({ type: 'OPEN' });
+  nextBatch();
+  expect(onItemSelected).toHaveBeenCalledTimes(1);
+});
+
+it('CE-18: one batch reports the search, then the selects, then the close', () => {
+  const log: string[] = [];
+  using machine = createCommandMachine({
+    items,
+    open: true,
+    telemetry: {
+      onPaletteOpen: () => log.push('open'),
+      onSearchComplete: () => log.push('search'),
+      onItemSelected: () => log.push('select'),
+      onPaletteClose: () => log.push('close'),
+    },
+  });
+  machine.send({ type: 'OPEN' }); // the first commit reports the open of a machine created open
+  nextBatch();
+  log.length = 0;
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  machine.send({ type: 'ITEM_SELECT', id: itemId('pineapple') });
+  machine.send({ type: 'CLOSE' });
+  nextBatch();
+
+  expect(log).toEqual(['search', 'select', 'close']);
+});
