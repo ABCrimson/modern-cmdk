@@ -44,7 +44,7 @@ await using engine = await createWasmSearchEngine();
 | `isWasm` | `true` | Discriminant -- `false` on the TypeScript fallback engine |
 | `index(items)` | `(items: CommandItem[]) => void` | Index items for search. Serializes and sends to WASM trigram index |
 | `search(query, items)` | `(query: string, items: CommandItem[]) => IteratorObject<SearchResult>` | Synchronous fuzzy search returning scored results |
-| `remove(ids)` | `(ids: Set<ItemId>) => void` | The WASM index is immutable. On the main-thread engine the whole index is cleared and the remaining items are not re-indexed until the next `index()` call; the worker engine clears and re-indexes the remaining items |
+| `remove(ids)` | `(ids: Set<ItemId>) => void` | The WASM index is rebuilt whole. On the main-thread engine `remove` clears it, and the remaining items stay out until an `index()` call passes them again (every `index()` call replaces the index with the items it is given); the worker engine clears and re-indexes the remaining items |
 | `clear()` | `() => void` | Clear the entire index |
 | `[Symbol.dispose]()` | `() => void` | Free WASM memory (synchronous) |
 | `[Symbol.asyncDispose]()` | `() => Promise<void>` | Free WASM memory (async, for `await using`) |
