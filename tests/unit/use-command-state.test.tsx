@@ -9,6 +9,7 @@ import type { CommandMachine } from 'modern-cmdk';
 import { Command, CommandStableContext, useCommandState } from 'modern-cmdk/react';
 import { use } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { silenceConsoleError } from '../act-guard.ts';
 
 afterEach(() => {
   cleanup();
@@ -34,7 +35,7 @@ function Reader(): null {
 
 describe('useCommandState', () => {
   it('RA-36: a selector returning a fresh object renders once per machine tick without a getSnapshot warning', async () => {
-    using spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    using spy = silenceConsoleError();
     const frames: FrameRequestCallback[] = [];
     vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((callback) => {
       frames.push(callback);
