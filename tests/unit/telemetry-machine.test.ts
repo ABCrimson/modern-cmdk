@@ -220,3 +220,37 @@ it('D113: a batch that opens and closes again reports no session', () => {
   expect(onPaletteOpen).not.toHaveBeenCalled();
   expect(onPaletteClose).not.toHaveBeenCalled();
 });
+
+it('D113: a second batch while open reports no second onPaletteOpen', () => {
+  const onPaletteOpen = vi.fn();
+  using machine = createCommandMachine({ items, telemetry: { onPaletteOpen } });
+
+  machine.send({ type: 'OPEN' });
+  nextBatch();
+  expect(onPaletteOpen).toHaveBeenCalledTimes(1);
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  nextBatch();
+  expect(machine.getState().open).toBe(true);
+  expect(onPaletteOpen).toHaveBeenCalledTimes(1);
+});
+
+it("D107: a subscriber that disposes the machine stops that batch's telemetry", () => {
+  const onPaletteOpen = vi.fn();
+  const onSearchComplete = vi.fn();
+  const onSearchChange = vi.fn();
+  using machine = createCommandMachine({
+    items,
+    onSearchChange,
+    telemetry: { onPaletteOpen, onSearchComplete },
+  });
+  machine.subscribe(() => machine[Symbol.dispose]());
+
+  machine.send({ type: 'OPEN' });
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  nextBatch();
+  // The state report ran before the dispose; the telemetry of the batch did not
+  expect(onSearchChange).toHaveBeenCalledWith('app');
+  expect(onPaletteOpen).not.toHaveBeenCalled();
+  expect(onSearchComplete).not.toHaveBeenCalled();
+});
