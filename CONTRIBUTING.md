@@ -163,7 +163,7 @@ modern-cmdk/
         wasm-engine.ts            Main-thread WASM engine wrapper
         worker-engine.ts          Web Worker engine wrapper
         worker.ts                 Worker entry
-        env.ts                    isDev flag (inline NODE_ENV comparison behind `typeof process`, the pattern of the guards in core/search/index.ts and react/hooks/use-devtools.ts)
+        env.ts                    isDev flag, computed once by a try/catch around `process.env.NODE_ENV !== 'production'`
         pkg.d.ts                  Ambient stub of the wasm-pack output, so tsc runs without pkg/
         raw.d.ts                  Types for Vite `?raw` imports (worker-engine.test.ts)
         pkg-stub.test.ts          Drift guard: pkg.d.ts stays a subset of the generated pkg/ types
