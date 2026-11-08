@@ -7,7 +7,11 @@ import type { CommandItem, ItemId } from '../types.js';
 export interface SearchResult {
   readonly id: ItemId;
   readonly score: number;
-  /** Character ranges that matched (for highlighting) — half-open [start, end) tuples, end exclusive */
+  /**
+   * Character ranges that matched (for highlighting) — half-open [start, end) tuples, end exclusive. The
+   * ranges index the original `item.value`, not its lowercased copy. A match on keywords only reports
+   * `matches: []`: there is nothing in the value to highlight.
+   */
   readonly matches: ReadonlyArray<readonly [start: number, end: number]>;
 }
 
