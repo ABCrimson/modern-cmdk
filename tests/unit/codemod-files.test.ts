@@ -5,6 +5,7 @@ import {
   copyFile,
   mkdir,
   mkdtemp,
+  readFile,
   realpath,
   rm,
   symlink,
@@ -12,6 +13,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   discoverFiles,
@@ -367,12 +369,68 @@ describe('codemod files: discovery', () => {
     await git(join(dir, 'sub'), ['commit', '-q', '-m', 'inner']);
     await git(dir, ['init', '-q']);
     await git(dir, ['add', 'sub']);
-    // The submodule's own git calls fail on a broken config (exit 128). `ls-files` runs in `sub` before `check-ignore` since SEC-56 (it lists the gitlinks below `sub`), so it is the call that fails first and must not be swallowed; the check-ignore exit-code guard alone is not exercised here.
+    // The submodule's own git calls fail on a broken config (exit 128). `ls-files` runs in `sub` before `check-ignore` since SEC-56 (it lists the gitlinks below `sub`), so it is the call that fails first and must not be swallowed; the check-ignore exit-code guard alone is pinned by the TUB-78 test below.
     await appendFile(join(dir, 'sub', '.git', 'config'), '[broken\n');
     await expect(find(['sub/*.ts'], 'modern-cmdk-codemod')).rejects.toThrow(
       /^git ls-files failed \(exit 128\): .*config/is,
     );
     expect(await find(['sub/*.ts'], 'modern-cmdk')).toEqual(['sub/x.ts']);
+  });
+
+  it('TUB-78: a git check-ignore that fails alone (exit 128) throws with the git stderr, never "nothing ignored"', async () => {
+    await touch('a.ts');
+    await touch('b.ts');
+    await touch('.gitignore', 'b.ts\n');
+    await git(dir, ['init', '-q']);
+    const realGit = await resolveGit(dir);
+    // No git configuration fails only `check-ignore`, so git is replaced by a shim that forwards every
+    // other subcommand to the real git and refuses that one. The shim is a copy of node named git.exe
+    // (git elsewhere) with a preload, not a .cmd: resolveGit (files.ts) looks only for git.exe or
+    // git.com on win32, and runGit spawns that absolute path with execFile and no shell, which cannot
+    // run a .cmd. The copy starts as `git.exe check-ignore -z --stdin`; NODE_OPTIONS runs the preload
+    // before node would load "check-ignore" as a script, and the preload exits instead.
+    const shimDir = await mkdtemp(join(tmpdir(), 'modern-cmdk-files-shim-'));
+    try {
+      const shim = join(shimDir, process.platform === 'win32' ? 'git.exe' : 'git');
+      const log = join(shimDir, 'subcommands.log');
+      const preload = join(shimDir, 'preload.mjs');
+      await copyFile(process.execPath, shim);
+      await chmod(shim, 0o755);
+      await writeFile(log, '');
+      await writeFile(
+        preload,
+        [
+          "import { spawnSync } from 'node:child_process';",
+          "import { appendFileSync } from 'node:fs';",
+          "import { basename } from 'node:path';",
+          // Node resolves argv[1] against the working directory before preloads run: take its basename.
+          'const [subcommand, ...rest] = [basename(process.argv[1]), ...process.argv.slice(2)];',
+          "appendFileSync(process.env.SHIM_LOG, subcommand + '\\n');",
+          "if (subcommand === 'check-ignore') {",
+          "  process.stderr.write('fatal: shim: check-ignore refused\\n');",
+          '  process.exit(128);',
+          '}',
+          'const { NODE_OPTIONS, ...env } = process.env;',
+          "const { status } = spawnSync(process.env.SHIM_REAL_GIT, [subcommand, ...rest], { env, stdio: 'inherit' });",
+          'process.exit(status ?? 1);',
+          '',
+        ].join('\n'),
+      );
+      vi.stubEnv('PATH', [shimDir, process.env.PATH ?? ''].join(delimiter));
+      vi.stubEnv('NODE_OPTIONS', `--import=${pathToFileURL(preload).href}`);
+      vi.stubEnv('SHIM_LOG', log);
+      vi.stubEnv('SHIM_REAL_GIT', realGit);
+
+      await expect(find(['*.ts'], 'modern-cmdk-codemod')).rejects.toThrow(
+        /^git check-ignore failed \(exit 128\): fatal: shim: check-ignore refused$/,
+      );
+      // The shim forwarded the other calls (it did not break everything) and refused check-ignore once.
+      const calls = (await readFile(log, 'utf8')).split('\n').filter((c) => c !== '');
+      expect(calls).toEqual(['rev-parse', 'ls-files', 'check-ignore']);
+      expect(await find(['*.ts'], 'modern-cmdk')).toEqual(['a.ts', 'b.ts']);
+    } finally {
+      await rm(shimDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    }
   });
 });
 
