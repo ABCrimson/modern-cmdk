@@ -13,15 +13,16 @@
  * `.vp-doc [id]` a scroll-margin-top for those bars (theme-default/styles/components/vp-doc.css:5-24: the nav at 60rem and wider,
  * the outline bar of 2.9375rem below 80rem, plus 1.5rem), and a scroll-padding on html adds to it, so a heading landed
  * 168 px down instead of 80. The padding therefore carries the whole offset, with the theme's own breakpoints, and the
- * doc margin is zeroed: a heading lands 1rem under the bars, as does any other focus target.
+ * doc margin is zeroed. chrome.css makes the local nav 44 px (2.75rem), not the theme's 2.9375rem, so the padding uses
+ * 2.75rem: a heading lands 1rem under the bars, as does any other focus target.
  */
 html {
-  scroll-padding-block-start: calc(2.9375rem + 1rem);
+  scroll-padding-block-start: calc(2.75rem + 1rem);
 }
 
 @media (min-width: 60rem) {
   html {
-    scroll-padding-block-start: calc(var(--vp-nav-height) + 2.9375rem + 1rem);
+    scroll-padding-block-start: calc(var(--vp-nav-height) + 2.75rem + 1rem);
   }
 }
 
