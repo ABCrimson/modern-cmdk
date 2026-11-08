@@ -852,3 +852,181 @@ describe('CommandMachine shortcuts (CE-09, ARCH-16, ARCH-15)', () => {
     expect(machine.getKeyboardRegistry().getBindings().size).toBe(0);
   });
 });
+
+describe('CommandMachine events, callbacks and getters (TUB-25)', () => {
+  const item = (id: string, value: string, extra?: Partial<CommandItem>): CommandItem => ({
+    id: itemId(id),
+    value,
+    ...extra,
+  });
+  const abc = (): CommandItem[] => [item('a', 'Apple'), item('b', 'Banana'), item('c', 'Cherry')];
+  /** Events run in order: once OPEN has been handled, everything sent before it has been too */
+  async function settle(machine: CommandMachine): Promise<void> {
+    machine.send({ type: 'OPEN' });
+    await vi.waitFor(() => {
+      expect(machine.getState().open).toBe(true);
+    });
+  }
+
+  it('ITEM_ACTIVATE makes a listed item active and calls onActiveChange with its id', async () => {
+    const onActiveChange = vi.fn();
+    using machine = createCommandMachine({ items: abc(), onActiveChange });
+    machine.send({ type: 'ITEM_ACTIVATE', id: itemId('c') });
+    await settle(machine);
+    expect(machine.getState().activeId).toBe('c');
+    expect(onActiveChange).toHaveBeenCalledExactlyOnceWith(itemId('c'));
+  });
+
+  it('ITEM_ACTIVATE ignores an id that is not in filteredIds', async () => {
+    const onActiveChange = vi.fn();
+    using machine = createCommandMachine({ items: abc(), onActiveChange });
+    machine.send({ type: 'SEARCH_CHANGE', query: 'ban' });
+    machine.send({ type: 'ITEM_ACTIVATE', id: itemId('a') }); // listed before the search, filtered out now
+    machine.send({ type: 'ITEM_ACTIVATE', id: itemId('nope') }); // never registered
+    await settle(machine);
+    expect(machine.getState().activeId).toBe('b');
+    expect(onActiveChange).not.toHaveBeenCalled();
+  });
+
+  it("NAVIGATE 'prev' moves to the previous item and loops from the first to the last", async () => {
+    const onActiveChange = vi.fn();
+    using machine = createCommandMachine({ items: abc(), onActiveChange });
+    machine.send({ type: 'NAVIGATE', direction: 'prev' });
+    await settle(machine);
+    expect(machine.getState().activeId).toBe('c');
+    machine.send({ type: 'NAVIGATE', direction: 'prev' });
+    await vi.waitFor(() => {
+      expect(machine.getState().activeId).toBe('b');
+    });
+    expect(onActiveChange.mock.calls).toEqual([[itemId('c')], [itemId('b')]]);
+  });
+
+  it("NAVIGATE 'prev' stays on the first item when loop is false, without calling onActiveChange", async () => {
+    const onActiveChange = vi.fn();
+    using machine = createCommandMachine({ items: abc(), loop: false, onActiveChange });
+    machine.send({ type: 'NAVIGATE', direction: 'prev' });
+    await settle(machine);
+    expect(machine.getState().activeId).toBe('a');
+    expect(onActiveChange).not.toHaveBeenCalled();
+  });
+
+  it('onActiveChange is not called when the navigation lands on the item that is already active', async () => {
+    const onActiveChange = vi.fn();
+    using machine = createCommandMachine({ items: [item('a', 'Apple')], onActiveChange });
+    machine.send({ type: 'NAVIGATE', direction: 'next' });
+    machine.send({ type: 'NAVIGATE', direction: 'last' });
+    await settle(machine);
+    expect(machine.getState().activeId).toBe('a');
+    expect(onActiveChange).not.toHaveBeenCalled();
+  });
+
+  it('REGISTER_GROUP via send registers the group and orders groupedIds by its priority', async () => {
+    using machine = createCommandMachine({
+      items: [
+        item('a', 'Apple', { groupId: groupId('late') }),
+        item('b', 'Banana', { groupId: groupId('early') }),
+      ],
+    });
+    machine.send({ type: 'REGISTER_GROUP', group: { id: groupId('late'), priority: 5 } });
+    machine.send({
+      type: 'REGISTER_GROUP',
+      group: { id: groupId('early'), heading: 'Early', priority: -5 },
+    });
+    await settle(machine);
+    expect(machine.getRegistry().getGroup(groupId('early'))?.heading).toBe('Early');
+    expect(machine.getRegistry().groupCount).toBe(2);
+    expect([...machine.getState().groupedIds.keys()]).toEqual(['early', 'late']);
+  });
+
+  it('options.onSelect is called with the id of a selected item and not for an unknown id', async () => {
+    const onSelect = vi.fn();
+    using machine = createCommandMachine({ items: abc(), onSelect });
+    machine.send({ type: 'ITEM_SELECT', id: itemId('nope') });
+    machine.send({ type: 'ITEM_SELECT', id: itemId('b') });
+    await settle(machine);
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith(itemId('b'));
+  });
+
+  it('options.onSelect runs after the item onSelect', async () => {
+    const log: string[] = [];
+    using machine = createCommandMachine({
+      items: [item('a', 'Apple', { onSelect: () => log.push('item') })],
+      onSelect: () => log.push('options'),
+    });
+    machine.send({ type: 'ITEM_SELECT', id: itemId('a') });
+    await settle(machine);
+    expect(log).toEqual(['item', 'options']);
+  });
+
+  it('onSearchChange is called with every query SEARCH_CHANGE delivers', async () => {
+    const onSearchChange = vi.fn();
+    using machine = createCommandMachine({ items: abc(), onSearchChange });
+    machine.send({ type: 'SEARCH_CHANGE', query: 'ban' });
+    machine.send({ type: 'SEARCH_CHANGE', query: '' });
+    await settle(machine);
+    expect(onSearchChange.mock.calls).toEqual([['ban'], ['']]);
+  });
+
+  it('getFilteredIdSet and getFilteredIdIndex follow filteredIds through a search and a registration', async () => {
+    using machine = createCommandMachine({ items: abc() });
+    expect([...machine.getFilteredIdSet()]).toEqual(['a', 'b', 'c']);
+    expect([...machine.getFilteredIdIndex()]).toEqual([
+      ['a', 0],
+      ['b', 1],
+      ['c', 2],
+    ]);
+
+    machine.send({ type: 'SEARCH_CHANGE', query: 'ban' });
+    await settle(machine);
+    expect(machine.getFilteredIdSet().has(itemId('b'))).toBe(true);
+    expect(machine.getFilteredIdSet().has(itemId('a'))).toBe(false);
+    expect(machine.getFilteredIdIndex().get(itemId('b'))).toBe(0);
+    expect(machine.getFilteredIdIndex().has(itemId('a'))).toBe(false);
+
+    machine.send({ type: 'SEARCH_CHANGE', query: '' });
+    machine.send({ type: 'REGISTER_ITEM', item: item('d', 'Date') });
+    await vi.waitFor(() => {
+      expect(machine.getFilteredIdSet().size).toBe(4);
+    });
+    expect(machine.getFilteredIdIndex().get(itemId('d'))).toBe(3);
+    expect([...machine.getFilteredIdSet()]).toEqual([...machine.getState().filteredIds]);
+  });
+
+  it('the search option replaces the default engine: its result order is the filteredIds order and it is indexed and pruned', async () => {
+    const indexed: ItemId[] = [];
+    const removed: ItemId[] = [];
+    const queries: string[] = [];
+    const engine: SearchEngine = {
+      index: (items: readonly CommandItem[]): void => {
+        indexed.push(...items.map((i) => i.id));
+      },
+      // Not the default scorer: every item whose value contains the query, last registered first
+      search: (query: string, items: readonly CommandItem[]) => {
+        queries.push(query);
+        return items
+          .toReversed()
+          .values()
+          .filter((i) => i.value.toLowerCase().includes(query))
+          .map((i) => ({ id: i.id, score: 1, matches: [] }));
+      },
+      remove: (ids: ReadonlySet<ItemId>): void => {
+        removed.push(...ids);
+      },
+      clear: () => undefined,
+      [Symbol.dispose]: () => undefined,
+    };
+    using machine = createCommandMachine({ items: abc(), search: engine });
+    expect(indexed).toEqual(['a', 'b', 'c']);
+
+    machine.send({ type: 'SEARCH_CHANGE', query: 'an' });
+    machine.send({ type: 'SEARCH_CHANGE', query: 'e' }); // Apple and Cherry, reversed by the engine
+    await settle(machine);
+    expect(queries).toEqual(['an', 'e']);
+    expect(machine.getState().filteredIds).toEqual(['c', 'a']);
+
+    machine.send({ type: 'UNREGISTER_ITEM', id: itemId('a') });
+    await vi.waitFor(() => {
+      expect(removed).toEqual(['a']);
+    });
+  });
+});
