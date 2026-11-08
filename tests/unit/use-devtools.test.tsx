@@ -23,41 +23,50 @@ function Probe({ devtools, label }: { devtools: (label: string) => void; label: 
   return null;
 }
 
+type DevtoolsOptions = { readonly redactQuery?: boolean | undefined };
+
 interface Mounted {
   readonly machine: CommandMachine;
   readonly cleanup: () => Promise<void>;
+  /** Renders the same tree again with other options, inside act. */
+  readonly rerender: (options?: DevtoolsOptions) => Promise<void>;
 }
 
 /** Fresh module graph so the hook's module-scoped dev check re-reads the stubbed NODE_ENV. */
-async function mountDevtools(
-  label: string,
-  options?: { readonly redactQuery?: boolean | undefined },
-): Promise<Mounted> {
+async function mountDevtools(label: string, options?: DevtoolsOptions): Promise<Mounted> {
   vi.resetModules();
   const { Command, CommandStableContext, useCommandDevtools }: typeof ReactEntry = await import(
     'modern-cmdk/react'
   );
   let machine: CommandMachine | undefined;
   const devtools = (probeLabel: string): void => {
-    useCommandDevtools(probeLabel, options);
+    useCommandDevtools(probeLabel, current);
     machine = use(CommandStableContext)?.machine;
   };
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
+  let current = options;
+  const tree = (): React.JSX.Element => (
+    <Command label="devtools test">
+      <Probe devtools={devtools} label={label} />
+      <Command.List>
+        <Command.Item value="alpha">Alpha</Command.Item>
+      </Command.List>
+    </Command>
+  );
   await act(async () => {
-    root.render(
-      <Command label="devtools test">
-        <Probe devtools={devtools} label={label} />
-        <Command.List>
-          <Command.Item value="alpha">Alpha</Command.Item>
-        </Command.List>
-      </Command>,
-    );
+    root.render(tree());
   });
   if (!machine) throw new Error('the probe did not render inside <Command>');
   return {
     machine,
+    rerender: async (next: DevtoolsOptions | undefined) => {
+      current = next;
+      await act(async () => {
+        root.render(tree());
+      });
+    },
     cleanup: async () => {
       await act(async () => {
         root.unmount();
@@ -151,7 +160,7 @@ describe('useCommandDevtools', () => {
   /** Mounts with the option, sends one search change and returns the registry entry and the event detail. */
   async function searchWith(
     label: string,
-    options?: { readonly redactQuery?: boolean | undefined },
+    options?: DevtoolsOptions,
   ): Promise<{ entry: unknown; detail: unknown }> {
     vi.stubEnv('NODE_ENV', 'development');
     vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
@@ -197,5 +206,44 @@ describe('useCommandDevtools', () => {
     ({ cleanup } = await mountDevtools('unit-undefined', { redactQuery: undefined }));
     const registry = Reflect.get(globalThis, DEVTOOLS_KEY) as Map<string, unknown> | undefined;
     expect(registry?.has('unit-undefined')).toBe(true);
+  });
+
+  it('SEC-32: a redactQuery change after mount republishes the redacted query', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
+    const mounted = await mountDevtools('unit-flip', { redactQuery: false });
+    cleanup = mounted.cleanup;
+    await act(async () => {
+      mounted.machine.send({ type: 'SEARCH_CHANGE', query: 'secret' });
+      vi.advanceTimersToNextFrame();
+    });
+    const registry = Reflect.get(globalThis, DEVTOOLS_KEY) as Map<string, unknown>;
+    expect(registry.get('unit-flip')).toMatchObject({ searchQuery: 'secret' });
+
+    const details: unknown[] = [];
+    const listener = (event: Event): void => {
+      details.push((event as CustomEvent).detail);
+    };
+    globalThis.addEventListener(DEVTOOLS_EVENT, listener);
+    try {
+      await mounted.rerender({ redactQuery: true });
+    } finally {
+      globalThis.removeEventListener(DEVTOOLS_EVENT, listener);
+    }
+    expect(registry.get('unit-flip')).toMatchObject({ searchQuery: 6 });
+    expect(details.at(-1)).toMatchObject({ label: 'unit-flip', state: { searchQuery: 6 } });
+    expect(JSON.stringify([...registry.values(), ...details])).not.toContain('secret');
+  });
+
+  it('D30: unmount removes the label from the registry under both names', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    const mounted = await mountDevtools('unit-unmount');
+    const registry = Reflect.get(globalThis, DEVTOOLS_KEY) as Map<string, unknown>;
+    const deprecated = Reflect.get(globalThis, DEPRECATED_KEY) as Map<string, unknown>;
+    expect(registry.has('unit-unmount')).toBe(true);
+    expect(deprecated.has('unit-unmount')).toBe(true);
+    await mounted.cleanup();
+    expect(registry.has('unit-unmount')).toBe(false);
+    expect(deprecated.has('unit-unmount')).toBe(false);
   });
 });
