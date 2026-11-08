@@ -688,7 +688,7 @@ chore: bump Biome to 2.6.6
 
 4. **Pre-push hooks** -- Lefthook runs them in order and stops at the first failure:
    - `pnpm --filter './packages/*' run build` -- always
-   - then, in parallel: `vitest run --reporter=dot` (all unit tests) and `size-limit` (the budgets), the latter only when the push touches `packages/*/src/**`, a `packages/*/tsdown.config.ts` or the root `package.json`
+   - then, in parallel: `vitest run --reporter=dot` (all unit tests) and `size-limit` (the budgets), the latter only when the push touches `packages/*/src/**`, a `packages/*/tsdown.config.ts` or the root `.size-limit.mjs` or `package.json`
 
 5. **CI checks** -- The CI pipeline runs:
    - Lint and type-check (`pnpm lint`, `pnpm typecheck`)
