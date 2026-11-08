@@ -236,37 +236,6 @@ test.describe('Virtualization — Large Item Set', () => {
 
   // ---------- Scroll-to-Active on Keyboard Navigation ----------
 
-  test('should scroll the active item into view during keyboard navigation', async ({ page }) => {
-    const input = page.getByRole('combobox');
-    await input.focus();
-    const list = page.locator('[data-command-list]');
-
-    // Get initial scroll position
-    const initialScrollTop = await list.evaluate((el) => el.scrollTop);
-
-    // Navigate down enough to require scrolling
-    for (let i = 0; i < 30; i++) {
-      await input.press('ArrowDown');
-    }
-
-    // Scroll position should have changed
-    const afterScrollTop = await list.evaluate((el) => el.scrollTop);
-    expect(afterScrollTop).toBeGreaterThan(initialScrollTop);
-
-    // The active item lies inside the list's own viewport (the list's bottom edge can sit below the page's)
-    const activeItem = page.locator('[data-command-item][data-active]');
-    await expect(activeItem).toBeVisible();
-    await expect
-      .poll(async () => {
-        const [row, view] = await Promise.all([
-          activeItem.evaluate((el) => el.getBoundingClientRect()),
-          list.evaluate((el) => el.getBoundingClientRect()),
-        ]);
-        return row.top >= view.top && row.bottom <= view.bottom;
-      })
-      .toBe(true);
-  });
-
   test('should scroll active item into view when pressing End', async ({ page }) => {
     const input = page.getByRole('combobox');
     await input.focus();
@@ -289,25 +258,52 @@ test.describe('Virtualization — Large Item Set', () => {
       .toBeTruthy();
   });
 
-  test('should scroll active item into view when pressing Home after End', async ({ page }) => {
-    const input = page.getByRole('combobox');
-    await input.focus();
+  test.describe('TEB-17: virtualization scroll positions are read with expect.poll', () => {
+    test('should scroll the active item into view during keyboard navigation', async ({ page }) => {
+      const input = page.getByRole('combobox');
+      await input.focus();
+      const list = page.locator('[data-command-list]');
 
-    // Go to the end
-    await input.press('End');
+      // Navigate down enough to require scrolling
+      for (let i = 0; i < 30; i++) {
+        await input.press('ArrowDown');
+      }
 
-    // Go back to the beginning
-    await input.press('Home');
+      // The list scrolls after the key presses: poll the position (it starts at 0)
+      await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
 
-    const list = page.locator('[data-command-list]');
-    const scrollTop = await list.evaluate((el) => el.scrollTop);
+      // The active item lies inside the list's own viewport (the list's bottom edge can sit below the page's)
+      const activeItem = page.locator('[data-command-item][data-active]');
+      await expect(activeItem).toBeVisible();
+      await expect
+        .poll(async () => {
+          const [row, view] = await Promise.all([
+            activeItem.evaluate((el) => el.getBoundingClientRect()),
+            list.evaluate((el) => el.getBoundingClientRect()),
+          ]);
+          return row.top >= view.top && row.bottom <= view.bottom;
+        })
+        .toBe(true);
+    });
 
-    // Should be back near the top
-    expect(scrollTop).toBeLessThan(100);
+    test('TEB-17: scrollTop polls after End then Home', async ({ page }) => {
+      const input = page.getByRole('combobox');
+      await input.focus();
 
-    // Active item (first) should be visible
-    const activeItem = page.locator('[data-command-item][data-active]');
-    await expect(activeItem).toBeVisible();
+      const list = page.locator('[data-command-list]');
+
+      // Go to the end: the list leaves the top
+      await input.press('End');
+      await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeGreaterThan(100);
+
+      // Go back to the beginning: the list returns near the top
+      await input.press('Home');
+      await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeLessThan(100);
+
+      // Active item (first) should be visible
+      const activeItem = page.locator('[data-command-item][data-active]');
+      await expect(activeItem).toBeVisible();
+    });
   });
 
   // ---------- Filtering in Virtualized List ----------
