@@ -1,8 +1,7 @@
 // apps/playground/src/bench/dataset.ts
-// The one benchmark dataset (TEB-33). Every bench's item set except benchmarks/search.bench.ts comes
-// from itemSeeds(): the vitest benches and the standalone `pnpm bench:compare` harness through
-// benchmarks/fixtures.ts, and the playground's browser bench page directly. search.bench.ts keeps its own
-// copy until cluster SEARCH switches it to generateItems(n, 'search', itemId).
+// The one benchmark dataset (TEB-33). Every bench's item set comes from itemSeeds(): the vitest benches
+// (search.bench.ts included) and the standalone `pnpm bench:compare` harness through
+// benchmarks/fixtures.ts, and the playground's browser bench page directly.
 //
 // The table lives here, not in benchmarks/, because the playground's tsconfig has rootDir `src`: the
 // playground cannot import anything under benchmarks/, while benchmarks/ can import this file. For the
@@ -19,8 +18,7 @@
 //            ends in a second word, and the keywords cycle through 500 `kw-` and 200 `alias-` names.
 //            id `item-${i}`, value `${word} ${floor(i / 100)} action ${word2}`,
 //            keywords [`kw-${i % 500}`, `alias-${i % 200}`].
-//   'search' 8 words; the dataset of benchmarks/search.bench.ts (owned by the SEARCH cluster, which
-//            switches to this variant with a one-line import).
+//   'search' 8 words; the dataset of benchmarks/search.bench.ts.
 //            id `item-${i}`, value `${word} ${i} ${word3} action`,
 //            keywords [`keyword-${i}`, `alias-${i % 100}`].
 
