@@ -96,8 +96,9 @@ export function createCommandMachine(
   if (options.frecency?.enabled) {
     frecencyEngine = new FrecencyEngine(options.frecency);
     // Hydrate persisted frecency data (IDB) in the background: once the engine has merged it, mark the
-    // results dirty so one refilter and one stateChange (through the batch commit, unless a batch is
-    // pending and commits them itself) take the loaded bonuses; a failed load is reported, not thrown
+    // results dirty — only for a non-empty query with the filter on, the one case frecency re-ranks (DT-18) —
+    // so one refilter and one stateChange (through the batch commit, unless a batch is pending and commits
+    // them itself) take the loaded bonuses; a failed load is reported, not thrown
     void frecencyEngine.load().then(
       () => {
         // Frecency re-ranks only non-empty queries (DT-18) and `filter: false` lists registration order, so
