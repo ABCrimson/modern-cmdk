@@ -9,7 +9,10 @@
 //   filter               = a keystroke on the input (capturing keydown listener) -> the first state emit
 //                          whose search equals the new query.
 //   keystroke-to-paint   = the same keystroke -> the requestAnimationFrame callback scheduled from that
-//                          emit (the callback runs at the start of the next frame, before it paints).
+//                          emit. The machine emits inside its own rAF callback, React commits the DOM in
+//                          that same frame, so that frame's paint shows the result and the callback
+//                          scheduled from the emit runs at the start of the NEXT frame, one frame after
+//                          the paint that shows the result.
 //   React commit (recorded, not gated) = the sum of Profiler onRender actualDuration over the mount's
 //                          commits (first render through the first commit after the all-N emit) and over
 //                          the filter's commits (keydown through the paint mark).
@@ -24,6 +27,38 @@ export interface Recorder {
   install(machine: CommandMachine): () => void;
   /** Publish an error: window.__cmdkBench.phase becomes 'error' and a role=alert element shows the message. */
   fail(message: string): void;
+}
+
+/** Quiet frames in a row the page must see before it calls the mount settled. */
+export const SETTLE_CALM_FRAMES = 2;
+
+export interface SettleProgress {
+  readonly calmFrames: number;
+  /** Register/unregister sends counted at the previous frame (-1 before the first). */
+  readonly lastSends: number;
+}
+
+export interface SettleObservation {
+  /** Register/unregister sends since the all-N emit. */
+  readonly sends: number;
+  /** True when a state emit arrived after the latest such send. */
+  readonly emittedSinceLastSend: boolean;
+}
+
+export const SETTLE_START: SettleProgress = { calmFrames: 0, lastSends: -1 };
+
+/**
+ * One frame of the settle rule: quiet = no new send since the previous frame AND at least one emit since
+ * the latest send. It never compares emit and send counts: an unbatched machine answers each send with
+ * an emit, a batched one answers a whole batch with one.
+ */
+export function settleStep(
+  prev: SettleProgress,
+  observation: SettleObservation,
+): SettleProgress & { readonly settled: boolean } {
+  const quiet = observation.sends === prev.lastSends && observation.emittedSinceLastSend;
+  const calmFrames = quiet ? prev.calmFrames + 1 : 0;
+  return { calmFrames, lastSends: observation.sends, settled: calmFrames >= SETTLE_CALM_FRAMES };
 }
 
 function publish(state: BenchState): void {
@@ -60,9 +95,9 @@ export function createRecorder(n: BenchSize): Recorder {
   // After the all-N emit the list can still register again: <Command.List> switches from its plain
   // wrapper to the virtual one once filteredCount passes 100, which remounts every item (N
   // UNREGISTER_ITEM then N REGISTER_ITEM sends, processed on the next scheduler tick). The page is
-  // published as mounted only after that settles, so the keystroke never lands inside it.
+  // published as mounted only after that settles (settleStep), so the keystroke never lands inside it.
   let sendsAfterMount = 0;
-  let emitsAfterMount = 0;
+  let emittedSinceLastSend = true;
 
   // --- filter ---
   let expectedQuery: string | null = null;
@@ -88,15 +123,13 @@ export function createRecorder(n: BenchSize): Recorder {
     }
   };
 
-  /** Publish 'mounted' once two consecutive frames saw no new register/unregister sends and every send has been answered by an emit. */
+  /** Publish 'mounted' once settleStep calls the page quiet (see there). */
   function settle(): void {
-    let lastSends = -1;
-    let calmFrames = 0;
+    let progress: SettleProgress = SETTLE_START;
     const tick = (): void => {
-      const quiet = sendsAfterMount === lastSends && emitsAfterMount >= sendsAfterMount;
-      calmFrames = quiet ? calmFrames + 1 : 0;
-      lastSends = sendsAfterMount;
-      if (calmFrames < 2) {
+      const step = settleStep(progress, { sends: sendsAfterMount, emittedSinceLastSend });
+      progress = step;
+      if (!step.settled) {
         requestAnimationFrame(tick);
         return;
       }
@@ -115,8 +148,14 @@ export function createRecorder(n: BenchSize): Recorder {
   }
 
   function onEmit(state: CommandState): void {
-    if (mountEmitted) emitsAfterMount += 1;
+    if (mountEmitted) emittedSinceLastSend = true;
     if (!mountEmitted && state.filteredIds.length === n) {
+      if (mountCommitCount === 0) {
+        failBench(
+          'no Profiler timings: onRender never fired before the all-N emit, so the page is not running the profiling React build (the react-dom/client -> react-dom/profiling alias did not apply)',
+        );
+        return;
+      }
       if (registerSends !== n) {
         failBench(
           `the all-${n} emit arrived after ${registerSends} REGISTER_ITEM sends, expected ${n}`,
@@ -200,6 +239,7 @@ export function createRecorder(n: BenchSize): Recorder {
         }
         if (mountEmitted && (event.type === 'REGISTER_ITEM' || event.type === 'UNREGISTER_ITEM')) {
           sendsAfterMount += 1;
+          emittedSinceLastSend = false;
         }
         send.call(machine, event);
       };

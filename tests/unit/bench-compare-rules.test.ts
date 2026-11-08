@@ -8,6 +8,12 @@ import { createHash } from 'node:crypto';
 import { itemId } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 import {
+  SETTLE_START,
+  type SettleObservation,
+  type SettleProgress,
+  settleStep,
+} from '../../apps/playground/src/bench/recorder.ts';
+import {
   GATE_METRIC,
   GATE_N,
   gateVerdict,
@@ -165,5 +171,71 @@ describe('R5: the browser bench stats and the 10K mount gate', () => {
 
   it('R5: a non-finite median is a harness error, never a verdict', () => {
     expect(() => gateVerdict('mount', 10_000, Number.NaN)).toThrow(/finite/);
+  });
+});
+
+// R5: when the /bench page calls the mount settled. After the all-N emit the list remounts its items
+// (N unregisters and N registers); the machine answers them with one emit per send (unbatched) or with
+// one emit per batch (CORE's batched refilter, R8(f)). The rule must not depend on that ratio.
+describe('R5: the /bench page settle rule', () => {
+  /** Drive settleStep over per-frame observations; the 1-based frame it settles on, or null. */
+  function settlesAt(frames: readonly SettleObservation[]): number | null {
+    let progress: SettleProgress = SETTLE_START;
+    for (const [index, observation] of frames.entries()) {
+      const step = settleStep(progress, observation);
+      if (step.settled) return index + 1;
+      progress = step;
+    }
+    return null;
+  }
+
+  it('R5: settles two quiet frames after one emit per send (unbatched machine)', () => {
+    // Frame 1 sees the 2000 remount sends before the machine ticked; the tick answers each with an emit
+    expect(
+      settlesAt([
+        { sends: 2000, emittedSinceLastSend: false },
+        { sends: 2000, emittedSinceLastSend: true },
+        { sends: 2000, emittedSinceLastSend: true },
+      ]),
+    ).toBe(3);
+  });
+
+  it('R5: settles the same way after ONE emit for the whole batch (batched machine)', () => {
+    // One emit answers all 20000 sends: the emit count is 1, not 20000, and the page must still settle
+    expect(
+      settlesAt([
+        { sends: 20_000, emittedSinceLastSend: false },
+        { sends: 20_000, emittedSinceLastSend: true },
+        { sends: 20_000, emittedSinceLastSend: true },
+      ]),
+    ).toBe(3);
+  });
+
+  it('R5: does not settle while a send is unanswered, however long it waits', () => {
+    expect(
+      settlesAt(Array.from({ length: 50 }, () => ({ sends: 7, emittedSinceLastSend: false }))),
+    ).toBeNull();
+  });
+
+  it('R5: a new send restarts the quiet count', () => {
+    expect(
+      settlesAt([
+        { sends: 5, emittedSinceLastSend: true },
+        { sends: 5, emittedSinceLastSend: true },
+        { sends: 9, emittedSinceLastSend: true },
+        { sends: 9, emittedSinceLastSend: true },
+        { sends: 9, emittedSinceLastSend: true },
+      ]),
+    ).toBe(5);
+  });
+
+  it('R5: a page with no sends after the mount settles on the all-N emit alone', () => {
+    expect(
+      settlesAt([
+        { sends: 0, emittedSinceLastSend: true },
+        { sends: 0, emittedSinceLastSend: true },
+        { sends: 0, emittedSinceLastSend: true },
+      ]),
+    ).toBe(3);
   });
 });

@@ -6,10 +6,18 @@
 // benchmarks/browser/results/<version>-<sha>.json and fails when the 10K mount median is above 50 ms.
 // Exit codes: 0 = the 10K mount median is at or below the threshold, 1 = it is above (the gate
 // failed), 2 = harness error (build, server, browser or page error, timeout, a rejected page result,
-// an unwritable results file). Nothing is retried.
+// an unwritable results file, a checkout whose HEAD or dirty state changed during the run, a run past
+// the harness deadline, a signal, a failed cleanup). Nothing is retried.
 // The results file is written unformatted: run `pnpm exec biome format --write <file>` before committing it
 // (the repository lint formats every JSON file).
-// Runs under Node's native type stripping, no loader: `node benchmarks/browser/run.ts [--out <path>]`.
+// Runs under Node's native type stripping, no loader:
+//   node benchmarks/browser/run.ts [--out <path>] [--modern-cmdk <package dir>]
+// --out replaces the default results path (CI writes outside the checkout so a stale committed file can
+// never stand in for this run). --modern-cmdk <dir> is a DIAGNOSTIC for measuring another tree's core
+// before it lands, never used in CI: the build aliases `modern-cmdk` (every export of <dir>/package.json)
+// to <dir>'s dist and dedupes react, and the results JSON records core_source (the path and that
+// directory's `git rev-parse --short HEAD`). The directory's dist must already be built; this script
+// never builds it.
 // Requires: pnpm build (the playground bundles packages/modern-cmdk/dist), the Playwright Chromium
 // (`pnpm exec playwright install chromium`).
 //
@@ -54,12 +62,26 @@ const DATASET_VARIANT = 'basic';
  * alone), so the 10K settle bound is 8x that; the 1K bound is the same factor of its ~1 s.
  */
 const TIMEOUT_MS = {
+  build: 300_000,
+  preview: 60_000,
+  launch: 60_000,
+  context: 30_000,
   pageLoad: 30_000,
   mounted: { 1000: 30_000, 10000: 120_000 },
   frames: 10_000,
   focus: 10_000,
+  press: 10_000,
   filtered: 30_000,
+  result: 10_000,
+  cleanupStep: 30_000,
 } as const;
+
+/**
+ * The worst case of the named bounds above is far past any real run (an 8-run 10K series alone could
+ * add up to ~30 minutes), so a hang is bounded by this overall deadline instead: it fails loudly (exit 2)
+ * naming where the harness was, before the CI job's own timeout. 5x the 185 s a full run takes here.
+ */
+const HARNESS_DEADLINE_MS = 15 * 60_000;
 
 const METRICS = [
   'mount_ms',
@@ -76,7 +98,7 @@ const METRIC_DEFINITIONS: Readonly<Record<Metric, string>> = {
   filter_ms:
     'performance.measure from a keystroke (capturing keydown listener on the input) to the first state emit whose search equals the new query',
   keystroke_to_paint_ms:
-    'performance.measure from the same keystroke to the requestAnimationFrame callback scheduled from that emit (runs at the start of the next frame, before it paints)',
+    'performance.measure from the same keystroke to the requestAnimationFrame callback scheduled from that emit (fires one frame after the paint that shows the result: the machine emits inside its own rAF callback and React commits in that same frame)',
   mount_commit_ms:
     "React commit, recorded not gated: the sum of Profiler onRender actualDuration over the mount's commits, from the first render through the first commit after the all-N emit",
   filter_commit_ms:
@@ -114,18 +136,69 @@ interface ViteApi {
   }>;
 }
 
+interface CoreSource {
+  /** The package directory whose dist the build used; null = the workspace's own packages/modern-cmdk. */
+  readonly path: string | null;
+  /** `git rev-parse --short HEAD` of that directory when it is a git checkout. */
+  readonly git_sha: string | null;
+}
+
+interface Options {
+  readonly out: string | null;
+  readonly modernCmdk: string | null;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function git(...args: string[]): string {
   return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf-8' }).trim();
 }
 
-function parseOut(argv: readonly string[]): string | null {
-  const flag = argv.indexOf('--out');
-  if (flag === -1) return null;
-  const value = argv[flag + 1];
-  if (value === undefined || value.startsWith('--')) throw new Error('--out needs a path');
-  return path.resolve(value);
+function parseOptions(argv: readonly string[]): Options {
+  let out: string | null = null;
+  let modernCmdk: string | null = null;
+  for (let i = 0; i < argv.length; i++) {
+    const flag = argv[i];
+    if (flag !== '--out' && flag !== '--modern-cmdk') throw new Error(`unknown argument ${flag}`);
+    const value = argv[++i];
+    if (value === undefined || value.startsWith('--')) throw new Error(`${flag} needs a path`);
+    if (flag === '--out') out = path.resolve(value);
+    else modernCmdk = path.resolve(value);
+  }
+  return { out, modernCmdk };
+}
+
+/** HEAD and the dirty flag. Untracked files under benchmarks/browser/results are earlier runs' own output, not the build's inputs. */
+function repoState(): { readonly sha: string; readonly dirty: boolean } {
+  return {
+    sha: git('rev-parse', '--short', 'HEAD'),
+    dirty: git('status', '--porcelain', '--', '.', ':(exclude)benchmarks/browser/results') !== '',
+  };
+}
+
+/** Vite aliases for --modern-cmdk: every export of the package at `dir`, pointed at that dir's files. */
+async function coreAliases(dir: string): Promise<{ find: RegExp; replacement: string }[]> {
+  const manifest = JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf-8')) as {
+    name: string;
+    exports: Record<string, string | { default?: string }>;
+  };
+  if (manifest.name !== 'modern-cmdk')
+    throw new Error(`--modern-cmdk ${dir} is not the modern-cmdk package`);
+  const aliases: { find: RegExp; replacement: string }[] = [];
+  for (const [key, target] of Object.entries(manifest.exports)) {
+    if (key === './package.json') continue;
+    const file = typeof target === 'string' ? target : target.default;
+    if (file === undefined) throw new Error(`export ${key} of ${dir} has no default target`);
+    const absolute = path.join(dir, file);
+    await readFile(absolute).catch(() => {
+      throw new Error(`${absolute} is missing: build ${dir} first (this script never builds it)`);
+    });
+    const specifier = key === '.' ? 'modern-cmdk' : `modern-cmdk/${key.slice(2)}`;
+    // Exact-match regex: the specifier holds only letters, '-', '.' and '/'
+    const escaped = specifier.replace(/[./]/g, (character) => `\\${character}`);
+    aliases.push({ find: new RegExp(`^${escaped}$`), replacement: absolute });
+  }
+  return aliases;
 }
 
 /** Reject after `ms`, naming `what`; the other promise is not cancelled, the run is over by then. */
@@ -162,6 +235,44 @@ function pick(sample: RunSample, metric: Metric): number {
   }
 }
 
+// ── Resources and cleanup ──────────────────────────────────────────────────────
+
+type PreviewServer = Awaited<ReturnType<ViteApi['preview']>>;
+type Browser = Awaited<ReturnType<typeof chromium.launch>>;
+
+const resources: { browser: Browser | null; server: PreviewServer | null; outDir: string | null } =
+  {
+    browser: null,
+    server: null,
+    outDir: null,
+  };
+/** Failures of cleanup steps (a closed context, browser, server, the temp dir): exit 2 even when the measurement itself completed. */
+const cleanupErrors: string[] = [];
+/** Where the harness is, for the deadline and signal messages. */
+let progress = 'starting';
+
+/** Every step runs even if an earlier one throws; each is bounded. Idempotent. */
+async function cleanup(): Promise<void> {
+  const { browser, server, outDir } = resources;
+  resources.browser = null;
+  resources.server = null;
+  resources.outDir = null;
+  const step = async (name: string, work: () => Promise<unknown>): Promise<void> => {
+    try {
+      await bounded(`cleanup ${name}`, TIMEOUT_MS.cleanupStep, work());
+    } catch (error: unknown) {
+      cleanupErrors.push(error instanceof Error ? error.message : String(error));
+    }
+  };
+  if (browser) await step('browser close', () => browser.close());
+  if (server) await step('preview server close', () => server.close());
+  if (outDir) {
+    await step('temp dir removal', () =>
+      rm(outDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }),
+    );
+  }
+}
+
 // ── One run ────────────────────────────────────────────────────────────────────
 
 async function measureRun(
@@ -172,12 +283,17 @@ async function measureRun(
 ): Promise<RunSample> {
   const label = `N=${n} run ${run}`;
   const started = performance.now();
-  const context = await browser.newContext();
+  progress = label;
+  const context = await bounded(`${label}: new context`, TIMEOUT_MS.context, browser.newContext());
   // The full Chromium build asks for /favicon.ico (the playground ships none; the headless shell never asks):
   // answer it with an empty 204 so the one resource that is not part of the page cannot read as a page error
-  await context.route('**/favicon.ico', (route) => route.fulfill({ status: 204 }));
   try {
-    const page = await context.newPage();
+    await bounded(
+      `${label}: route`,
+      TIMEOUT_MS.context,
+      context.route('**/favicon.ico', (route) => route.fulfill({ status: 204 })),
+    );
+    const page = await bounded(`${label}: new page`, TIMEOUT_MS.context, context.newPage());
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(`pageerror: ${error.message}`));
     page.on('console', (message) => {
@@ -210,7 +326,7 @@ async function measureRun(
       ),
     );
     await page.locator('input[data-command-input]').focus({ timeout: TIMEOUT_MS.focus });
-    await page.keyboard.press(QUERY);
+    await bounded(`${label}: key press`, TIMEOUT_MS.press, page.keyboard.press(QUERY));
     await page
       .waitForFunction(
         () => ['filtered', 'error'].includes(window.__cmdkBench?.phase ?? ''),
@@ -226,7 +342,11 @@ async function measureRun(
       });
     failOnPageErrors();
 
-    const state = await page.evaluate(() => window.__cmdkBench);
+    const state = await bounded(
+      `${label}: reading the result`,
+      TIMEOUT_MS.result,
+      page.evaluate(() => window.__cmdkBench),
+    );
     if (state?.phase === 'error') throw new Error(`${label}: page error: ${state.message}`);
     if (state?.phase !== 'filtered')
       throw new Error(`${label}: page ended in phase ${state?.phase}`);
@@ -243,7 +363,9 @@ async function measureRun(
     }
     return { run, wall_ms: performance.now() - started, mount: state.mount, filter: state.filter };
   } finally {
-    await context.close();
+    await bounded(`${label}: context close`, TIMEOUT_MS.cleanupStep, context.close()).catch(
+      (error: unknown) => cleanupErrors.push(String(error)),
+    );
   }
 }
 
@@ -271,34 +393,64 @@ function printTable(results: readonly SizeResult[]): void {
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<number> {
-  const outOverride = parseOut(process.argv.slice(2));
+  const options = parseOptions(process.argv.slice(2));
   const vite = await loadVite();
+  // HEAD and dirty as the build sees them; re-read after the runs, and the run is void if either moved
+  const before = repoState();
+  const coreSource: CoreSource =
+    options.modernCmdk === null
+      ? { path: null, git_sha: before.sha }
+      : { path: options.modernCmdk, git_sha: gitShaOf(options.modernCmdk) };
+  const alias = [
+    { find: /^react-dom\/client$/, replacement: 'react-dom/profiling' },
+    ...(options.modernCmdk === null ? [] : await coreAliases(options.modernCmdk)),
+  ];
   const outDir = await mkdtemp(path.join(os.tmpdir(), 'cmdk-bench-'));
-  let server: Awaited<ReturnType<ViteApi['preview']>> | null = null;
-  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
-  try {
+  resources.outDir = outDir;
+  {
     const configFile = path.join(appDir, 'vite.config.ts');
+    progress = 'vite build';
     console.log(`building the playground (profiling) into ${outDir}`);
-    await vite.build({
-      root: appDir,
-      configFile,
-      logLevel: 'warn',
-      build: { outDir, emptyOutDir: true },
-      resolve: { alias: { 'react-dom/client': 'react-dom/profiling' } },
-    });
+    await bounded(
+      'vite build',
+      TIMEOUT_MS.build,
+      vite.build({
+        root: appDir,
+        configFile,
+        logLevel: 'warn',
+        build: { outDir, emptyOutDir: true },
+        // another tree's dist brings its own react copy when resolved from its own directory: one copy only
+        resolve: {
+          alias,
+          ...(options.modernCmdk === null ? {} : { dedupe: ['react', 'react-dom'] }),
+        },
+      }),
+    );
 
-    server = await vite.preview({
-      root: appDir,
-      configFile,
-      build: { outDir },
-      preview: { host: '127.0.0.1', port: 0, strictPort: false },
-    });
+    progress = 'vite preview';
+    const server = await bounded(
+      'vite preview',
+      TIMEOUT_MS.preview,
+      vite.preview({
+        root: appDir,
+        configFile,
+        build: { outDir },
+        preview: { host: '127.0.0.1', port: 0, strictPort: false },
+      }),
+    );
+    resources.server = server;
     const baseUrl = server.resolvedUrls?.local[0];
     if (baseUrl === undefined) throw new Error('vite preview is not listening on any URL');
 
     // channel 'chromium' is Playwright's new headless mode on the full Chromium build, the binary
     // chromium.executablePath() names (the default headless launch runs chromium_headless_shell instead)
-    browser = await chromium.launch({ channel: 'chromium', headless: true });
+    progress = 'browser launch';
+    const browser = await bounded(
+      'browser launch',
+      TIMEOUT_MS.launch,
+      chromium.launch({ channel: 'chromium', headless: true }),
+    );
+    resources.browser = browser;
     const chromiumVersion = browser.version();
     const executable = chromium.executablePath();
     console.log(
@@ -335,18 +487,22 @@ async function main(): Promise<number> {
         version: string;
       }
     ).version;
-    const sha = git('rev-parse', '--short', 'HEAD');
-    // Untracked files under benchmarks/browser/results are the previous runs' own output, not the build's inputs
-    const dirty =
-      git('status', '--porcelain', '--', '.', ':(exclude)benchmarks/browser/results') !== '';
+    const after = repoState();
+    if (after.sha !== before.sha || after.dirty !== before.dirty) {
+      throw new Error(
+        `the checkout changed during the run (HEAD ${before.sha} -> ${after.sha}, dirty ${before.dirty} -> ${after.dirty}): the result describes no single tree`,
+      );
+    }
+    const { sha, dirty } = after;
     const outPath =
-      outOverride ?? path.join(import.meta.dirname, 'results', `${version}-${sha}.json`);
+      options.out ?? path.join(import.meta.dirname, 'results', `${version}-${sha}.json`);
 
     const document = {
       date: new Date().toISOString(),
       version,
       sha,
       dirty,
+      core_source: coreSource,
       runner: {
         os: `${os.platform()} ${os.arch()}`,
         release: os.release(),
@@ -368,7 +524,7 @@ async function main(): Promise<number> {
       dataset_variant: DATASET_VARIANT,
       query: QUERY,
       runs: { warmup: WARMUP_RUNS, measured: SAMPLE_COUNT },
-      timeouts_ms: TIMEOUT_MS,
+      timeouts_ms: { ...TIMEOUT_MS, harness_deadline: HARNESS_DEADLINE_MS },
       total_wall_ms: totalWallMs,
       metric_definitions: METRIC_DEFINITIONS,
       results,
@@ -378,21 +534,54 @@ async function main(): Promise<number> {
     await writeFile(outPath, `${JSON.stringify(document, null, 2)}\n`);
 
     printTable(results);
-    console.log(`${gate.message}`);
+    console.log(gate.message);
+    console.log(
+      `core: ${coreSource.path ?? 'workspace packages/modern-cmdk'} @ ${coreSource.git_sha ?? 'not a git checkout'}`,
+    );
     console.log(`results: ${outPath}`);
     return gate.verdict === 'pass' ? 0 : 1;
-  } finally {
-    await browser?.close();
-    await server?.close();
-    await rm(outDir, { recursive: true, force: true });
   }
 }
 
+function gitShaOf(dir: string): string | null {
+  try {
+    return execFileSync('git', ['-C', dir, 'rev-parse', '--short', 'HEAD'], {
+      encoding: 'utf-8',
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/** Clean up, report what is left over, and turn a clean 0/1 into 2 when cleanup itself failed. */
+async function finish(code: number): Promise<number> {
+  await cleanup();
+  if (cleanupErrors.length === 0) return code;
+  console.error(`browser bench cleanup failed:\n  ${cleanupErrors.join('\n  ')}`);
+  return 2;
+}
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.once(signal, () => {
+    console.error(`browser bench interrupted by ${signal} during: ${progress}`);
+    void finish(2).then((exitCode) => process.exit(exitCode));
+  });
+}
+const deadline = setTimeout(() => {
+  console.error(
+    `browser bench harness error: exceeded the ${HARNESS_DEADLINE_MS} ms deadline during: ${progress}`,
+  );
+  void finish(2).then((exitCode) => process.exit(exitCode));
+}, HARNESS_DEADLINE_MS);
+deadline.unref();
+
+let code: number;
 try {
-  process.exitCode = await main();
+  code = await main();
 } catch (error: unknown) {
   console.error(
-    `browser bench harness error: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
+    `browser bench harness error (during ${progress}): ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
   );
-  process.exitCode = 2;
+  code = 2;
 }
+process.exitCode = await finish(code);
