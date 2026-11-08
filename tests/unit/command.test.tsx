@@ -28,15 +28,25 @@ afterEach(async () => {
   container.remove();
 });
 
-/** Render helper — wraps in act() and awaits a microtask for scheduler flush */
+/**
+ * Wait one frame inside act(). The machine's scheduler batches on requestAnimationFrame
+ * (setImmediate-backed under happy-dom), not on a microtask. React's async act() yields to
+ * setImmediate before it resolves, so the awaited act() before each call has already applied the
+ * batch it queued; this frame is a guard that runs after any batch still queued.
+ */
+function flushFrame(): Promise<void> {
+  return act(async () => {
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+  });
+}
+
+/** Render helper — wraps in act() (whose exit runs the scheduler's frame) and waits one more frame */
 async function render(ui: ReactNode): Promise<void> {
   await act(async () => {
     root.render(ui);
   });
-  // Allow the machine's queueMicrotask scheduler to flush
-  await act(async () => {
-    await new Promise<void>((r) => queueMicrotask(r));
-  });
+  // The act() above ran the scheduler's frame on exit; one more frame as a guard
+  await flushFrame();
 }
 
 /** Fire a native input event (works in happy-dom) */
@@ -48,10 +58,8 @@ async function typeInInput(input: HTMLInputElement, value: string): Promise<void
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  // Let the scheduler process the SEARCH_CHANGE event
-  await act(async () => {
-    await new Promise<void>((r) => queueMicrotask(r));
-  });
+  // The act() above ran the scheduler's frame on exit; one more frame as a guard
+  await flushFrame();
 }
 
 /** Dispatch a keyboard event on the command root (or document fallback) */
@@ -60,9 +68,7 @@ async function pressKey(key: string, opts?: KeyboardEventInit): Promise<void> {
     const target = document.querySelector('[data-command-root]') ?? document;
     target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...opts }));
   });
-  await act(async () => {
-    await new Promise<void>((r) => queueMicrotask(r));
-  });
+  await flushFrame();
 }
 
 // ---------------------------------------------------------------------------
@@ -450,9 +456,7 @@ describe('Command — React Compound Components', () => {
       await act(async () => {
         item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
-      await act(async () => {
-        await new Promise<void>((r) => queueMicrotask(r));
-      });
+      await flushFrame();
 
       await vi.waitFor(() => {
         expect(onSelect).toHaveBeenCalledTimes(1);
@@ -511,9 +515,7 @@ describe('Command — React Compound Components', () => {
       await act(async () => {
         el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
-      await act(async () => {
-        await new Promise<void>((r) => queueMicrotask(r));
-      });
+      await flushFrame();
     }
 
     it('should render disabled item with aria-disabled and data-disabled at rest', async () => {
@@ -1048,9 +1050,7 @@ describe('Command — React Compound Components', () => {
         overlay.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
         overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
-      await act(async () => {
-        await new Promise<void>((r) => queueMicrotask(r));
-      });
+      await flushFrame();
 
       await vi.waitFor(() => {
         expect(onOpenChange).toHaveBeenCalledWith(false);

@@ -29,21 +29,24 @@ afterEach(async () => {
   container.remove();
 });
 
-/** Render helper — wraps in act() and awaits a microtask for scheduler flush */
+/**
+ * Wait one frame inside act(). The machine's scheduler batches on requestAnimationFrame
+ * (setImmediate-backed under happy-dom), not on a microtask. React's async act() yields to
+ * setImmediate before it resolves, so the awaited act() before each call has already applied the
+ * batch it queued; this frame is a guard that runs after any batch still queued.
+ */
+function flushFrame(): Promise<void> {
+  return act(async () => {
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+  });
+}
+
+/** Render helper — wraps in act() (whose exit runs the scheduler's frame) and waits one more frame */
 async function renderAsync(ui: ReactNode): Promise<void> {
   await act(async () => {
     root.render(ui);
   });
-  await act(async () => {
-    await new Promise<void>((r) => queueMicrotask(r));
-  });
-}
-
-/** Flush pending microtasks and React updates */
-async function flush(): Promise<void> {
-  await act(async () => {
-    await new Promise<void>((r) => queueMicrotask(r));
-  });
+  await flushFrame();
 }
 
 // ---------------------------------------------------------------------------
@@ -160,7 +163,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     await act(async () => {
       resolve([]);
     });
-    await flush();
+    await flushFrame();
 
     await vi.waitFor(() => {
       expect(container.querySelector('[data-command-empty]')).not.toBeNull();
@@ -228,7 +231,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     await act(async () => {
       resolve(testItems);
     });
-    await flush();
+    await flushFrame();
 
     // Items should now be rendered
     await vi.waitFor(() => {
@@ -267,7 +270,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     await act(async () => {
       resolve(testItems);
     });
-    await flush();
+    await flushFrame();
 
     // Items should be registered and visible in the filtered list
     await vi.waitFor(() => {
@@ -308,7 +311,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     await act(async () => {
       reject(new Error('Failed to load items'));
     });
-    await flush();
+    await flushFrame();
 
     // The error boundary should catch the rejection
     await vi.waitFor(() => {
@@ -344,7 +347,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
       </Command>,
     );
 
-    await flush();
+    await flushFrame();
 
     // Items should render without showing fallback (or fallback shown very briefly)
     await vi.waitFor(() => {
@@ -370,7 +373,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     await act(async () => {
       resolve1(items1);
     });
-    await flush();
+    await flushFrame();
 
     await vi.waitFor(() => {
       expect(container.querySelectorAll('[data-command-item]').length).toBe(2);
@@ -382,7 +385,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     await act(async () => {
       root.render(<AsyncApp itemsPromise={promise2} />);
     });
-    await flush();
+    await flushFrame();
 
     await vi.waitFor(() => {
       const items = container.querySelectorAll('[data-command-item]');
@@ -417,7 +420,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
       </Command>,
     );
 
-    await flush();
+    await flushFrame();
 
     // Verify the full tree rendered correctly
     await vi.waitFor(() => {
@@ -503,7 +506,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     await act(async () => {
       resolve(testItems);
     });
-    await flush();
+    await flushFrame();
 
     await vi.waitFor(() => {
       // Fallback should be gone

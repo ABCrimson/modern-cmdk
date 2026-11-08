@@ -7,6 +7,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 
+/**
+ * Wait one frame inside act(). The machine's scheduler batches on requestAnimationFrame
+ * (setImmediate-backed under happy-dom), not on a microtask. React's async act() yields to
+ * setImmediate before it resolves, so the awaited act() before each call has already applied the
+ * batch it queued; this frame is a guard that runs after any batch still queued.
+ */
+function flushFrame(): Promise<void> {
+  return act(async () => {
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+  });
+}
+
 async function render(ui: React.ReactNode): Promise<void> {
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -14,10 +26,8 @@ async function render(ui: React.ReactNode): Promise<void> {
   await act(async () => {
     root.render(ui);
   });
-  // Let scheduler process registrations
-  await act(async () => {
-    await new Promise<void>((r) => queueMicrotask(r));
-  });
+  // The act() above ran the scheduler's frame on exit; one more frame as a guard
+  await flushFrame();
 }
 
 afterEach(async () => {
