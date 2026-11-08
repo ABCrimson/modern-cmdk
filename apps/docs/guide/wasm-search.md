@@ -92,7 +92,7 @@ engine.index(items);
 
 // Search with fuzzy matching + typo tolerance
 const results = engine.search('applcation', items).toArray(); // trigram overlap tolerates the dropped letter: matches "Application Settings"
-// => [{ id: 'item-1', score: 0.75, matches: [] }]
+// => [{ id: 'item-1', ... }]: item-1 is the only item that matches 'applcation'
 ```
 
 ::: tip
