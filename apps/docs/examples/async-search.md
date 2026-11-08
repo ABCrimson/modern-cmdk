@@ -67,11 +67,9 @@ function SearchResults() {
     >
       {(results) => (
         <>
-          {Object.entries(
-            Object.groupBy(results, (r) => String(r.data?.category))
-          ).map(([category, items]) => (
+          {[...Map.groupBy(results, (r) => String(r.data?.category))].map(([category, items]) => (
             <Command.Group key={category} heading={category}>
-              {items!.map((item) => (
+              {items.map((item) => (
                 <Command.Item
                   key={item.id}
                   id={item.id}
