@@ -304,7 +304,8 @@ function listBaselineKeys(baseline: BaselineFile): string[] {
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 
-async function main(args: CliArgs): Promise<number> {
+async function main(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
+  const args = parseCli(argv);
   // 1. Read baseline
   const baselinePath =
     args.baseline === undefined
@@ -468,7 +469,7 @@ process.on('uncaughtException', (err: unknown) => {
 });
 
 try {
-  process.exitCode = await main(parseCli(process.argv.slice(2)));
+  process.exitCode = await main();
 } catch (err: unknown) {
   console.error('bench harness error:', err);
   if (err instanceof UsageError) console.error(USAGE);
