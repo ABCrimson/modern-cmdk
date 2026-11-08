@@ -401,8 +401,8 @@ jobs:
           persist-credentials: false
           # Full history: scripts/check-repo-links.ts resolves blob/<abbreviated hash>/ links with git, and a shallow clone lacks those commits
           fetch-depth: 0
-      # lychee comes from its release tarball through the local install-release-binary action: up to eight attempts (gh release
-      # download, then curl with retries, per attempt) and a pinned sha256. lychee-action v2.9.0 downloads it with one curl -sfLO and
+      # lychee comes from its release tarball through the local install-release-binary action: up to eight attempts (gh release download,
+      # then the API asset route, then the direct release URL, per attempt) and a pinned sha256. lychee-action v2.9.0 downloads it with one curl -sfLO and
       # no retry, which failed this job on a GitHub release-host error (run 42464306876, curl exit 22), and it has no input that skips
       # that download. Newest release: lychee v0.24.2 (re-resolve with: gh release list -R lycheeverse/lychee -L 3; the rolling
       # "nightly" pre-release is not pinnable). The sha256 is the tarball's GitHub asset digest (re-resolve with:
@@ -693,8 +693,8 @@ jobs:
       # 1.57.0: the folder $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and, only on a miss, downloads syft's
       # install.sh through @actions/tool-cache (three attempts); install.sh fetches the checksums file and the tarball with one curl
       # each; a GitHub release-host HTTP 504 on the checksums file failed this job on four of five attempts. The local
-      # install-release-binary action seeds that folder from the release tarball (up to eight attempts, gh release download then curl
-      # with retries, and a pinned sha256), so the action finds syft and skips its download. The sha256 is the tarball's GitHub asset
+      # install-release-binary action seeds that folder from the release tarball (up to eight attempts, gh release download, then the API asset route,
+      # then the direct release URL, per attempt, and a pinned sha256), so the action finds syft and skips its download. The sha256 is the tarball's GitHub asset
       # digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest').
       # Bump the tag, the digest and the syft-version below together.
       - name: Install syft into the tool cache
