@@ -10,9 +10,10 @@
 // Adapters (tests/unit/cmdk-parity-adapters.tsx). A fixture is data: a root, an input, a list and
 // a tree of items, groups, separators, Empty and Loading, optionally inside a Dialog. One adapter
 // per library turns it into that library's components and props, and holds the library's
-// attribute names. A prop is translated only where the library documents one for the intent
-// (`filter: 'off'` is cmdk's `shouldFilter={false}` and modern-cmdk's `filter={false}`); an
-// intent with no counterpart renders nothing in the other library, and the case records it.
+// attribute names. A prop is translated only where the library has one for the intent, documented
+// or passed through to its element (`filter: 'off'` is cmdk's `shouldFilter={false}` and
+// modern-cmdk's `filter={false}`); an intent with no counterpart renders nothing in the other
+// library, and the case records it.
 //
 // Observations are plain JSON: the item values in DOM order, the active value, the arguments of
 // onSelect, Empty visibility, ARIA attributes (an id reference is a token such as `list`, never a
@@ -23,8 +24,8 @@
 // row holds two equal values and a 'differs' row two unequal ones, so a status that disagrees
 // with the values fails too. `reason` is a sentence for a migrating cmdk user and `ref` names the
 // ledger row or DECISIONS.md ruling that explains the parity or the difference; a null `ref` means
-// no ruling or row explains the row. The last differential test requires the table's keys to equal
-// the case ids, in case order.
+// no ruling or row explains the row. A separate test after the differential cases requires the
+// table's keys to equal the case ids, in case order.
 //
 // What the installed type declarations say (cmdk: node_modules/cmdk/dist/index.d.ts; modern-cmdk:
 // packages/modern-cmdk/dist/react/index.d.mts, with src/react/*.tsx):
@@ -236,11 +237,25 @@ const cases: readonly ParityCase[] = [
     run: async (adapter: ParityAdapter): Promise<Json> => {
       const names = ['Input', 'List', 'Item', 'Group', 'Separator', 'Empty', 'Loading', 'Dialog'];
       const session = await mountParity(adapter, {
-        children: [group('Fruits', plain('apple')), separator(), { kind: 'loading', text: 'Wait' }],
+        children: [
+          group('Fruits', plain('apple')),
+          separator(),
+          { kind: 'loading', text: 'Wait' },
+          empty(),
+        ],
+      });
+      // Empty renders only while nothing matches
+      const withMatches = session.partsPresent(ALL_PARTS.filter((part) => part !== 'empty'));
+      await session.type('zzz');
+      const noMatch = session.partsPresent(['empty']);
+      // The Dialog is a second mount, which replaces the first palette
+      const dialog = await mountParity(adapter, {
+        dialog: { open: true },
+        children: plain('apple'),
       });
       return {
         namespace: Object.fromEntries(names.map((name) => [name, name in adapter.namespace])),
-        rendered: session.partsPresent(ALL_PARTS.filter((part) => part !== 'empty')),
+        rendered: { ...withMatches, ...noMatch, ...dialog.partsPresent(['dialog']) },
       };
     },
   },

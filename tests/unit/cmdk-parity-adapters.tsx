@@ -8,7 +8,8 @@
 // reads the rendered DOM through those names and returns plain JSON, so a delta-table row can
 // store what a library did.
 //
-// A translation exists only where the library documents a prop for the intent:
+// A translation exists only where the library has a prop for the intent: a documented one, or a
+// prop the component passes through to its element, as named below:
 //   - `root.filter: 'off'`: cmdk `shouldFilter={false}`, modern-cmdk `filter={false}`.
 //   - `root.filter` as a function: cmdk `filter(value, search, keywords)`; modern-cmdk
 //     `filter(item, query)`, wrapped so the function sees the same arguments.
@@ -16,7 +17,9 @@
 //     `activeId` and `onActiveChange` (the active item's id). A fixture that uses it gives every
 //     item an `id` equal to its value, which modern-cmdk uses as the item id; cmdk overwrites the
 //     id, so it keys the active item by value alone.
-//   - `list.label`: cmdk `<Command.List label>`, modern-cmdk `aria-label` on `<Command.List>`.
+//   - `list.label`: cmdk `<Command.List label>`. modern-cmdk documents no List label prop: its
+//     List spreads the caller's props after its own `aria-label` (src/react/list.tsx), so an
+//     `aria-label` passed to `<Command.List>` overrides the root label; that is the translation.
 // An intent with no counterpart renders nothing in the other library: cmdk's `forceMount` and
 // `vimBindings` have no modern-cmdk prop, and modern-cmdk's item `id` is a plain div attribute in
 // cmdk, which then overwrites it. The case records the difference.

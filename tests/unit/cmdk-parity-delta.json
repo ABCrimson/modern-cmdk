@@ -21,7 +21,9 @@
         "groupHeading": true,
         "groupItems": true,
         "separator": true,
-        "loading": true
+        "loading": true,
+        "empty": true,
+        "dialog": true
       }
     },
     "modernCmdk": {
@@ -44,7 +46,9 @@
         "groupHeading": true,
         "groupItems": true,
         "separator": true,
-        "loading": true
+        "loading": true,
+        "empty": true,
+        "dialog": true
       }
     },
     "reason": "Both Command namespaces expose Input, List, Item, Group, Separator, Empty, Loading and Dialog, and a palette built from them renders every part.",
