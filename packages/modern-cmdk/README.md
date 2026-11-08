@@ -167,20 +167,20 @@ Theming (CSS custom properties, `@layer command`) is covered in the [theming gui
 
 ## Sizes
 
-Figures come from [`benchmarks/size-history/1.6.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/2abdff2/benchmarks/size-history/1.6.0.json) (committed in `2abdff2`, measured at `8c4feee` on 2026-11-08 with size-limit 14.3.0 and `npm pack --dry-run --json`). Method: size-limit, gzip, peers (`react`, `react-dom`, `radix-ui`) ignored; the codemod entries are raw installed size of the files named.
+Figures come from [`benchmarks/size-history/1.5.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/4498a0f/benchmarks/size-history/1.5.0.json) (committed in `4498a0f`, measured at `d5ce6ff` on 2026-11-07 with size-limit 14.3.0 and `npm pack --dry-run --json`). Method: size-limit, gzip, peers (`react`, `react-dom`, `radix-ui`) ignored; the codemod entries are raw installed size of the files named.
 
 | Entry | Bytes | Limit | Method |
 |---|---|---|---|
-| `modern-cmdk` (core) | 7321 | 7400 | gzip |
-| `modern-cmdk/react`, adapter only | 5610 | 5700 | gzip, `modern-cmdk` ignored |
-| `modern-cmdk` + `modern-cmdk/react` | 10764 | 10850 | gzip, core included |
+| `modern-cmdk` (core) | 6399 | 6500 | gzip |
+| `modern-cmdk/react`, adapter only | 5539 | 5600 | gzip, `modern-cmdk` ignored |
+| `modern-cmdk` + `modern-cmdk/react` | 10003 | 10100 | gzip, core included |
 | `modern-cmdk/react/dialog`, adapter only | 1422 | 1500 | gzip, `modern-cmdk` ignored |
-| `modern-cmdk/react`, `CommandSeparator` only | 4884 | 5000 | gzip, `modern-cmdk` ignored; still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (tree-shaking of the barrel is a 2.0 item) |
-| `modern-cmdk/styles.css` | 3986 | 4000 | gzip |
-| codemod bin (`dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs`) | 3153027 | 3400000 | raw installed size, not gzip |
+| `modern-cmdk/react`, `CommandSeparator` only | 4812 | 5000 | gzip, `modern-cmdk` ignored; still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (tree-shaking of the barrel is a 2.0 item) |
+| `modern-cmdk/styles.css` | 3959 | 4000 | gzip |
+| codemod bin (`dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs`) | 3150372 | 3400000 | raw installed size, not gzip |
 | codemod shim (`dist/codemod/bin.mjs`) | 897 | 1000 | raw installed size, not gzip |
 
-The packed `modern-cmdk` tarball at `8c4feee` is 969407 B packed and 3331514 B unpacked in 22 entries, of which 178487 B is runtime (165611 B without `THIRD-PARTY-NOTICES.md`, which is 12876 B) and 3153027 B is the codemod, including the 897 B shim. The codemod's own package, `modern-cmdk-codemod`, is 33871 B packed and 116071 B unpacked in 11 entries; `jscodeshift` is not in that tarball.
+The packed `modern-cmdk` tarball: 1.4 (built from `release/1.4.0` at `b77f133` and measured on 2026-11-05; not on npm) is 992157 B packed and 3473079 B unpacked in 16 entries, of which 147286 B is runtime and 3325793 B is the codemod; the 1.5 release candidate is 962822 B packed and 3315632 B unpacked in 22 entries, of which 165260 B is runtime (152384 B without `THIRD-PARTY-NOTICES.md`, which is 12876 B) and 3150372 B is the codemod, including the 897 B shim. The codemod's own package, `modern-cmdk-codemod`, is 33119 B packed and 113416 B unpacked in 11 entries; `jscodeshift` is not in that tarball.
 
 ## Migration from cmdk
 
