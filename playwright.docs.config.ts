@@ -30,6 +30,9 @@ export default defineConfig({
     command: `node scripts/serve-dist.mjs --port ${port}`,
     url: baseURL,
     timeout: 120_000,
-    reuseExistingServer: !isCI,
+    // Never reuse a server already on the port: with several worktrees on this host, a stale serve-dist from another
+    // checkout answered on 4173 and the suite judged that checkout's build (2026-11-08). Playwright now stops with the
+    // port in use, which names the real problem.
+    reuseExistingServer: false,
   },
 });
