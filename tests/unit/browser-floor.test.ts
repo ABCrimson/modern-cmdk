@@ -299,6 +299,144 @@ function denyViolations(sources: ReadonlyMap<string, string>): string[] {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// The disposal-symbol shim (R7, CE-29, CE-30)
+// ---------------------------------------------------------------------------------------------------------------------
+
+const DISPOSAL_SYMBOLS: readonly string[] = ['dispose', 'asyncDispose'];
+
+/** `Symbol.<name>`: a member access on the global identifier `Symbol`. */
+function isSymbolMember(node: unknown, name: string): node is AstNode {
+  return (
+    isNode(node) &&
+    memberName(node) === name &&
+    isNode(node.object) &&
+    node.object.type === 'Identifier' &&
+    node.object.name === 'Symbol'
+  );
+}
+
+function startOf(node: AstNode): number {
+  return node.start as number;
+}
+
+/** The top-level `Symbol.<name> ??= Symbol.for('Symbol.<name>')` statements of a module body. */
+function shimStatements(program: AstNode, name: string): AstNode[] {
+  return (program.body as AstNode[]).filter((statement) => {
+    if (statement.type !== 'ExpressionStatement' || !isNode(statement.expression)) {
+      return false;
+    }
+    const { expression } = statement;
+    const right = expression.right;
+    return (
+      expression.type === 'AssignmentExpression' &&
+      expression.operator === '??=' &&
+      isSymbolMember(expression.left, name) &&
+      isNode(right) &&
+      right.type === 'CallExpression' &&
+      isSymbolMember(right.callee, 'for') &&
+      (right.arguments as AstNode[]).length === 1 &&
+      (right.arguments as AstNode[])[0]?.type === 'Literal' &&
+      (right.arguments as AstNode[])[0]?.value === `Symbol.${name}`
+    );
+  });
+}
+
+/** Every `Symbol.<name>` read in the module other than the shim's own left side (computed keys, `x[Symbol.dispose]`, helpers). */
+function disposalReaders(program: AstNode, name: string, shims: readonly AstNode[]): AstNode[] {
+  const own = new Set<unknown>(shims.map((shim) => (shim.expression as AstNode).left));
+  const readers: AstNode[] = [];
+  visit(program, (node) => {
+    if (isSymbolMember(node, name) && !own.has(node)) {
+      readers.push(node);
+    }
+  });
+  return readers;
+}
+
+/**
+ * One line per violation of "the shim precedes the first read of the symbol" in an ES module's text; empty when it holds.
+ *
+ * Why source position is evaluation order here: the bundle is one flat ES module, whose top-level statements run in source order
+ * once its imports have been evaluated. A class declaration is not hoisted and evaluates its computed keys when its statement
+ * runs; a hoisted function declaration runs nothing until it is called, and a call can only come from a top-level statement
+ * (itself ordered) or from another module that imports this one (after the whole body ran). So no read can run before a shim
+ * that starts earlier in the text; a shim that starts later is a read that may run first, the failure on a runtime without the
+ * symbol (Safari 18.4: both keys become the property "undefined", and the async disposer would be the sync one).
+ */
+function disposalShimProblems(text: string, file: string): string[] {
+  const program = parseAst(text, null, file) as unknown as AstNode;
+  const problems: string[] = [];
+  for (const name of DISPOSAL_SYMBOLS) {
+    const shims = shimStatements(program, name);
+    if (shims.length !== 1) {
+      problems.push(
+        `${file}: Symbol.${name}: expected exactly one top-level "Symbol.${name} ??= Symbol.for('Symbol.${name}')" statement, found ${shims.length}`,
+      );
+      continue;
+    }
+    const readers = disposalReaders(program, name, shims);
+    const first = readers.reduce<AstNode | undefined>(
+      (earliest, node) =>
+        earliest === undefined || startOf(node) < startOf(earliest) ? node : earliest,
+      undefined,
+    );
+    const shim = shims[0] as AstNode;
+    if (first !== undefined && startOf(shim) >= startOf(first)) {
+      problems.push(
+        `${file}: Symbol.${name}: the shim starts at offset ${startOf(shim)}, not before the first read at offset ${startOf(first)}`,
+      );
+    }
+  }
+  return problems;
+}
+
+/** Whether the module reads Symbol.dispose or Symbol.asyncDispose at all (shim statements included). */
+function readsDisposalSymbols(text: string, file: string): boolean {
+  let found = false;
+  visit(parseAst(text, null, file), (node) => {
+    found ||= DISPOSAL_SYMBOLS.some((name) => isSymbolMember(node, name));
+  });
+  return found;
+}
+
+/** One line when the module reads a disposal symbol without importing 'modern-cmdk' (whose core evaluates, with its shim, first). */
+function coreImportProblems(text: string, file: string): string[] {
+  if (!readsDisposalSymbols(text, file)) {
+    return [];
+  }
+  const program = parseAst(text, null, file) as unknown as AstNode;
+  const imported = (program.body as AstNode[]).some(
+    (statement) =>
+      statement.type === 'ImportDeclaration' &&
+      isNode(statement.source) &&
+      statement.source.value === 'modern-cmdk',
+  );
+  return imported
+    ? []
+    : [`${file}: reads Symbol.dispose or Symbol.asyncDispose without importing 'modern-cmdk'`];
+}
+
+/** The text without the given statements. */
+function withoutRanges(text: string, nodes: readonly AstNode[]): string {
+  return [...nodes]
+    .sort((a, b) => startOf(b) - startOf(a))
+    .reduce(
+      (current, node) => current.slice(0, startOf(node)) + current.slice(node.end as number),
+      text,
+    );
+}
+
+/** The text of a module with both shim statements removed, or removed and re-appended at its end. */
+function coreWithShimMoved(text: string, file: string, where: 'removed' | 'last'): string {
+  const program = parseAst(text, null, file) as unknown as AstNode;
+  const shims = DISPOSAL_SYMBOLS.flatMap((name) => shimStatements(program, name));
+  const stripped = withoutRanges(text, shims);
+  return where === 'removed'
+    ? stripped
+    : `${stripped}\n${shims.map((shim) => text.slice(startOf(shim), shim.end as number)).join('\n')}\n`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 // The scanned build
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -487,6 +625,79 @@ describe('browser floor: the built core and react entries (CE-29, R4)', () => {
     process.stdout.write(
       `browser-floor beforeAll: tsdown build of ${builtFiles.length} files in ${buildMs.toFixed(0)} ms\n`,
     );
+  });
+});
+
+describe('browser floor: the disposal-symbol shim of the built entries (R7, CE-29)', () => {
+  const CORE = 'core/index.mjs';
+  const core = (): string => sources.get(CORE) ?? '';
+
+  it('R7: the Symbol.dispose and Symbol.asyncDispose shims precede the first computed disposal key in dist/core/index.mjs', () => {
+    expect(core().length).toBeGreaterThan(0);
+    // Both symbols are read somewhere (the class keys), so the position check is not vacuous.
+    const program = parseAst(core(), null, CORE) as unknown as AstNode;
+    for (const name of DISPOSAL_SYMBOLS) {
+      const shims = shimStatements(program, name);
+      expect(disposalReaders(program, name, shims).length, name).toBeGreaterThan(0);
+    }
+    expect(disposalShimProblems(core(), CORE)).toEqual([]);
+  });
+
+  it('R7: every react file that reads Symbol.dispose or Symbol.asyncDispose imports modern-cmdk, so the core and its shim evaluate first', () => {
+    const reactFiles = [...sources.keys()].filter((file) => file.startsWith('react/'));
+    const readers = reactFiles.filter((file) =>
+      readsDisposalSymbols(sources.get(file) ?? '', file),
+    );
+    expect(readers.length).toBeGreaterThan(0);
+    for (const file of reactFiles) {
+      expect(coreImportProblems(sources.get(file) ?? '', file)).toEqual([]);
+    }
+  });
+
+  it.each([
+    ['both shim statements removed', 'removed', ['Symbol.dispose', 'Symbol.asyncDispose']],
+    [
+      'both shim statements moved after the first computed key',
+      'last',
+      ['Symbol.dispose', 'Symbol.asyncDispose'],
+    ],
+  ] as const)(
+    'R7: a scratch copy of the built core with %s fails naming the symbol',
+    (_name, where, symbols) => {
+      const problems = disposalShimProblems(coreWithShimMoved(core(), CORE, where), CORE);
+      for (const symbol of symbols) {
+        expect(problems.filter((problem) => problem.includes(`${symbol}:`))).toHaveLength(1);
+      }
+      expect(problems).toHaveLength(symbols.length);
+    },
+  );
+
+  it('R7: a scratch copy of the built core with only the asyncDispose shim removed names only Symbol.asyncDispose', () => {
+    const program = parseAst(core(), null, CORE) as unknown as AstNode;
+    const text = withoutRanges(core(), shimStatements(program, 'asyncDispose'));
+    expect(disposalShimProblems(text, CORE)).toEqual([
+      `${CORE}: Symbol.asyncDispose: expected exactly one top-level "Symbol.asyncDispose ??= Symbol.for('Symbol.asyncDispose')" statement, found 0`,
+    ]);
+  });
+
+  it('R7: a shim nested in a function (not evaluated at module load) does not count', () => {
+    const program = parseAst(core(), null, CORE) as unknown as AstNode;
+    const shims = DISPOSAL_SYMBOLS.flatMap((name) => shimStatements(program, name));
+    const wrapped = `${withoutRanges(core(), shims)}\nfunction installShims() {\n${shims
+      .map((shim) => core().slice(startOf(shim), shim.end as number))
+      .join('\n')}\n}\n`;
+    expect(disposalShimProblems(wrapped, CORE)).toHaveLength(2);
+  });
+
+  it('R7: a scratch copy of a react file with its modern-cmdk import renamed fails naming the file', () => {
+    const file = [...sources.keys()].find(
+      (name) => name.startsWith('react/') && readsDisposalSymbols(sources.get(name) ?? '', name),
+    );
+    expect(file).toBeDefined();
+    const text = (sources.get(file ?? '') ?? '').replace('from "modern-cmdk"', 'from "other-lib"');
+    expect(coreImportProblems(text, file ?? '')).toEqual([
+      `${file}: reads Symbol.dispose or Symbol.asyncDispose without importing 'modern-cmdk'`,
+    ]);
   });
 });
 
