@@ -104,20 +104,40 @@ describe('Machine Integration', () => {
   it('should support groups with priority ordering', async () => {
     using machine = createCommandMachine({
       items: [
-        makeItem('a', 'Apple', { groupId: groupId('fruits') }),
+        makeItem('a', 'Apple', { groupId: groupId('vegs') }),
         makeItem('b', 'Banana', { groupId: groupId('fruits') }),
         makeItem('c', 'Carrot', { groupId: groupId('vegs') }),
+        makeItem('d', 'Date', { groupId: groupId('fruits') }),
       ],
       groups: [
-        { id: groupId('fruits'), heading: 'Fruits', priority: 0 },
-        { id: groupId('vegs'), heading: 'Vegetables', priority: 1 },
+        { id: groupId('vegs'), heading: 'Vegetables', priority: 2 },
+        { id: groupId('fruits'), heading: 'Fruits', priority: 1 },
       ],
     });
 
-    const state = machine.getState();
-    expect(state.groupedIds.size).toBeGreaterThan(0);
-    expect(state.groupedIds.get(groupId('fruits'))?.length).toBe(2);
-    expect(state.groupedIds.get(groupId('vegs'))?.length).toBe(1);
+    const { groupedIds } = machine.getState();
+    // Lower priority first, although the first item belongs to the later group (TUB-06)
+    expect([...groupedIds.keys()]).toEqual(['fruits', 'vegs']);
+    expect(groupedIds.get(groupId('fruits'))).toEqual(['b', 'd']);
+    expect(groupedIds.get(groupId('vegs'))).toEqual(['a', 'c']);
+  });
+
+  it('groups of equal priority keep their first-appearance order, ungrouped items included (TUB-06)', async () => {
+    using machine = createCommandMachine({
+      items: [
+        makeItem('a', 'Apple', { groupId: groupId('y') }),
+        makeItem('b', 'Banana'),
+        makeItem('c', 'Carrot', { groupId: groupId('x') }),
+        makeItem('d', 'Date', { groupId: groupId('first') }),
+      ],
+      groups: [
+        { id: groupId('x'), heading: 'X' },
+        { id: groupId('y'), heading: 'Y', priority: 0 },
+        { id: groupId('first'), heading: 'First', priority: -1 },
+      ],
+    });
+
+    expect([...machine.getState().groupedIds.keys()]).toEqual(['first', 'y', '__ungrouped', 'x']);
   });
 
   it('should handle open/close/toggle lifecycle', async () => {

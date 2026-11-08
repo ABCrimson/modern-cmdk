@@ -171,11 +171,17 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     filteredIdSet = new Set(filteredIds);
     filteredIdIndex = new Map(filteredIds.entries().map(([i, id]) => [id, i] as const));
 
-    // Build grouped IDs
-    const groupedIds = mapGroupBy(filteredIds, (id) => {
-      const item = registry.getItem(id);
-      return (item?.groupId ?? ('__ungrouped' as GroupId)) as GroupId;
-    });
+    // Build grouped IDs, keys by group priority (lower first); the sort is stable, so equal priorities
+    // (and ungrouped items, priority 0) keep their first-appearance order in filteredIds
+    const priority = (g: GroupId): number => registry.getGroup(g)?.priority ?? 0;
+    const groupedIds = new Map(
+      [
+        ...mapGroupBy(
+          filteredIds,
+          (id) => registry.getItem(id)?.groupId ?? ('__ungrouped' as GroupId),
+        ),
+      ].sort((x, y) => priority(x[0]) - priority(y[0])),
+    );
 
     // Navigation list: disabled items are listed but never active
     navIds = filteredIds.filter(isEnabled);
