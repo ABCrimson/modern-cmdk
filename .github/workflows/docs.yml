@@ -2,7 +2,12 @@ name: Docs
 on:
   push:
     branches: [main]
-    paths: ['apps/docs/**', 'packages/*/src/**']
+    paths:
+      - 'apps/docs/**'
+      - 'packages/*/src/**'
+      - 'packages/modern-cmdk/package.json'
+      - 'benchmarks/size-history/**'
+      - 'benchmarks/baseline.json'
 
 concurrency:
   group: pages
