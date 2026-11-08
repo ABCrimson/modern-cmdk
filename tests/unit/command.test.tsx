@@ -246,7 +246,7 @@ describe('Command — React Compound Components', () => {
   // ---- 4. Item filtering ----
 
   describe('item filtering', () => {
-    it('CE-78: under StrictMode the machine keeps registering items and filtering', async () => {
+    it('StrictMode: the machine keeps registering items and filtering', async () => {
       await render(
         <StrictMode>
           <Command>

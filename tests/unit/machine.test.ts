@@ -544,7 +544,7 @@ describe('CommandMachine batching', () => {
     expect(log).toEqual(['onOpenChange true', 'onSearchChange item', 'stateChange']);
   });
 
-  it('CE-78: events dropped by dispose do not stall the batches of a machine that is used again', async () => {
+  it('batching: events dropped by dispose do not stall the batches of a machine that is used again', async () => {
     const machine = createCommandMachine();
     // Pending when dispose runs: the scheduler drops it, so it must not count towards a batch.
     machine.send({ type: 'OPEN' });
