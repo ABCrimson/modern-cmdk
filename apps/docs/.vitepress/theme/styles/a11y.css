@@ -48,3 +48,23 @@ html .vp-doc [id] {
     background-color: CanvasText;
   }
 }
+
+/*
+ * The local search box (VPLocalSearchBox): its text input matches :focus-visible on every focus, and the page-wide ring is
+ * a square rectangle across the rounded search bar. The bar carries the focus state instead; forced colours drops the border
+ * colour, so the system outline returns there.
+ */
+.VPLocalSearchBox .search-input:focus-visible {
+  outline: none;
+}
+
+.VPLocalSearchBox .search-bar:focus-within {
+  border-color: var(--mc-brand-3);
+}
+
+@media (forced-colors: active) {
+  .VPLocalSearchBox .search-input:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}

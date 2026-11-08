@@ -318,11 +318,26 @@ onMounted(() => {
   opacity: 1;
 }
 
-/* The page-wide ring (outline-offset 2px) would be clipped by the frame's overflow; draw it inside the input instead. */
+/* A text input always matches :focus-visible, so the page-wide ring would draw a square, error-looking rectangle inside the
+   row, and clip against the frame's overflow. The frame carries the focus state instead (border and a 3 px brand halo,
+   brand-3 clears 3:1 on both schemes); forced colours drops box-shadow, so it gets the system outline back. */
 .mc-input:focus-visible {
-  outline: 2px solid var(--mc-brand-3);
-  outline-offset: -2px;
-  border-radius: var(--mc-radius-sm);
+  outline: none;
+}
+
+.mc-frame:has(.mc-input:focus-visible) {
+  border-color: var(--mc-brand-3);
+  box-shadow:
+    0 0 0 3px var(--mc-brand-soft),
+    0 1px 0 oklch(1 0 0 / 6%) inset,
+    0 24px 64px -24px oklch(0.177 0.051 273 / 45%);
+}
+
+@media (forced-colors: active) {
+  .mc-input:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
 }
 
 .mc-scroller {
