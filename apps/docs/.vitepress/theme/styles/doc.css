@@ -76,12 +76,10 @@ html .vp-doc h4 {
   line-height: var(--mc-step-0-lh);
 }
 
-/* 4.3 Inline code (headings and table captions lose the pill below, after this rule) */
+/* 4.3 Inline code: the colours are --vp-code-color and --vp-code-bg (tokens.css), so linked code and code in containers keep the theme's rules (headings and table captions lose the pill below, after this rule) */
 html .vp-doc :not(pre) > code {
   border-radius: var(--mc-radius-xs);
   padding: 0.15em 0.4em;
-  color: var(--mc-code-ink);
-  background-color: var(--mc-code-bg);
 }
 
 html .vp-doc :is(h1, h2, h3, h4) code,
@@ -107,9 +105,9 @@ html .vp-doc a:hover {
   text-decoration-color: currentColor;
 }
 
-/* 4.3 kbd is a key cap: Geist Mono, a 1 px edge with a 2 px bottom edge, bg-soft fill. The 404 reuses it (NotFound.vue). */
+/* 4.3 kbd is a key cap: Geist Mono, a 1 px edge with a 2 px bottom edge, bg-soft fill. The 404 lede and key cap reuse it (NotFound.vue). */
 html .vp-doc kbd,
-html [data-mc="not-found"] kbd,
+html .mc-lede kbd,
 .mc-keycap {
   display: inline-block;
   border: 1px solid var(--mc-border-strong);

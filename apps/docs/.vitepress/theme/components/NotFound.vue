@@ -253,7 +253,7 @@ onMounted(async () => {
 
 /*
  * Finder rows stagger in: each row's opacity and translate transitions are delayed by its position among its siblings
- * (sibling-index(), Baseline 2026-08-18, MDN, read 2026-11-07), capped at 320 ms so a long unfiltered list does not wait.
+ * (sibling-index(), Baseline 2026-08-18, MDN, read 2026-11-07), counted from the first row of a group (index 2: the group heading is the first sibling), so every group starts at 0, and capped at 320 ms so a long unfiltered list does not wait. The server-rendered rows are each the only child of their li and appear together.
  * The rows belong to PaletteDemo, so :deep() reaches them. Not under reduced motion, where a delay on a 0 s transition
  * would only hold the rows invisible.
  */
@@ -263,8 +263,8 @@ onMounted(async () => {
       transition-property: background-color, opacity, translate;
       transition-duration: var(--mc-dur-1), var(--mc-dur-2), var(--mc-dur-2);
       transition-timing-function: var(--mc-ease-standard), var(--mc-ease-out), var(--mc-ease-out);
-      transition-delay: 0s, min(calc(sibling-index() * 40ms), 320ms),
-        min(calc(sibling-index() * 40ms), 320ms);
+      transition-delay: 0s, clamp(0ms, calc((sibling-index() - 2) * 40ms), 320ms),
+        clamp(0ms, calc((sibling-index() - 2) * 40ms), 320ms);
     }
 
     @starting-style {

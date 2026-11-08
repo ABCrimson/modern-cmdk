@@ -88,7 +88,7 @@ html:root .VPSidebar .VPSidebarItem:not(.level-0).is-active > .item > .indicator
   }
 }
 
-/* Mobile nav: links step 1 at 600 with 12 px row padding (a 28 px line, so rows are 52 px) and a 48 px minimum target */
+/* Mobile nav: links step 1 at 600 with 12 px row padding (a 28 px line: 52 px, 53 px with the 1 px rule) and a 48 px minimum target */
 html:root .VPNavScreenMenuLink,
 html:root .VPNavScreenMenuGroup .button {
   box-sizing: border-box;
