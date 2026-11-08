@@ -339,14 +339,14 @@ frecency.recordSelection(itemId('settings'));
 const bonus = frecency.getBonus(itemId('settings')); // 4.0: frequency 1 x hourWeight 4.0
 ```
 
-`FrecencyEngine` methods: `recordSelection(id)`, `getBonus(id, now?)`, `getAllBonuses(now?)`, `load()` (merges stored data: frequencies add, the later `lastUsed` wins; call it once per engine), `flush()` (saves dirty data and waits for saves in flight), `getData()`, `getConfig()`, `setConfig(config)`. Dirty data is saved 1000 ms after the last `recordSelection`, when the page becomes hidden (`visibilitychange`, `pagehide`), on `flush()` and on dispose. `computeFrecencyBonus(record, now?, config?)` is the pure function behind `getBonus`. Disposing an engine disposes its storage once the last save settles.
+`FrecencyEngine` methods: `recordSelection(id)`, `getBonus(id, now?)`, `getAllBonuses(now?)`, `load()` (merges stored data: frequencies add, the later `lastUsed` wins; call it once per engine), `flush()` (saves dirty data and waits for saves in flight), `getData()`, `getConfig()`, `setConfig(config)`. Dirty data is saved 1000 ms after the last `recordSelection`, when the page becomes hidden (`visibilitychange`, `pagehide`), on `flush()` and on dispose. `computeFrecencyBonus(record, now?, config?)` is the pure function behind `getBonus`. A save waits for a `load()` in flight, so a selection made before the stored history arrives is merged into it; a `load()` that rejects turns persistence off for that engine, and one that never settles holds every save. Disposing an engine disposes the storage it created once the last save settles; a storage you passed is left to you.
 
 ### `FrecencyOptions`
 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `enabled` | `boolean` (optional) | `false` | Turns frecency ranking on for `createCommandMachine({ frecency })` and `<Command frecency>`: ranking applies only with `enabled: true`. Flips to `true` in 2.0. `new FrecencyEngine({ storage, namespace })` needs no `enabled` field |
-| `storage` | `FrecencyStorage` | `MemoryFrecencyStorage` | Persistence backend |
+| `storage` | `FrecencyStorage` | `MemoryFrecencyStorage` | Persistence backend. A storage you pass is yours to dispose; the engine disposes only the storage it created (the default `MemoryFrecencyStorage`) |
 | `namespace` | `string` | `'default'` | Storage namespace for isolation |
 | `decayConfig` | `FrecencyDecayConfig` | See below | Decay curve weights |
 
