@@ -438,18 +438,21 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
       query: 'gtdf',
       expectedMatches: ['Go to Definition'],
       expectedNonMatches: ['Close Window', 'Save All'],
+      expectedTopResult: 'Go to Definition',
     },
     // ── Word boundary match ──
     {
       query: 'gc',
       expectedMatches: ['Git Commit'],
       expectedNonMatches: ['Open Settings', 'Save All'],
+      expectedTopResult: 'Git Commit',
     },
     // ── Partial fuzzy ──
     {
       query: 'tsd',
       expectedMatches: ['Toggle Sidebar'],
       expectedNonMatches: ['Save All'],
+      expectedTopResult: 'Toggle Sidebar',
     },
     // ── Multi-word query ──
     {
