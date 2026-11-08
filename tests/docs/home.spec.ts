@@ -88,7 +88,7 @@ it.describe('home page with the palette', () => {
 
     const rows = page.locator('[data-mc="palette"] [role="option"]');
     await expect(rows.first()).toContainText('Frecency');
-    // the 18 entries shrink to the rows that match the four letters in their label or in a keyword: the topic row leads, and
+    // the 19 entries shrink to the rows that match the four letters in their label or in a keyword: the topic row leads, and
     // the two pages that document frecency follow (hero-items.ts keywords)
     await expect(rows.locator('[data-mc="palette-label"]')).toHaveText([
       'Frecency ranking',
