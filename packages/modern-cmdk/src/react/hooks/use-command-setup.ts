@@ -36,7 +36,6 @@ const INIT_ONLY = [
 export interface UseCommandSetupReturn {
   readonly machine: CommandMachine;
   readonly state: CommandState;
-  readonly isPending: boolean;
   readonly listId: string;
   readonly inputId: string;
   readonly handleKeyDown: (e: KeyboardEvent) => void;
@@ -190,8 +189,7 @@ export function useCommandSetup(
   }
   const machine = machineRef.current;
 
-  const { state, isPending, updateSearch, setOptimisticActiveId, filteredIdSet, id } =
-    useCommand(machine);
+  const { state, updateSearch, setOptimisticActiveId, filteredIdSet, id } = useCommand(machine);
 
   // `owned` marks a query whose text the caller already holds (a controlled `Command.Input` value): it joins the
   // queue the `onSearchChange` dedupe drops from, in the order the machine processes the events, so the root's
@@ -298,18 +296,17 @@ export function useCommandSetup(
     () =>
       ({
         state,
-        isPending,
+        isPending: false,
         filteredIdSet,
         visibleIdSet: null,
         virtualPositionMap: null,
       }) satisfies CommandStateContextValue,
-    [state, isPending, filteredIdSet],
+    [state, filteredIdSet],
   );
 
   return {
     machine,
     state,
-    isPending,
     listId,
     inputId,
     handleKeyDown,
