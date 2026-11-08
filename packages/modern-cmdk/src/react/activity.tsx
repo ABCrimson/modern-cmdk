@@ -1,8 +1,8 @@
 // packages/modern-cmdk/src/react/activity.tsx
-// <CommandActivity> — React's <Activity> API (stable since React 19.2) for state preservation
-// Wraps palette contents in <Activity mode="hidden"> when dialog closes
-// Preserves scroll position, input state, selection without remount
-// Graceful degradation: falls back to normal unmount if Activity unavailable
+// <Command.Activity> — passes its `mode` prop to React's <Activity> around its children
+// The caller chooses the mode; nothing in the library derives it from the dialog's open state
+// Activity is feature-detected: on a React that exports none, 'hidden' renders null (the children
+// unmount) and 'visible' renders the children as they are
 // Isolated declarations: explicit return types on all exports
 
 import type { ComponentType, ReactNode } from 'react';

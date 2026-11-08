@@ -1,5 +1,6 @@
 // packages/modern-cmdk/src/react/page.tsx
-// <Command.Page> — page stack management, View Transitions API
+// <Command.Page> — renders its children only while the machine's current page is `id`
+// It changes no page itself: the PAGE_PUSH and PAGE_POP events do
 // React 19: use() for context
 // Isolated declarations: explicit return types on all exports
 
