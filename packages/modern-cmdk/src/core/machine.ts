@@ -61,6 +61,15 @@ export interface CommandMachine extends Disposable {
   /** Take back the holds `suspend()` released (the keydown listener, the page-exit listeners). Idempotent; does nothing after dispose. */
   resume?(): void;
   /**
+   * Refilters with the options as they read now: it schedules one batch slot that runs the filter again over the
+   * registered items and recomputes the active item, and reports no candidate to `onActiveChange` (the caller changed
+   * its own props, which is not a choice the machine makes). It is not a `CommandEvent`: it passes through no `send()`,
+   * so what observes `send()` does not see it. An options object whose getters return new values for `activeId`,
+   * `disabledItems` or `filter` calls it after a change; the React root does so on a change of those props.
+   * Does nothing after dispose. Optional like `suspend`; the machine `createCommandMachine` returns always has it.
+   */
+  refresh?(): void;
+  /**
    * The terminal teardown. Afterwards `send()` reduces nothing, calls no option callback and queues nothing, and a
    * batch that is running when dispose is called stops: the rest of the batch and its commit do not run.
    * `suspend()` and `resume()` are the reversible pause.
@@ -68,10 +77,10 @@ export interface CommandMachine extends Disposable {
   [Symbol.dispose](): void;
 }
 
-/** What `createCommandMachine` returns: a `CommandMachine` that also has `suspend`, `resume` and `Symbol.asyncDispose` */
+/** What `createCommandMachine` returns: a `CommandMachine` that also has `suspend`, `resume`, `refresh` and `Symbol.asyncDispose` */
 type CreatedMachine = CommandMachine &
   AsyncDisposable &
-  Required<Pick<CommandMachine, 'suspend' | 'resume'>>;
+  Required<Pick<CommandMachine, 'suspend' | 'resume' | 'refresh'>>;
 
 /**
  * Collected without dispose: disposes the search engine the machine created, which unregisters the engine's dev
@@ -209,7 +218,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     options.onOpenChange?.(open);
   }
 
-  function refilter(query: string): void {
+  /** Recomputes the lists and the active item for `query`; `report` lets a controlled `activeId` hear the candidate it does not take. */
+  function refilter(query: string, report = announce): void {
     dirty = false;
     const items = registry.getItems();
     const disableFilter = options.filter === false;
@@ -255,12 +265,13 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
 
     // Keep the active item while it is still listed and enabled, else the first enabled one
     const current = currentActiveId();
-    let activeId =
+    const candidate =
       current && filteredIdSet.has(current) && isEnabled(current) ? current : (navIds[0] ?? null);
-    // A controlled activeId only hears the candidate: the state keeps its value
+    let activeId = candidate;
+    // A controlled activeId hears every candidate it does not hold; the state mirrors it when listed and enabled, else null
     if (options.activeId !== undefined) {
-      if (announce && activeId !== current) options.onActiveChange?.(activeId);
-      activeId = state.activeId;
+      if (report && candidate !== current) options.onActiveChange?.(candidate);
+      activeId = candidate === current ? current : null;
     }
 
     setState({
@@ -440,29 +451,38 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     }
   }
 
+  /** Schedules `run` as one slot of the batch; the last slot commits once. `send()` and `refresh()` share it. */
+  function enqueue(run: () => void): void {
+    queued++;
+    if (inHandler) nextQueued++;
+    scheduler.schedule(() => {
+      // A listener may dispose the machine while a batch runs: the rest of that batch does not run
+      if (disposed) return;
+      inHandler = true;
+      try {
+        run();
+      } finally {
+        inHandler = false;
+        if (--queued === nextQueued) {
+          // Last slot of the batch: commit once
+          nextQueued = 0;
+          if (!disposed) commit();
+        }
+      }
+    });
+  }
+
   const machine: CreatedMachine = {
     getState(): CommandState {
       return state;
     },
 
     send(event: CommandEvent): void {
-      queued++;
-      if (inHandler) nextQueued++;
-      scheduler.schedule(() => {
-        // A listener may dispose the machine while a batch runs: the rest of that batch does not run
-        if (disposed) return;
-        inHandler = true;
-        try {
-          handleEvent(event);
-        } finally {
-          inHandler = false;
-          if (--queued === nextQueued) {
-            // Last event of the batch: commit once
-            nextQueued = 0;
-            if (!disposed) commit();
-          }
-        }
-      });
+      enqueue(() => handleEvent(event));
+    },
+
+    refresh(): void {
+      enqueue(() => refilter(state.search, false));
     },
 
     /** useSyncExternalStore-compatible subscribe — returns cleanup function */
