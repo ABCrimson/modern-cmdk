@@ -106,15 +106,19 @@ export function createCommandMachine(
     frecencyEngine = new FrecencyEngine(options.frecency);
     // Hydrate persisted frecency data (IDB) in the background: once the engine has merged it, mark the
     // results dirty — only for a non-empty query with the filter on, the one case frecency re-ranks (DT-18) —
-    // so one refilter and one stateChange (through the batch commit, unless a batch is pending and commits
-    // them itself) take the loaded bonuses; a failed load is reported, not thrown
+    // and commit as scheduled work, so one refilter and one stateChange take the loaded bonuses (unless events
+    // are queued behind it: their batch commits them) and a throw in the refilter surfaces as an uncaught
+    // exception through the scheduler, like one in a send() batch, not as an unhandled rejection; a failed
+    // load is reported, not thrown
     void frecencyEngine.load().then(
       () => {
         // Frecency re-ranks only non-empty queries (DT-18) and `filter: false` lists registration order, so
         // there the loaded bonuses change no result: skip the refilter and the stateChange
         if (disposed || state.search === '' || options.filter === false) return;
         dirty = true;
-        if (queued === 0) commit();
+        scheduler.schedule(() => {
+          if (queued === 0) commit();
+        });
       },
       (error: unknown) => {
         // biome-ignore lint/suspicious/noConsole: Load-time diagnostic for production debugging, like the engine's save warning
