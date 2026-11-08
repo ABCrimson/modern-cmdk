@@ -58,8 +58,8 @@ const FLUSH_DELAY_MS = 1000;
  * ranking boosts for search results. Supports pluggable storage backends.
  * Dirty data is saved 1000 ms after the last `recordSelection`, when the page
  * becomes hidden or is hidden for good (`visibilitychange`, `pagehide`), on
- * `flush()` and on dispose, which then disposes the storage. Uses Date.now()
- * for timestamps.
+ * `flush()` and on dispose, which then disposes the storage; a save waits for a `load()` in
+ * flight, so it writes the merged history. Uses Date.now() for timestamps.
  */
 export class FrecencyEngine implements Disposable, AsyncDisposable {
   #storage: FrecencyStorage;
@@ -70,6 +70,8 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
   #timer: ReturnType<typeof setTimeout> | undefined;
   /** The last started save, never rejecting: saves queue behind it and flush awaits it */
   #pending: Promise<unknown> = Promise.resolve();
+  /** The last started load, never rejecting: a save starts only after it settles */
+  #loading: Promise<unknown> = Promise.resolve();
   #abort = new AbortController();
 
   constructor(options: FrecencyOptions) {
@@ -96,9 +98,17 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
   /**
    * Merge the data in storage into the engine: frequencies add, `lastUsed` takes the later
    * time, and selections recorded before the load resolves are kept. Call it once per
-   * engine; a second load would add the persisted frequencies again.
+   * engine; a second load would add the persisted frequencies again. A save started while
+   * the load is in flight waits for it, so the history it writes is the merged one; a load
+   * that rejects releases the save and rejects here.
    */
-  async load(): Promise<void> {
+  load(): Promise<void> {
+    const merged = this.#merge();
+    this.#loading = merged.catch(() => {});
+    return merged;
+  }
+
+  async #merge(): Promise<void> {
     const { records } = await this.#storage.load(this.#namespace);
     const mine = this.#data.records as Map<ItemId, FrecencyRecord>;
     for (const [id, loaded] of records) {
@@ -162,14 +172,16 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
 
   /**
    * Flush dirty data to storage and wait for every save in flight; saves run one after
-   * another, and a rejected save leaves the data dirty and rethrows to the flush that started it
+   * another, each after the load in flight, and a rejected save leaves the data dirty and rethrows to the flush that started it
    */
   async flush(): Promise<void> {
     clearTimeout(this.#timer);
     const dirty = this.#dirty;
     // Clear before awaiting so a selection recorded during the save stays dirty
     this.#dirty = false;
-    const save = this.#pending.then(() => dirty && this.#storage.save(this.#namespace, this.#data));
+    const save = Promise.all([this.#pending, this.#loading]).then(
+      () => dirty && this.#storage.save(this.#namespace, this.#data),
+    );
     this.#pending = save.catch(() => {});
     try {
       await save;
@@ -193,8 +205,8 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
   }
 
   /**
-   * Async dispose — flushes dirty data, then disposes the storage even when the save
-   * rejects (the rejection propagates). Use with `await using`.
+   * Async dispose — flushes dirty data, then disposes the storage even
+   * when the save rejects (the rejection propagates). Use with `await using`.
    */
   [Symbol.asyncDispose](): Promise<void> {
     this.#abort.abort();
