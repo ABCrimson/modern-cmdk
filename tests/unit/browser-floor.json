@@ -24,18 +24,39 @@
       "id": "iterator-methods",
       "note": "Iterator helpers on Map/Set iterators: core/registry.ts, core/search/index.ts and core/machine.ts (values().map/filter, entries().map, .toArray()), core/keyboard/matcher.ts (values().find, entries().filter)",
       "patterns": [
-        { "kind": "call", "method": "toArray" },
-        { "kind": "call", "method": "map", "receiverCall": ["values", "entries", "keys"] },
-        { "kind": "call", "method": "filter", "receiverCall": ["values", "entries", "keys"] },
-        { "kind": "call", "method": "find", "receiverCall": ["values", "entries", "keys"] }
+        {
+          "kind": "call",
+          "method": "toArray"
+        },
+        {
+          "kind": "call",
+          "method": "map",
+          "receiverCall": ["values", "entries", "keys"]
+        },
+        {
+          "kind": "call",
+          "method": "filter",
+          "receiverCall": ["values", "entries", "keys"]
+        },
+        {
+          "kind": "call",
+          "method": "find",
+          "receiverCall": ["values", "entries", "keys"]
+        }
       ]
     },
     {
       "id": "array-by-copy",
       "note": "Array.prototype.toSorted and toSpliced: core/machine.ts, core/registry.ts, core/search/fuzzy-scorer.ts, react/highlight.tsx",
       "patterns": [
-        { "kind": "call", "method": "toSorted" },
-        { "kind": "call", "method": "toSpliced" }
+        {
+          "kind": "call",
+          "method": "toSorted"
+        },
+        {
+          "kind": "call",
+          "method": "toSpliced"
+        }
       ]
     }
   ],
@@ -87,18 +108,82 @@
     {
       "id": "explicit-resource-management",
       "patterns": [
-        { "kind": "using", "seed": "using seeded = null;" },
-        { "kind": "using", "seed": "await using seeded = null;" },
-        { "kind": "identifier", "name": "DisposableStack", "seed": "new DisposableStack();" },
+        {
+          "kind": "using",
+          "seed": "using seeded = null;"
+        },
+        {
+          "kind": "using",
+          "seed": "await using seeded = null;"
+        },
+        {
+          "kind": "identifier",
+          "name": "DisposableStack",
+          "seed": "new DisposableStack();"
+        },
         {
           "kind": "identifier",
           "name": "AsyncDisposableStack",
           "seed": "new AsyncDisposableStack();"
         },
-        { "kind": "identifier", "name": "SuppressedError", "seed": "new SuppressedError(1, 2);" },
-        { "kind": "identifier", "name": "__using", "seed": "__using([], null);" },
-        { "kind": "identifier", "name": "__callDispose", "seed": "__callDispose([], 0);" },
-        { "kind": "identifier", "name": "_usingCtx", "seed": "_usingCtx();" }
+        {
+          "kind": "identifier",
+          "name": "SuppressedError",
+          "seed": "new SuppressedError(1, 2);"
+        },
+        {
+          "kind": "identifier",
+          "name": "__using",
+          "seed": "__using([], null);"
+        },
+        {
+          "kind": "identifier",
+          "name": "__callDispose",
+          "seed": "__callDispose([], 0);"
+        },
+        {
+          "kind": "identifier",
+          "name": "_usingCtx",
+          "seed": "_usingCtx();"
+        }
+      ]
+    },
+    {
+      "id": "uint8array-base64-hex",
+      "patterns": [
+        {
+          "kind": "member",
+          "object": "Uint8Array",
+          "property": "fromBase64",
+          "seed": "Uint8Array.fromBase64('AA==');"
+        },
+        {
+          "kind": "member",
+          "object": "Uint8Array",
+          "property": "fromHex",
+          "seed": "Uint8Array.fromHex('00');"
+        },
+        {
+          "kind": "member",
+          "property": "toBase64",
+          "seed": "new Uint8Array(1).toBase64();"
+        },
+        {
+          "kind": "member",
+          "property": "toHex",
+          "seed": "new Uint8Array(1).toHex();"
+        }
+      ]
+    },
+    {
+      "id": "is-error",
+      "patterns": [
+        {
+          "kind": "member",
+          "object": "Error",
+          "property": "isError",
+          "seed": "Error.isError(1);"
+        }
       ]
     }
   ]
