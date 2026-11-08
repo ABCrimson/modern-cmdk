@@ -2,7 +2,8 @@
 // F-02: the bench:compare verdict rules. A sub-microsecond median must not fail the gate on
 // run-to-run noise, while the published target_ms stays an absolute contract.
 // TEB-33: the 'basic' 10K dataset behind benchmarks/baseline.json is pinned by hash.
-// R5: the browser bench's pure stats and 10K mount gate rules.
+// R5: the browser bench's pure stats and 10K mount gate rules, the /bench page settle rule, and the
+// harness refusing a diagnostic run without --out.
 // P33: the bench:compare harness proves its own verdicts end to end on fixed fixtures.
 
 import { spawnSync } from 'node:child_process';
