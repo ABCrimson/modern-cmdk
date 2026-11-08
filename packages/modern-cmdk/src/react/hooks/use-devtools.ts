@@ -96,10 +96,10 @@ export function useCommandDevtools(
 
   useEffect(() => {
     // Guard inside effect body: hooks are always called (Rules of Hooks compliant).
-    // `dev` (env.ts) is false where `process` does not exist, so an unbundled browser import does
-    // not throw and counts as production; the inline comparison makes a consumer bundler that
-    // defines NODE_ENV as "production" fold the guard to `!dev || true` and drop the registry code
-    // below.
+    // `dev` (env.ts) is false where no bundler replaced `process.env.NODE_ENV` and no `process`
+    // global exists, so an unbundled browser import does not throw and counts as production; the
+    // inline comparison makes a consumer bundler that defines NODE_ENV as "production" fold the
+    // guard to `!dev || true` and drop the registry code below.
     if (!dev || process.env.NODE_ENV === 'production') return;
     if (!stable) return;
 

@@ -191,9 +191,9 @@ describe.skipIf(!distBuilt)('built package: production bundle', () => {
     }
     expect(warnings.join(' '), 'core: the leak registry exists').toContain(DEV_ONLY_STRINGS[0]);
 
-    // react: useCommandDevtools publishes its state on the global registry from inside an effect. A stub react runs
-    // the effect at once, and `use` returns one value that serves as the stable context; its machine
-    // reports the state.
+    // react: useCommandDevtools publishes its state on the global registry from inside an effect.
+    // A stub react runs the effect at once, and `use` returns one value that serves as the stable
+    // context; its machine reports the state.
     const state = {
       filteredIds: [],
       search: '',
