@@ -142,47 +142,76 @@ function scoreWordBoundary(
   lowerTarget: string,
   tLen: number,
 ): { score: number; matches: Array<readonly [number, number]> } | null {
-  let queryIdx = 0;
+  // The cover is recursive, one frame per segment: a longer query is left to the fuzzy tier
+  if (qLen > 512) return null;
   const matches: Array<readonly [number, number]> = [];
-  let totalWeightedLen = 0;
+  failedFrom = undefined;
+  squares = 0;
+  if (!coverQuery(query, 0, lowerTarget, 0, matches)) return null;
 
-  // Scan for word starts using charCode — zero allocation
-  let i = 0;
-  while (i < tLen && queryIdx < qLen) {
-    // Detect word start: position 0 or preceded by separator
-    const atWordStart = i === 0 || isWordSeparator(lowerTarget.charCodeAt(i - 1));
-
-    if (atWordStart && lowerTarget.charCodeAt(i) === query.charCodeAt(queryIdx)) {
-      const matchStart = i;
-      let matchLen = 0;
-
-      // Consume contiguous matching characters within this word
-      while (
-        queryIdx < qLen &&
-        i < tLen &&
-        !isWordSeparator(lowerTarget.charCodeAt(i)) &&
-        lowerTarget.charCodeAt(i) === query.charCodeAt(queryIdx)
-      ) {
-        queryIdx++;
-        i++;
-        matchLen++;
-      }
-
-      matches.push([matchStart, matchStart + matchLen]);
-      totalWeightedLen += matchLen * 2; // Word boundary matches get 2x weight
-    } else {
-      i++;
-    }
-  }
-
-  if (queryIdx !== qLen) return null;
-
-  const maxPossible = qLen * 2;
+  // Contiguity (squared segment lengths over qLen²) and coverage (qLen / tLen)
+  // rank hits inside (0.65, 0.7), above every fuzzy score
 
   return {
-    score: 0.3 + 0.4 * (totalWeightedLen / maxPossible),
+    score: 0.65 + 0.03 * (squares / (qLen * qLen)) + 0.02 * (qLen / tLen),
     matches,
   };
+}
+
+// Per query index, the smallest `from` found to have no cover (a later `from` has none either);
+// created on the first failure below the first segment
+let failedFrom: number[] | undefined;
+// Sum of the squared segment lengths of the cover
+let squares = 0;
+
+/**
+ * Covers query[queryIdx..] with segments that each start at a word start at or after `from`,
+ * stay inside one word and match contiguously. Each word start tries its longest run first, then
+ * shorter ones, so the first cover found is the one a greedy scan finds whenever that succeeds.
+ * Prepends the segments of the cover to `matches`, in order; charCode scan, no regex, no split.
+ */
+function coverQuery(
+  query: string,
+  queryIdx: number,
+  lowerTarget: string,
+  from: number,
+  matches: Array<readonly [number, number]>,
+): boolean {
+  const end = failedFrom?.[queryIdx] ?? lowerTarget.length;
+  for (let i = from; i < end; i++) {
+    // Word start: position 0 or preceded by a separator
+    if (
+      (i === 0 || isWordSeparator(lowerTarget.charCodeAt(i - 1))) &&
+      lowerTarget.charCodeAt(i) === query.charCodeAt(queryIdx)
+    ) {
+      // Longest contiguous run of matching characters within this word
+      let run = 0;
+      // (charCodeAt past either end is NaN, which equals nothing)
+      while (
+        !isWordSeparator(lowerTarget.charCodeAt(i + run)) &&
+        lowerTarget.charCodeAt(i + run) === query.charCodeAt(queryIdx + run)
+      ) {
+        run++;
+      }
+
+      for (; run > 0; run--) {
+        if (
+          queryIdx + run === query.length ||
+          coverQuery(query, queryIdx + run, lowerTarget, i + run, matches)
+        ) {
+          matches.unshift([i, i + run]);
+          squares += run * run;
+          return true;
+        }
+      }
+    }
+  }
+  // The first segment's call runs once, so only deeper failures are worth recording
+  if (queryIdx > 0 && from < end) {
+    failedFrom ??= [];
+    failedFrom[queryIdx] = from;
+  }
+  return false;
 }
 
 function scoreFuzzy(
