@@ -716,43 +716,43 @@
   },
   {
     "id": "CE-01",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-engine.test.ts::CE-01: sync dispose disposes the storage only after the save settled",
+    "status": "covered"
   },
   {
     "id": "CE-02",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-machine.test.ts::CE-02: await using flushes the pending save before the block ends",
+    "status": "covered"
   },
   {
     "id": "CE-05",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/disabled-matrix.test.ts::the first active item is the first enabled one, never a disabled one",
+    "status": "covered"
   },
   {
     "id": "CE-08",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/keyboard.test.ts::unregisterByItem touches only the stacks of that item: none for an unbound item, one for an item with one key",
+    "status": "covered"
   },
   {
     "id": "CE-09",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine.test.ts::a disabled item's key press is not defaultPrevented and the item has no binding",
+    "status": "covered"
   },
   {
     "id": "CE-14",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-machine.test.ts::CE-14: hydration re-ranks the current results without another event",
+    "status": "covered"
   },
   {
     "id": "CE-15",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-engine.test.ts::CE-15: selections recorded before an async load resolves are merged, not dropped",
+    "status": "covered"
   },
   {
     "id": "CE-30",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-dispose-shim.test.ts::CE-30: no exported class of the core entry has an own prototype key \"undefined\"",
+    "status": "covered"
   },
   {
     "id": "DAE-09",
@@ -776,8 +776,8 @@
   },
   {
     "id": "DAE-32",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/keyboard.test.ts::DAE-32: two Command items with the same shortcut are reported by the machine keyboard registry",
+    "status": "covered"
   },
   {
     "id": "DAE-59",
@@ -786,8 +786,8 @@
   },
   {
     "id": "DG-08",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-machine.test.ts::DG-63: a machine saves its selections to IndexedDB and a second machine ranks by them (TUB-24, CE-31, SEC-02, DG-08)",
+    "status": "covered"
   },
   {
     "id": "DG-09",
@@ -806,33 +806,33 @@
   },
   {
     "id": "DG-62",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-machine.test.ts::CE-15: a selection made before the load resolved survives hydration",
+    "status": "covered"
   },
   {
     "id": "ARCH-13",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/disabled-matrix.test.ts::lists disabled items in filteredIds under show/omitted, drops them under hide",
+    "status": "covered"
   },
   {
     "id": "ARCH-14",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine.test.ts::a custom filter returning 0, a negative score or false excludes the item; a positive score keeps it",
+    "status": "covered"
   },
   {
     "id": "ARCH-15",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine.test.ts::CE-09: shortcutAction 'select' dispatches ITEM_SELECT: item onSelect and options.onSelect",
+    "status": "covered"
   },
   {
     "id": "ARCH-16",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine.test.ts::ARCH-16: the shortcut of an item delivered by ITEMS_LOADED fires its onSelect",
+    "status": "covered"
   },
   {
     "id": "ARCH-20",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine.test.ts::UPDATE_ITEM keeps the registry and filteredIds position and replaces the item",
+    "status": "covered"
   },
   {
     "id": "DT-18",
@@ -843,11 +843,6 @@
     "id": "P06",
     "test": "tests/unit/search-incremental.test.ts::should call a custom scorer once per item on a query extension (full rescan)",
     "status": "covered"
-  },
-  {
-    "id": "P07",
-    "test": null,
-    "status": "pending"
   },
   {
     "id": "P19",
@@ -861,33 +856,33 @@
   },
   {
     "id": "P25",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/disabled-matrix.test.ts::NAVIGATE first/last/next/prev lands only on enabled items and wraps around",
+    "status": "covered"
   },
   {
     "id": "SEC-02",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-engine.test.ts::SEC-02: three selections at 0/400/800 ms give one save at 1800 ms with all three counted",
+    "status": "covered"
   },
   {
     "id": "SEC-27",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-machine.test.ts::SEC-27: a rejecting load is reported once and the machine keeps working",
+    "status": "covered"
   },
   {
     "id": "SEC-35",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-idb.test.ts::SEC-35: a second storeName in an existing database saves and loads, and the first keeps its data",
+    "status": "covered"
   },
   {
     "id": "T09",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/keyboard.spec.ts::D78: should skip the rendered disabled item during keyboard navigation",
+    "status": "covered"
   },
   {
     "id": "T13",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/memory-leak.test.ts::T13, MEM-1, MEM-3: 100 lifecycles process their events, leave no machine reachable after dispose",
+    "status": "covered"
   },
   {
     "id": "T15",
@@ -901,8 +896,8 @@
   },
   {
     "id": "PG-04",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/accessibility.spec.ts::should render the disabled \"Pear\" option at rest with aria-disabled=\"true\" and data-disabled",
+    "status": "covered"
   },
   {
     "id": "RDG-34",
@@ -916,33 +911,33 @@
   },
   {
     "id": "TUB-05",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/event-emitter.test.ts::TUB-05: accepts an interface event map and keeps on() and emit() payloads typed",
+    "status": "covered"
   },
   {
     "id": "TUB-06",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine-integration.test.ts::groups of equal priority keep their first-appearance order, ungrouped items included (TUB-06)",
+    "status": "covered"
   },
   {
     "id": "CE-49",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine.test.ts::CE-49: REGISTER_ITEM again for the same id with a changed shortcut leaves no old binding",
+    "status": "covered"
   },
   {
     "id": "CE-50",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/command.test.tsx::CE-50: a group with forceId=\"__ungrouped\" renders no heading while only ungrouped items outside it match",
+    "status": "covered"
   },
   {
     "id": "CE-54",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/registry.test.ts::a stale registerItem handle does not remove a newer item with the same id",
+    "status": "covered"
   },
   {
     "id": "CE-60",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-idb.test.ts::CE-60: a valid v2 payload { version: 2, records } loads the same as v1",
+    "status": "covered"
   },
   {
     "id": "CE-75",
@@ -970,24 +965,19 @@
     "status": "covered"
   },
   {
-    "id": "CE-78",
-    "test": null,
-    "status": "pending"
-  },
-  {
     "id": "CE-88",
     "test": "tests/unit/search-incremental.test.ts::should score only the previous matches when %s becomes %s (case-only change)",
     "status": "covered"
   },
   {
     "id": "PGX-12",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/disabled-matrix.test.ts::ITEM_SELECT on a disabled id calls no onSelect; on an enabled id it does",
+    "status": "covered"
   },
   {
     "id": "PGX-13",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/accessibility.spec.ts::forced-colors: the High Contrast demo shows its disabled item at rest, painted in GrayText",
+    "status": "covered"
   },
   {
     "id": "NAR-vanilla-4",
@@ -996,8 +986,8 @@
   },
   {
     "id": "U-10",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/disabled-matrix.test.ts::ITEM_ACTIVATE on a disabled id is ignored, on an enabled id it activates",
+    "status": "covered"
   },
   {
     "id": "DA-11",
@@ -1016,8 +1006,8 @@
   },
   {
     "id": "CE-105",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/search-incremental.test.ts::CE-105: should rescan every item when only the raw queries extend each other (final sigma lowercases differently)",
+    "status": "covered"
   },
   {
     "id": "DA-13",
@@ -1031,6 +1021,16 @@
   },
   {
     "id": "RA-77",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-108",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PGX-15",
     "test": null,
     "status": "pending"
   }

@@ -1,5 +1,5 @@
 // tests/unit/bug-matrix.test.ts
-// G17, D88: every FIXED BUG ledger row of 1.3.0 through 1.6.0 maps to a vitest title ("covered") or to a gate line
+// G17, D88: every FIXED BUG ledger row of 1.3.0 through 1.6.0 maps to a vitest or Playwright test title ("covered") or to a gate line
 // ("gate": a CI step, script or config line), except the ids in PENDING_BY_DECISION below.
 // An entry names "path::string"; the file must exist and contain the string exactly once, so renaming or
 // deleting the test or gate line breaks the matrix instead of silently orphaning the row.
