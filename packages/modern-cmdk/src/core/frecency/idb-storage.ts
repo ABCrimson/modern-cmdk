@@ -1,5 +1,5 @@
 // packages/modern-cmdk/src/core/frecency/idb-storage.ts
-// IndexedDB-backed frecency persistence — idb-keyval (lazy-loaded)
+// IndexedDB-backed frecency persistence — idb-keyval get/set/del (lazy-loaded), own per-operation store opener
 // Implements both Disposable and AsyncDisposable for await using support
 // ES2025: Iterator Helpers; ESNext: Explicit Resource Management (using/await using, TS lib esnext.disposable)
 
@@ -7,52 +7,110 @@ import type { UseStore } from 'idb-keyval';
 import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';
 import { ensureWellFormed } from '../utils/string-wellformed.js';
 
-/** JSON-safe serialized form of a FrecencyRecord */
-interface SerializedFrecencyRecord {
-  readonly frequency: number;
-  /** Epoch-millisecond timestamp of last usage */
-  readonly lastUsedMs: number;
+/**
+ * v1 payload: a bare record map of `[id, { frequency, lastUsedMs }]` rows with
+ * no version field. Written through 1.10; read from every release.
+ */
+interface SerializedFrecencyDataV1 {
+  readonly records: ReadonlyArray<
+    readonly [string, { readonly frequency: number; readonly lastUsedMs: number }]
+  >;
 }
 
-/** JSON-safe serialized form of FrecencyData stored in IndexedDB */
-interface SerializedFrecencyData {
-  readonly records: ReadonlyArray<readonly [string, SerializedFrecencyRecord]>;
+/** v2 payload: the v1 map plus `version: 2`. Read from 1.6.0; written from 1.11. */
+interface SerializedFrecencyDataV2 extends SerializedFrecencyDataV1 {
+  readonly version: 2;
 }
 
-/** Serialize a FrecencyRecord to a JSON-safe format */
-function serializeRecord(record: FrecencyRecord): SerializedFrecencyRecord {
-  return {
-    frequency: record.frequency,
-    lastUsedMs: record.lastUsed,
-  };
-}
+/** Every payload shape the reader accepts */
+type SerializedFrecencyData = SerializedFrecencyDataV1 | SerializedFrecencyDataV2;
 
-/** Deserialize a FrecencyRecord from its JSON-safe form */
-function deserializeRecord(serialized: SerializedFrecencyRecord): FrecencyRecord {
-  return {
-    frequency: serialized.frequency,
-    lastUsed: serialized.lastUsedMs,
-  };
-}
-
-/** Serialize FrecencyData for IndexedDB storage — uses Iterator Helpers */
-function serializeData(data: FrecencyData): SerializedFrecencyData {
+/** Serialize FrecencyData as v1 for IndexedDB storage — uses Iterator Helpers */
+function serializeData(data: FrecencyData): SerializedFrecencyDataV1 {
   return {
     records: data.records
       .entries()
-      .map(([id, record]) => [id, serializeRecord(record)] as const)
+      .map(([id, { frequency, lastUsed }]) => [id, { frequency, lastUsedMs: lastUsed }] as const)
       .toArray(),
   };
 }
 
-/** Deserialize FrecencyData from IndexedDB storage — Iterator passed directly to Map (no .toArray()) */
-function deserializeData(serialized: SerializedFrecencyData): FrecencyData {
-  return {
-    records: new Map(
-      serialized.records
-        .values()
-        .map(([id, record]) => [id as ItemId, deserializeRecord(record)] as const),
-    ),
+const isNonNegative = (n: unknown): n is number => Number.isFinite(n) && (n as number) >= 0;
+
+/**
+ * Validate a persisted payload (untrusted: it may be corrupt, foreign or from a
+ * newer schema). Keeps the rows that are `[string, { frequency, lastUsedMs }]`
+ * with finite numbers >= 0 and counts the rest in a single warning; a repeated id
+ * counts toward that number and the last row with it wins. A payload
+ * that is not a v1 or v2 record map counts as one dropped row and yields empty
+ * data; `undefined` (nothing stored) is not a warning.
+ */
+function deserializeData(raw: unknown): FrecencyData {
+  const payload = raw as
+    | (Partial<SerializedFrecencyData> & { version?: unknown })
+    | null
+    | undefined;
+  const rows: readonly unknown[] =
+    raw === undefined
+      ? []
+      : Array.isArray(payload?.records) &&
+          ([undefined, 1, 2] as unknown[]).includes(payload.version)
+        ? payload.records
+        : [null];
+  const records = new Map(
+    rows
+      .values()
+      .filter(
+        (row): row is SerializedFrecencyDataV1['records'][number] =>
+          Array.isArray(row) &&
+          typeof row[0] === 'string' &&
+          isNonNegative(row[1]?.frequency) &&
+          isNonNegative(row[1].lastUsedMs),
+      )
+      .map(([id, { frequency, lastUsedMs }]) => [
+        id as ItemId,
+        { frequency, lastUsed: lastUsedMs },
+      ]),
+  );
+  if (records.size < rows.length) {
+    // biome-ignore lint/suspicious/noConsole: Diagnostic for corrupt persisted data, like the engine's dispose warning
+    console.warn('[modern-cmdk] dropped invalid frecency rows:', rows.length - records.size);
+  }
+  return { records };
+}
+
+/**
+ * Open `storeName` in `dbName` per operation, creating the store when missing.
+ * idb-keyval 6.3.0's createStore does `request.onupgradeneeded = () =>
+ * request.result.createObjectStore(storeName)`, which runs only when the database
+ * is new, so a second storeName in an existing database fails with NotFoundError
+ * (SEC-35). Here a database without the store is reopened at `version + 1`, whose
+ * upgrade creates it. The connection closes right after the transaction starts (the
+ * transaction still finishes), so it delays another instance's upgrade only until that
+ * transaction is done. An upgrade blocked by a connection that is never closed (for example an
+ * idb-keyval createStore connection held by app code, which has no versionchange handler)
+ * waits for it, so that load or save does not settle until the connection closes.
+ */
+function openStore(dbName: string, storeName: string): UseStore {
+  const open = async (version?: number): Promise<IDBDatabase> => {
+    const request = indexedDB.open(dbName, version);
+    request.onupgradeneeded = (): IDBObjectStore => request.result.createObjectStore(storeName);
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = (): void => resolve(request.result);
+      request.onerror = (): void => reject(request.error);
+    });
+    if (db.objectStoreNames.contains(storeName)) return db;
+    db.close();
+    return open(db.version + 1);
+  };
+  return async <T>(
+    mode: IDBTransactionMode,
+    callback: (idbStore: IDBObjectStore) => T | PromiseLike<T>,
+  ): Promise<T> => {
+    const db = await open();
+    const transaction = db.transaction(storeName, mode);
+    db.close();
+    return callback(transaction.objectStore(storeName));
   };
 }
 
@@ -66,7 +124,7 @@ function storageKey(namespace: string): string {
 let idbModule: Promise<typeof import('idb-keyval')> | undefined;
 
 /**
- * IndexedDB-backed frecency storage using idb-keyval.
+ * IndexedDB-backed frecency storage using idb-keyval's get, set and del.
  *
  * Persists frecency data across browser sessions. Implements both
  * `Disposable` and `AsyncDisposable` for use with `using` and `await using`.
@@ -103,12 +161,9 @@ export class IdbFrecencyStorage implements FrecencyStorage, AsyncDisposable {
     return idbModule;
   }
 
-  /** Lazy-create the IDB store on first access */
-  async #getStore(): Promise<UseStore> {
-    if (!this.#store) {
-      const { createStore } = await this.#idb();
-      this.#store = createStore(this.#dbName, this.#storeName);
-    }
+  /** Lazy-create the store opener on first access */
+  #getStore(): UseStore {
+    this.#store ??= openStore(this.#dbName, this.#storeName);
     return this.#store;
   }
 
@@ -119,14 +174,8 @@ export class IdbFrecencyStorage implements FrecencyStorage, AsyncDisposable {
     }
 
     const { get } = await this.#idb();
-    const store = await this.#getStore();
-    const serialized = await get<SerializedFrecencyData>(storageKey(namespace), store);
-
-    if (!serialized) {
-      return { records: new Map<ItemId, FrecencyRecord>() };
-    }
-
-    return deserializeData(serialized);
+    const store = this.#getStore();
+    return deserializeData(await get<unknown>(storageKey(namespace), store));
   }
 
   /** Save frecency data to IndexedDB for the given namespace */
@@ -134,7 +183,7 @@ export class IdbFrecencyStorage implements FrecencyStorage, AsyncDisposable {
     if (this.#disposed) return;
 
     const { set } = await this.#idb();
-    const store = await this.#getStore();
+    const store = this.#getStore();
     await set(storageKey(namespace), serializeData(data), store);
   }
 
@@ -143,7 +192,7 @@ export class IdbFrecencyStorage implements FrecencyStorage, AsyncDisposable {
     if (this.#disposed) return;
 
     const { del } = await this.#idb();
-    const store = await this.#getStore();
+    const store = this.#getStore();
     await del(storageKey(namespace), store);
   }
 

@@ -1,6 +1,7 @@
+import { createStore, get, set } from 'idb-keyval';
 import type { FrecencyData, FrecencyRecord, ItemId } from 'modern-cmdk';
 import { IdbFrecencyStorage, itemId } from 'modern-cmdk';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // Each test gets a unique DB name to avoid cross-test contamination
 let dbCounter = 0;
@@ -229,6 +230,164 @@ describe('IdbFrecencyStorage', () => {
       expect(loaded.records.has(itemId('a'))).toBe(false);
       expect(loaded.records.has(itemId('b'))).toBe(true);
       expect(loaded.records.get(itemId('b'))?.frequency).toBe(2);
+    });
+  });
+
+  // Raw-payload helpers: plant and read the persisted value under the storage key
+  // with idb-keyval's own store, bypassing IdbFrecencyStorage.
+  const plant = (db: string, namespace: string, value: unknown): Promise<void> =>
+    set(`frecency:${namespace}`, value, createStore(db, 'frecency'));
+  const row = (id: unknown, frequency: unknown, lastUsedMs: unknown): unknown[] => [
+    id,
+    { frequency, lastUsedMs },
+  ];
+
+  afterEach((): void => {
+    vi.restoreAllMocks();
+  });
+
+  describe('persisted-data validation', () => {
+    it('SEC-26: drops invalid rows, keeps valid ones and warns once with the dropped count', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const db = uniqueDb();
+      await plant(db, 'ns', {
+        records: [
+          row('ok', 2, 1_700_000_000_000),
+          row('zero', 0, 0),
+          row('nan', Number.NaN, 1),
+          row('inf', Number.POSITIVE_INFINITY, 1),
+          row('neg-frequency', -1, 1),
+          row('neg-last-used', 1, -5),
+          row('string-number', '3', 1),
+          row('missing-field', 1, undefined),
+          ['null-record', null],
+          'not-an-array-row',
+          row(42, 1, 1),
+        ],
+      });
+
+      using storage = new IdbFrecencyStorage(db);
+      const loaded = await storage.load('ns');
+
+      expect([...loaded.records.keys()]).toEqual([itemId('ok'), itemId('zero')]);
+      expect(loaded.records.get(itemId('ok'))).toEqual({
+        frequency: 2,
+        lastUsed: 1_700_000_000_000,
+      });
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0]?.[1]).toBe(9);
+    });
+
+    it.each([
+      ['records is not an array', { records: 'nope' }],
+      ['payload is a string', 'corrupt'],
+      ['payload is null', null],
+      ['payload is a number', 7],
+      ['version is 3', { version: 3, records: [row('a', 1, 1)] }],
+    ])('SEC-26: %s -> empty data, no throw, one warning', async (_label, payload) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const db = uniqueDb();
+      await plant(db, 'ns', payload);
+
+      using storage = new IdbFrecencyStorage(db);
+      const loaded = await storage.load('ns');
+
+      expect(loaded.records.size).toBe(0);
+      expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('CE-60: a valid v1 payload (no version field) loads without a warning', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const db = uniqueDb();
+      await plant(db, 'ns', { records: [row('a', 4, 100), row('b', 1, 200)] });
+
+      using storage = new IdbFrecencyStorage(db);
+      const loaded = await storage.load('ns');
+
+      expect(loaded.records.get(itemId('a'))).toEqual({ frequency: 4, lastUsed: 100 });
+      expect(loaded.records.get(itemId('b'))).toEqual({ frequency: 1, lastUsed: 200 });
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('CE-60: a valid v2 payload { version: 2, records } loads the same as v1', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const db = uniqueDb();
+      await plant(db, 'ns', { version: 2, records: [row('a', 4, 100), row('b', 1, 200)] });
+
+      using storage = new IdbFrecencyStorage(db);
+      const loaded = await storage.load('ns');
+
+      expect([...loaded.records]).toEqual([
+        [itemId('a'), { frequency: 4, lastUsed: 100 }],
+        [itemId('b'), { frequency: 1, lastUsed: 200 }],
+      ]);
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('SEC-26: save still writes the v1 shape (no version key)', async () => {
+      const db = uniqueDb();
+      using storage = new IdbFrecencyStorage(db);
+      await storage.save('ns', {
+        records: new Map([[itemId('a'), { frequency: 1, lastUsed: 5 }]]),
+      });
+
+      const raw = await get('frecency:ns', createStore(db, 'frecency'));
+
+      expect(raw).toEqual({ records: [['a', { frequency: 1, lastUsedMs: 5 }]] });
+      expect(raw).not.toHaveProperty('version');
+    });
+  });
+
+  describe('multiple stores in one database', () => {
+    it('SEC-35: a second storeName in an existing database saves and loads, and the first keeps its data', async () => {
+      const db = uniqueDb();
+      const dataA: FrecencyData = {
+        records: new Map([[itemId('in-a'), { frequency: 1, lastUsed: 10 }]]),
+      };
+      const dataB: FrecencyData = {
+        records: new Map([[itemId('in-b'), { frequency: 2, lastUsed: 20 }]]),
+      };
+
+      using a = new IdbFrecencyStorage(db, 'a');
+      await a.save('ns', dataA);
+
+      using b = new IdbFrecencyStorage(db, 'b');
+      await b.save('ns', dataB);
+      expect((await b.load('ns')).records.get(itemId('in-b'))).toEqual({
+        frequency: 2,
+        lastUsed: 20,
+      });
+      expect((await b.load('ns')).records.has(itemId('in-a'))).toBe(false);
+
+      expect((await a.load('ns')).records.get(itemId('in-a'))).toEqual({
+        frequency: 1,
+        lastUsed: 10,
+      });
+
+      using freshA = new IdbFrecencyStorage(db, 'a');
+      expect((await freshA.load('ns')).records.get(itemId('in-a'))).toEqual({
+        frequency: 1,
+        lastUsed: 10,
+      });
+    });
+  });
+
+  describe('cross-instance persistence', () => {
+    it('TUB-24: data saved by one instance is loaded by a new instance on the same database after dispose', async () => {
+      const db = uniqueDb();
+      const records = new Map<ItemId, FrecencyRecord>([
+        [itemId('x'), { frequency: 3, lastUsed: 30 }],
+        [itemId('y'), { frequency: 7, lastUsed: 70 }],
+      ]);
+
+      const first = new IdbFrecencyStorage(db);
+      await first.save('ns', { records });
+      await first[Symbol.asyncDispose]();
+
+      using second = new IdbFrecencyStorage(db);
+      const loaded = await second.load('ns');
+
+      expect([...loaded.records]).toEqual([...records]);
     });
   });
 });
