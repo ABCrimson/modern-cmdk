@@ -31,8 +31,9 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 30_000,
     // Vitest 5.1.0, expandBenchmarksInEntries in its node bundle: under `vitest bench` each project's
-    // bench variant runs its own benchmark.include, so benchmarks (which assert nothing) live in the 'perf'
-    // project, which never sets requireAssertions, and 'unit' benchmarks nothing.
+    // bench variant runs its own benchmark.include, so benchmarks live in the 'perf' project, which never
+    // sets requireAssertions: a bench test need not assert, and one may (registration.bench.ts's budget
+    // tests do); 'unit' benchmarks nothing.
     projects: [
       {
         extends: true,
