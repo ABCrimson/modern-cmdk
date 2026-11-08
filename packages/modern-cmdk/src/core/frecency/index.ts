@@ -1,5 +1,5 @@
 // packages/modern-cmdk/src/core/frecency/index.ts
-// Uses: Date.now() for timestamps
+// Uses: Date.now() for timestamps, setTimeout for the debounced save, pagehide/visibilitychange for the page-exit save
 
 import type {
   FrecencyData,
@@ -14,14 +14,6 @@ import { MemoryFrecencyStorage } from './memory-storage.js';
 
 /** Shared empty bonus map — avoids allocation when no frecency records exist */
 const EMPTY_BONUS_MAP: ReadonlyMap<ItemId, number> = new Map();
-
-/** Bucket boundaries as hour constants — no per-call unit conversion */
-const BUCKET_HOURS = {
-  hour: 1,
-  day: 24,
-  week: 7 * 24,
-  month: 30 * 24,
-} as const;
 
 /**
  * Computes a frecency bonus for an item based on usage frequency and recency.
@@ -43,25 +35,31 @@ export function computeFrecencyBonus(
     olderWeight = 0.5,
   } = config;
 
-  // Step weight by recency bucket, with pre-computed bucket boundaries
+  // Step weight by recency bucket; boundaries in hours: 1, 24 (day), 168 (week), 720 (month)
   const recencyWeight =
-    hours < BUCKET_HOURS.hour
+    hours < 1
       ? hourWeight
-      : hours < BUCKET_HOURS.day
+      : hours < 24
         ? dayWeight
-        : hours < BUCKET_HOURS.week
+        : hours < 168
           ? weekWeight
-          : hours < BUCKET_HOURS.month
+          : hours < 720
             ? monthWeight
             : olderWeight;
 
   return history.frequency * recencyWeight;
 }
 
+/** Trailing debounce in milliseconds between the last `recordSelection` and the save it schedules */
+const FLUSH_DELAY_MS = 1000;
+
 /**
  * Stateful frecency engine that tracks item selection history and provides
- * ranking boosts for search results. Supports pluggable storage backends
- * and automatic flush on dispose. Uses Date.now() for timestamps.
+ * ranking boosts for search results. Supports pluggable storage backends.
+ * Dirty data is saved 1000 ms after the last `recordSelection`, when the page
+ * becomes hidden or is hidden for good (`visibilitychange`, `pagehide`), on
+ * `flush()` and on dispose, which then disposes the storage. Uses Date.now()
+ * for timestamps.
  */
 export class FrecencyEngine implements Disposable, AsyncDisposable {
   #storage: FrecencyStorage;
@@ -69,21 +67,55 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
   #data: FrecencyData;
   #config: FrecencyDecayConfig;
   #dirty = false;
+  #timer: ReturnType<typeof setTimeout> | undefined;
+  /** The last started save, never rejecting: saves queue behind it and flush awaits it */
+  #pending: Promise<unknown> = Promise.resolve();
+  #abort = new AbortController();
 
   constructor(options: FrecencyOptions) {
     this.#storage = options.storage ?? new MemoryFrecencyStorage();
     this.#namespace = options.namespace ?? 'default';
     this.#config = options.decayConfig ?? DEFAULT_FRECENCY_DECAY;
     this.#data = { records: new Map() };
+    // Page Lifecycle guidance (read 2026-11-08):
+    // https://developer.chrome.com/docs/web-platform/page-lifecycle-api — "consider the hidden
+    // state the last reliable time to save app and user data"; "it's recommended to always use
+    // the pagehide event to detect possible page unloads".
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/pagehide_event — "In browsers that
+    // don't support visibilitychange the pagehide event is the next-best alternative."
+    // Node and SSR have neither target; the dirty flag makes both listeners idempotent.
+    const { signal } = this.#abort;
+    globalThis.addEventListener?.('pagehide', this.#save, { signal });
+    globalThis.document?.addEventListener(
+      'visibilitychange',
+      () => document.hidden && this.#save(),
+      { signal },
+    );
   }
 
-  /** Load frecency data from storage */
+  /**
+   * Merge the data in storage into the engine: frequencies add, `lastUsed` takes the later
+   * time, and selections recorded before the load resolves are kept. Call it once per
+   * engine; a second load would add the persisted frequencies again.
+   */
   async load(): Promise<void> {
-    const data = await this.#storage.load(this.#namespace);
-    this.#data = data;
+    const { records } = await this.#storage.load(this.#namespace);
+    const mine = this.#data.records as Map<ItemId, FrecencyRecord>;
+    for (const [id, loaded] of records) {
+      const m = mine.get(id);
+      mine.set(
+        id,
+        m
+          ? {
+              frequency: m.frequency + loaded.frequency,
+              lastUsed: Math.max(m.lastUsed, loaded.lastUsed),
+            }
+          : loaded,
+      );
+    }
   }
 
-  /** Record a selection event for an item */
+  /** Record a selection event for an item and schedule a save 1000 ms after the last one */
   recordSelection(itemId: ItemId): void {
     const now = Date.now();
     const existing = this.#data.records.get(itemId);
@@ -96,6 +128,9 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
     // Mutate internal map directly — ReadonlyMap is a compile-time constraint only
     (this.#data.records as Map<ItemId, FrecencyRecord>).set(itemId, updated);
     this.#dirty = true;
+    clearTimeout(this.#timer);
+    // After dispose the storage is gone: keep the record, schedule nothing
+    if (!this.#abort.signal.aborted) this.#timer = setTimeout(this.#save, FLUSH_DELAY_MS);
   }
 
   /** Get frecency bonus for an item */
@@ -125,37 +160,52 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
     this.#config = { ...this.#config, ...config };
   }
 
-  /** Flush dirty data to storage */
+  /**
+   * Flush dirty data to storage and wait for every save in flight; saves run one after
+   * another, and a rejected save leaves the data dirty and rethrows to the flush that started it
+   */
   async flush(): Promise<void> {
-    if (!this.#dirty) return;
-    await this.#storage.save(this.#namespace, this.#data);
+    clearTimeout(this.#timer);
+    const dirty = this.#dirty;
+    // Clear before awaiting so a selection recorded during the save stays dirty
     this.#dirty = false;
+    const save = this.#pending.then(() => dirty && this.#storage.save(this.#namespace, this.#data));
+    this.#pending = save.catch(() => {});
+    try {
+      await save;
+    } catch (error) {
+      this.#dirty = true;
+      throw error;
+    }
   }
+
+  /** Flush for the timer and the page listeners: a failure is reported, never thrown */
+  #save = (): Promise<void> => this.flush().catch(this.#warn);
+
+  #warn = (error: unknown): void => {
+    // biome-ignore lint/suspicious/noConsole: Save-time diagnostic for production debugging
+    console.warn('[modern-cmdk] save failed:', error);
+  };
 
   /** Get the raw frecency data */
   getData(): FrecencyData {
     return this.#data;
   }
 
-  /** Async dispose — flushes dirty data before cleanup. Use with `await using`. */
-  async [Symbol.asyncDispose](): Promise<void> {
-    if (this.#dirty) {
-      await this.#storage.save(this.#namespace, this.#data);
-      this.#dirty = false;
-    }
-    this.#storage[Symbol.dispose]();
+  /**
+   * Async dispose — flushes dirty data, then disposes the storage even when the save
+   * rejects (the rejection propagates). Use with `await using`.
+   */
+  [Symbol.asyncDispose](): Promise<void> {
+    this.#abort.abort();
+    return this.flush().finally(() => this.#storage[Symbol.dispose]());
   }
 
+  /** Sync dispose — starts the flush without awaiting it and disposes the storage once it settles */
   [Symbol.dispose](): void {
-    // Attempt to flush synchronously (best effort for memory storage)
-    if (this.#dirty) {
-      Promise.resolve()
-        .then(() => this.#storage.save(this.#namespace, this.#data))
-        .catch((err: unknown) => {
-          // biome-ignore lint/suspicious/noConsole: Dispose-time diagnostic for production debugging
-          console.warn('[modern-cmdk] FrecencyEngine dispose flush failed:', err);
-        });
-    }
-    this.#storage[Symbol.dispose]();
+    this.#abort.abort();
+    this.#save()
+      .finally(() => this.#storage[Symbol.dispose]())
+      .catch(this.#warn);
   }
 }
