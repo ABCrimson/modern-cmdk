@@ -157,13 +157,13 @@ export function teardown(): void {
 ## What is in it
 
 - **Framework-agnostic core** -- a pure TypeScript state machine; DOM APIs are feature-detected and SSR-safe. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
-- **React 19 adapter** -- compound components over `useSyncExternalStore`, `useTransition` and `use()`; React Compiler compatible.
+- **React 19 adapter** -- compound components over `useSyncExternalStore` and `use()`. `Command.Activity` wraps its children in React's `<Activity>` where React exports it and renders nothing while hidden where it does not.
 - **Automatic virtualization** -- turns on when more than 100 items match and off again at 50 or fewer (fixed thresholds; force it with `<Command.List virtualize>` or `virtualize={false}`). The `virtualizeThreshold` option is accepted but not read yet.
 - **Fuzzy search and frecency** -- a built-in TypeScript scorer with match ranges, and frequency x recency ranking with memory or IndexedDB persistence. `modern-cmdk-search-wasm` is an experimental, unpublished workspace package that does not work yet.
 - **Keyboard shortcuts** -- a registry with a cross-platform `Mod` key. Two items bound to one key are a conflict: the later binding wins the keydown (disposing it restores the earlier one), `getConflicts()` lists the keys with two or more bindings and `getBindings()` returns the winning binding of each key.
 - **Accessibility** -- WAI-ARIA combobox pattern, `aria-live` announcements, `forced-colors`, `prefers-contrast`, `prefers-reduced-motion`.
 - **Animation** -- the stylesheet defines the dialog enter and exit on opacity, scale and translate, which are compositor-only; the overlay fades opacity and also transitions `--command-overlay-opacity`, its background alpha, which repaints, and the list height and item background-color transitions are not compositor-only either. In 1.x neither the dialog nor the overlay animates on enter or exit, because their duration and easing tokens are declared only on `[data-command-root]`, which sits inside the dialog (DT-19, planned for 1.8.0).
-- **Extras** -- `CommandErrorBoundary`, `useCommandDevtools()` and `createTelemetryMiddleware()`, which returns hooks that your code calls itself (the machine and the React components have no telemetry option).
+- **Extras** -- `CommandErrorBoundary`, `useCommandDevtools()` and telemetry: the `telemetry` option of `createCommandMachine` and the `telemetry` prop of `Command` and `Command.Dialog` take `onPaletteOpen`, `onPaletteClose`, `onSearchComplete` and `onItemSelected` hooks, which the machine calls once per batch, after its state reports. Report counts and ids, not the raw query, which can hold personal data. `createTelemetryMiddleware()` is the helper for code that drives the same hooks itself.
 
 Theming (CSS custom properties, `@layer command`) is covered in the [theming guide](https://abcrimson.github.io/modern-cmdk/guide/theming.html).
 
