@@ -35,7 +35,12 @@ function AsyncCommandPalette() {
         >
           {(items) =>
             items.map((item) => (
-              <Command.Item key={item.id} value={item.value} onSelect={() => item.onSelect?.()}>
+              <Command.Item
+                key={item.id}
+                id={item.id}
+                value={item.value}
+                onSelect={() => item.onSelect?.()}
+              >
                 {item.value}
               </Command.Item>
             ))
@@ -49,7 +54,7 @@ function AsyncCommandPalette() {
 
 ## Debounced API Search
 
-For real-world usage, you typically want to debounce the search input before making API calls. The sample defines a `useDebouncedValue` hook (a `setTimeout` that restarts on every keystroke) and passes the debounced query to a cached search. `<Command.AsyncItems>` suspends while its promise is pending and shows `fallback` meanwhile.
+For real-world usage, you typically want to debounce the search input before making API calls. The sample defines a `useDebouncedValue` hook (a `setTimeout` that restarts on every keystroke) and passes the debounced query to a cached search, read through `useMemo` keyed on that query. `<Command.AsyncItems>` suspends while its promise is pending and shows `fallback` meanwhile.
 
 The promise must be created where it is cached, not in render: a new promise on every render suspends again each time (see [Server-Side Rendering](/guide/ssr)). The module-level `Map` below keys one promise per query, so re-rendering with the same query reuses it and returning to an earlier query is served from the cache. It is never evicted, so bound it in a real app.
 
@@ -59,7 +64,8 @@ The promise must be created where it is cached, not in render: a new promise on 
 import type { CommandItem } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
 import { Command, useCommandState } from 'modern-cmdk/react';
-import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface ApiResult {
   id: string;
@@ -119,20 +125,23 @@ function SearchResults() {
     200,
   );
 
+  // The promise comes from the cache, once per debounced query, never from a fetch in the JSX
+  const results = useMemo(() => cachedSearch(query), [query]);
+
   return (
     <Command.AsyncItems
-      items={cachedSearch(query)}
+      items={results}
       fallback={<Command.Loading loading>Searching...</Command.Loading>}
     >
-      {(results) => (
-        <>
-          {Object.entries(
-            Object.groupBy(results, (r) => String(r.data?.category))
-          ).map(([category, items]) => (
+      {(loaded) => {
+        const groups: ReactNode[] = [];
+        for (const [category, items] of Map.groupBy(loaded, (r) => String(r.data?.category))) {
+          groups.push(
             <Command.Group key={category} heading={category}>
-              {(items ?? []).map((item) => (
+              {items.map((item) => (
                 <Command.Item
                   key={item.id}
+                  id={item.id}
                   value={item.value}
                   keywords={item.keywords ?? []}
                   onSelect={() => console.log('Selected:', item.id)}
@@ -141,10 +150,11 @@ function SearchResults() {
                   <span className="text-muted">{String(item.data?.description)}</span>
                 </Command.Item>
               ))}
-            </Command.Group>
-          ))}
-        </>
-      )}
+            </Command.Group>,
+          );
+        }
+        return groups;
+      }}
     </Command.AsyncItems>
   );
 }
@@ -184,7 +194,8 @@ async function fetchAllCommands(): Promise<readonly CommandItem[]> {
 }
 
 export function GranularLoading() {
-  // One promise per source, kept across re-renders by useMemo
+  // One promise per source, kept across re-renders by useMemo. The two endpoints return disjoint ids:
+  // the registry holds one entry per id
   const recent = useMemo(() => fetchRecent(), []);
   const allCommands = useMemo(() => fetchAllCommands(), []);
 
@@ -198,7 +209,7 @@ export function GranularLoading() {
             fallback={<Command.Loading loading>Loading recent...</Command.Loading>}
           >
             {(items) => items.map((item) => (
-              <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
+              <Command.Item key={item.id} id={item.id} value={item.value}>{item.value}</Command.Item>
             ))}
           </Command.AsyncItems>
         </Command.Group>
@@ -209,7 +220,7 @@ export function GranularLoading() {
             fallback={<Command.Loading loading>Loading commands...</Command.Loading>}
           >
             {(items) => items.map((item) => (
-              <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
+              <Command.Item key={item.id} id={item.id} value={item.value}>{item.value}</Command.Item>
             ))}
           </Command.AsyncItems>
         </Command.Group>
@@ -228,7 +239,7 @@ Wrap `<Command.AsyncItems>` in `<CommandErrorBoundary>`, exported by `modern-cmd
 
 import type { CommandItem } from 'modern-cmdk';
 import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 async function fetchCommands(): Promise<readonly CommandItem[]> {
   const res = await fetch('/api/commands');
@@ -249,14 +260,17 @@ function cachedCommands(): Promise<readonly CommandItem[]> {
 }
 
 function SearchResults() {
+  // After the boundary resets, the remount reads the cache again, which onError emptied
+  const commands = useMemo(() => cachedCommands(), []);
+
   return (
     <Command.AsyncItems
-      items={cachedCommands()}
+      items={commands}
       fallback={<Command.Loading loading>Searching...</Command.Loading>}
     >
       {(items) =>
         items.map((item) => (
-          <Command.Item key={item.id} value={item.value}>
+          <Command.Item key={item.id} id={item.id} value={item.value}>
             {item.value}
           </Command.Item>
         ))
@@ -332,12 +346,18 @@ export function ResettableSearch({ tenant }: { tenant: string }) {
 }
 ```
 
+## Registration
+
+When the promise resolves, the batch is registered with the machine and is searchable. Each resolution replaces the previous batch: the old batch's items leave the registry and the search index, and unmounting the component removes its batch. The registry holds one entry per id, so loaded ids must be unique across the `<Command.AsyncItems>` sources of one palette; a duplicate id replaces the other entry, and either source's cleanup unregisters it.
+
+Render `<Command.Item id={item.id}>` for each loaded item, as the samples do: the rendered item and the loaded item are then one entry, and the rendered item's `onSelect` and `keywords` win. A `<Command.Item>` without `id` registers under a generated id and counts a second time; in development, an Item inside `<Command.AsyncItems>` without `id` whose `value` is in the batch warns once. A render function that renders no `<Command.Item>` keeps the loaded items searchable.
+
 ## Props
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `items` | `Promise<readonly CommandItem[]>` | Required | Promise resolving to command items |
-| `fallback` | `ReactNode` | `undefined` | Fallback UI while the promise is pending, shown by the component's own `<Suspense>` boundary (an enclosing `<Suspense>` never shows its fallback) |
+| `fallback` | `ReactNode` | `undefined` | Fallback UI while the promise is pending, shown by the component's own `<Suspense>` boundary; without it nothing renders while pending, and an enclosing `<Suspense>` never shows its fallback |
 | `children` | `(items: readonly CommandItem[]) => ReactNode` | Required | Render function receiving resolved items |
 
 ::: tip
