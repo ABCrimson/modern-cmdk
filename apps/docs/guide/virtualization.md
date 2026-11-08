@@ -1,6 +1,6 @@
 # Virtualization
 
-`<Command.List>` includes a built-in virtualization engine that automatically activates when the filtered item count exceeds 100 items. This enables smooth 60fps scrolling even with 10K+ items.
+`<Command.List>` includes a built-in virtualization engine that automatically activates when the filtered item count exceeds 100 items. Only the rows in the viewport (plus overscan) render DOM nodes, so a long result list keeps the page's DOM small. Every `<Command.Item>` element you render still mounts and registers with the machine; virtualization skips off-screen DOM, not the registration work. The count it compares includes disabled items (they are listed unless `disabledItems="hide"` is set on `<Command>`).
 
 ## Automatic Activation
 
@@ -36,7 +36,7 @@ function LargeList() {
 ```
 
 ::: tip
-You do not need to change any code to benefit from virtualization. The same component API works for 10 items or 100,000 items. The virtualizer activates transparently when needed.
+You do not need to change any code to benefit from virtualization. The same component API works with and without it. The virtualizer activates transparently when needed.
 :::
 
 ## Opting Out
@@ -59,7 +59,7 @@ export function FullDomPalette() {
 ```
 
 ::: warning
-Disabling virtualization with large datasets (1K+ items) will significantly impact performance. Only opt out when you have a specific reason to render all DOM nodes.
+Disabling virtualization puts a DOM node in the page for every matching item, which costs layout and paint time on large datasets (1K+ items). Only opt out when you have a specific reason to render all DOM nodes.
 :::
 
 ## Configuration
@@ -123,7 +123,7 @@ The shipped stylesheet (`modern-cmdk/styles.css`) applies every rule below; none
 
 ### `content-visibility: auto`
 
-Every item (`[data-command-item]`) carries `content-visibility: auto` so the browser can skip rendering work for off-screen items (`styles.css:210-216`):
+Every item (`[data-command-item]`) carries `content-visibility: auto` so the browser can skip rendering work for off-screen items (`styles.css:209-210`):
 
 ```css
 [data-command-item] {
@@ -132,11 +132,11 @@ Every item (`[data-command-item]`) carries `content-visibility: auto` so the bro
 }
 ```
 
-The stylesheet also has a `[data-command-virtual-item]` rule with the same two declarations (`styles.css:227-230`). It is a reserved hook for custom rows built on `useVirtualizer`; no component emits that attribute (see the [Theming guide](/guide/theming)).
+The stylesheet also has a `[data-command-virtual-item]` rule with the same two declarations (`styles.css:221-224`). It is a reserved hook for custom rows built on `useVirtualizer`; no component emits that attribute (see the [Theming guide](/guide/theming)).
 
 ### `will-change: transform`
 
-When the list virtualizes, the virtual list element (`[data-command-list-virtual]`, rendered at `list.tsx:170`) carries `will-change: transform` (`styles.css:232-235`). Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:79`). The offset is the item's start position inside the list (`use-virtualizer.ts:98-102`), so it does not change while the list scrolls; the browser's own scrolling of `[data-command-list]` moves the rows:
+When the list virtualizes, the virtual list element (`[data-command-list-virtual]`, rendered at `list.tsx:168`) carries `will-change: transform` (`styles.css:226-229`). Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:78`). The offset is the item's start position inside the list (`use-virtualizer.ts:100`), so it does not change while the list scrolls; the browser's own scrolling of `[data-command-list]` moves the rows:
 
 ```css
 [data-command-list-virtual] {
@@ -147,19 +147,19 @@ When the list virtualizes, the virtual list element (`[data-command-list-virtual
 
 ### Contain Layout
 
-The shipped stylesheet applies `contain: layout style paint` to the list's inner wrapper, `[data-command-list-inner]` (`styles.css:203-206`), which renders only when the list does not virtualize (`list.tsx:176`). Items need no containment rule of their own: `content-visibility: auto` on `[data-command-item]` (`styles.css:215`) already turns on layout, style and paint containment for every item (CSS Containment Level 2), so paint containment can clip an item's descendants, for example a child's focus ring or shadow drawn outside the item's box.
+The shipped stylesheet applies `contain: layout style paint` to the list's inner wrapper, `[data-command-list-inner]` (`styles.css:196-199`), which renders only when the list does not virtualize (`list.tsx:174`). Items need no containment rule of their own: `content-visibility: auto` on `[data-command-item]` (`styles.css:209`) already turns on layout, style and paint containment for every item (CSS Containment Level 2), so paint containment can clip an item's descendants, for example a child's focus ring or shadow drawn outside the item's box.
 
 ## Performance Tips for 10K+ Items
 
 ::: details Performance Checklist
 
-1. **Watch search cost at scale.** The default TypeScript scorer runs synchronously and can cause input lag at scale. The WASM search engine is designed for this case but does not work yet; see [WASM Search](/guide/wasm-search).
+1. **Watch search cost at scale.** The default TypeScript scorer runs on the main thread, once per scheduler batch (the machine refilters once however many events the batch holds), and can cause input lag at scale. The WASM search engine is designed for this case but does not work yet; see [WASM Search](/guide/wasm-search).
 
 2. **Keep `estimateSize` accurate.** If your items have consistent heights, an accurate estimate avoids layout shifts during measurement.
 
 3. **Use `keywords` instead of long labels.** The search engine scores against both the `value` and `keywords` — put searchable aliases in `keywords` rather than making item labels longer.
 
-4. **Avoid heavy render functions.** Each visible item renders on every scroll frame. Keep item components lightweight — no inline fetches or heavy computations.
+4. **Avoid heavy render functions.** Each visible item renders on every scroll frame, and every `<Command.Item>` you render, visible or not, mounts and registers. Keep item components lightweight — no inline fetches or heavy computations.
 
 5. **Consider `filter={false}` with server-side search.** For very large datasets, delegate filtering to your API and use `<Command.AsyncItems>` instead of client-side filtering. See [Async Items](/guide/async-items).
 
@@ -173,9 +173,9 @@ The virtualizer uses a variable-height virtual scrolling strategy:
 
 1. **Measurement** — `ResizeObserver` measures each item's actual DOM height during `requestIdleCallback`. Falls back to `setTimeout(fn, 0)` if `requestIdleCallback` is unavailable.
 
-2. **Windowing** — Only items within the visible viewport (plus overscan) are rendered in the DOM. Items outside the window are not rendered (`item.tsx:73`); `[data-command-list-virtual]` takes the height of every item together (`list.tsx:171`), so the scrollbar spans the whole list.
+2. **Windowing** — Only items within the visible viewport (plus overscan) render DOM nodes. A `<Command.Item>` outside the window still mounts and registers, but returns no DOM (`item.tsx:72`); `[data-command-list-virtual]` takes the height of every item together (`list.tsx:169`), so the scrollbar spans the whole list.
 
-3. **Positioning** — Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:79`), and `[data-command-list-virtual]` carries `will-change: transform` (`styles.css:234`), a hint that the element's transform will change.
+3. **Positioning** — Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:78`), and `[data-command-list-virtual]` carries `will-change: transform` (`styles.css:228`), a hint that the element's transform will change.
 
 4. **Scroll-to-active** — When keyboard navigation moves the active item outside the visible window, the virtualizer smoothly scrolls to bring it into view.
 
