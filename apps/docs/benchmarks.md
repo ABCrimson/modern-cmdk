@@ -36,9 +36,9 @@ The figures come from [`benchmarks/size-history/1.5.0.json`](https://github.com/
 
 | Entry | Size | Limit | Method |
 |-------|------|-------|--------|
-| `modern-cmdk` (core) | 6399 B | 6.5 kB | `dist/core/index.mjs`, minified and gzipped |
-| `modern-cmdk/react` (adapter only) | 5539 B | 5.6 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is ignored, so the core is not counted |
-| `modern-cmdk` + `modern-cmdk/react` | 10003 B | 10.1 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is not ignored, so the one core is counted once |
+| `modern-cmdk` (core) | 6399 B | 7.35 kB | `dist/core/index.mjs`, minified and gzipped |
+| `modern-cmdk/react` (adapter only) | 5539 B | 5.7 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is ignored, so the core is not counted |
+| `modern-cmdk` + `modern-cmdk/react` | 10003 B | 10.75 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is not ignored, so the one core is counted once |
 | `modern-cmdk/react/dialog` (adapter only) | 1422 B | 1.5 kB | `dist/react/dialog.mjs`, gzip; the `radix-ui` import is ignored |
 | `modern-cmdk/react`: `CommandSeparator` only | 4812 B | 5 kB | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import because `Command` is a compound (see [SSR](/guide/ssr#tree-shaking)) |
 | `modern-cmdk/styles.css` | 3959 B | 4 kB | `dist/react/styles.css`, gzip |
