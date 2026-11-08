@@ -175,7 +175,7 @@ describe('migration guide: API differences', () => {
       'defaultValue',
       'forceMount',
       'progress',
-      'div props',
+      /div`? props/,
       'alwaysRender',
       'asChild',
       'onSelect',
@@ -186,7 +186,7 @@ describe('migration guide: API differences', () => {
       '`value` on `Command.Group`',
       '`role` on `Command.Input`',
     ]) {
-      expect(table, needle).toContain(needle);
+      expect(table, String(needle)).toMatch(needle);
     }
   });
 
