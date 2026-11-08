@@ -12,15 +12,15 @@ import { useHydrated } from './hooks/use-hydrated.js';
 
 export interface CommandEmptyProps extends ComponentPropsWithRef<'div'> {}
 
-/** Rendered when no items match the current search query. */
+/** Rendered when no items match the current search query; nothing renders before hydration or while a source is loading. */
 export function CommandEmpty({ ref, children, ...props }: CommandEmptyProps): ReactNode {
   const stateCtx = useStateContext('Command.Empty');
 
   const statusContainerRef = use(CommandListStatusContext);
   const hydrated: boolean = useHydrated();
 
-  // Show whenever nothing matches (an empty query included) and no source is loading. Before hydration the registry is
-  // empty because items register in layout effects, which says nothing about the query, so the server and the
+  // Show whenever nothing matches (an empty query included) and no source is loading. Before hydration filteredCount
+  // may be 0 only because items register in layout effects, which says nothing about the query, so the server and the
   // hydration pass render nothing.
   if (!hydrated || stateCtx.state.filteredCount > 0 || stateCtx.state.loading) return null;
 
