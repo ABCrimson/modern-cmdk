@@ -43,7 +43,11 @@ export interface CommandStableContextValue {
   readonly listId: string;
   readonly inputId: string;
   readonly label: string;
-  readonly updateSearch: (query: string) => void;
+  /**
+   * Queue a search query on the machine. With `owned` true the query is text the caller holds (a controlled
+   * `Command.Input` value), so the root's `onSearchChange` is not called for it.
+   */
+  readonly updateSearch: (query: string, owned?: boolean) => void;
   /**
    * Sends `ITEM_ACTIVATE` for a non-null `id` and does nothing for `null`: no core event clears the active item.
    * @deprecated Send `ITEM_ACTIVATE` through the machine. Removed in 2.0.

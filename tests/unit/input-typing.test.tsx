@@ -188,7 +188,7 @@ describe('Command.Input rapid typing', () => {
     expect(input.value).toBe('ab');
   });
 
-  it('removes its machine subscription when the input unmounts', () => {
+  it('holds no machine subscription of its own, so unmounting it removes none', () => {
     let live = 0;
     const track = (machine: CommandMachine): void => {
       if ((machine as { __tracked?: true }).__tracked) return;
@@ -213,9 +213,9 @@ describe('Command.Input rapid typing', () => {
     // The patched subscribe is a new function identity: one more render re-subscribes every store reader through it.
     view.rerender(tree(true));
     const withInput = live;
-    expect(withInput).toBeGreaterThan(1);
+    expect(withInput).toBeGreaterThan(0);
     view.rerender(tree(false));
-    expect(live).toBe(withInput - 1);
+    expect(live).toBe(withInput);
     view.unmount();
     expect(live).toBe(0);
   });
