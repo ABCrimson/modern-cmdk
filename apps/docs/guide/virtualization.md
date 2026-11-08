@@ -66,7 +66,7 @@ Disabling virtualization puts a DOM node in the page for every matching item, wh
 
 ### `estimateSize`
 
-Provide an estimated item height in pixels. This is used for initial layout before items are measured:
+Provide the item height in pixels. `Command.List` gives every row this height (it measures no item):
 
 ```tsx
 import { Command } from 'modern-cmdk/react';
@@ -76,14 +76,14 @@ export function TallItemsPalette() {
     <Command>
       <Command.Input placeholder="Search..." />
       <Command.List estimateSize={48}>
-        {/* Items are estimated at 48px tall until measured */}
+        {/* Every row is placed as 48px tall */}
       </Command.List>
     </Command>
   );
 }
 ```
 
-The virtualizer uses `ResizeObserver` to measure actual item heights during idle periods via `requestIdleCallback`. The estimate only affects initial render — after measurement, exact heights are used.
+`Command.List` measures no item: the `ResizeObserver` it uses tracks only the list's own height. `measureElement` from `useVirtualizer` measures the rows of a custom list during `requestIdleCallback`, and those measured heights replace the estimate.
 
 ### `overscan`
 
@@ -153,13 +153,13 @@ The shipped stylesheet applies `contain: layout style paint` to the list's inner
 
 ::: details Performance Checklist
 
-1. **Watch search cost at scale.** The default TypeScript scorer runs on the main thread, once per scheduler batch (the machine refilters once however many events the batch holds), and can cause input lag at scale. The WASM search engine is designed for this case but does not work yet; see [WASM Search](/guide/wasm-search).
+1. **Watch search cost at scale.** The default TypeScript scorer runs on the main thread each time the machine refilters: once for every `SEARCH_CHANGE` (one per keystroke, even when several keystrokes land in the same scheduler batch), and once more at the end of a batch that registered, updated or removed items while a query is set. It can cause input lag at scale. The WASM search engine is designed for this case but does not work yet; see [WASM Search](/guide/wasm-search).
 
-2. **Keep `estimateSize` accurate.** If your items have consistent heights, an accurate estimate avoids layout shifts during measurement.
+2. **Keep `estimateSize` accurate.** Set `estimateSize` to the rendered row height: rows are placed at multiples of it, so a wrong value overlaps rows or leaves gaps.
 
 3. **Use `keywords` instead of long labels.** The search engine scores against both the `value` and `keywords` — put searchable aliases in `keywords` rather than making item labels longer.
 
-4. **Avoid heavy render functions.** Each visible item renders on every scroll frame, and every `<Command.Item>` you render, visible or not, mounts and registers. Keep item components lightweight — no inline fetches or heavy computations.
+4. **Avoid heavy render functions.** While the list virtualizes, every mounted `<Command.Item>`, visible or not, re-renders on each scroll event (the visible window is recomputed), and only the visible ones produce DOM. Keep item components lightweight — no inline fetches or heavy computations.
 
 5. **Consider `filter={false}` with server-side search.** For very large datasets, delegate filtering to your API and use `<Command.AsyncItems>` instead of client-side filtering. See [Async Items](/guide/async-items).
 
@@ -171,13 +171,13 @@ The shipped stylesheet applies `contain: layout style paint` to the list's inner
 
 The virtualizer uses a variable-height virtual scrolling strategy:
 
-1. **Measurement** — `ResizeObserver` measures each item's actual DOM height during `requestIdleCallback`. Falls back to `setTimeout(fn, 0)` if `requestIdleCallback` is unavailable.
+1. **Sizing** — `Command.List` gives every row `estimateSize` pixels (it measures no item); the `ResizeObserver` tracks only the list's height. `measureElement` from `useVirtualizer` measures the rows of a custom list during `requestIdleCallback` (`setTimeout(fn, 0)` without it).
 
 2. **Windowing** — Only items within the visible viewport (plus overscan) render DOM nodes. A `<Command.Item>` outside the window still mounts and registers, but returns no DOM (`item.tsx:72`); `[data-command-list-virtual]` takes the height of every item together (`list.tsx:169`), so the scrollbar spans the whole list.
 
 3. **Positioning** — Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:78`), and `[data-command-list-virtual]` carries `will-change: transform` (`styles.css:228`), a hint that the element's transform will change.
 
-4. **Scroll-to-active** — When keyboard navigation moves the active item outside the visible window, the virtualizer smoothly scrolls to bring it into view.
+4. **Scroll-to-active** — When the active item changes, the list scrolls at once (`behavior: 'instant'`) to put it at the top of the viewport.
 
 ```
 Viewport (visible area):
