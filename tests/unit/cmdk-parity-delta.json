@@ -172,7 +172,7 @@
       "height": "137.5px"
     },
     "reason": "Both lists write their measured height rounded to one decimal and suffixed with px to a custom property: `--cmdk-list-height` in cmdk and `--command-list-height` in modern-cmdk. Rename the property in CSS that reads it.",
-    "ref": "T41, CMP-13"
+    "ref": null
   },
   "input-aria": {
     "status": "same",
@@ -508,7 +508,7 @@
       "shown": ["applesauce", "pineapple", "apple"],
       "active": "applesauce"
     },
-    "reason": "Both rank apple first for \"apple\". cmdk re-orders the DOM by rank and makes the top match active. modern-cmdk keeps the item that was active before the search while it still matches, so here applesauce stays active and Enter selects it, and in 1.7 it leaves the DOM in source order, which RA-02 changes to rank order in 1.8.0.",
+    "reason": "Both rank apple first for \"apple\". cmdk re-orders the DOM by rank and makes the top match active. modern-cmdk keeps the item that was active before the search while it still matches, so here applesauce stays active and Enter selects it, and in 1.7 it leaves the DOM in source order; RA-02, open for 1.8.0, tracks putting the DOM in rank order.",
     "ref": "RA-02, RA-84"
   },
   "first-match-active": {
@@ -547,7 +547,7 @@
       "afterArrowDown": "cherry",
       "afterSecondArrowDown": "pineapple"
     },
-    "reason": "Both keep the items a custom filter scores above 0 and make the best-scored item active first, then step by score with the arrow keys. cmdk re-orders its DOM by score; modern-cmdk 1.7 leaves the DOM in source order, which RA-02 changes in 1.8.0. cmdk's filter prop is (value, search, keywords) and modern-cmdk's is (item, query).",
+    "reason": "Both keep the items a custom filter scores above 0 and make the best-scored item active first, then step by score with the arrow keys. cmdk re-orders its DOM by score; modern-cmdk 1.7 leaves the DOM in source order; RA-02, open for 1.8.0, tracks putting it in score order. cmdk's filter prop is (value, search, keywords) and modern-cmdk's is (item, query).",
     "ref": "RA-02"
   },
   "custom-filter-exclusion": {
@@ -645,7 +645,7 @@
     "status": "differs",
     "cmdk": ["apple", "banana", "cherry", "banana", "apple"],
     "modernCmdk": ["apple", "apple", "apple", "apple", "apple"],
-    "reason": "cmdk moves the active item with Ctrl+N and Ctrl+J (down) and Ctrl+P and Ctrl+K (up) by default; vimBindings={false} turns that off (see vim-bindings-off). modern-cmdk has no vim bindings: those keys do nothing. Bind them yourself with a key handler on the root if you rely on them.",
+    "reason": "cmdk moves the active item with Ctrl+N and Ctrl+J (down) and Ctrl+P and Ctrl+K (up) by default, and vimBindings={false} turns that off; modern-cmdk has no vim bindings and no vimBindings prop, so those keys do nothing. Bind them yourself with a key handler on the root if you rely on them.",
     "ref": null
   },
   "vim-bindings-off": {
