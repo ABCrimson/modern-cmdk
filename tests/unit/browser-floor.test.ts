@@ -422,7 +422,8 @@ function disposalShimProblems(text: string, file: string): string[] {
   const program = parseAst(text, null, file) as unknown as AstNode;
   const problems: string[] = [];
   const shimsOf = DISPOSAL_SYMBOLS.flatMap((name) => shimStatements(program, name));
-  for (const loader of moduleLoaders(program)) {
+  const loaders = moduleLoaders(program);
+  for (const loader of loaders) {
     const source = loader.source as AstNode;
     problems.push(
       `${file}: the top-level ${loader.type} at offset ${startOf(loader)} evaluates "${String(source.value)}" before the shims`,
@@ -453,7 +454,11 @@ function disposalShimProblems(text: string, file: string): string[] {
       if (startOf(statement) >= startOf(shim)) {
         break;
       }
-      if (!isInertStatement(statement) && !shimsOf.some((other) => other === statement)) {
+      if (
+        !loaders.includes(statement) &&
+        !isInertStatement(statement) &&
+        !shimsOf.some((other) => other === statement)
+      ) {
         problems.push(
           `${file}: Symbol.${name}: the top-level ${statement.type} at offset ${startOf(statement)} runs before the shim at offset ${startOf(shim)}`,
         );
@@ -768,6 +773,26 @@ describe('browser floor: the disposal-symbol shim of the built entries (R7, CE-2
     for (const problem of problems) {
       expect(problem).toContain(
         `the top-level ExpressionStatement at offset ${firstShim + 1} runs before the shim`,
+      );
+    }
+  });
+
+  it('R7: a scratch copy of the built core with a destructuring default before the shims fails naming the statement', () => {
+    const program = parseAst(core(), null, CORE) as unknown as AstNode;
+    const shims = DISPOSAL_SYMBOLS.flatMap((name) => shimStatements(program, name));
+    const firstShim = Math.min(...shims.map(startOf));
+    // A destructuring pattern evaluates its default, so the declaration is not inert even though it declares only a name.
+    const text = [
+      core().slice(0, firstShim),
+      'const { z = init() } = 0;',
+      core().slice(firstShim),
+    ].join('\n');
+    // The join puts a newline before the declaration, so it starts one character past the original shim offset.
+    const problems = disposalShimProblems(text, CORE);
+    expect(problems).toHaveLength(DISPOSAL_SYMBOLS.length);
+    for (const problem of problems) {
+      expect(problem).toContain(
+        `the top-level VariableDeclaration at offset ${firstShim + 1} runs before the shim`,
       );
     }
   });
