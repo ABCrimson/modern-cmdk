@@ -87,6 +87,18 @@ describe('Search Scoring', () => {
     await bench('filter 10K items (default scorer)', options, fn).run();
   });
 
+  // 'ada' and 'bea' are not substrings of the values; they hit word starts ("apple 0 date action")
+  // or fall through to the fuzzy tier, so these cases exercise the word-boundary scorer.
+  test('filter 1K items (word-boundary query)', async ({ bench }) => {
+    const { options, fn } = filterBench(items1K, ['ada', 'bea']);
+    await bench('filter 1K items (word-boundary query)', options, fn).run();
+  });
+
+  test('filter 10K items (word-boundary query)', async ({ bench }) => {
+    const { options, fn } = filterBench(items10K, ['ada', 'bea']);
+    await bench('filter 10K items (word-boundary query)', options, fn).run();
+  });
+
   test('create machine with 1K items', async ({ bench }) => {
     await bench('create machine with 1K items', () => {
       using machine = createCommandMachine({ items: items1K });
