@@ -55,6 +55,7 @@ function parse(css: string): Declaration[] {
 }
 
 const declarations = parse(source);
+const SUPPORTS = '@supports (animation-timeline: scroll())';
 
 describe('styles.css at the Safari 18.4 / Firefox 131 floor', () => {
   it('RA-76: every user-select declaration is preceded by its -webkit- prefixed twin', () => {
@@ -66,5 +67,27 @@ describe('styles.css at the Safari 18.4 / Firefox 131 floor', () => {
       expect(twin?.value).toBe(declarations[i]?.value);
       expect(twin?.block).toBe(declarations[i]?.block);
     }
+  });
+
+  it('RA-77: animation-timeline declarations sit inside an @supports (animation-timeline: scroll()) block', () => {
+    const scrollDriven = declarations.filter(
+      (d) =>
+        ['animation-timeline', 'animation-range', 'scroll-timeline'].includes(d.prop) ||
+        (d.prop === 'animation' && /fade-edge|scroll-progress/.test(d.value)),
+    );
+    expect(scrollDriven.length).toBeGreaterThanOrEqual(7);
+    for (const d of scrollDriven) {
+      expect(d.path, `${d.prop}: ${d.value}`).toContain(SUPPORTS);
+    }
+    // Static fallback: outside the block (keyframes aside) no fade pseudo-element is left at its
+    // animated rest value, so an unsupporting browser shows no fade and no stuck state
+    const stuck = declarations.filter(
+      (d) =>
+        d.prop === 'opacity' &&
+        d.value === '0.08' &&
+        !d.path.includes(SUPPORTS) &&
+        !d.path.some((p) => p.startsWith('@keyframes')),
+    );
+    expect(stuck).toEqual([]);
   });
 });
