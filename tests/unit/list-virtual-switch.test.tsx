@@ -4,7 +4,8 @@
 
 import type { CommandMachine } from 'modern-cmdk';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
-import { act, use } from 'react';
+import type { ReactNode, Ref, RefCallback } from 'react';
+import { act, createRef, use } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -103,5 +104,75 @@ describe('Command.List virtualization switch (C2)', () => {
     const types = sentTypes(send);
     expect(types.filter((type) => type === 'UNREGISTER_ITEM')).toEqual([]);
     expect(types.filter((type) => type === 'REGISTER_ITEM')).toEqual([]);
+  });
+});
+
+describe('Command.List ref prop (C2)', () => {
+  /** Mounts a palette whose list takes `ref`; `render` re-renders it with another ref. */
+  async function mountList(
+    ref: Ref<HTMLDivElement>,
+  ): Promise<(next: Ref<HTMLDivElement>) => Promise<void>> {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const current = root;
+    const tree = (listRef: Ref<HTMLDivElement>): ReactNode => (
+      <Command>
+        <Command.List ref={listRef}>
+          <Command.Item value="one" forceId="one">
+            One
+          </Command.Item>
+        </Command.List>
+      </Command>
+    );
+    await act(async () => {
+      current.render(tree(ref));
+    });
+    await settle();
+    return async (next: Ref<HTMLDivElement>): Promise<void> => {
+      await act(async () => {
+        current.render(tree(next));
+      });
+      await settle();
+    };
+  }
+
+  it('RA-58: an inline callback ref attaches once per render and its cleanup runs on detach', async () => {
+    const log: string[] = [];
+    const inlineRef =
+      (): RefCallback<HTMLDivElement> =>
+      (el: HTMLDivElement | null): (() => void) => {
+        log.push(el ? 'attach' : 'null-call');
+        return () => {
+          log.push('cleanup');
+        };
+      };
+    const rerender = await mountList(inlineRef());
+    expect(log).toEqual(['attach']);
+
+    // A new inline function replaces the old one: the old cleanup runs, the new ref attaches, nothing loops
+    await rerender(inlineRef());
+    await rerender(inlineRef());
+    expect(log).toEqual(['attach', 'cleanup', 'attach', 'cleanup', 'attach']);
+
+    await act(async () => {
+      root?.unmount();
+    });
+    root = undefined;
+    expect(log.at(-1)).toBe('cleanup');
+    expect(log.filter((entry) => entry === 'null-call')).toEqual([]);
+  });
+
+  it('RA-58: swapping the ref prop moves the list element to the new ref', async () => {
+    const first = createRef<HTMLDivElement>();
+    const second = createRef<HTMLDivElement>();
+    const rerender = await mountList(first);
+    const list = container?.querySelector('[data-command-list]');
+    expect(list).not.toBeNull();
+    expect(first.current).toBe(list);
+
+    await rerender(second);
+    expect(second.current).toBe(list);
+    expect(first.current).toBeNull();
   });
 });
