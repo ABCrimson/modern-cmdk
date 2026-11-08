@@ -243,7 +243,7 @@ modern-cmdk/
     wasm-search.bench.ts          Excluded from `vitest bench` (browser-target WASM)
     browser/
       run.ts                      The browser bench and its 10K mount tripwire (`node benchmarks/browser/run.ts`, Chromium)
-      stats.ts                    Its pure rules: the median of 7 runs, the gate verdict and the threshold (`MOUNT_GATE_THRESHOLD_MS`, 75 ms after D94: 1.5x the 47.80 ms median, rounded up to the next 5 ms; re-measured at the RC)
+      stats.ts                    Its pure rules: the median of 7 runs, the gate verdict and the threshold (`MOUNT_GATE_THRESHOLD_MS`, 75 ms after D94: 1.5x the 47.80 ms median, rounded up to the next 5 ms; the 1.7.0 RC measured 54.70 ms on another CPU and the tripwire stands, D120)
       results/                    Committed results of local runs, one JSON per manifest version and commit
     standalone/
       compare-baseline.ts          The one CI benchmark harness (`pnpm bench:compare`; optional `--baseline <file>` and `--current <file>`)
@@ -582,13 +582,13 @@ pnpm bench
 pnpm bench:compare
 ```
 
-Benchmark targets are the `target_ms` values in the records of `benchmarks/baseline.json`; `pnpm bench:compare` fails a median above its target (Reason `above target` in its table). Baselines below `regressionThresholds.floor_ms` (0.01 ms; today only `stateUpdate:navigate`, 0.902 microseconds) are reported, not compared with the 5 % and 15 % thresholds, because run-to-run noise at that scale exceeds them:
+Benchmark targets are the `target_ms` values in the records of `benchmarks/baseline.json`; `pnpm bench:compare` fails a median above its target (Reason `above target` in its table). Baselines below `regressionThresholds.floor_ms` (0.01 ms; today only `stateUpdate:navigate`, 1.02 microseconds) are reported, not compared with the 5 % and 15 % thresholds, because run-to-run noise at that scale exceeds them:
 
-| Benchmark (baseline key) | Target | Baseline median (CI runner, benchmarks/history/2026-11-08-201f701.json, AMD EPYC 7763) |
+| Benchmark (baseline key) | Target | Baseline median (CI runner, benchmarks/history/2026-11-08-79e3c14.json, AMD EPYC 7763) |
 |---|---|---|
-| Search 10K items, TypeScript scorer (`search.ts-scorer-10k`) | < 16 ms | 3.79 ms |
-| Search-change cycle (`stateUpdate.searchChange`) | < 4 ms | 0.39 ms |
-| Navigate cycle (`stateUpdate.navigate`) | < 1 ms | 0.000902 ms |
+| Search 10K items, TypeScript scorer (`search.ts-scorer-10k`) | < 16 ms | 3.80 ms |
+| Search-change cycle (`stateUpdate.searchChange`) | < 4 ms | 0.41 ms |
+| Navigate cycle (`stateUpdate.navigate`) | < 1 ms | 0.00102 ms |
 
 `pnpm bench:compare` runs the named operations 5 times and takes, per task, the median of the 5 runs' p50, p99 and rme. A median more than 5 % above its baseline warns (exit 1); more than 15 % above, or above its target, fails (exit 2, which also covers a harness error). CI is red only on two consecutive fails: after a first exit 2 the step re-runs `pnpm bench:compare` once; a passing re-run leaves a warning annotation, a second exit 2 an error. `benchmarks/baseline.json` holds one record per CPU model, because numbers from two CPU models are never compared against a threshold (D97). The format: `{ "schemaVersion": 2, "regressionThresholds": { "warning", "failure", "floor_ms" }, "records": { "<environment.cpu>": { "version", "date", "commit", "source", "note", "environment", "benchmarks": { "<category>": { "<key>": { "median_ms", "p99_ms", "target_ms" } } } } } }`. The thresholds are shared by all records. `pnpm bench:compare` judges a run only against the record whose CPU equals the run's CPU. A run on a CPU without a record prints the comparison with every record, each row naming both CPUs and marked `INFO`, says that no threshold applies and exits 0; its `benchmarks/results/bench-<sha>.json` is the input for adding that CPU. A record is re-recorded from the `benchmark-results` artifact of the first green run on that CPU after each Node pin bump. `pnpm bench:record benchmarks/history/<YYYY-MM-DD>-<sha7>.json` does it from the committed copy of that artifact: it replaces, or creates, the record of the file's `environment.cpu` and no other, records the history file as `source`, takes `version` from the commit's manifest, carries each row's `target_ms` over (from that CPU's record, else from another record that has the row) and needs `--target <category>:<key>=<ms>` for a row no record has.
 
@@ -609,17 +609,17 @@ Benchmark targets are the `target_ms` values in the records of `benchmarks/basel
 
 | Entry | Limit | Method |
 |---|---|---|
-| `modern-cmdk` (core) | 7.4 kB | `dist/core/index.mjs`, gzip |
-| `modern-cmdk/react` (adapter only) | 5.7 kB | `dist/react/index.mjs`, gzip; `modern-cmdk`, `react`, `react-dom` and `radix-ui` ignored |
-| `modern-cmdk` + `modern-cmdk/react` | 10.85 kB | `dist/react/index.mjs`, gzip; only the React side ignored, so the one core is counted |
-| `modern-cmdk/react/dialog` (adapter only) | 1.5 kB | `dist/react/dialog.mjs`, gzip; same ignore list as the adapter |
-| `CommandSeparator` only | 5 kB | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; still contains the whole compound |
+| `modern-cmdk` (core) | 7.84 kB | `dist/core/index.mjs`, gzip |
+| `modern-cmdk/react` (adapter only) | 6.59 kB | `dist/react/index.mjs`, gzip; `modern-cmdk`, `react`, `react-dom` and `radix-ui` ignored |
+| `modern-cmdk` + `modern-cmdk/react` | 12.13 kB | `dist/react/index.mjs`, gzip; only the React side ignored, so the one core is counted |
+| `modern-cmdk/react/dialog` (adapter only) | 2.2 kB | `dist/react/dialog.mjs`, gzip; same ignore list as the adapter |
+| `CommandSeparator` only | 390 B | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; same ignore list as the adapter; `Command` is a `/* @__PURE__ */ Object.assign` (D116), so the bundle holds the separator and not the compound |
 | `modern-cmdk/styles.css` | 4 kB | `dist/react/styles.css`, gzip |
 | Codemod bin (`modern-cmdk`, deprecated) | 3.4 MB | `dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs` (the bundled bin, shim included), installed size (no compression) |
 | Codemod shim | 1000 B | `dist/codemod/bin.mjs` alone, installed size |
-| `modern-cmdk-codemod` own files | 100000 B | `packages/modern-cmdk-codemod/dist/*.mjs` plus `dist/transforms/*.mjs`, installed size; `jscodeshift` excluded |
+| `modern-cmdk-codemod` own files | 102000 B | `packages/modern-cmdk-codemod/dist/*.mjs` plus `dist/transforms/*.mjs`, installed size; `jscodeshift` excluded |
 
-These limits are defined in the root `.size-limit.mjs`, which measures with `process.env.NODE_ENV` defined as `"production"`, and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.5.0.json` (d5ce6ff, measured 2026-11-07 with size-limit 14.3.0): the bundled codemod bin is 3150372 B (3325793 B in 1.4), the shim 897 B and the `modern-cmdk-codemod` own files 98030 B. Pack it with `npm pack --dry-run --json` to see the tarball sizes the record also holds.
+These limits are defined in the root `.size-limit.mjs`, which measures with `process.env.NODE_ENV` defined as `"production"`, and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.7.0.json` (a7838c9, measured 2026-11-08 with size-limit 14.3.0): the bundled codemod bin is 3153027 B, as in the 1.6 record (3153027 B), the shim 897 B and the `modern-cmdk-codemod` own files 100685 B. Pack it with `npm pack --dry-run --json` to see the tarball sizes the record also holds.
 
 ### Performance rules
 
@@ -699,7 +699,7 @@ chore: bump Biome to 2.6.6
    - Package integrity (`pnpm check:package --pack-dir`, the codemod tarball smoke `scripts/codemod-tarball-smoke.ts`, the notices check `scripts/third-party-notices.ts --check`, `pnpm check:licenses`, an SPDX SBOM artifact `sbom` made with syft v1.57.0), the Consumer app matrix (next-turbopack, next-webpack, vite) and a Node 24 engine-strict install of the packed tarball
    - Templates (scaffold `react-basic`, `react-dialog` and `react-full` from the packed tarballs, `tsc -b` and build each; `scripts/template-smoke.ts --template all`, timeout 10 minutes)
    - Benchmarks (`pnpm bench:compare` against `benchmarks/baseline.json`, then `pnpm bench --run`)
-   - Browser bench (Chromium, 10K mount gate): `node benchmarks/browser/run.ts` builds the playground, drives its `/bench` route at 1K and 10K items (1 warm-up and 7 measured runs each) and fails the job when the 10K mount median is above the 75 ms tripwire (D94, set from the runner's first measurement of 47.80 ms) or the harness errors (exit 1 or 2); the results JSON is uploaded as the `browser-bench-results` artifact
+   - Browser bench (Chromium, 10K mount gate): `node benchmarks/browser/run.ts` builds the playground, drives its `/bench` route at 1K and 10K items (1 warm-up and 7 measured runs each) and fails the job when the 10K mount median is above the 75 ms tripwire (D94, set from the runner's first measurement of 47.80 ms on an AMD EPYC 7763; the 1.7.0 RC measured 54.70 ms on an AMD EPYC 9V74 and the tripwire stands, D120) or the harness errors (exit 1 or 2); the results JSON is uploaded as the `browser-bench-results` artifact
    - Security audit (`pnpm audit`)
 
    "CI Summary" needs the other 19 jobs of `ci.yml` and fails unless every one succeeded.
