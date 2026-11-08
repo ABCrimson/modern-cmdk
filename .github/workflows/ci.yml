@@ -401,22 +401,60 @@ jobs:
           persist-credentials: false
           # Full history: scripts/check-repo-links.ts resolves blob/<abbreviated hash>/ links with git, and a shallow clone lacks those commits
           fetch-depth: 0
-      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+      # lychee comes from its release tarball, fetched with up to eight attempts (gh release download, then curl with retries, per
+      # attempt) and checked against a pinned sha256: lychee-action v2.9.0 downloads it with one curl -sfLO and no retry, which failed
+      # this job on a GitHub release-host error (run 42464306876, curl exit 22). Newest release: lychee v0.24.2 (re-resolve with: gh release list -R lycheeverse/lychee -L 3;
+      # the rolling "nightly" pre-release is not pinnable). The sha is the tarball's GitHub asset digest (re-resolve with:
+      # gh release view lychee-v0.24.2 -R lycheeverse/lychee --json assets --jq '.assets[] | select(.name == "lychee-x86_64-unknown-linux-gnu.tar.gz") | .digest').
+      # Bump the version in the URL, the digest and the lychee.toml header together.
+      - name: Install lychee
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tarball="$RUNNER_TEMP/lychee.tar.gz"
+          for attempt in 1 2 3 4 5 6 7 8; do
+            rm -f "$tarball"
+            gh release download lychee-v0.24.2 -R lycheeverse/lychee -p lychee-x86_64-unknown-linux-gnu.tar.gz -O "$tarball" --clobber && break
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 \
+              --output "$tarball" \
+              https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz && break
+            [ "$attempt" -lt 8 ] || { echo "::error::could not download lychee-x86_64-unknown-linux-gnu.tar.gz from lycheeverse/lychee lychee-v0.24.2"; exit 1; }
+            sleep $((attempt * 5))
+          done
+          echo "1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a  $tarball" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/lychee/bin"
+          tar -xzf "$tarball" -C "$RUNNER_TEMP/lychee/bin" --strip-components=1 lychee-x86_64-unknown-linux-gnu/lychee
+          echo "$RUNNER_TEMP/lychee/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/lychee/bin/lychee" --version
+      # The run lychee-action v2.9.0 performs (its entrypoint.sh with fail, failIfEmpty and checkbox on, format markdown): a task-list
+      # Markdown report, the report in the job summary, and a failure on any lychee error or when no link was found.
+      # The repository's own github.com pages are excluded here (lychee 0.24.2 chains CLI --exclude onto lychee.toml's
+      # exclude list; it does not replace it): a GitHub 5xx on them failed this job in run 41998415732 even with
+      # lychee.toml's max_retries = 6. The job's last step, node scripts/check-repo-links.ts (after setup-node), checks the blob/, tree/ and raw/ paths into
+      # this repository (and the #readme, #L<n> and heading-anchor fragments on them) against the checkout; the routes GitHub serves from
+      # repository state (the bare repository URL, /actions, /commit, /discussions, /issues, /pull, /releases, /security) stay unchecked.
+      - name: Check links
+        shell: bash
         env:
           # Authenticated GitHub API calls: unauthenticated link checks are rate-limited
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          lycheeVersion: v0.24.2
-          fail: true
-          # The repository's own github.com pages are excluded here (lychee 0.24.2 chains CLI --exclude onto lychee.toml's
-          # exclude list; it does not replace it): a GitHub 5xx on them failed this job in run 41998415732 even with
-          # lychee.toml's max_retries = 6. The job's last step, node scripts/check-repo-links.ts (after setup-node), checks the blob/, tree/ and raw/ paths into
-          # this repository (and the #readme, #L<n> and heading-anchor fragments on them) against the checkout; the routes GitHub serves from
-          # repository state (the bare repository URL, /actions, /commit, /discussions, /issues, /pull, /releases, /security) stay unchecked.
-          args: >-
-            --config lychee.toml --no-progress
-            --exclude '^https://github\.com/ABCrimson/modern-cmdk(\.git)?([/#?]|$)'
+        run: |
+          set -uo pipefail
+          report="$RUNNER_TEMP/lychee-report.md"
+          lychee --mode task --format markdown --output "$report" \
+            --config lychee.toml --no-progress \
+            --exclude '^https://github\.com/ABCrimson/modern-cmdk(\.git)?([/#?]|$)' \
             README.md 'packages/*/README.md' CONTRIBUTING.md SECURITY.md ARCHITECTURE.md 'apps/docs/**/*.md'
+          status=$?
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          cat "$report"
+          if grep -E 'Total\s+\|\s+0' "$report"; then
+            echo '::error::lychee found no links; this usually indicates a configuration error'
+            exit 1
+          fi
+          exit "$status"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -658,16 +696,42 @@ jobs:
             tar -xzf "$tarball" -C "$RUNNER_TEMP/sbom-src/$name"
           done
           printf 'select-catalogers:\n  - "+javascript-package-cataloger"\n' > "$RUNNER_TEMP/syft.yaml"
-      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-        with:
-          path: ${{ runner.temp }}/sbom-src
-          format: spdx-json
-          config: ${{ runner.temp }}/syft.yaml
-          output-file: ${{ runner.temp }}/sbom/sbom.spdx.json
-          upload-artifact: 'false'
-          upload-release-assets: 'false'
-          # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
-          syft-version: v1.57.0
+      # syft comes from its release tarball, fetched with up to eight attempts (gh release download, then curl with retries, per
+      # attempt) and checked against a pinned sha256: sbom-action v0.24.3
+      # downloads syft's install.sh and the release's checksums file without a retry, and a GitHub release-host HTTP 504 on the
+      # checksums file failed this job on four of five attempts. Newest release: syft v1.57.0 (re-resolve with:
+      # gh release list -R anchore/syft -L 1). The sha is the tarball's GitHub asset digest (re-resolve with:
+      # gh release view v1.57.0 -R anchore/syft --json assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest').
+      # Bump the version in the URL, the file name and the digest together.
+      - name: Install syft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tarball="$RUNNER_TEMP/syft.tar.gz"
+          for attempt in 1 2 3 4 5 6 7 8; do
+            rm -f "$tarball"
+            gh release download v1.57.0 -R anchore/syft -p syft_1.57.0_linux_amd64.tar.gz -O "$tarball" --clobber && break
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 \
+              --output "$tarball" \
+              https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz && break
+            [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.0_linux_amd64.tar.gz from anchore/syft v1.57.0"; exit 1; }
+            sleep $((attempt * 5))
+          done
+          echo "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704  $tarball" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/syft/bin"
+          tar -xzf "$tarball" -C "$RUNNER_TEMP/syft/bin" syft
+          echo "$RUNNER_TEMP/syft/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/syft/bin/syft" --version
+      # The scan sbom-action v0.24.3 runs (syft scan dir:<path> -o spdx-json -c <config>, update check off), written to the SBOM file.
+      - name: Generate the SBOM
+        shell: bash
+        env:
+          SYFT_CHECK_FOR_APP_UPDATE: 'false'
+        run: |
+          set -euo pipefail
+          syft scan "dir:$RUNNER_TEMP/sbom-src" -o "spdx-json=$RUNNER_TEMP/sbom/sbom.spdx.json" -c "$RUNNER_TEMP/syft.yaml"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom

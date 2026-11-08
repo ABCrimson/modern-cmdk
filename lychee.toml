@@ -1,4 +1,4 @@
-# External-link and fragment check (CI job `links`, lycheeverse/lychee-action; lychee 0.24.2).
+# External-link and fragment check (CI job `links`, lychee 0.24.2 from its release tarball, installed by ci.yml's "Install lychee" step).
 # Inputs are passed on the command line (ci.yml). Only http(s) links are checked here: links between
 # docs pages are VitePress routes with their own heading ids, which tests/docs/links.spec.ts checks
 # against the built site (status and #fragment), and which lychee cannot resolve from the markdown.
