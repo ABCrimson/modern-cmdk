@@ -44,7 +44,7 @@ await using engine = await createWasmSearchEngine();
 | `isWasm` | `true` | Discriminant -- `false` on the TypeScript fallback engine |
 | `index(items)` | `(items: CommandItem[]) => void` | Index items for search. Serializes and sends to WASM trigram index |
 | `search(query, items)` | `(query: string, items: CommandItem[]) => IteratorObject<SearchResult>` | Synchronous fuzzy search returning scored results |
-| `remove(ids)` | `(ids: Set<ItemId>) => void` | The immutable WASM index is cleared; it is rebuilt on the next `index()` call |
+| `remove(ids)` | `(ids: Set<ItemId>) => void` | The WASM index is immutable. On the main-thread engine the whole index is cleared and the remaining items are not re-indexed until the next `index()` call; the worker engine clears and re-indexes the remaining items |
 | `clear()` | `() => void` | Clear the entire index |
 | `[Symbol.dispose]()` | `() => void` | Free WASM memory (synchronous) |
 | `[Symbol.asyncDispose]()` | `() => Promise<void>` | Free WASM memory (async, for `await using`) |
@@ -63,7 +63,7 @@ interface SearchResult {
 
 ### Usage with `await using`
 
-The engine implements `AsyncDisposable`, so `await using` automatically frees WASM memory when the scope exits:
+The engine implements `AsyncDisposable`, so `await using` automatically frees WASM memory when the scope exits. Disposing twice, by either protocol, frees once, and after disposal the main-thread WASM engine's `index`, `search`, `remove` and `clear` throw a "disposed" error (the TypeScript fallback does not):
 
 ```typescript
 import { itemId } from 'modern-cmdk';
@@ -209,7 +209,7 @@ export default nextConfig;
 
 ## Plugging into the State Machine
 
-Both engine types implement the `SearchEngine` interface from `modern-cmdk`:
+Both engine types implement the `SearchEngine` interface from `modern-cmdk`. The machine uses the engine's results as returned: a `filter` function is not consulted when `search` is given (`filter: false` still lists every item), and frecency, when enabled, re-ranks the engine's results. The machine disposes the engine it was given when it is itself disposed, so the engine's own `await using` is a safety net; do not reuse an engine after its machine is disposed:
 
 ```typescript
 import type { CommandItem } from 'modern-cmdk';
