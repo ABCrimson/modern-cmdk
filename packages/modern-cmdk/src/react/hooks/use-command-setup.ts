@@ -86,17 +86,20 @@ function diffById<T extends { readonly id: string }>(
 }
 
 /**
- * The options object the machine keeps for its whole life: the first render's props, with the callbacks
- * replaced by trampolines over `latest.current` and `activeId`, `loop`, `disabledItems`, `telemetry` and `filter` replaced by
- * getters over it, so a prop change after mount reaches them. The engine kind (a custom scorer or the default)
- * is chosen once from the first render's `filter`: a value of the other kind keeps the first render's filter,
- * while `false` and `undefined` share the default engine and switch freely. `onSelect` forwards
- * every call; the others forward a value only when it differs from the last one forwarded (a controlled
- * `activeId` reports every candidate: the caller may have refused the last one), and nothing while the root is
- * not live: a hidden or unmounted root's machine still processes the events its children send as they unmount, and
- * those changes are not choices to report. A module-level function, so no
- * closure here sees the machine: the core's FinalizationRegistry holds this object through the search engine's
- * scorer, and a reference to the machine would keep it alive.
+ * The options object the machine keeps for its whole life: the first render's props, with the
+ * callbacks replaced by trampolines over `latest.current`, and `activeId`, `loop`, `disabledItems`,
+ * `telemetry` and `filter` replaced by getters over it, so a prop change after mount reaches them.
+ * The engine kind (a custom scorer or the default) is chosen once from the first render's `filter`:
+ * a value of the other kind keeps the first render's filter, while `false` and `undefined` share
+ * the default engine and switch freely. `onSelect` forwards every call; `onSearchChange`,
+ * `onActiveChange` and `onOpenChange` forward a value only when it differs from the last one
+ * forwarded (a controlled `activeId` reports every candidate: the caller may have refused the last
+ * one), and nothing while the root is not live: a hidden or unmounted root's machine still
+ * processes the events its children send as they unmount, and those changes are not choices to
+ * report. `telemetry` is read through whether or not the root is live, because telemetry follows
+ * the machine, not the root's visibility. A module-level function, so no closure here sees the
+ * machine: the core's FinalizationRegistry holds this object through the search engine's scorer,
+ * and a reference to the machine would keep it alive.
  */
 function createLiveOptions(
   latest: { readonly current: CommandMachineOptions },

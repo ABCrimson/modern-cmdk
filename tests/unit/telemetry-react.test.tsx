@@ -1,5 +1,6 @@
 // tests/unit/telemetry-react.test.tsx
-// CE-18: <Command> and <Command.Dialog> forward the latest `telemetry` prop to the machine's option.
+// CE-18: <Command> and <Command.Dialog> forward the latest `telemetry` prop to the machine's
+// option.
 
 import { fireEvent } from '@testing-library/react';
 import type { CommandTelemetryHooks } from 'modern-cmdk';

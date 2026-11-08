@@ -189,7 +189,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   let inHandler = false;
   let dirty = false;
   let changed = false;
-  // Telemetry bookkeeping of the batch in progress: report() derives the reports from the committed state
+  // Telemetry bookkeeping of the batch: report() derives the reports from the committed state
   let reportedOpen = false; // the open state telemetry last reported; starts closed
   let reportedSearch = ''; // the query of the last commit
   let searchStart = -1; // performance.now() at the batch's first SEARCH_CHANGE, -1 when none
@@ -350,8 +350,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   }
 
   /**
-   * Calls the telemetry hooks for the batch just committed. The bookkeeping updates first, so a hook that
-   * throws never makes a later commit report the same thing again.
+   * Calls the telemetry hooks for the batch just committed. The bookkeeping updates first, so a
+   * hook that throws never makes a later commit report the same thing again.
    */
   function report(): void {
     if (disposed) return;

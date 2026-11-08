@@ -250,10 +250,25 @@ export interface CommandMachineOptions {
   /** Accepted but not read yet: Command.List uses fixed thresholds (on above 100 matches, off at 50 or fewer) (default: 100) */
   readonly virtualizeThreshold?: number | undefined;
   /**
-   * Telemetry hooks the machine calls: `onPaletteOpen` and `onPaletteClose` when the open state changes,
-   * `onSearchComplete` after each search refilter, `onItemSelected` for each select of an enabled item (see
-   * `CommandTelemetryHooks` for the arguments). With none set the machine calls no hook. The machine reads this
-   * option at each call; `<Command>` and `<Command.Dialog>` forward the latest `telemetry` prop.
+   * Telemetry hooks the machine calls at the end of each batch, after its state reports; see
+   * `CommandTelemetryHooks` for when each hook fires and its arguments. With none set the machine
+   * calls no hook. The machine reads this option at each call; `<Command>` and `<Command.Dialog>`
+   * forward the latest `telemetry` prop.
+   *
+   * @example
+   * ```ts
+   * const machine = createCommandMachine({
+   *   items,
+   *   telemetry: {
+   *     onPaletteOpen: () => analytics.track('palette_opened'),
+   *     // The raw query can hold personal data: report its result, not its text
+   *     onSearchComplete: (_query, count, durationMs) =>
+   *       analytics.track('search', { resultCount: count, durationMs }),
+   *     onItemSelected: (id, _query, position) =>
+   *       analytics.track('item_selected', { id, position }),
+   *   },
+   * });
+   * ```
    */
   readonly telemetry?: import('./telemetry.js').CommandTelemetryHooks | undefined;
 }

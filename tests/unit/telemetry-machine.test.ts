@@ -6,8 +6,8 @@ import type { CommandItem } from 'modern-cmdk';
 import { createCommandMachine, itemId } from 'modern-cmdk';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
-// The scheduler batches on requestAnimationFrame. Each test fakes only the frame clock: nextBatch() runs the
-// pending batch synchronously. Date and performance stay real.
+// The scheduler batches on requestAnimationFrame. Each test fakes only the frame clock:
+// nextBatch() runs the pending batch synchronously. Date and performance stay real.
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
 });
@@ -143,7 +143,7 @@ it('CE-18: a SEARCH_CHANGE that repeats the current query reports nothing', () =
 
 it('CE-18: a throwing onSearchComplete does not skip onSearchChange', () => {
   const errors: unknown[] = [];
-  // The scheduler rethrows a failing slot through queueMicrotask: collect it instead of failing the run
+  // The scheduler rethrows a failing slot through queueMicrotask: collect it, do not fail the run
   vi.stubGlobal('queueMicrotask', (run: () => void) => {
     try {
       run();
