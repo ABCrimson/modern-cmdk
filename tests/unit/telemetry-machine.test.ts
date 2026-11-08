@@ -187,3 +187,36 @@ it('CE-18: a select of a disabled item reports nothing', () => {
   nextBatch();
   expect(onItemSelected).toHaveBeenCalledTimes(1);
 });
+
+it('D113: a machine created open reports onPaletteOpen at its first commit', () => {
+  const onPaletteOpen = vi.fn();
+  const onPaletteClose = vi.fn();
+  using machine = createCommandMachine({
+    open: true,
+    telemetry: { onPaletteOpen, onPaletteClose },
+  });
+  expect(onPaletteOpen).not.toHaveBeenCalled(); // construction has no commit
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'a' });
+  nextBatch();
+  expect(onPaletteOpen).toHaveBeenCalledTimes(1);
+
+  machine.send({ type: 'CLOSE' });
+  nextBatch();
+  expect(onPaletteClose).toHaveBeenCalledTimes(1);
+  expect(onPaletteClose).toHaveBeenCalledWith(expect.any(Number));
+  expect(onPaletteOpen).toHaveBeenCalledTimes(1);
+});
+
+it('D113: a batch that opens and closes again reports no session', () => {
+  const onPaletteOpen = vi.fn();
+  const onPaletteClose = vi.fn();
+  using machine = createCommandMachine({ telemetry: { onPaletteOpen, onPaletteClose } });
+
+  machine.send({ type: 'OPEN' });
+  machine.send({ type: 'CLOSE' });
+  nextBatch();
+  expect(machine.getState().open).toBe(false);
+  expect(onPaletteOpen).not.toHaveBeenCalled();
+  expect(onPaletteClose).not.toHaveBeenCalled();
+});
