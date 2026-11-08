@@ -35,13 +35,20 @@ export interface UseCommandSetupReturn {
   readonly stateContextValue: CommandStateContextValue;
 }
 
-/** The last value each deduped callback forwarded to the consumer. */
+/**
+ * What the deduped callbacks remember: the last value each forwarded to the consumer, whether the root is live
+ * (its layout effect is set up: mounted and not hidden by an `<Activity>`). While the root is not live, `activeId`
+ * holds the active item the root had when it stopped being live.
+ */
 interface Forwarded {
   search: string;
-  activeId: unknown;
+  activeId: ItemId | null;
   open: boolean;
+  live: boolean;
 }
 
+/** The deduped members of `Forwarded` and the callback each one forwards to. */
+type Deduped = 'search' | 'activeId' | 'open';
 type Callback = 'onSearchChange' | 'onActiveChange' | 'onOpenChange';
 
 /**
@@ -70,7 +77,9 @@ function diffById<T extends { readonly id: string }>(
  * is chosen once from the first render's `filter`: a value of the other kind keeps the first render's filter,
  * while `false` and `undefined` share the default engine and switch freely. `onSelect` forwards
  * every call; the others forward a value only when it differs from the last one forwarded (a controlled
- * `activeId` reports every candidate: the caller may have refused the last one). A module-level function, so no
+ * `activeId` reports every candidate: the caller may have refused the last one), and nothing while the root is
+ * not live: a hidden or unmounted root's machine still processes the events its children send as they unmount, and
+ * those changes are not choices to report. A module-level function, so no
  * closure here sees the machine: the core's FinalizationRegistry holds this object through the search engine's
  * scorer, and a reference to the machine would keep it alive.
  */
@@ -79,8 +88,9 @@ function createLiveOptions(
   fwd: Forwarded,
 ): CommandMachineOptions {
   const dedupe =
-    (key: keyof Forwarded, name: Callback) =>
+    (key: Deduped, name: Callback) =>
     (value: unknown): void => {
+      if (!fwd.live) return;
       if (value === fwd[key] && (key !== 'activeId' || latest.current.activeId === undefined))
         return;
       fwd[key] = value as never;
@@ -117,7 +127,9 @@ function createLiveOptions(
  * throws away leaves no global listener behind. The layout effect resumes it and its cleanup
  * suspends it again, so StrictMode's replay and an `<Activity>` hide/show (which cleans up and
  * re-creates effects while keeping state; react.dev/reference/react/Activity) keep the same
- * machine with its registrations and query. The hook never disposes: a suspended machine holds
+ * machine with its registrations and query. While the effect is cleaned up (hidden or unmounted) the callbacks
+ * `onSearchChange`, `onActiveChange` and `onOpenChange` forward nothing, and an `<Activity>` show puts an uncontrolled
+ * root's active item back without a report. The hook never disposes: a suspended machine holds
  * no global reference, and the core's FinalizationRegistry disposes the search engine the
  * machine created once the machine is collected.
  *
@@ -142,7 +154,12 @@ export function useCommandSetup(
   const [first] = useState(options);
   const [warned] = useState(() => new Set<string>());
   // The last value each deduped callback forwarded; the machine's options object holds it
-  const [fwd] = useState<Forwarded>(() => ({ search: '', activeId: null, open: false }));
+  const [fwd] = useState<Forwarded>(() => ({
+    search: '',
+    activeId: null,
+    open: false,
+    live: false,
+  }));
 
   // The one render-time ref write: a null-guarded initializer, which react.dev/reference/react/useRef
   // sanctions because the result is always the same and the condition runs only during initialization
@@ -164,13 +181,27 @@ export function useCommandSetup(
   const inputId = `${id}-input`;
 
   // Resume in the layout-effect setup, suspend in its cleanup: the layout phase runs before paint, so
-  // StrictMode's synchronous replay and an Activity show re-arm the machine before a key can reach it
+  // StrictMode's synchronous replay and an Activity show re-arm the machine before a key can reach it. The
+  // cleanup suspends first (that flushes the pending batch while the root is still live, so the consumer hears
+  // it), then stops forwarding and takes the machine's active item as the dedupe memory. A hide unmounts the
+  // items, which empties the registry and drops the machine's active item; the setup puts the remembered item
+  // back (an uncontrolled root: a controlled one mirrors its prop, which the registrations restore) and the dedupe
+  // reports nothing for it. StrictMode's replay finds that item still active and sends nothing.
   useLayoutEffect(() => {
     machine.resume?.();
+    fwd.live = true;
+    if (
+      latest.current.activeId === undefined &&
+      fwd.activeId !== null &&
+      fwd.activeId !== machine.getState().activeId
+    )
+      machine.send({ type: 'ITEM_ACTIVATE', id: fwd.activeId });
     return (): void => {
       machine.suspend?.();
+      fwd.live = false;
+      fwd.activeId = machine.getState().activeId;
     };
-  }, [machine]);
+  }, [machine, fwd]);
 
   // Every commit: in development, warn about a changed init-only prop; publish the props to the options object, then
   // register what changed. `UPDATE_ITEM` upserts, so it serves a new item and a changed one. StrictMode's replay and

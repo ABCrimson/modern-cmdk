@@ -6,7 +6,7 @@
 // Helpers (`mount`, `Spy`, `settle`, `typeInto`) are shared by the tests of this file.
 
 import { setImmediate } from 'node:timers/promises';
-import type { CommandItem, CommandMachine, FrecencyStorage } from 'modern-cmdk';
+import type { CommandItem, CommandMachine, FrecencyStorage, ItemId } from 'modern-cmdk';
 import { createSearchEngine, itemId } from 'modern-cmdk';
 import { Command, CommandStableContext, useCommandState } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
@@ -336,6 +336,113 @@ describe('React lifecycle (C1)', () => {
     expect(warn.mock.calls.flat().join('\n')).not.toContain(
       'garbage collected without being disposed',
     );
+  });
+
+  /** Three `Command.Item` children with fixed ids, under an `<Activity>` whose mode the test switches. */
+  const activityTree = (
+    mode: 'visible' | 'hidden',
+    spy: Spy,
+    props: {
+      readonly activeId?: ItemId | null;
+      readonly onActiveChange?: (id: ItemId | null) => void;
+    },
+  ): ReactNode => (
+    <Activity mode={mode}>
+      <Command {...props}>
+        <spy.Probe />
+        <Command.Input />
+        <Command.List>
+          {['fixed-a', 'fixed-b', 'fixed-c'].map((value) => (
+            <Command.Item key={value} value={value} forceId={value}>
+              {value}
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command>
+    </Activity>
+  );
+
+  it('Activity hide/show keeps the active item', async () => {
+    const onActiveChange = vi.fn();
+    const spy = new Spy();
+    const tree = (mode: 'visible' | 'hidden'): ReactNode =>
+      activityTree(mode, spy, { onActiveChange });
+    const host = await mount(tree('visible'));
+    await settle();
+    await act(async () => {
+      spy.machine.send({ type: 'NAVIGATE', direction: 'next' });
+    });
+    await settle();
+    expect(spy.machine.getState().activeId).toBe('fixed-b');
+    onActiveChange.mockClear();
+
+    await update(tree('hidden'));
+    // The frame runs while the palette is hidden: its items have unregistered
+    await settle();
+    expect(spy.machine.getRegistry().getItems()).toEqual([]);
+    await update(tree('visible'));
+    await settle();
+
+    expect(spy.machine.getState().activeId).toBe('fixed-b');
+    expect(inputOf(host).getAttribute('aria-activedescendant')).toBe('fixed-b');
+    expect(onActiveChange).not.toHaveBeenCalled();
+  });
+
+  it('a controlled activeId survives Activity hide/show without a report', async () => {
+    const onActiveChange = vi.fn();
+    const spy = new Spy();
+    const tree = (mode: 'visible' | 'hidden'): ReactNode =>
+      activityTree(mode, spy, { activeId: itemId('fixed-b'), onActiveChange });
+    const host = await mount(tree('visible'));
+    await settle();
+    expect(spy.machine.getState().activeId).toBe('fixed-b');
+
+    await update(tree('hidden'));
+    await settle();
+    await update(tree('visible'));
+    await settle();
+
+    expect(onActiveChange).not.toHaveBeenCalled();
+    expect(spy.machine.getState().activeId).toBe('fixed-b');
+    expect(inputOf(host).getAttribute('aria-activedescendant')).toBe('fixed-b');
+  });
+
+  it('a controlled activeId reports nothing after unmount', async () => {
+    const onActiveChange = vi.fn();
+    const onSearchChange = vi.fn();
+    const spy = new Spy();
+    await mount(
+      <Command
+        activeId={itemId('fixed-b')}
+        onActiveChange={onActiveChange}
+        onSearchChange={onSearchChange}
+      >
+        <spy.Probe />
+        <Command.Input />
+        <Command.List>
+          {['fixed-a', 'fixed-b'].map((value) => (
+            <Command.Item key={value} value={value} forceId={value}>
+              {value}
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command>,
+    );
+    await settle();
+    expect(spy.machine.getState().activeId).toBe('fixed-b');
+
+    const mounted = root;
+    root = undefined;
+    await act(async () => {
+      mounted?.unmount();
+    });
+    // The children's UNREGISTER sends run on the next scheduler frame, after the root suspended
+    await settle();
+    await settle();
+
+    expect(spy.machine.getRegistry().getItems()).toEqual([]);
+    expect(onActiveChange).not.toHaveBeenCalled();
+    expect(onSearchChange).not.toHaveBeenCalled();
   });
 
   it("D103: a caller's searchEngine is not disposed by the machine and keeps working after an Activity hide/show", async () => {
