@@ -1,19 +1,24 @@
 // packages/command-search-wasm/src/env.ts
-// Development-mode flag for this package: `process.env.NODE_ENV !== 'production'`, with a try/catch for an unbundled browser import.
+// The development flag of this package: an unbundled-import-safe read of `process.env.NODE_ENV`.
 // Isolated declarations: explicit type annotation on the export
 
 // Module-scoped declaration: no @types/node needed, and nothing global leaks.
 declare const process: { readonly env: { readonly NODE_ENV?: string } };
 
 /**
- * `true` unless `process.env.NODE_ENV` is `'production'`.
+ * `true` unless `process.env.NODE_ENV` is `'production'`; `false` where `process` does not exist.
  *
- * The check stays a literal `process.env.NODE_ENV` expression in the built output, so a consumer
- * bundler (Vite, webpack, Next, esbuild) replaces it statically and the dev-only branches fold
- * away in production. A browser running the unbundled module throws a ReferenceError on the bare
- * `process` reference; the catch turns that into the production value (`false`).
+ * Every development branch is guarded as `dev && process.env.NODE_ENV !== 'production'`:
+ * - Unbundled browser import: no bundler replaced the expression and there is no `process`, so the read throws, the
+ *   catch makes `dev` `false`, and the first operand short-circuits before the bare `process` at the use site.
+ * - Development bundle (Vite's dev server defines `process.env.NODE_ENV` as `"development"`, still without a
+ *   `process` global): both operands are `true`.
+ * - Production bundle: the define turns the use site into `dev && false`, which minifiers fold, so the development
+ *   branch and its warning strings leave the bundle. Whether the then unused flag is also dropped depends on the
+ *   minifier (rolldown 1.2.16 drops the `@__PURE__`-marked call; esbuild 0.28.2 keeps it, about 40 B). The comparison
+ *   repeats at the use site because a flag alone is a runtime value a minifier cannot fold.
  */
-export const isDev: boolean = (() => {
+export const dev: boolean = /* @__PURE__ */ (() => {
   try {
     return process.env.NODE_ENV !== 'production';
   } catch {

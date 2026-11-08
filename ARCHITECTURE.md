@@ -863,7 +863,7 @@ packages/command-search-wasm/        -- private, unpublished
     wasm-engine.ts       -- Main-thread WASM engine wrapper (SearchEngine, TS fallback)
     worker-engine.ts     -- Web Worker engine wrapper (Promise.withResolvers)
     worker.ts            -- Worker entry
-    env.ts               -- isDev flag
+    env.ts               -- `dev` flag (same form as core/utils/env.ts)
   crate/
     Cargo.toml           -- Rust crate configuration (edition 2024)
     src/

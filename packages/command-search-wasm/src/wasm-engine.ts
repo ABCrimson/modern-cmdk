@@ -4,7 +4,10 @@
 
 import type { ItemId, SearchEngine, SearchResult } from 'modern-cmdk';
 
-import { isDev } from './env.js';
+import { dev } from './env.js';
+
+// Module-scoped declaration: this package needs no @types/node, and nothing global leaks.
+declare const process: { readonly env: { readonly NODE_ENV?: string } };
 
 const DISPOSED_MESSAGE =
   'modern-cmdk: the WASM search engine was disposed; create a new engine with createWasmSearchEngine()';
@@ -122,7 +125,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
 
     return engine;
   } catch (error: unknown) {
-    if (isDev) {
+    if (dev && process.env.NODE_ENV !== 'production') {
       // biome-ignore lint/suspicious/noConsole: dev-only WASM load failure diagnostic
       console.warn(
         '[modern-cmdk] WASM search engine failed to load, falling back to TypeScript scorer:',

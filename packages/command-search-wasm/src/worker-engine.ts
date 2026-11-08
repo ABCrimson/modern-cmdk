@@ -5,9 +5,12 @@
 // Falls back to main-thread WASM when the Worker cannot be created or fails before it is ready.
 
 import type { CommandItem, ItemId, SearchEngine, SearchResult } from 'modern-cmdk';
-import { isDev } from './env.js';
+import { dev } from './env.js';
 import { createWasmSearchEngine } from './wasm-engine.js';
 import type { WorkerMessage, WorkerResponse } from './worker.js';
+
+// Module-scoped declaration: this package needs no @types/node, and nothing global leaks.
+declare const process: { readonly env: { readonly NODE_ENV?: string } };
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -210,7 +213,7 @@ export async function createWorkerSearchEngine(
    */
   function postDetached(message: WorkerMessage): void {
     postAndWait(message).catch((error: unknown) => {
-      if (!disposed && isDev) {
+      if (!disposed && dev && process.env.NODE_ENV !== 'production') {
         // biome-ignore lint/suspicious/noConsole: dev-only worker request failure diagnostic
         console.warn('[modern-cmdk] search worker request failed:', error);
       }
@@ -365,7 +368,7 @@ export async function createWorkerSearchEngine(
 // ── Main-thread fallback ─────────────────────────────────────────────────────
 
 function warnFallback(error: unknown): void {
-  if (isDev) {
+  if (dev && process.env.NODE_ENV !== 'production') {
     // biome-ignore lint/suspicious/noConsole: dev-only Worker failure diagnostic
     console.warn(
       '[modern-cmdk] search Worker unavailable, falling back to the main thread:',
