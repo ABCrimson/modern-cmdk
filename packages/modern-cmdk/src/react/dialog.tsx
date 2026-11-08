@@ -12,11 +12,11 @@ import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommandSetup } from './hooks/use-command-setup.js';
 
 export interface CommandDialogProps extends CommandMachineOptions {
-  readonly children?: ReactNode;
-  readonly className?: string;
-  readonly overlayClassName?: string;
-  readonly contentClassName?: string;
-  readonly label?: string;
+  readonly children?: ReactNode | undefined;
+  readonly className?: string | undefined;
+  readonly overlayClassName?: string | undefined;
+  readonly contentClassName?: string | undefined;
+  readonly label?: string | undefined;
   /**
    * Controlled open state. When defined, the dialog is open exactly while it is `true`: a request to open or close
    * calls `onOpenChange` and changes nothing else, so the parent decides, and a parent that keeps `open={true}`
@@ -29,11 +29,11 @@ export interface CommandDialogProps extends CommandMachineOptions {
    * `TOGGLE` from a shortcut or a consumer's `send`). For an uncontrolled one it reports each change of its open
    * state. A change of the `open` prop does not call it.
    */
-  readonly onOpenChange?: (open: boolean) => void;
+  readonly onOpenChange?: ((open: boolean) => void) | undefined;
   /** Accessible description for screen readers (default: 'Type a command or search...') */
-  readonly description?: string;
+  readonly description?: string | undefined;
   /** Container element for the portal (default: document.body) */
-  readonly container?: HTMLElement | null;
+  readonly container?: HTMLElement | null | undefined;
 }
 
 /** Dialog variant that wraps the command palette in a Radix UI Dialog with focus trap and overlay. */

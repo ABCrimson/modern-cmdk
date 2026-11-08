@@ -8,9 +8,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 export interface VirtualizerOptions {
   readonly count: number;
   readonly estimateSize: number;
-  readonly overscan?: number;
+  readonly overscan?: number | undefined;
   readonly scrollElement: HTMLElement | null;
-  readonly enabled?: boolean;
+  readonly enabled?: boolean | undefined;
 }
 
 export interface VirtualItem {

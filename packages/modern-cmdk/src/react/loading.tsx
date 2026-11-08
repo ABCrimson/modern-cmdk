@@ -8,7 +8,7 @@ import { useStateContext } from './context.js';
 
 export interface CommandLoadingProps extends ComponentPropsWithRef<'div'> {
   /** Override the loading state detection */
-  readonly loading?: boolean;
+  readonly loading?: boolean | undefined;
 }
 
 /** Shown during async operations, with configurable loading state override. */

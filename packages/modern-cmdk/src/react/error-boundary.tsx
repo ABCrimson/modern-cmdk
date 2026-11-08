@@ -10,13 +10,13 @@ export interface CommandErrorBoundaryProps {
    * Rendered in place of the children after an error. A function receives the error and a `reset`
    * callback that clears it, so the children render again (a retry button, for example).
    */
-  readonly fallback?: ReactNode | ((error: Error, reset: () => void) => ReactNode);
+  readonly fallback?: ReactNode | ((error: Error, reset: () => void) => ReactNode) | undefined;
   /**
    * While the boundary shows its fallback, a change in these values (compared entry by entry with
    * `Object.is`; a different length counts as a change) clears the error and renders the children again.
    */
-  readonly resetKeys?: readonly unknown[];
-  readonly onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  readonly resetKeys?: readonly unknown[] | undefined;
+  readonly onError?: ((error: Error, errorInfo: ErrorInfo) => void) | undefined;
 }
 
 interface CommandErrorBoundaryState {

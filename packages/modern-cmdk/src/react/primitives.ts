@@ -12,8 +12,8 @@ import {
 } from 'react';
 
 export interface SlotProps {
-  readonly children?: ReactNode;
-  readonly ref?: Ref<unknown>;
+  readonly children?: ReactNode | undefined;
+  readonly ref?: Ref<unknown> | undefined;
 }
 
 /** Merge two refs into a single callback ref */
@@ -50,7 +50,7 @@ export function Primitive<T extends ElementType = 'div'>({
   asChild,
   as: Component = 'div' as T,
   ...props
-}: { asChild?: boolean; as?: T } & ComponentPropsWithRef<T>): ReactNode {
+}: { asChild?: boolean | undefined; as?: T | undefined } & ComponentPropsWithRef<T>): ReactNode {
   if (asChild) {
     return <Slot {...props} />;
   }

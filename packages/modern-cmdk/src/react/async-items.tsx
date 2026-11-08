@@ -23,7 +23,7 @@ export interface CommandAsyncItemsProps {
   /** Promise that resolves to items; keep it stable across renders (state, a ref, or `useMemo`) or the boundary re-suspends on every render */
   readonly items: Promise<readonly CommandItem[]>;
   /** Fallback content while loading */
-  readonly fallback?: ReactNode;
+  readonly fallback?: ReactNode | undefined;
   /** Render function for resolved items */
   readonly children: (items: readonly CommandItem[]) => ReactNode;
 }

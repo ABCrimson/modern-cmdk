@@ -15,7 +15,7 @@ export type CommandPageId = string;
 export interface CommandPageProps {
   /** Page identifier */
   readonly id: string;
-  readonly children?: ReactNode;
+  readonly children?: ReactNode | undefined;
 }
 
 /** Page navigation container that only renders when its ID matches the active page. */

@@ -9,8 +9,8 @@ import { useSyncExternalStore } from 'react';
 import { subscribeNever } from './hooks/use-hydrated.js';
 
 export interface CommandShortcutProps extends ComponentPropsWithRef<'kbd'> {
-  /** Shortcut string to display (e.g., "Mod+K"). If not provided, reads from nearest Command.Item. */
-  readonly shortcut?: string;
+  /** Shortcut string to display (e.g., "Mod+K"). Without it the component renders its `children`. */
+  readonly shortcut?: string | undefined;
 }
 
 /** Keyboard shortcut display with platform-aware formatting (e.g., Cmd vs Ctrl). */

@@ -11,7 +11,7 @@ export interface CommandHighlightProps {
   /** Match ranges from the search scorer — half-open [start, end) tuples, end exclusive */
   readonly ranges: ReadonlyArray<readonly [start: number, end: number]>;
   /** Custom className for highlighted segments */
-  readonly highlightClassName?: string;
+  readonly highlightClassName?: string | undefined;
 }
 
 /** Renders search match highlighting by splitting text at scored match ranges. */

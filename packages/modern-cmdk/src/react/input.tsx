@@ -26,7 +26,7 @@ export interface CommandInputProps
    * Called with the new text on every change. Controlled (`value` defined): the caller applies it by passing the
    * next `value`; a caller that ignores it keeps the input at its `value`.
    */
-  readonly onValueChange?: (value: string) => void;
+  readonly onValueChange?: ((value: string) => void) | undefined;
 }
 
 /** Combobox input that drives the command palette search state. */
