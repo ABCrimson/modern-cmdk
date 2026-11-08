@@ -58,11 +58,15 @@ const FLUSH_DELAY_MS = 1000;
  * ranking boosts for search results. Supports pluggable storage backends.
  * Dirty data is saved 1000 ms after the last `recordSelection`, when the page
  * becomes hidden or is hidden for good (`visibilitychange`, `pagehide`), on
- * `flush()` and on dispose, which then disposes the storage; a save waits for a `load()` in
- * flight, so it writes the merged history. Uses Date.now() for timestamps.
+ * `flush()` and on dispose; a save waits for a `load()` in flight, so it writes the merged
+ * history. Dispose disposes the storage only when the engine created it (no `storage`
+ * option): a storage the caller passes is the caller's to dispose. Uses Date.now() for
+ * timestamps.
  */
 export class FrecencyEngine implements Disposable, AsyncDisposable {
   #storage: FrecencyStorage;
+  /** True when the engine created its storage, so dispose disposes it; a caller's storage is left alone */
+  #ownsStorage: boolean;
   #namespace: string;
   #data: FrecencyData;
   #config: FrecencyDecayConfig;
@@ -75,6 +79,7 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
   #abort = new AbortController();
 
   constructor(options: FrecencyOptions) {
+    this.#ownsStorage = options.storage === undefined;
     this.#storage = options.storage ?? new MemoryFrecencyStorage();
     this.#namespace = options.namespace ?? 'default';
     this.#config = options.decayConfig ?? DEFAULT_FRECENCY_DECAY;
@@ -205,19 +210,21 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
   }
 
   /**
-   * Async dispose — flushes dirty data, then disposes the storage even
+   * Async dispose — flushes dirty data, then disposes the storage the engine created, even
    * when the save rejects (the rejection propagates). Use with `await using`.
    */
   [Symbol.asyncDispose](): Promise<void> {
     this.#abort.abort();
-    return this.flush().finally(() => this.#storage[Symbol.dispose]());
+    return this.flush().finally(this.#disposeStorage);
   }
 
-  /** Sync dispose — starts the flush without awaiting it and disposes the storage once it settles */
+  /** Sync dispose — starts the flush without awaiting it and disposes the storage the engine created once it settles */
   [Symbol.dispose](): void {
     this.#abort.abort();
-    this.#save()
-      .finally(() => this.#storage[Symbol.dispose]())
-      .catch(this.#warn);
+    this.#save().finally(this.#disposeStorage).catch(this.#warn);
   }
+
+  #disposeStorage = (): void => {
+    if (this.#ownsStorage) this.#storage[Symbol.dispose]();
+  };
 }

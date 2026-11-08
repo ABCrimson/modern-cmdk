@@ -31,6 +31,25 @@ function makeEngine(options: FrecencyOptions = {}): FrecencyEngine {
   return engine;
 }
 
+/**
+ * An engine that created its storage: it gets no `storage` option, so it builds a
+ * MemoryFrecencyStorage, whose methods the mock stands in for on the prototype.
+ */
+function installOwnedStorage(storage: MockStorage): void {
+  vi.spyOn(MemoryFrecencyStorage.prototype, 'load').mockImplementation(
+    storage.load as (namespace: string) => FrecencyData, // the engine awaits a promise as well
+  );
+  vi.spyOn(MemoryFrecencyStorage.prototype, 'save').mockImplementation(storage.save);
+  vi.spyOn(MemoryFrecencyStorage.prototype, Symbol.dispose).mockImplementation(
+    storage[Symbol.dispose],
+  );
+}
+
+function makeOwningEngine(storage: MockStorage): FrecencyEngine {
+  installOwnedStorage(storage);
+  return makeEngine();
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
@@ -256,7 +275,7 @@ describe('FrecencyEngine dispose', () => {
     const storage = makeStorage();
     const pending = Promise.withResolvers<void>();
     storage.save.mockReturnValueOnce(pending.promise);
-    const engine = makeEngine({ storage });
+    const engine = makeOwningEngine(storage);
 
     engine.recordSelection(A);
     engine[Symbol.dispose]();
@@ -275,10 +294,9 @@ describe('FrecencyEngine dispose', () => {
   });
 
   it('CE-01: sync dispose of a dirty engine does not repopulate a disposed MemoryFrecencyStorage', async () => {
-    const memory = new MemoryFrecencyStorage();
-    const save = vi.spyOn(memory, 'save');
-    const dispose = vi.spyOn(memory, Symbol.dispose);
-    const engine = makeEngine({ storage: memory });
+    const save = vi.spyOn(MemoryFrecencyStorage.prototype, 'save');
+    const dispose = vi.spyOn(MemoryFrecencyStorage.prototype, Symbol.dispose);
+    const engine = makeEngine();
 
     engine.recordSelection(A);
     engine[Symbol.dispose]();
@@ -287,14 +305,39 @@ describe('FrecencyEngine dispose', () => {
     expect(save).toHaveBeenCalledTimes(1);
     expect(dispose).toHaveBeenCalledTimes(1);
     expect(save.mock.invocationCallOrder[0]).toBeLessThan(dispose.mock.invocationCallOrder[0] ?? 0);
-    expect(memory.toJSON()).toEqual({});
+    expect((save.mock.contexts[0] as MemoryFrecencyStorage).toJSON()).toEqual({});
+  });
+
+  it('CE-115, D95: a storage the caller passes is left undisposed by both disposals, after the last save', async () => {
+    const sync = makeStorage();
+    const syncEngine = makeEngine({ storage: sync });
+    syncEngine.recordSelection(A);
+    syncEngine[Symbol.dispose]();
+    await tick();
+    expect(sync.save).toHaveBeenCalledTimes(1);
+    expect(sync[Symbol.dispose]).not.toHaveBeenCalled();
+
+    const async = makeStorage();
+    const asyncEngine = makeEngine({ storage: async });
+    asyncEngine.recordSelection(B);
+    await asyncEngine[Symbol.asyncDispose]();
+    expect(async.save).toHaveBeenCalledTimes(1);
+    expect(async[Symbol.dispose]).not.toHaveBeenCalled();
+  });
+
+  it('CE-115, D95: an engine that created its storage disposes it', async () => {
+    const dispose = vi.spyOn(MemoryFrecencyStorage.prototype, Symbol.dispose);
+    const engine = makeEngine();
+    engine.recordSelection(A);
+    await engine[Symbol.asyncDispose]();
+    expect(dispose).toHaveBeenCalledTimes(1);
   });
 
   it('CE-01: sync dispose with a failing save still disposes the storage and warns once', async () => {
     const storage = makeStorage();
     const failure = new Error('blocked');
     storage.save.mockRejectedValue(failure);
-    const engine = makeEngine({ storage });
+    const engine = makeOwningEngine(storage);
 
     engine.recordSelection(A);
     engine[Symbol.dispose]();
@@ -307,7 +350,7 @@ describe('FrecencyEngine dispose', () => {
 
   it('CE-01: disposing twice is harmless and saves once', async () => {
     const storage = makeStorage();
-    const engine = makeEngine({ storage });
+    const engine = makeOwningEngine(storage);
 
     engine.recordSelection(A);
     engine[Symbol.dispose]();
@@ -320,8 +363,9 @@ describe('FrecencyEngine dispose', () => {
 
   it('TUB-23: await using saves once when dirty and disposes the storage', async () => {
     const storage = makeStorage();
+    installOwnedStorage(storage);
     {
-      await using engine = new FrecencyEngine({ storage });
+      await using engine = new FrecencyEngine({});
       engine.recordSelection(A);
     }
 
@@ -331,8 +375,9 @@ describe('FrecencyEngine dispose', () => {
 
   it('TUB-23: await using saves nothing when clean but still disposes the storage', async () => {
     const storage = makeStorage();
+    installOwnedStorage(storage);
     {
-      await using _engine = new FrecencyEngine({ storage });
+      await using _engine = new FrecencyEngine({});
     }
 
     expect(storage.save).not.toHaveBeenCalled();
@@ -343,7 +388,7 @@ describe('FrecencyEngine dispose', () => {
     const storage = makeStorage();
     const failure = new Error('disk full');
     storage.save.mockRejectedValue(failure);
-    const engine = makeEngine({ storage });
+    const engine = makeOwningEngine(storage);
 
     engine.recordSelection(A);
     await expect(engine[Symbol.asyncDispose]()).rejects.toBe(failure);
@@ -356,7 +401,7 @@ describe('FrecencyEngine saves in flight', () => {
   it('CE-01: asyncDispose waits for a timer save in flight before it disposes the storage', async () => {
     const storage = makeStorage();
     const pending = Promise.withResolvers<void>();
-    const engine = makeEngine({ storage });
+    const engine = makeOwningEngine(storage);
     const order: string[] = [];
     storage.save.mockImplementationOnce(() => {
       order.push('save start');
@@ -389,7 +434,7 @@ describe('FrecencyEngine saves in flight', () => {
     const storage = makeStorage();
     const pending = Promise.withResolvers<void>();
     storage.save.mockReturnValueOnce(pending.promise);
-    const engine = makeEngine({ storage });
+    const engine = makeOwningEngine(storage);
 
     engine.recordSelection(A);
     window.dispatchEvent(new Event('pagehide'));
@@ -451,7 +496,7 @@ describe('FrecencyEngine saves in flight', () => {
     storage[Symbol.dispose].mockImplementation(() => {
       throw failure;
     });
-    const engine = makeEngine({ storage });
+    const engine = makeOwningEngine(storage);
 
     engine.recordSelection(A);
     engine[Symbol.dispose]();
@@ -542,7 +587,7 @@ describe('FrecencyEngine save and load ordering', () => {
     const storage = makeStorage();
     const loading = Promise.withResolvers<FrecencyData>();
     storage.load.mockReturnValueOnce(loading.promise);
-    const engine = makeEngine({ storage });
+    const engine = makeOwningEngine(storage);
 
     void engine.load();
     engine.recordSelection(A);
