@@ -851,8 +851,8 @@
   },
   {
     "id": "P20",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/scorer-highlight.test.ts::P20: 'İstanbul' queried with 'ist' marks 'İst', not the lowercased offsets",
+    "status": "covered"
   },
   {
     "id": "P25",
@@ -886,8 +886,8 @@
   },
   {
     "id": "T15",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine.test.ts::T15: a disabled item is not selected: the batch that runs ITEM_SELECT leaves its onSelect uncalled",
+    "status": "covered"
   },
   {
     "id": "RC-15",
@@ -941,8 +941,8 @@
   },
   {
     "id": "CE-75",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/event-emitter.test.ts::CE-75: a throwing listener does not skip the later listeners and its error is rethrown from a microtask",
+    "status": "covered"
   },
   {
     "id": "CE-77",
@@ -1016,21 +1016,26 @@
   },
   {
     "id": "RA-76",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/styles-floor.test.ts::RA-76: every user-select declaration is preceded by its -webkit- prefixed twin",
+    "status": "covered"
   },
   {
     "id": "RA-77",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/styles-floor.test.ts::RA-77: animation-timeline declarations sit inside an @supports (animation-timeline: scroll()) block",
+    "status": "covered"
   },
   {
     "id": "CE-108",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/shortcut-rebind.test.ts::CE-108: UPDATE_ITEM of the earlier binding on a shared key leaves the later binding winning",
+    "status": "covered"
   },
   {
     "id": "PGX-15",
+    "test": "tests/e2e/accessibility.spec.ts::forced-colors: the High Contrast demo shows its disabled item at rest, painted in GrayText",
+    "status": "covered"
+  },
+  {
+    "id": "CE-113",
     "test": null,
     "status": "pending"
   }
