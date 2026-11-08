@@ -50,19 +50,19 @@ For comparison, 1.3 (commit `85a33bf`, size-limit at that commit, quoted from th
 
 ## Browser bench
 
-The figures above time the headless machine in Node. The browser bench (`benchmarks/browser/run.ts`) times a full React mount in Chromium: it builds the playground (with `react-dom/profiling`, so React's Profiler reports commit durations), serves it, and drives its `/bench` route at 1000 and 10000 items. Each size runs 1 warm-up and 7 measured runs, every run a fresh page load, and a figure is the median of the 7. Only the 10K mount is gated, at 50 ms; the other figures are recorded.
+The figures above time the headless machine in Node. The browser bench (`benchmarks/browser/run.ts`) times a full React mount in Chromium: it builds the playground (with `react-dom/profiling`, so React's Profiler reports commit durations), serves it, and drives its `/bench` route at 1000 and 10000 items. Each size runs 1 warm-up and 7 measured runs, every run a fresh page load, and a figure is the median of the 7. Only the 10K mount is checked, by a tripwire at 75 ms (D94), set from the runner's first measurement of 47.80 ms; the other figures are recorded.
 
-These figures come from [`benchmarks/browser/results/1.4.0-f5fcebb.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/browser/results/1.4.0-f5fcebb.json), a local run on 2026-11-08 on the development machine (Intel Core Ultra 9 290HX Plus, 24 cores, Windows 10.0.26300, Node v28.0.0-nightly20261107a43bfb5bb2) with Chromium 158.0.8127.18, new headless mode. The `1.4.0` in the file name is the version in the package manifest when the run was made, and `f5fcebb` is the commit it measured; neither is a release that was benchmarked. The items come from the shared `basic` dataset (`apps/playground/src/bench/dataset.ts`), the query is `g` (250 matches at 1K, 2500 at 10K), and times are in milliseconds.
+The figures below are the CI job "Browser bench (Chromium, 10K mount gate)" on a GitHub-hosted Ubuntu runner (AMD EPYC 7763, 4 cores, Linux 7.0.0-1019-azure, Node v28.0.0-nightly20261107a43bfb5bb2) with Chromium 158.0.8127.18, new headless mode, measured at commit `8362840` on 2026-11-08 and recorded in `benchmarks/browser/results/1.4.0-8362840.json`. The `1.4.0` in the file name is the version in the package manifest when the run was made, not a release that was benchmarked. The items come from the shared `basic` dataset (`apps/playground/src/bench/dataset.ts`), the query is `g` (250 matches at 1K, 2500 at 10K), and times are in milliseconds.
 
 | Metric | N = 1000 | N = 10000 |
 |--------|----------|-----------|
-| Mount (first `REGISTER_ITEM` sent to the first state holding all N items) | 6.0 | 18.8 |
-| Filter (keystroke to the first state with the new search) | 2.8 | 5.7 |
-| Keystroke to paint (the keystroke to the animation frame after the one that shows the result) | 18.8 | 120.5 |
-| React commit of the mount (sum of Profiler `actualDuration`) | 9.8 | 38.6 |
-| React commit of the filter | 3.6 | 14.6 |
+| Mount (first `REGISTER_ITEM` sent to the first state holding all N items) | 27.4 | 47.8 |
+| Filter (keystroke to the first state with the new search) | 11.0 | 15.5 |
+| Keystroke to paint (the keystroke to the animation frame after the one that shows the result) | 28.6 | 244.1 |
+| React commit of the mount (sum of Profiler `actualDuration`) | 25.3 | 145.3 |
+| React commit of the filter | 5.7 | 46.7 |
 
-The 10K mount median was 18.80 ms against the 50 ms gate (the run's verdict is `pass`); its seven runs ranged from 14.7 to 26.8 ms. These are the figures of one machine and one day, not a CI reading: the CI job "Browser bench (Chromium, 10K mount gate)" runs the same harness on a GitHub-hosted runner and uploads its results as the `browser-bench-results` artifact, which replaces these figures once the job is green.
+The seven 10K mount runs ranged from 40.7 to 59.7 ms around the 47.80 ms median. For context, the same harness on the development machine (Intel Core Ultra 9 290HX Plus, Windows) measured a 10K mount median of 18.80 ms on 2026-11-08; a shared CI runner is slower and noisier, so read the table above, not that line, as the reference.
 
 ## Why It's Fast
 
