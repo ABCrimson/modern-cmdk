@@ -1,11 +1,12 @@
 // tests/unit/item-props.test.tsx
-// Command.Item and Command.Group props (cluster C2): the `id` prop and its deprecated alias `forceId`.
+// Command.Item and Command.Group props (cluster C2): the `id` prop and its deprecated alias `forceId`, `propsMerge`, live `data`.
 // Helpers (`mount`, `update`, `settle`, `Spy`) are shared by the tests of this file.
 
+import { fireEvent } from '@testing-library/react';
 import type { CommandMachine } from 'modern-cmdk';
 import { groupId, itemId } from 'modern-cmdk';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { act, use } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +16,7 @@ let root: Root | undefined;
 
 afterEach(async () => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   if (root) {
     await act(async () => {
       root?.unmount();
@@ -149,5 +151,147 @@ describe('Command.Item and Command.Group id', () => {
     await settle();
     expect(spy.registry.getGroup(groupId('grp'))?.heading).toBe('Letters');
     expect(host.querySelector('[data-command-group]')?.id).toBe('grp');
+  });
+});
+
+/** Clicks `element` the way a pointer does and lets the machine process the selection. */
+async function click(element: Element | null): Promise<void> {
+  if (!element) throw new Error('nothing to click');
+  await act(async () => {
+    fireEvent.click(element);
+  });
+  await settle();
+}
+
+/** The item elements of `host`, in DOM order. */
+const itemsOf = (host: HTMLElement): HTMLElement[] => [
+  ...host.querySelectorAll<HTMLElement>('[data-command-item]'),
+];
+
+/** A ResizeObserver that reports a 400px box on observe: happy-dom lays nothing out, so the virtualizer sees no height without it. */
+class SizedObserver {
+  readonly #callback: ResizeObserverCallback;
+
+  constructor(callback: ResizeObserverCallback) {
+    this.#callback = callback;
+  }
+
+  observe(target: Element): void {
+    this.#callback(
+      [{ contentRect: { height: 400 }, target } as ResizeObserverEntry],
+      this as unknown as ResizeObserver,
+    );
+  }
+
+  unobserve(): void {}
+
+  disconnect(): void {}
+}
+
+// The props are spread from constants so this file type-checks before and after `propsMerge` is declared.
+const COMPOSE = { propsMerge: 'compose' } as const;
+const OVERRIDE = { propsMerge: 'override' } as const;
+
+describe('Command.Item propsMerge', () => {
+  it('RA-13: propsMerge compose calls the consumer onClick and still selects', async () => {
+    const calls: string[] = [];
+    const onSelect = vi.fn(() => calls.push('select'));
+    const blocked = vi.fn();
+    const host = await mount(
+      <Command>
+        <Command.Input />
+        <Command.List>
+          <Command.Item
+            value="alpha"
+            {...COMPOSE}
+            onSelect={onSelect}
+            onClick={(): number => calls.push('consumer')}
+            onPointerMove={(): number => calls.push('move')}
+            style={{ color: 'red' }}
+          >
+            Alpha
+          </Command.Item>
+          <Command.Item
+            value="beta"
+            {...COMPOSE}
+            onSelect={blocked}
+            onClick={(event: MouseEvent<HTMLDivElement>): void => event.preventDefault()}
+            role="button"
+            aria-selected={true}
+            style={{ color: 'blue' }}
+          >
+            Beta
+          </Command.Item>
+        </Command.List>
+      </Command>,
+    );
+    await settle();
+    const [alpha, beta] = itemsOf(host);
+    if (!alpha || !beta) throw new Error('items missing');
+
+    // The consumer handler runs first, then the item selects.
+    await click(alpha);
+    expect(calls).toEqual(['consumer', 'select']);
+
+    // preventDefault() in the consumer handler stops the selection.
+    await click(beta);
+    expect(blocked).not.toHaveBeenCalled();
+
+    // The managed role and aria-selected win over the consumer's; the consumer style merges.
+    expect(beta.getAttribute('role')).toBe('option');
+    expect(beta.getAttribute('aria-selected')).toBe('false');
+    expect(alpha.style.color).toBe('red');
+    expect(beta.style.color).toBe('blue');
+
+    // The consumer onPointerMove runs, and the item still activates.
+    await act(async () => {
+      fireEvent.pointerMove(beta);
+    });
+    await settle();
+    expect(beta.getAttribute('aria-selected')).toBe('true');
+    await act(async () => {
+      fireEvent.pointerMove(alpha);
+    });
+    await settle();
+    expect(calls).toContain('move');
+    expect(alpha.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('RA-13: propsMerge override keeps the 1.x spread order', async () => {
+    vi.stubGlobal('ResizeObserver', SizedObserver);
+    const calls: string[] = [];
+    const onSelect = vi.fn(() => calls.push('select'));
+    const host = await mount(
+      <Command>
+        <Command.Input />
+        <Command.List virtualize>
+          <Command.Item
+            value="alpha"
+            {...OVERRIDE}
+            onSelect={onSelect}
+            onClick={(): number => calls.push('consumer')}
+            style={{ color: 'red' }}
+          >
+            Alpha
+          </Command.Item>
+          <Command.Item value="beta" onSelect={onSelect}>
+            Beta
+          </Command.Item>
+        </Command.List>
+      </Command>,
+    );
+    await settle();
+    const [alpha, beta] = itemsOf(host);
+    if (!alpha || !beta) throw new Error('items missing');
+
+    // A consumer onClick replaces the selection.
+    await click(alpha);
+    expect(calls).toEqual(['consumer']);
+    expect(onSelect).not.toHaveBeenCalled();
+
+    // A consumer style replaces the item's own (here the virtual position).
+    expect(beta.getAttribute('style')).toContain('translate');
+    expect(alpha.getAttribute('style')).not.toContain('translate');
+    expect(alpha.style.color).toBe('red');
   });
 });
