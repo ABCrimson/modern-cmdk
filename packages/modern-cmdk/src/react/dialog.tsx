@@ -30,7 +30,8 @@ export interface CommandDialogProps extends CommandMachineOptions {
   /**
    * Called with the next open state. For a controlled dialog it reports each request once: the user's (Escape, a
    * click outside, the overlay) and the palette's own (an item selection that closes it, `CLOSE`, `OPEN` or
-   * `TOGGLE` from a shortcut or a consumer's `send`). A change of the `open` prop does not call it.
+   * `TOGGLE` from a shortcut or a consumer's `send`). A dialog that drops its `open` prop after mount is uncontrolled
+   * and reports each change of its open state. A change of the `open` prop does not call it.
    */
   readonly onOpenChange?: ((open: boolean) => void) | undefined;
   /** Accessible description for screen readers (default: 'Type a command or search...') */
@@ -59,8 +60,9 @@ export function CommandDialog({
   // frame in a browser), so when `open` changes again before then it still reports the earlier request: a report equal
   // to the marker is the machine following the prop and is not forwarded. Every report clears the marker.
   const followed = useRef<boolean | undefined>(undefined);
-  // The machine reports every change of its open state. An uncontrolled dialog hands that report to the consumer; no
-  // 1.x consumer reaches that path, because an uncontrolled dialog never opens (RA-85, DG-21). A
+  // The machine reports every change of its open state. An uncontrolled dialog hands that report to the consumer. A dialog
+  // mounted without `open` never opens (RA-85, DG-21); one that drops its `open` prop after mount is uncontrolled and
+  // reaches this path (CE-118). A
   // controlled dialog hands it over only when it differs from `open` and is not the machine following the prop: the
   // machine's own request (a selection that closes, CLOSE, OPEN, TOGGLE) is reported once, while the machine following
   // the prop (the effect below) and the put-back of a state the parent refused report nothing. Radix's request goes
@@ -113,8 +115,9 @@ export function CommandDialog({
   }, []);
 
   // Radix reports the user's request to open or close the dialog. A controlled dialog hands it to the consumer and
-  // waits for the prop; an uncontrolled one applies it, and the machine reports the change (Radix only asks to
-  // close an open dialog, and an uncontrolled one never opens, RA-85, DG-21).
+  // waits for the prop; an uncontrolled one applies it, and the machine reports the change. Radix asks only to close an
+  // open dialog, so this branch serves a dialog that dropped its `open` prop (CE-118); a dialog mounted without `open`
+  // never opens (RA-85, DG-21).
   const handleRadixOpenChange = useCallback(
     (next: boolean): void => {
       if (controlledOpen !== undefined) onOpenChange?.(next);
