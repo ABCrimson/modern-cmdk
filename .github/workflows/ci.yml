@@ -503,7 +503,8 @@ jobs:
         # `|| code=$?` is not a mask: it records the status of the deciding run, so exit 1 can become a
         # warning and exit 2 can trigger the one re-run; every other non-zero status is re-raised by
         # `exit "$code"`.
-        # Time: one run is about 20 s (RUNS 5), so both runs add under a minute to the 10-minute job.
+        # Time: one run took 16 s on a local host at RUNS 5 (2026-11-08); the CI runner is slower but two runs
+        # stay well inside the 10-minute job.
         run: |
           code=0
           pnpm bench:compare || code=$?

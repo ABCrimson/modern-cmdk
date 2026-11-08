@@ -567,15 +567,15 @@ pnpm bench
 pnpm bench:compare
 ```
 
-Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnpm bench:compare` fails a median above its target (Reason `above target` in its table). Baselines below `regressionThresholds.floor_ms` (0.01 ms; today only `stateUpdate:navigate`, 0.75 microseconds) are reported, not compared with the 5 % and 15 % thresholds, because run-to-run noise at that scale exceeds them.
-
-`pnpm bench:compare` runs the named operations 5 times and takes, per task, the median of the 5 runs' p50, p99 and rme. A median more than 5 % above its baseline warns (exit 1); more than 15 % above, or above its target, fails (exit 2, which also covers a harness error). CI is red only on two consecutive fails: on exit 2 the step re-runs `pnpm bench:compare` once, and the first failure is a warning annotation. `benchmarks/baseline.json` is re-recorded from the `benchmark-results` artifact of the first green run after each Node pin bump.
+Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnpm bench:compare` fails a median above its target (Reason `above target` in its table). Baselines below `regressionThresholds.floor_ms` (0.01 ms; today only `stateUpdate:navigate`, 0.75 microseconds) are reported, not compared with the 5 % and 15 % thresholds, because run-to-run noise at that scale exceeds them:
 
 | Benchmark (baseline key) | Target | Baseline median (CI runner, benchmarks/history/2026-11-04-45a9134.json) |
 |---|---|---|
 | Search 10K items, TypeScript scorer (`search.ts-scorer-10k`) | < 16 ms | 3.46 ms |
 | Search-change cycle (`stateUpdate.searchChange`) | < 4 ms | 0.37 ms |
 | Navigate cycle (`stateUpdate.navigate`) | < 1 ms | 0.00075 ms |
+
+`pnpm bench:compare` runs the named operations 5 times and takes, per task, the median of the 5 runs' p50, p99 and rme. A median more than 5 % above its baseline warns (exit 1); more than 15 % above, or above its target, fails (exit 2, which also covers a harness error). CI is red only on two consecutive fails: on exit 2 the step re-runs `pnpm bench:compare` once, and the first failure is a warning annotation. `benchmarks/baseline.json` is re-recorded from the `benchmark-results` artifact of the first green run after each Node pin bump.
 
 `pnpm bench` (Vitest bench, the `perf` project) also times incremental filtering (`filter-10k`, `filter-100k`) and frecency, but those suites have no baseline entry and no target; `wasm-search.bench.ts` is excluded from the project until the engine initialises (W01).
 
