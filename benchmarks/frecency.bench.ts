@@ -92,6 +92,12 @@ describe('FrecencyEngine.getBonus — 10K Records', () => {
 
   beforeAll(async () => {
     await engine.load();
+    const held = engine.getData().records.size;
+    if (held !== ids.length) {
+      throw new Error(
+        `frecency fixture: engine holds ${held} of ${ids.length} records after load()`,
+      );
+    }
   });
 
   test('single getBonus lookup', async ({ bench }) => {

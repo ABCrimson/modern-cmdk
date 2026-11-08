@@ -13,7 +13,7 @@
 //                       quadratically until the core batches the refilter.
 //
 // Machine creation of the second path and every dispose happen in beforeEach/afterEach, outside the
-// timed window. The slow case (REGISTER_ITEM x N at 10K takes seconds per iteration) gets an exact,
+// timed window; every machine either path creates is disposed in afterEach. The slow case (REGISTER_ITEM x N at 10K takes seconds per iteration) gets an exact,
 // small iteration count (time: 0 turns off tinybench's time budget, so the count alone decides the run
 // length), which keeps `pnpm bench --run` well inside the CI bench job's 10 minute timeout.
 
@@ -29,6 +29,10 @@ function registerItemsBench(items: readonly CommandItem[]) {
   let machine: CommandMachine | undefined;
   return {
     options: {
+      // fn is synchronous. Without this option tinybench calls fn() once while registering the task, to
+      // detect whether it is async, outside the hooks; that machine would be overwritten and never
+      // disposed. `async: false` skips the probe (an async fn, as below, is recognised without a call).
+      async: false,
       afterEach() {
         machine?.[Symbol.dispose]();
         machine = undefined;
