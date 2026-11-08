@@ -316,6 +316,12 @@ interface Searching {
 }
 
 describe('CommandMachine batching', () => {
+  // The machine disposes only the engine it creates (D103): the engines passed to it are disposed after each test.
+  const engines: SearchEngine[] = [];
+  afterEach(() => {
+    for (const engine of engines.splice(0)) engine[Symbol.dispose]();
+  });
+
   function counted(): { engine: SearchEngine; searches: () => number } {
     const inner = createSearchEngine();
     let calls = 0;
@@ -329,6 +335,7 @@ describe('CommandMachine batching', () => {
       },
       [Symbol.dispose]: (): void => inner[Symbol.dispose](),
     };
+    engines.push(engine);
     return { engine, searches: () => calls };
   }
 
