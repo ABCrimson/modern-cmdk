@@ -945,9 +945,12 @@ describe('docs rows of 1.7.0', () => {
     );
     const changed: string = jsdocAbove(file, /^\s*readonly onOpenChange\?:/);
     expect(changed, 'RA-85: a controlled dialog reports each request once').toMatch(/controlled/i);
-    expect(changed, 'RA-85: no uncontrolled dialog reports changes').not.toMatch(
-      /uncontrolled[^.]*\b(?:reports?|calls?)\s+(?:it\s+)?(?:each|every|on every)\s+(?:change|request|open)/i,
-    );
+    for (const s of sentences(changed).filter((s) => /\buncontrolled\b/i.test(s))) {
+      expect(
+        s,
+        'RA-85: an uncontrolled report is tied to a dialog that dropped its open prop',
+      ).toMatch(/\bdrops?\b[^.]*`open`|`open`[^.]*\b(?:dropped|removed)\b/);
+    }
   });
 
   it('RA-86: packages/modern-cmdk/src/react/activity.tsx and api/command-react.md describe a hidden Activity as kept mounted and hidden, not unrendered', () => {
@@ -1018,11 +1021,16 @@ describe('docs rows of 1.7.0', () => {
     const samples: Fence[] = codeFences(telemetry);
     // The sinks: the analytics client and any other call that leaves the page (one level of nested
     // parentheses, so `durationMs: end - start` and `q.length` stay inside their call).
-    const calls: string[] = samples.flatMap(
-      (f) =>
-        f.code.match(
-          /\b(?:analytics\.\w+|console\.\w+|fetch|navigator\.sendBeacon)\((?:[^()]|\([^()]*\))*\)/g,
-        ) ?? [],
+    const sinkStart = /\b(?:analytics\.\w+|console\.\w+|fetch|navigator\.sendBeacon)\(/g;
+    const calls: string[] = samples.flatMap((f) =>
+      [...f.code.matchAll(sinkStart)].map((m) => {
+        let depth = 0;
+        for (let i = m.index + m[0].length - 1; i < f.code.length; i++) {
+          if (f.code[i] === '(') depth++;
+          else if (f.code[i] === ')' && --depth === 0) return f.code.slice(m.index, i + 1);
+        }
+        return f.code.slice(m.index);
+      }),
     );
     expect(calls.length, 'SEC-47: the samples track events').toBeGreaterThan(3);
     // The raw query reaches a hook as the first parameter of onSearchComplete and the second of
@@ -1036,6 +1044,17 @@ describe('docs rows of 1.7.0', () => {
       ]),
     );
     queryParams.delete('');
+    for (const f of samples) {
+      const body = f.code.replace(
+        /\bonSearchComplete:\s*\([^)]*\)|\bonItemSelected:\s*\([^)]*\)/g,
+        '',
+      );
+      for (const name of queryParams) {
+        expect(body, `SEC-47: ${name} is used only as ${name}.length`).not.toMatch(
+          new RegExp(`(?<![\\w$])${name}(?![\\w$])(?!\\.length\\b)`),
+        );
+      }
+    }
     expect(
       queryParams.size,
       'SEC-47: the samples name the query parameter of onSearchComplete and onItemSelected',
