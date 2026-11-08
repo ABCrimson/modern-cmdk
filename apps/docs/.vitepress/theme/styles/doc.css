@@ -145,36 +145,24 @@ html .vp-doc td {
 }
 
 /* API tables squeeze instead of clip (judge finding 4). A table is its own scroll container, so a table wider than the 686 px
-   column (1440 and 1920; 622 px at 1280) cut every Description mid-word under the edge fade. Measured before, with the old
-   td:last-child min-inline-size of 15rem and every cell nowrap: api/command-react had 5 of 29 tables overflowing at 1440 (widest
-   235 px, the first Props table 106 px; tallest row 125 px) and 10 at 1280 (widest 299 px); api/command had 10 of 19 at 1440 (widest 453 px) and 12
-   at 1280 (widest 517 px; tallest row 147 px). Now no table overflows at 1280, 1440 or 1920, and the tallest row is
-   125 px at 1280 and 104 px at 1440 (command-react), 147 px (command, the `enabled` row of the frecency table), under the 160 px tests/docs/api-tables.spec.ts allows.
-   What gets there, each step measured: a cell and its code spans wrap at spaces (a first column of several code spans, a
-   signature with commas); only the Type, Default and Description cells may also break inside an identifier, as a last resort when
-   the table is wider than the column, so a first column identifier is never broken; the description keeps a 12rem floor
-   (192 px; 14rem and up made the other columns break more and the rows taller); cells pad 0.75rem inline, not 1rem, which
-   takes 32 px off a four-column table and brings the `enabled` row from 169 px to 147 px at 1280. At 1400 px and up the Type and
-   Default columns also keep an 8rem floor, so "CommandItem[]" and "FrecencyStorage" stay whole (with no floor the layout broke
-   them as "CommandIte/m[]"); 9rem and up pushes the `enabled` row to 169 px at 1440, and below 1400 px (a 622 px column at
-   1280) the floor would leave that row 191 px, so there the identifiers may break. */
+   column (1440 and 1920; 622 px at 1280) cut every Description mid-word under the edge fade. Measured at e54dad3, with a 15rem
+   td:last-child floor and every cell nowrap: api/command-react had 5 of 29 tables overflowing at 1440 (widest 235 px, the
+   first Props table 106 px) and 10 at 1280 (widest 299 px); api/command had 10 of 19 at 1440 (widest 453 px) and 12 at 1280
+   (widest 517 px). The next try let code spans break inside an identifier (overflow-wrap: anywhere): no overflow, but
+   "FrecencyOption/s" at 1440 and 17 to 23 identifiers split at 1280. The rule now: cells and their code spans wrap at spaces
+   only, so an identifier is never split; the description keeps an 8rem (128 px) floor; cells pad 0.75rem inline, not 1rem. The
+   one wide row, `enabled` of api/command's FrecencyOptions table, was cut from 6 lines to 2 in the markdown. Measured
+   with this rule at 1280, 1440 and 1920: no table scrolls, no identifier splits, and the tallest row is 125 px at 1280 (both
+   pages), 82 px (api/command-react) and 104 px (api/command) at 1440 and 1920; tests/docs/api-tables.spec.ts allows 160. With
+   1rem padding one of the six page and width pairs still splits or scrolls; a 10rem floor leaves table 11 of api/command 14 px
+   too wide at 1280, so 8rem is the largest that fits. */
 html .vp-doc td,
 html .vp-doc td code {
   white-space: normal;
 }
 
-html .vp-doc td:not(:first-child) code {
-  overflow-wrap: anywhere;
-}
-
 html .vp-doc td:last-child {
-  min-inline-size: 12rem;
-}
-
-@media (width >= 1400px) {
-  html .vp-doc td:not(:first-child, :last-child) {
-    min-inline-size: 8rem;
-  }
+  min-inline-size: 8rem;
 }
 
 html .vp-doc th {
