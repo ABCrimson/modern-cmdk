@@ -5,7 +5,8 @@
 
 import type { CommandGroup, CommandItem, GroupId, ItemId } from 'modern-cmdk';
 import { groupId, itemId } from 'modern-cmdk';
-import { useId, useLayoutEffect, useRef } from 'react';
+import { use, useId, useLayoutEffect, useRef } from 'react';
+import { CommandAsyncItemsContext } from '../async-items.js';
 import { useStableContext } from '../context.js';
 import { dev } from '../env.js';
 
@@ -14,6 +15,9 @@ declare const process: { readonly env: { readonly NODE_ENV?: string } };
 
 /** Set once the `id` / `forceId` conflict warning has fired, so it fires once per page load. */
 let warnedIdConflict = false;
+
+/** Set once the missing-id warning for items inside AsyncItems has fired. */
+let warnedAsyncWithoutId = false;
 
 /** `id ?? forceId ?? generated`; in development, warns once when `id` and `forceId` are both given and differ. */
 function resolveId(id: string | undefined, forceId: string | undefined, generated: string): string {
@@ -50,6 +54,23 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
   const generatedId = useId();
   const id: ItemId = itemId(resolveId(options?.id, options?.forceId, generatedId));
 
+  // The batch of an enclosing Command.AsyncItems, or null
+  const batch = use(CommandAsyncItemsContext);
+  if (dev && process.env.NODE_ENV !== 'production') {
+    if (
+      batch !== null &&
+      options?.id === undefined &&
+      options?.forceId === undefined &&
+      !warnedAsyncWithoutId
+    ) {
+      warnedAsyncWithoutId = true;
+      // biome-ignore lint/suspicious/noConsole: development-only misuse diagnostic, gated on NODE_ENV
+      console.warn(
+        '[modern-cmdk] An item inside Command.AsyncItems has no `id`: it registers under a generated id, so the loaded item and the rendered item become two entries. Pass `id={item.id}` to Command.Item (or `id` to useRegisterItem).',
+      );
+    }
+  }
+
   // Stabilize onSelect via ref — inline arrow functions won't cause re-registration
   const onSelectRef = useRef(options?.onSelect);
   onSelectRef.current = options?.onSelect;
@@ -72,7 +93,8 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
     [stable.machine, id],
   );
 
-  // useLayoutEffect ensures registration happens before paint
+  // useLayoutEffect ensures registration happens before paint. A new AsyncItems batch is a dependency: the old
+  // batch's cleanup unregistered this id, so the item sends its entry again after the new batch's ITEMS_LOADED.
   // biome-ignore lint/correctness/useExhaustiveDependencies: keywordsDep is a derived string for stable identity; options.keywords is read via ref-like pattern
   useLayoutEffect(() => {
     const item: CommandItem = {
@@ -96,6 +118,7 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
     options?.disabled,
     keywordsDep,
     options?.shortcut,
+    batch,
   ]);
 
   return id;
