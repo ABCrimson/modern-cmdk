@@ -1141,8 +1141,8 @@
   },
   {
     "id": "T06",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/cmdk-comparison.test.tsx::T06: onSelect receives cmdk's value and no argument in modern-cmdk 1.x, as the delta table records",
+    "status": "covered"
   },
   {
     "id": "RA-03",
@@ -1201,8 +1201,8 @@
   },
   {
     "id": "T41",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/cmdk-comparison.test.tsx::T41: Command.List writes --command-list-height from its measured height",
+    "status": "covered"
   },
   {
     "id": "CE-48",
