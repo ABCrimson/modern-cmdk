@@ -176,8 +176,40 @@ const conflicts = detectConflicts(shortcuts);
 ```
 
 ::: tip
-`detectConflicts` groups shortcuts by their normalized form internally, then filters for groups with more than one entry. This is O(n) and runs during registration, not on every keystroke.
+`detectConflicts` is a plain function: it groups the shortcuts you pass by their normalized form, keeps the groups with more than one entry and returns them. It runs in O(n) when you call it. The registry never calls it during registration and logs no warning on a conflict; ask for the conflicts when you want them (see below).
 :::
+
+## How the Registry Resolves Conflicts
+
+The machine binds each item's `shortcut` in a `KeyboardShortcutRegistry`, which `machine.getKeyboardRegistry()` returns. Bindings are kept in a stack per normalized key (`Mod+K` and `mod+k` are the same key), one binding per item:
+
+- When two items share a key, the later binding handles the keydown. Removing it, or disposing the `Disposable` that `register()` returns, makes the earlier one handle the key again.
+- Re-binding an item on the key it already holds, which is what an `UPDATE_ITEM` does, replaces its binding in place and keeps its position in the stack, so updating the earlier of two items does not make it win the key.
+- `getConflicts()` returns the keys with two or more bindings (the parsed shortcuts, earliest first), computed on demand. `getBindings()` returns a snapshot of the winning binding of every key.
+- `unregister(shortcut)` removes every binding of that key. `unregisterByItem(itemId, keep?)` removes the item's bindings, except the one on the `keep` shortcut.
+
+```typescript
+import { createCommandMachine, itemId } from 'modern-cmdk';
+
+using machine = createCommandMachine({
+  items: [
+    { id: itemId('copy'), value: 'Copy', shortcut: 'Mod+K', onSelect: () => console.log('copy') },
+    { id: itemId('clear'), value: 'Clear', shortcut: 'Mod+K', onSelect: () => console.log('clear') },
+  ],
+});
+
+const registry = machine.getKeyboardRegistry();
+for (const [key, shortcuts] of registry.getConflicts()) {
+  console.warn(`${shortcuts.length} items share ${key}`); // "2 items share ctrl+k" ('meta+k' on macOS)
+}
+registry.getBindings().get('ctrl+k')?.itemId; // 'clear': the later binding handles the key
+```
+
+What an item's shortcut does follows its state and the `shortcutAction` option:
+
+- A disabled item is not bound at all: its shortcut does nothing and leaves the key to the page and to other items. Enabling it through `UPDATE_ITEM` binds it.
+- With `shortcutAction: 'direct'` (the default through 1.x) the shortcut calls the item's `onSelect` and binds only items that have one. With `'select'` it dispatches `ITEM_SELECT`, so the item's `onSelect`, the machine's `onSelect` option, the `select` event and frecency all run, and every enabled item with a shortcut is bound. 2.0 makes `'select'` the default.
+- Items delivered by an `ITEMS_LOADED` event (`<Command.AsyncItems>`) bind their shortcuts like any other item.
 
 ## ARIA Integration
 
