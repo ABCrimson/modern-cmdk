@@ -51,6 +51,15 @@ const codeTheme = createCssVariablesTheme({
   fontStyle: true,
 });
 
+// The five pages NotFound.vue server-renders (SSR_LINKS there) and the 404 <noscript> fallback repeats.
+const notFoundLinks: readonly (readonly [text: string, path: string])[] = [
+  ['Getting started', 'guide/getting-started'],
+  ['Installation', 'guide/installation'],
+  ['Core API', 'api/command'],
+  ['Examples', 'examples/basic'],
+  ['Migrate from cmdk', 'guide/migration-from-cmdk'],
+];
+
 // A Mermaid fence renders client-side in <MermaidDiagram> (theme/components/MermaidDiagram.vue);
 // the diagram source travels as an escaped attribute so Vue never parses it as template syntax.
 const escapeAttribute = (value: string): string =>
@@ -127,6 +136,21 @@ export default defineConfig({
     return head;
   },
 
+  // 404.md is the one page VitePress never server-renders: the HTML template writes `page === "404.md" ? "" : content`
+  // into #app (vitepress/dist/node/chunk-BjrVv9r8.js:24399), so without JavaScript a visitor sees nothing. This hook
+  // is a no-JS fallback for that missing content, not the DOM patch the spec's J5 rejected (J5 was about patching the
+  // home page's own markup after render): it appends a <noscript> block after #app, which a browser with JavaScript
+  // never renders. Its links are the five NotFound.vue server-renders; hrefs are built from base and end in .html
+  // (cleanUrls is unset). Signature: vitepress/dist/node/index.d.ts:1553.
+  transformHtml(code: string, _id: string, { page }: TransformContext): string | undefined {
+    if (page !== '404.md') return undefined;
+    const links = notFoundLinks
+      .map(([text, path]) => `<li><a href="${base}${path}.html">${text}</a></li>`)
+      .join('');
+    const fallback = `<noscript><main class="vp-doc" data-mc="not-found"><h1>No page at this address</h1><p>Nothing lives here. The closest pages are listed below, or search the whole site from the navigation bar.</p><ul>${links}</ul></main></noscript>`;
+    return code.replace(/<div id="app">[\s\S]*?<\/div>/, (app) => `${app}${fallback}`);
+  },
+
   vite: {
     resolve: {
       alias: [{ find: /^modern-cmdk$/, replacement: coreEntry }],
@@ -135,6 +159,18 @@ export default defineConfig({
 
   markdown: {
     theme: codeTheme,
+    // Sentence-case titles (design spec 4.5); the keys are ContainerOptions (vitepress/types/shared.d.ts:412-460).
+    // The labels also title the GitHub-style alerts.
+    container: {
+      tipLabel: 'Tip',
+      noteLabel: 'Note',
+      infoLabel: 'Info',
+      warningLabel: 'Warning',
+      dangerLabel: 'Danger',
+      importantLabel: 'Important',
+      cautionLabel: 'Caution',
+      detailsLabel: 'Details',
+    },
     config(md: MarkdownRenderer): void {
       const fence = md.renderer.rules.fence;
       const render: FenceRule = (...args: Parameters<FenceRule>): ReturnType<FenceRule> => {
