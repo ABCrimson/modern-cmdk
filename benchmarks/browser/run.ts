@@ -3,7 +3,9 @@
 // serves it, and drives its /bench route in Chromium at N = 1000 and 10000 (1 warm-up + 7 measured
 // runs each, every run a fresh page load). It measures the mount, the filter keystroke, the
 // keystroke-to-paint time and the React commit durations (recorded, not gated), writes
-// benchmarks/browser/results/<version>-<sha>.json and fails when the 10K mount median is above 50 ms.
+// benchmarks/browser/results/<version>-<sha>.json and fails when the 10K mount median is above the
+// tripwire threshold, MOUNT_GATE_THRESHOLD_MS in stats.ts (75 ms: 1.5x the 47.80 ms median CI run
+// 42455685144 measured on the ubuntu-26.04 runner on 2026-11-08, rounded up to 5 ms; D94).
 // Exit codes: 0 = the 10K mount median is at or below the threshold, 1 = it is above (the gate
 // failed), 2 = harness error (build, server, browser or page error, timeout, a rejected page result,
 // an unwritable results file, a checkout whose HEAD or dirty state changed during the run, a run past
