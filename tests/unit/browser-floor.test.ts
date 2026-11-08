@@ -352,7 +352,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (outDir !== '') {
-    await rm(outDir, { recursive: true, force: true });
+    await rm(outDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
 
@@ -361,6 +361,29 @@ afterAll(async () => {
 // ---------------------------------------------------------------------------------------------------------------------
 
 describe('browser floor: web-features data (CE-29, R4)', () => {
+  it('CE-29: the deny set is exactly the R4 ids plus uint8array-base64-hex and is-error, each with string seeds, and the feature list holds the known two', () => {
+    expect(floorConfig.deny.map((entry) => entry.id).sort()).toEqual(
+      [
+        'explicit-resource-management',
+        'is-error',
+        'iterator-concat',
+        'math-sum-precise',
+        'promise-try',
+        'regexp-escape',
+        'uint8array-base64-hex',
+      ].sort(),
+    );
+    for (const entry of floorConfig.deny) {
+      expect(entry.patterns.length, entry.id).toBeGreaterThan(0);
+      for (const pattern of entry.patterns) {
+        expect(typeof pattern.seed, entry.id).toBe('string');
+        expect(pattern.seed.length, entry.id).toBeGreaterThan(0);
+      }
+    }
+    expect(LISTED_IDS).toContain('iterator-methods');
+    expect(LISTED_IDS).toContain('array-by-copy');
+  });
+
   it('CE-29: every status.support form in the installed web-features is one versionParts reads', () => {
     const versions = Object.values(features).flatMap((entry) =>
       entry.kind === 'feature' ? Object.values(entry.status.support) : [],
@@ -568,7 +591,7 @@ function lintStylesheet(
     );
     return { status: result.status, output: `${result.stdout}${result.stderr}` };
   } finally {
-    rmSync(scratch, { recursive: true, force: true });
+    rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 }
 
