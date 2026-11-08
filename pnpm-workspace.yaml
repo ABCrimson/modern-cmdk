@@ -78,12 +78,12 @@ minimumReleaseAgeExclude:
   - '@next/swc-linux-x64-musl@16.5.0-canary.44'
   - '@next/swc-win32-arm64-msvc@16.5.0-canary.44'
   - '@next/swc-win32-x64-msvc@16.5.0-canary.44'
-  # @playwright/test, playwright and playwright-core 1.66.0-alpha-2026-11-07 (dist-tag next-pending; `next` still points at 1.66.0-alpha-1793916328000 for
-  # @playwright/test and playwright; published 2026-11-07T05:15:16Z, 05:15:32Z and 06:09:30Z) were under the 24 h minimumReleaseAge at the
-  # 2026-11-07 bump from 1.66.0-alpha-1793916328000 (the lockfile re-resolves playwright and playwright-core to the same build). Drop after a day.
-  - '@playwright/test@1.66.0-alpha-2026-11-07'
-  - playwright@1.66.0-alpha-2026-11-07
-  - playwright-core@1.66.0-alpha-2026-11-07
+  # @playwright/test, playwright and playwright-core 1.66.0-alpha-2026-11-08 (dist-tag next-pending on all three; `next` still points at 1.66.0-alpha-1793916328000 for
+  # @playwright/test and playwright and at 1.66.0-alpha-2026-11-06 for playwright-core; published 2026-11-08T05:16:11Z, 05:16:27Z and 05:25:16Z) were under the
+  # 24 h minimumReleaseAge at the 2026-11-08 bump from 1.66.0-alpha-2026-11-07 (the lockfile re-resolves playwright and playwright-core to the same build). Drop after a day.
+  - '@playwright/test@1.66.0-alpha-2026-11-08'
+  - playwright@1.66.0-alpha-2026-11-08
+  - playwright-core@1.66.0-alpha-2026-11-08
   # typescript@7.1.0-dev.20261107.1 (next; published 2026-11-07T08:11:06Z) and its seven @typescript/typescript-<platform> binaries
   # (08:06-08:09Z) were under the 24 h minimumReleaseAge at the 2026-11-07 bump from the previous day's dev build. Drop after a day.
   - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261107.1'
