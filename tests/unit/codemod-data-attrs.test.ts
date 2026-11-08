@@ -71,6 +71,8 @@ const TITLES: Readonly<Record<string, string>> = {
     'DA-3: a [&...] arbitrary variant after a *: or **: variant, or after an earlier [&...] variant that moves to another element, stays as it is',
   '28-tailwind-arbitrary-is':
     "DA-3: inside the :is(), :not() or :where() of a [&...] arbitrary variant a state attribute before a _, >, + or ~ sits on another element and stays as it is; the argument's subject is rewritten",
+  '29-attribute-name-case':
+    'DA-11: cmdk attribute names match case-insensitively, as in an HTML document: [CMDK-ITEM], [DATA-SELECTED] and a CMDK-ROOT JSX attribute are rewritten, CMDK-LABEL is reported',
 };
 
 const cases = listCases('data-attrs');

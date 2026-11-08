@@ -128,6 +128,7 @@ interface Edit {
 interface AttributeSite {
   readonly start: number;
   readonly end: number;
+  /** The attribute name lowercased: HTML matches attribute names case-insensitively, so every lookup uses this form. */
   readonly name: string;
   readonly nameStart: number;
   readonly nameEnd: number;
@@ -157,6 +158,7 @@ function unquote(value: string): string {
  * The text is cut into compounds (runs of simple selectors with no combinator, comma, brace or
  * whitespace at the top level). Inside any compound, a bracketed attribute whose name is in
  * ATTR_MAP gets its name replaced, operator and value kept; a name in UNMAPPED_ATTRS is reported.
+ * Attribute names match case-insensitively, as they do in an HTML document: [CMDK-ITEM] is [cmdk-item].
  * A compound that holds a cmdk attribute also has its data-selected / data-disabled value
  * attributes rewritten: ="true" to the presence attribute, ="false" to :not(presence); any other
  * form is reported. In a stylesheet, a compound starting with `&` counts as holding a cmdk
@@ -213,14 +215,14 @@ function selectorEdits(text: string, css: boolean, report: SiteReport, tailwind:
 
   if (!css) {
     const whole = text.trim();
-    const reason = UNMAPPED_ATTRS.get(whole);
+    const reason = UNMAPPED_ATTRS.get(whole.toLowerCase());
     if (reason !== undefined) {
       report(
         text.indexOf(whole),
         `${whole} has no modern-cmdk equivalent: ${reason}; left unchanged`,
       );
     }
-    const mapped = ATTR_MAP.get(whole);
+    const mapped = ATTR_MAP.get(whole.toLowerCase());
     if (mapped !== undefined) {
       report(
         text.indexOf(whole),
@@ -244,7 +246,10 @@ function selectorEdits(text: string, css: boolean, report: SiteReport, tailwind:
       }
       const reason = UNMAPPED_ATTRS.get(a.name);
       if (reason !== undefined) {
-        report(a.start, `${a.name} has no modern-cmdk equivalent: ${reason}; left unchanged`);
+        report(
+          a.start,
+          `${text.slice(a.nameStart, a.nameEnd)} has no modern-cmdk equivalent: ${reason}; left unchanged`,
+        );
         continue;
       }
       const presence = STATE_ATTRS.get(a.name);
@@ -389,7 +394,7 @@ function selectorEdits(text: string, css: boolean, report: SiteReport, tailwind:
         attrs.push({
           start: i,
           end: ATTRIBUTE_SELECTOR.lastIndex,
-          name: m[1] as string,
+          name: (m[1] as string).toLowerCase(),
           nameStart: nameSpan[0],
           nameEnd: nameSpan[1],
           operator: m[2],
@@ -406,7 +411,7 @@ function selectorEdits(text: string, css: boolean, report: SiteReport, tailwind:
         attrs.push({
           start: i,
           end: PARTIAL_ATTRIBUTE_SELECTOR.lastIndex,
-          name: partial[1] as string,
+          name: (partial[1] as string).toLowerCase(),
           nameStart: partialName[0],
           nameEnd: partialName[1],
           operator: undefined,
@@ -719,8 +724,8 @@ export default function transform(fileInfo: FileInfo, api: API): string {
   root.find(j.JSXAttribute).forEach((path) => {
     const attrName = path.node.name;
     if (attrName.type !== 'JSXIdentifier') return;
-    const target = ATTR_MAP.get(attrName.name);
-    const reason = UNMAPPED_ATTRS.get(attrName.name);
+    const target = ATTR_MAP.get(attrName.name.toLowerCase());
+    const reason = UNMAPPED_ATTRS.get(attrName.name.toLowerCase());
     if (target === undefined && reason === undefined) return;
     const node = path.node as unknown as LooseNode;
     sites.push({
