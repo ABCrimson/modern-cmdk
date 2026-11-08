@@ -4,12 +4,12 @@
 // the DOM. The controlled value therefore lives in local state set inside the change event (an urgent
 // discrete-event update); machine state only overwrites it for changes that did not originate here (reconciled on every machine tick).
 // A caller that passes `value` owns the text instead: the input shows it, a change only reports through onValueChange,
-// and a layout effect queues the prop on the machine.
+// and a layout effect queues the prop on the machine without a call to the root's onSearchChange.
 // React 19: use() for context, ref as prop (no forwardRef)
 // Isolated declarations: explicit return types on all exports
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
-import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { useStableContext, useStateContext } from './context.js';
 
 export interface CommandInputProps
@@ -17,7 +17,9 @@ export interface CommandInputProps
   /**
    * The search text, controlled by the caller. When defined the input shows it, a change calls `onValueChange`
    * and sends nothing to the machine, and a layout effect sends the prop to the machine as the search query
-   * whenever it changes. Leave it `undefined` for the input to keep its own text and send each change itself.
+   * whenever it changes. The root's `onSearchChange` is not called for a query that comes from this prop: a change
+   * of a prop the caller owns is not reported back to it, and the user's typing reports through `onValueChange`.
+   * Leave it `undefined` for the input to keep its own text and send each change itself.
    */
   readonly value?: string | undefined;
   /**
@@ -38,13 +40,8 @@ export function CommandInput({
   const stable = useStableContext('Command.Input');
   const stateCtx = useStateContext('Command.Input');
 
-  // The machine's own store, not the root's merged state: that object also changes identity on optimistic
-  // active-item renders, which are not machine ticks and carry a stale search.
-  const machineState = useSyncExternalStore(
-    stable.machine.subscribe,
-    stable.machine.getState,
-    stable.machine.getState,
-  );
+  // The root's state is the machine's own snapshot (`useCommand`), so its identity changes only on a machine tick
+  const machineState = stateCtx.state;
   const [draft, setDraft] = useState<string>(machineState.search);
   // Queries typed here that the machine has not processed yet, oldest first
   const inFlight = useRef<string[]>([]);
@@ -64,9 +61,10 @@ export function CommandInput({
     }
   }, [machineState]);
 
-  // Controlled: the prop is the search text, queued on the machine whenever it changes
+  // Controlled: the prop is the search text, queued on the machine whenever it changes as a query the caller owns,
+  // so the root's onSearchChange hears nothing for it
   useLayoutEffect(() => {
-    if (value !== undefined) stable.updateSearch(value);
+    if (value !== undefined) stable.updateSearch(value, true);
   }, [value, stable.updateSearch]);
 
   const handleChange = useCallback(

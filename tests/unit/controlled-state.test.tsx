@@ -134,6 +134,42 @@ it('a controlled Input shows its value prop and reports changes through onValueC
   expect(ignoredHeld.machine?.getState().search).toBe('fixed');
 });
 
+it("a controlled Command.Input value does not echo through the root's onSearchChange", async () => {
+  const held: Held = {};
+  const onSearchChange = vi.fn();
+  const onValueChange = vi.fn();
+  const tree = (value: string): ReactNode => (
+    <Command onSearchChange={onSearchChange}>
+      <Probe held={held} />
+      <Command.Input value={value} onValueChange={onValueChange} />
+      <Command.List />
+    </Command>
+  );
+  const view = render(tree('x'));
+  await settle();
+  expect(held.machine?.getState().search).toBe('x');
+  expect(onSearchChange).not.toHaveBeenCalled();
+
+  // The parent changes the value it owns: the machine follows and nothing is reported back to the root
+  view.rerender(tree('xy'));
+  await settle();
+  expect(held.machine?.getState().search).toBe('xy');
+  expect(onSearchChange).not.toHaveBeenCalled();
+
+  // Two changes before the machine's next frame: neither is reported either
+  view.rerender(tree('xyz'));
+  view.rerender(tree('xyzw'));
+  await settle();
+  expect(held.machine?.getState().search).toBe('xyzw');
+  expect(onSearchChange).not.toHaveBeenCalled();
+
+  // The user's typing reports through onValueChange, and the input stays at the parent's value
+  fireEvent.change(view.getByRole('combobox'), { target: { value: 'typed' } });
+  await settle();
+  expect(onValueChange.mock.calls).toEqual([['typed']]);
+  expect(onSearchChange).not.toHaveBeenCalled();
+});
+
 /** A parent that holds `activeId` in state and applies every candidate (`apply`), or ignores them. */
 function Navigating({
   held,

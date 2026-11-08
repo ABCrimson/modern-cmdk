@@ -5,7 +5,7 @@
 
 import type { CommandMachine, CommandMachineOptions, CommandState, ItemId } from 'modern-cmdk';
 import { createCommandMachine } from 'modern-cmdk';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CommandStableContextValue, CommandStateContextValue } from '../context.js';
 import { useCommand } from './use-command.js';
 import { createKeydownHandler } from './use-keyboard.js';
@@ -37,14 +37,16 @@ export interface UseCommandSetupReturn {
 
 /**
  * What the deduped callbacks remember: the last value each forwarded to the consumer, whether the root is live
- * (its layout effect is set up: mounted and not hidden by an `<Activity>`). While the root is not live, `activeId`
- * holds the active item the root had when it stopped being live.
+ * (its layout effect is set up: mounted and not hidden by an `<Activity>`), and the search queries the caller owns
+ * that the machine has not processed yet, oldest first. While the root is not live, `activeId` holds the active
+ * item the root had when it stopped being live.
  */
 interface Forwarded {
   search: string;
   activeId: ItemId | null;
   open: boolean;
   live: boolean;
+  owned: string[];
 }
 
 /** The deduped members of `Forwarded` and the callback each one forwards to. */
@@ -91,6 +93,11 @@ function createLiveOptions(
     (key: Deduped, name: Callback) =>
     (value: unknown): void => {
       if (!fwd.live) return;
+      if (key === 'search' && fwd.owned[0] === value) {
+        fwd.owned.shift();
+        fwd[key] = value as never;
+        return;
+      }
       if (value === fwd[key] && (key !== 'activeId' || latest.current.activeId === undefined))
         return;
       fwd[key] = value as never;
@@ -159,6 +166,7 @@ export function useCommandSetup(
     activeId: null,
     open: false,
     live: false,
+    owned: [],
   }));
 
   // The one render-time ref write: a null-guarded initializer, which react.dev/reference/react/useRef
@@ -175,6 +183,17 @@ export function useCommandSetup(
 
   const { state, isPending, updateSearch, setOptimisticActiveId, filteredIdSet, id } =
     useCommand(machine);
+
+  // `owned` marks a query whose text the caller already holds (a controlled `Command.Input` value): it joins the
+  // queue the `onSearchChange` dedupe drops from, in the order the machine processes the events, so the root's
+  // `onSearchChange` is not called with the caller's own value, however many changes one frame holds
+  const updateOwnedSearch = useCallback(
+    (query: string, owned?: boolean): void => {
+      if (owned) fwd.owned.push(query);
+      updateSearch(query);
+    },
+    [updateSearch, fwd],
+  );
 
   // Derive list/input IDs from the single useId() in useCommand — coherent with rootId
   const listId = `${id}-list`;
@@ -259,10 +278,10 @@ export function useCommandSetup(
         listId,
         inputId,
         label,
-        updateSearch,
+        updateSearch: updateOwnedSearch,
         setOptimisticActiveId,
       }) satisfies CommandStableContextValue,
-    [machine, id, listId, inputId, label, updateSearch, setOptimisticActiveId],
+    [machine, id, listId, inputId, label, updateOwnedSearch, setOptimisticActiveId],
   );
 
   // State context — changes on every search/navigation
