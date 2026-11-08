@@ -156,8 +156,8 @@ onMounted(async () => {
     <h1 class="mc-title">No page at this address</h1>
     <p class="mc-path">{{ requestedPath }}</p>
     <p class="mc-lede">
-      Nothing lives here. The closest pages are listed below, or search the whole site from the navigation bar.<template v-if="shortcut">
-        (<kbd>{{ shortcut }}</kbd>)</template>
+      Nothing lives here. The closest pages are listed below, or search the whole site from the navigation bar<template v-if="shortcut">
+        (<kbd>{{ shortcut }}</kbd>)</template>.
     </p>
     <div class="mc-finder">
       <PaletteDemo

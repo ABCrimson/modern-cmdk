@@ -140,14 +140,14 @@ export default defineConfig({
   // into #app (vitepress/dist/node/chunk-BjrVv9r8.js:24399), so without JavaScript a visitor sees nothing. This hook
   // is a no-JS fallback for that missing content, not the DOM patch the spec's J5 rejected (J5 was about patching the
   // home page's own markup after render): it appends a <noscript> block after #app, which a browser with JavaScript
-  // never renders. Its links are the five NotFound.vue server-renders; hrefs are built from base and end in .html
+  // never renders. Its links are the five NotFound.vue server-renders plus the home page (the page has no navigation bar without JavaScript, so its sentence points at the list, not at a bar); hrefs are built from base and end in .html
   // (cleanUrls is unset). Signature: vitepress/dist/node/index.d.ts:1553.
   transformHtml(code: string, _id: string, { page }: TransformContext): string | undefined {
     if (page !== '404.md') return undefined;
     const links = notFoundLinks
       .map(([text, path]) => `<li><a href="${base}${path}.html">${text}</a></li>`)
       .join('');
-    const fallback = `<noscript><main class="vp-doc" data-mc="not-found"><h1>No page at this address</h1><p>Nothing lives here. The closest pages are listed below, or search the whole site from the navigation bar.</p><ul>${links}</ul></main></noscript>`;
+    const fallback = `<noscript><main class="vp-doc" data-mc="not-found"><h1>No page at this address</h1><p>Nothing lives here. The closest pages are listed below, and the home page links to everything else.</p><ul>${links}<li><a href="${base}">Home page</a></li></ul></main></noscript>`;
     return code.replace(/<div id="app">[\s\S]*?<\/div>/, (app) => `${app}${fallback}`);
   },
 
