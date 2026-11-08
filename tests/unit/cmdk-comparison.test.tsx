@@ -874,7 +874,7 @@ const cases: readonly ParityCase[] = [
         dialog: { open: true, onOpenChange },
         children: plain('apple'),
       });
-      await session.pressEscapeOnDocument();
+      await session.pressEscapeOnFocus();
       return calls(onOpenChange);
     },
   },
