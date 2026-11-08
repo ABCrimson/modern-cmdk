@@ -47,10 +47,13 @@ export function CommandGroup({
   // Check if any of this group's own items are visible: a group whose id is the ungrouped bucket's
   // (forceId="__ungrouped") would otherwise count every ungrouped item, including those outside it
   const registry = stable.machine.getRegistry();
+  // A group the registry does not hold yet counts as visible under an empty query, so the items of the server HTML are shown
   const hasVisibleItems: boolean =
-    stateCtx.state.groupedIds
+    (stateCtx.state.groupedIds
       .get(groupId)
-      ?.some((id) => registry.getItem(id)?.groupId === groupId) ?? false;
+      ?.some((id) => registry.getItem(id)?.groupId === groupId) ??
+      false) ||
+    (stateCtx.state.search === '' && registry.getGroup(groupId) === undefined);
 
   const groupContext = useMemo<CommandGroupContextValue>(
     () => ({ groupId: groupId as string, headingId }) satisfies CommandGroupContextValue,

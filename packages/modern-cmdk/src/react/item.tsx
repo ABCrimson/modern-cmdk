@@ -67,7 +67,11 @@ export function CommandItem({
 
   const isActive: boolean = stateCtx.state.activeId === id;
   // O(1) Set.has instead of O(n) Array.includes — critical for large lists
-  const isFiltered: boolean = stateCtx.filteredIdSet.has(id);
+  // An item the registry does not hold yet (the server, the hydration pass, a first render: items register in layout
+  // effects) renders under an empty query; once registered, only the filtered items render
+  const isFiltered: boolean =
+    stateCtx.filteredIdSet.has(id) ||
+    (stateCtx.state.search === '' && stable.machine.getRegistry().getItem(id) === undefined);
   // Virtual visibility — null means not virtualizing, so all filtered items are visible
   const isVisible: boolean = stateCtx.visibleIdSet === null || stateCtx.visibleIdSet.has(id);
 
