@@ -20,7 +20,6 @@ import { open } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, resolve, sep } from 'node:path';
 import { pipeline } from 'node:stream/promises';
-import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 /** The content types of what a VitePress build emits (dist/ holds .html, .css, .js, .json, fonts, images, a manifest). */
@@ -121,6 +120,8 @@ export function createDistServer({ root, base, openFile = (path) => open(path, '
     let pathname;
     try {
       pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
+      // A NUL byte in the decoded path makes fs.open throw ERR_INVALID_ARG_VALUE, which would answer 500; it is a malformed path
+      if (pathname.includes('\0')) throw new URIError('NUL byte in the path');
     } catch {
       response.writeHead(400);
       response.end();
@@ -162,7 +163,10 @@ export function createDistServer({ root, base, openFile = (path) => open(path, '
   }
 }
 
-if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// import.meta.main is true only in the entry point (added v24.2.0 / v22.18.0; the repository floor is Node >= 26.4.0; read in
+// https://nodejs.org/download/nightly/v28.0.0-nightly20261107a43bfb5bb2/docs/api/esm.html, "import.meta.main"), so importing
+// this module from tests/unit/serve-dist.test.ts starts no server
+if (import.meta.main) {
   const repository = resolve(import.meta.dirname, '..');
   const { values } = parseArgs({
     options: {
