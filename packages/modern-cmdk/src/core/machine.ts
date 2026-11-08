@@ -110,12 +110,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   if (options.items) {
     registry.registerItems(options.items);
     searchEngine.index(options.items);
-    // Auto-register keyboard shortcuts from items — for...of for void callback
-    for (const item of options.items) {
-      if (item.shortcut != null && item.onSelect != null) {
-        keyboardRegistry.register(item.shortcut, item.id, item.onSelect);
-      }
-    }
+    for (const item of options.items) bind(item);
   }
   if (options.groups) {
     for (const group of options.groups) {
@@ -202,6 +197,24 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
   function isEnabled(id: ItemId): boolean {
     return !registry.getItem(id)?.disabled;
+  }
+
+  /**
+   * (Re)binds an item's keyboard shortcut — the one place that does it, for initial items, ITEMS_LOADED,
+   * REGISTER_ITEM and UPDATE_ITEM. The item's old binding goes first. A disabled item's shortcut does nothing:
+   * 'select' dispatches ITEM_SELECT, whose guard checks the item; 'direct' checks the registry entry itself
+   * (so an item that UPDATE_ITEM disabled after binding is covered) and only binds an item with an onSelect.
+   */
+  function bind({ id, shortcut, onSelect }: CommandItem): void {
+    keyboardRegistry.unregisterByItem(id);
+    if (!shortcut) return;
+    if (options.shortcutAction === 'select') {
+      keyboardRegistry.register(shortcut, id, () => machine.send({ type: 'ITEM_SELECT', id }));
+    } else if (onSelect) {
+      keyboardRegistry.register(shortcut, id, () => {
+        if (isEnabled(id)) onSelect();
+      });
+    }
   }
 
   function navigate(direction: 'next' | 'prev' | 'first' | 'last'): void {
@@ -299,6 +312,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       case 'ITEMS_LOADED':
         registry.registerItems(event.items);
         searchEngine.index(event.items);
+        for (const item of event.items) bind(item);
         dirty = true;
         break;
 
@@ -314,11 +328,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       case 'UPDATE_ITEM':
         registry.registerItem(event.item);
         searchEngine.index([event.item]);
-        // A re-registered id drops its old binding first, then binds the current shortcut
-        keyboardRegistry.unregisterByItem(event.item.id);
-        if (event.item.shortcut && event.item.onSelect) {
-          keyboardRegistry.register(event.item.shortcut, event.item.id, event.item.onSelect);
-        }
+        bind(event.item);
         dirty = true;
         break;
 
