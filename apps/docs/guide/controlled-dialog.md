@@ -1,6 +1,6 @@
 # Controlled Dialog
 
-`Command.Dialog` opens when its `open` prop becomes `true` and closes when it becomes `false`. Escape and overlay clicks close the dialog and then call `onOpenChange(false)`, so pass your setter (`onOpenChange={setOpen}`) to keep your state in step. Without `open`, nothing opens the dialog.
+`Command.Dialog` opens when its `open` prop becomes `true` and closes when it becomes `false`. Escape and overlay clicks close the dialog and then call `onOpenChange(false)`, so pass your setter (`onOpenChange={setOpen}`) to keep your state in step. Without `open`, nothing opens the dialog. Both go through the machine: Radix reports the close, the dialog sends `CLOSE`, and the machine handles it on its next scheduler batch (the next animation frame in a browser), calling `onOpenChange(false)` before it emits that batch's single `stateChange` (`react/dialog.tsx` `handleRadixOpenChange`; `core/machine.ts` `setOpen()` and `commit()`). The same holds for a change of the `open` prop: the dialog sends `OPEN` or `CLOSE`, and the machine calls `onOpenChange` with the new value.
 
 ## Controlled Mode
 
