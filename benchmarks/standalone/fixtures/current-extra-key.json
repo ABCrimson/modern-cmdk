@@ -1,9 +1,20 @@
 {
   "proves": "A measured key (stateUpdate:extra) with no baseline entry is a harness error, exit 2, never a silent pass.",
+  "environment": {
+    "cpu": "Fixture CPU A"
+  },
   "tasks": {
-    "search:ts-scorer-10k": { "median_ms": 15.5 },
-    "stateUpdate:navigate": { "median_ms": 0.00075 },
-    "stateUpdate:searchChange": { "median_ms": 0.4 },
-    "stateUpdate:extra": { "median_ms": 0.1 }
+    "search:ts-scorer-10k": {
+      "median_ms": 15.5
+    },
+    "stateUpdate:navigate": {
+      "median_ms": 0.00075
+    },
+    "stateUpdate:searchChange": {
+      "median_ms": 0.4
+    },
+    "stateUpdate:extra": {
+      "median_ms": 0.1
+    }
   }
 }

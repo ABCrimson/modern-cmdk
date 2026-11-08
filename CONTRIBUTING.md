@@ -229,7 +229,7 @@ modern-cmdk/
       virtualization.spec.ts
   |
   benchmarks/
-    baseline.json                 Committed CI baseline numbers
+    baseline.json                 Committed CI baseline numbers, one record per CPU model
     history/                      Committed CI benchmark results, one JSON per date and commit
     size-history/                 Committed `pnpm size` readings, one JSON per release
     fixtures.ts                   The item generator every bench shares (from apps/playground/src/bench/dataset.ts)
@@ -247,7 +247,7 @@ modern-cmdk/
     standalone/
       compare-baseline.ts          The one CI benchmark harness (`pnpm bench:compare`; optional `--baseline <file>` and `--current <file>`)
       compare-rules.ts             Its comparison rules
-      record-baseline.ts           Re-records benchmarks/baseline.json from a committed benchmarks/history/<date>-<sha7>.json (the benchmark-results artifact of the first green run after each Node pin bump, D93; D27: source names the committed file)
+      record-baseline.ts           Records a committed benchmarks/history/<date>-<sha7>.json (the benchmark-results artifact of the first green run after each Node pin bump, D93; D27: source names the committed file) as the benchmarks/baseline.json record of that file's CPU, leaving every other CPU's record as it is
       fixtures/                    Baseline and current-run JSON files for the rules' tests
   |
   .changeset/
@@ -279,8 +279,8 @@ modern-cmdk/
 | `pnpm test:e2e` | Run E2E tests (Playwright 1.66 -- Chromium; set E2E_ENGINES=all to add Firefox and WebKit) |
 | `pnpm test:docs` | Playwright render tests for the built docs site (run `pnpm docs:build` first) |
 | `pnpm bench` | Run benchmarks (Vitest bench mode) |
-| `pnpm bench:record benchmarks/history/<YYYY-MM-DD>-<sha7>.json [--out <file>] [--baseline <file>] [--target <category>:<key>=<ms>]... [--repo <dir>]` | Re-records `benchmarks/baseline.json` (or `--out`) from a committed copy of the `benchmark-results` artifact of the first green run after each Node pin bump (D93): the file name must match its own `date` and `commit`, it must hold 5 runs, `version` comes from that commit's manifest and `source` names the file (D27); exit 2 on a usage or input error, and nothing is written then |
-| `pnpm bench:compare` | Standalone benchmark harness: compares medians with `benchmarks/baseline.json` (exit 0 pass, 1 warning, 2 failure or harness error) |
+| `pnpm bench:record benchmarks/history/<YYYY-MM-DD>-<sha7>.json [--out <file>] [--baseline <file>] [--target <category>:<key>=<ms>]... [--repo <dir>]` | Records a committed copy of the `benchmark-results` artifact of the first green run after each Node pin bump (D93) in `benchmarks/baseline.json` (or `--out`), as the record of the file's `environment.cpu` (created when that CPU has none; every other record stays as it is): the file name must match its own `date` and `commit`, it must hold 5 runs and name its CPU, `version` comes from that commit's manifest and `source` names the file (D27); exit 2 on a usage or input error, and nothing is written then |
+| `pnpm bench:compare` | Standalone benchmark harness: compares medians with the record of this machine's CPU in `benchmarks/baseline.json` (exit 0 pass or no record for this CPU, 1 warning, 2 failure or harness error) |
 | `pnpm lint` | Check lint rules (Biome) |
 | `pnpm lint:fix` | Fix lint issues and write changes |
 | `pnpm format` | Format all files (Biome) |
@@ -577,11 +577,11 @@ The CI runs E2E tests with:
 # Run benchmarks (Vitest bench mode)
 pnpm bench
 
-# Compare the median of 5 runs with benchmarks/baseline.json (exit 0 pass, 1 warning, 2 failure or harness error)
+# Compare the median of 5 runs with this CPU's record in benchmarks/baseline.json (exit 0 pass or no record for this CPU, 1 warning, 2 failure or harness error)
 pnpm bench:compare
 ```
 
-Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnpm bench:compare` fails a median above its target (Reason `above target` in its table). Baselines below `regressionThresholds.floor_ms` (0.01 ms; today only `stateUpdate:navigate`, 0.75 microseconds) are reported, not compared with the 5 % and 15 % thresholds, because run-to-run noise at that scale exceeds them:
+Benchmark targets are the `target_ms` values in the records of `benchmarks/baseline.json`; `pnpm bench:compare` fails a median above its target (Reason `above target` in its table). Baselines below `regressionThresholds.floor_ms` (0.01 ms; today only `stateUpdate:navigate`, 0.75 microseconds) are reported, not compared with the 5 % and 15 % thresholds, because run-to-run noise at that scale exceeds them:
 
 | Benchmark (baseline key) | Target | Baseline median (CI runner, benchmarks/history/2026-11-04-45a9134.json) |
 |---|---|---|
@@ -589,7 +589,7 @@ Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnp
 | Search-change cycle (`stateUpdate.searchChange`) | < 4 ms | 0.37 ms |
 | Navigate cycle (`stateUpdate.navigate`) | < 1 ms | 0.00075 ms |
 
-`pnpm bench:compare` runs the named operations 5 times and takes, per task, the median of the 5 runs' p50, p99 and rme. A median more than 5 % above its baseline warns (exit 1); more than 15 % above, or above its target, fails (exit 2, which also covers a harness error). CI is red only on two consecutive fails: after a first exit 2 the step re-runs `pnpm bench:compare` once; a passing re-run leaves a warning annotation, a second exit 2 an error. `benchmarks/baseline.json` is re-recorded from the `benchmark-results` artifact of the first green run after each Node pin bump. `pnpm bench:record benchmarks/history/<YYYY-MM-DD>-<sha7>.json` does the re-record from the committed copy of that artifact (it records the history file as `source`, takes `version` from the commit's manifest, carries each row's `target_ms` over and needs `--target <category>:<key>=<ms>` for a new row).
+`pnpm bench:compare` runs the named operations 5 times and takes, per task, the median of the 5 runs' p50, p99 and rme. A median more than 5 % above its baseline warns (exit 1); more than 15 % above, or above its target, fails (exit 2, which also covers a harness error). CI is red only on two consecutive fails: after a first exit 2 the step re-runs `pnpm bench:compare` once; a passing re-run leaves a warning annotation, a second exit 2 an error. `benchmarks/baseline.json` holds one record per CPU model, because numbers from two CPU models are never compared against a threshold (D97). One record per CPU model: `{ "schemaVersion": 2, "regressionThresholds": { "warning", "failure", "floor_ms" }, "records": { "<environment.cpu>": { "version", "date", "commit", "source", "note", "environment", "benchmarks": { "<category>": { "<key>": { "median_ms", "p99_ms", "target_ms" } } } } } }`. The thresholds are shared by all records. `pnpm bench:compare` judges a run only against the record whose CPU equals the run's CPU. A run on a CPU without a record prints the comparison with every record, each row naming both CPUs and marked `INFO`, says that no threshold applies and exits 0; its `benchmarks/results/bench-<sha>.json` is the input for adding that CPU. A record is re-recorded from the `benchmark-results` artifact of the first green run on that CPU after each Node pin bump. `pnpm bench:record benchmarks/history/<YYYY-MM-DD>-<sha7>.json` does it from the committed copy of that artifact: it replaces, or creates, the record of the file's `environment.cpu` and no other, records the history file as `source`, takes `version` from the commit's manifest, carries each row's `target_ms` over (from that CPU's record, else from another record that has the row) and needs `--target <category>:<key>=<ms>` for a row no record has.
 
 `pnpm bench` (Vitest bench, the `perf` project) also times incremental filtering (`filter-10k`, `filter-100k`), frecency, the headless machine's mount at 1K and 10K items (`mount.bench.ts`) and registration (`registration.bench.ts`), but those suites have no baseline entry and no target. Only one of them carries a time budget: `registration.bench.ts` fails when the per-item time of a register or unregister path at 10K items exceeds `GROWTH_FACTOR` (4) times its per-item time at 1K, so CI's `pnpm bench --run` goes red on quadratic registration work (ledger P33). The 10K mount check is the browser bench (`node benchmarks/browser/run.ts`, CI job "Browser bench (Chromium, 10K mount gate)"), a regression tripwire at 75 ms on the 10K mount median (D94), set from the runner's first measurement of 47.80 ms. `wasm-search.bench.ts` is excluded from the project until the engine initialises (W01).
 

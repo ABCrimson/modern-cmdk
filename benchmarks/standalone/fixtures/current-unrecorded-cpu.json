@@ -1,0 +1,17 @@
+{
+  "proves": "Medians three times the baseline on a CPU (C) with no record in baseline-two-cpus.json: informational only, exit 0.",
+  "environment": {
+    "cpu": "Fixture CPU C"
+  },
+  "tasks": {
+    "search:ts-scorer-10k": {
+      "median_ms": 46.5
+    },
+    "stateUpdate:navigate": {
+      "median_ms": 0.00225
+    },
+    "stateUpdate:searchChange": {
+      "median_ms": 1.2
+    }
+  }
+}

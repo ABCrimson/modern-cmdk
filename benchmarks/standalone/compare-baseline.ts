@@ -2,25 +2,34 @@
 // The one standalone bench harness (`pnpm bench:compare`): runs the named operations 5x with
 // tinybench, takes per task the median of the 5 runs' p50, p99 and rme, writes
 // benchmarks/results/bench-<shortsha>.json and compares those p50 medians with benchmarks/baseline.json.
+// The baseline holds one record per CPU model (D97: numbers from two CPU models are never compared
+// against a threshold). The run's CPU model (os.cpus()[0].model; with --current the file's
+// environment.cpu when it has one) selects the record whose key equals it; the thresholds
+// (regressionThresholds, shared by all records) apply to that record only.
 // Verdicts come from compare-rules.ts: a median above its target_ms fails; a baseline median below
 // the floor (regressionThresholds.floor_ms, 0.01 ms; today only stateUpdate:navigate, 0.75 microseconds)
 // is reported, not compared, because run-to-run noise at that scale exceeds the thresholds; every
 // other median is compared with the baseline.
-// Exit codes: 0 = pass, 1 = warning (>5% regression), 2 = failure (>15% regression, or above target_ms)
-// or harness error (missing dist or tinybench, task that did not complete, measured key with no baseline
-// entry, baseline entry with no measurement (--current only), a below-floor baseline entry without a
-// target_ms, an unknown flag, an unreadable or malformed --baseline or --current file).
-// When the baseline's CPU or Node differs from this machine, one line says so before the table and the
-// results JSON carries `comparedTo`; the exit codes do not change.
+// A run whose CPU model has no record prints one table per record, status INFO, each row naming the
+// record's CPU and the run's CPU, then one line saying that no threshold applies, and exits 0; the
+// results JSON is still written, so the next record can add that CPU.
+// Exit codes: 0 = pass (or no record for this CPU), 1 = warning (>5% regression), 2 = failure (>15%
+// regression, or above target_ms) or harness error (missing dist or tinybench, task that did not
+// complete, measured key with no entry in the matching record, entry of the matching record with no
+// measurement (--current only), a below-floor entry without a target_ms, an unknown flag, an unreadable
+// or malformed --baseline or --current file).
+// When the matching record's Node differs from the run's, one line says so before the table; the exit
+// codes do not change. The results JSON carries `comparedTo`.
 // Runs under Node's native type stripping, no loader: `node benchmarks/standalone/compare-baseline.ts`.
 //
 // Flags (the default invocation, no flags, is what CI runs: it measures live):
 //   --baseline <file>  the baseline to compare with (default benchmarks/baseline.json)
 //   --current <file>   skip the measurement and compare the medians in <file> instead: a JSON object
-//                      `{ "tasks": { "<category>:<key>": { "median_ms": <number> } } }`, which is what
-//                      benchmarks/results/bench-<sha>.json already holds. Every baseline entry needs a
-//                      task in the file and every task a baseline entry, or it is a harness error (never a
-//                      silent pass). Nothing is written to benchmarks/results/ in this mode.
+//                      `{ "environment"?: { "cpu"?, "node"? }, "tasks": { "<category>:<key>": { "median_ms": <number> } } }`,
+//                      which is what benchmarks/results/bench-<sha>.json already holds. Every entry of
+//                      the matching record needs a task in the file and every task an entry, or it is a
+//                      harness error (never a silent pass). Nothing is written to benchmarks/results/ in
+//                      this mode.
 // tests/unit/bench-compare-rules.test.ts (P33) runs the harness on the fixtures in
 // benchmarks/standalone/fixtures/ to prove the verdicts and exit codes end to end.
 // Requires: tinybench 6.2.3, built packages (pnpm build), Node >=26.4.0 (package.json engines)
@@ -42,10 +51,23 @@ interface BaselineBenchmark {
   readonly target_ms?: number;
 }
 
-interface BaselineFile {
+/** The numbers recorded on one CPU model. */
+interface BaselineRecord {
   readonly environment?: { readonly cpu?: string | null; readonly node?: string | null };
-  readonly regressionThresholds: Thresholds;
   readonly benchmarks: Readonly<Record<string, unknown>>;
+}
+
+interface BaselineFile {
+  readonly regressionThresholds: Thresholds;
+  /** One record per CPU model, keyed by that model (the record's environment.cpu). */
+  readonly records: Readonly<Record<string, BaselineRecord>>;
+}
+
+/** The medians of a run and the machine they were taken on. */
+interface Measurement {
+  readonly tasks: Map<string, TaskStats>;
+  readonly cpu: string | null;
+  readonly node: string | null;
 }
 
 type Core = typeof import('../../packages/modern-cmdk/dist/core/index.mjs');
@@ -70,6 +92,16 @@ interface ComparisonRow extends Classification {
   readonly name: string;
   readonly baseline_ms: number;
   readonly current_ms: number;
+}
+
+/** One printed table row; `note` is the Reason column of a verdict table, the two CPUs of an informational one. */
+interface TableRow {
+  readonly name: string;
+  readonly baseline_ms: number | undefined;
+  readonly current_ms: number;
+  readonly delta_pct: number | undefined;
+  readonly status: string;
+  readonly note: string;
 }
 
 const RUNS = 5;
@@ -280,36 +312,99 @@ async function readJson(path: string): Promise<unknown> {
   }
 }
 
-/** The medians of a results-shaped file (`{ tasks: { "<category>:<key>": { median_ms } } }`), in file order. */
-async function readCurrent(path: string): Promise<Map<string, TaskStats>> {
+/** The medians of a results-shaped file (`{ environment?, tasks: { "<category>:<key>": { median_ms } } }`), in file order, and the CPU and Node it names. */
+async function readCurrent(path: string): Promise<Measurement> {
   const file = await readJson(path);
   if (!isRecord(file) || !isRecord(file.tasks)) {
     throw new UsageError(`${path}: expected an object with a "tasks" object`);
   }
-  const measured = new Map<string, TaskStats>();
+  const tasks = new Map<string, TaskStats>();
   for (const [name, task] of Object.entries(file.tasks)) {
     if (!isRecord(task) || typeof task.median_ms !== 'number' || !Number.isFinite(task.median_ms)) {
       throw new UsageError(`${path}: task "${name}" has no finite median_ms`);
     }
-    measured.set(name, {
+    tasks.set(name, {
       median_ms: task.median_ms,
       p99_ms: Number.NaN,
       samples: 0,
       rme: Number.NaN,
     });
   }
-  return measured;
+  const environment = isRecord(file.environment) ? file.environment : {};
+  return {
+    tasks,
+    // a file that names no CPU is read as taken on this machine
+    cpu: typeof environment.cpu === 'string' ? environment.cpu : (os.cpus()[0]?.model ?? null),
+    node: typeof environment.node === 'string' ? environment.node : null,
+  };
 }
 
-/** Every `<category>:<key>` row of the baseline, in file order. */
-function listBaselineKeys(baseline: BaselineFile): string[] {
-  return Object.entries(baseline.benchmarks).flatMap(([category, entries]) =>
+/** Every `<category>:<key>` row of a record, in file order. */
+function listRecordKeys(record: BaselineRecord): string[] {
+  return Object.entries(record.benchmarks).flatMap(([category, entries]) =>
     isRecord(entries)
       ? Object.entries(entries)
           .filter(([, entry]) => isBaselineBenchmark(entry))
           .map(([key]) => `${category}:${key}`)
       : [],
   );
+}
+
+/** The entry of `<category>:<key>` in a record, when it has one. */
+function findEntry(record: BaselineRecord, name: string): BaselineBenchmark | undefined {
+  const [category = '', key = ''] = name.split(/:(.*)/s);
+  const entries = record.benchmarks[category];
+  const entry = isRecord(entries) ? entries[key] : undefined;
+  return isBaselineBenchmark(entry) ? entry : undefined;
+}
+
+/** Validates the baseline's shape: the shared thresholds and a record per CPU model, each keyed by its own environment.cpu. */
+function parseBaseline(path: string, json: unknown): BaselineFile {
+  if (!isRecord(json) || !isRecord(json.regressionThresholds) || !isRecord(json.records)) {
+    throw new UsageError(`${path}: expected "regressionThresholds" and "records" objects`);
+  }
+  for (const [cpu, record] of Object.entries(json.records)) {
+    if (!isRecord(record) || !isRecord(record.benchmarks)) {
+      throw new UsageError(`${path}: record "${cpu}" needs a "benchmarks" object`);
+    }
+    const named = isRecord(record.environment) ? record.environment.cpu : undefined;
+    if (named !== undefined && named !== cpu) {
+      throw new UsageError(
+        `${path}: record "${cpu}" is keyed by a CPU model other than its environment.cpu ${JSON.stringify(named)}`,
+      );
+    }
+  }
+  return json as unknown as BaselineFile;
+}
+
+/** Millisecond medians print three decimals; sub-millisecond ones keep three significant digits (0.000752 ms, not 0.001 ms), so a row reported below the floor still shows its numbers. */
+const fmtMs = (ms: number): string => `${ms >= 1 ? ms.toFixed(3) : ms.toPrecision(3)} ms`;
+
+function printTable(rows: readonly TableRow[], noteHeader: string): void {
+  const colName = 30;
+  const colBaseline = 14;
+  const colCurrent = 14;
+  const colDelta = 12;
+  const colStatus = 6;
+  const noteWidth = Math.max(noteHeader.length, 12, ...rows.map((r) => r.note.length));
+  const separator = '-'.repeat(
+    colName + colBaseline + colCurrent + colDelta + colStatus + noteWidth + 10,
+  );
+  console.log(
+    `${'Benchmark'.padEnd(colName)} | ${'Baseline'.padStart(colBaseline)} | ${'Current'.padStart(colCurrent)} | ${'Delta'.padStart(colDelta)} | ${'Status'.padStart(colStatus)} | ${noteHeader.padEnd(noteWidth)}`,
+  );
+  console.log(separator);
+  for (const row of rows) {
+    const baselineStr = row.baseline_ms === undefined ? 'no entry' : fmtMs(row.baseline_ms);
+    const deltaStr =
+      row.delta_pct === undefined
+        ? '-'
+        : `${row.delta_pct >= 0 ? '+' : ''}${(row.delta_pct * 100).toFixed(1)}%`;
+    console.log(
+      `${row.name.padEnd(colName)} | ${baselineStr.padStart(colBaseline)} | ${fmtMs(row.current_ms).padStart(colCurrent)} | ${deltaStr.padStart(colDelta)} | ${row.status.padStart(colStatus)} | ${row.note.padEnd(noteWidth)}`,
+    );
+  }
+  console.log(separator);
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────
@@ -321,53 +416,56 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
     args.baseline === undefined
       ? fileURLToPath(new URL('../../benchmarks/baseline.json', import.meta.url))
       : resolve(args.baseline);
-  const baselineJson = await readJson(baselinePath);
-  if (
-    !isRecord(baselineJson) ||
-    !isRecord(baselineJson.regressionThresholds) ||
-    !isRecord(baselineJson.benchmarks)
-  ) {
-    throw new UsageError(
-      `${baselinePath}: expected "regressionThresholds" and "benchmarks" objects`,
-    );
-  }
-  const baseline = baselineJson as unknown as BaselineFile;
+  const baseline = parseBaseline(baselinePath, await readJson(baselinePath));
   const { regressionThresholds } = baseline;
   const currentPath = args.current === undefined ? undefined : resolve(args.current);
 
   // 2-6. Measure live, or take the medians from --current
-  const measured = currentPath === undefined ? await measureLive() : await readCurrent(currentPath);
-  if (measured === undefined) return 2;
+  const live = currentPath === undefined ? await measureLive() : undefined;
+  if (currentPath === undefined && live === undefined) return 2;
+  const run: Measurement =
+    live === undefined
+      ? await readCurrent(currentPath as string)
+      : { tasks: live, cpu: os.cpus()[0]?.model ?? null, node: process.version };
+  const { tasks: measured, cpu: thisCpu } = run;
 
-  // 7. Compare against baseline. A measured key without a baseline entry is a failure.
+  // 7. Pick the record of this run's CPU model (D97); without one nothing is judged.
+  const matched =
+    thisCpu !== null && Object.hasOwn(baseline.records, thisCpu)
+      ? baseline.records[thisCpu]
+      : undefined;
+  const recordNode = matched?.environment?.node ?? null;
+
+  // 8. Compare against the matching record. A measured key without an entry is a failure.
   let missing = false;
   const rows: ComparisonRow[] = [];
-  for (const [name, stats] of measured) {
-    const [category = '', key = ''] = name.split(/:(.*)/s);
-    const entries = baseline.benchmarks[category];
-    const entry = isRecord(entries) ? entries[key] : undefined;
-    if (!isBaselineBenchmark(entry)) {
-      console.error(`NO BASELINE ENTRY for measured key "${name}" in ${baselinePath}`);
-      missing = true;
-      continue;
-    }
-    rows.push({
-      name,
-      baseline_ms: entry.median_ms,
-      current_ms: stats.median_ms,
-      ...classify({
-        key: name,
+  if (matched !== undefined) {
+    for (const [name, stats] of measured) {
+      const entry = findEntry(matched, name);
+      if (entry === undefined) {
+        console.error(`NO BASELINE ENTRY for measured key "${name}" in ${baselinePath}`);
+        missing = true;
+        continue;
+      }
+      rows.push({
+        name,
         baseline_ms: entry.median_ms,
         current_ms: stats.median_ms,
-        target_ms: entry.target_ms,
-        thresholds: regressionThresholds,
-      }),
-    });
+        ...classify({
+          key: name,
+          baseline_ms: entry.median_ms,
+          current_ms: stats.median_ms,
+          target_ms: entry.target_ms,
+          thresholds: regressionThresholds,
+        }),
+      });
+    }
   }
 
-  // With --current every baseline entry needs a measurement: a missing one is a failure, never a skip
-  // (live, the entries this harness does not measure are listed after the table instead).
-  const unmeasured = listBaselineKeys(baseline).filter((name) => !measured.has(name));
+  // With --current every entry of the matching record needs a measurement: a missing one is a failure,
+  // never a skip (live, the entries this harness does not measure are listed after the table instead).
+  const unmeasured =
+    matched === undefined ? [] : listRecordKeys(matched).filter((name) => !measured.has(name));
   if (currentPath !== undefined) {
     for (const name of unmeasured) {
       console.error(`NO MEASUREMENT for baseline key "${name}" in ${currentPath}`);
@@ -375,12 +473,27 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
     }
   }
 
-  // 8. Write benchmarks/results/bench-<shortsha>.json (after the comparison: it records each verdict).
-  //    Not with --current: those medians are not a measurement of this commit.
-  const thisCpu = os.cpus()[0]?.model ?? null;
-  const baseCpu = baseline.environment?.cpu ?? null;
-  const baseNode = baseline.environment?.node ?? null;
-  const sameMachine = baseCpu === thisCpu && baseNode === process.version;
+  // 9. The informational comparison with every record, when none is for this CPU: the same deltas, no verdict.
+  const informational =
+    matched === undefined
+      ? Object.entries(baseline.records).map(([recordCpu, record]) => ({
+          recordCpu,
+          rows: [...measured].map(([name, stats]): TableRow => {
+            const entry = findEntry(record, name);
+            return {
+              name,
+              baseline_ms: entry?.median_ms,
+              current_ms: stats.median_ms,
+              delta_pct: entry && (stats.median_ms - entry.median_ms) / entry.median_ms,
+              status: 'INFO',
+              note: `${recordCpu} -> ${thisCpu ?? 'unknown CPU'}`,
+            };
+          }),
+        }))
+      : [];
+
+  // 10. Write benchmarks/results/bench-<shortsha>.json (after the comparison: it records each verdict).
+  //     Not with --current: those medians are not a measurement of this commit.
   if (currentPath === undefined) {
     const commit = process.env.GITHUB_SHA ?? git('rev-parse', 'HEAD');
     const resultsDir = new URL('../../benchmarks/results/', import.meta.url);
@@ -401,7 +514,10 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
             cpu: thisCpu,
             cpuCount: os.availableParallelism(),
           },
-          comparedTo: { cpu: baseCpu, node: baseNode, sameMachine },
+          comparedTo:
+            matched === undefined
+              ? { record: false, cpu: null, node: null }
+              : { record: true, cpu: thisCpu, node: recordNode },
           runs: RUNS,
           thresholds: regressionThresholds,
           tasks: Object.fromEntries(measured),
@@ -416,6 +532,17 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
               },
             ]),
           ),
+          informational: Object.fromEntries(
+            informational.map(({ recordCpu, rows: infoRows }) => [
+              recordCpu,
+              Object.fromEntries(
+                infoRows.map((r) => [
+                  r.name,
+                  { baseline_ms: r.baseline_ms, delta_pct: r.delta_pct },
+                ]),
+              ),
+            ]),
+          ),
         },
         null,
         2,
@@ -424,48 +551,37 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
     console.log(`Results written to ${resultsUrl.pathname.replace(/^\/(?=[A-Za-z]:)/, '')}\n`);
   }
 
-  // 9. Print formatted table
+  // 11. Print the formatted table(s)
   if (currentPath !== undefined) {
     console.log(`baseline: ${baselinePath}\ncurrent: ${currentPath}\n`);
-  } else if (!sameMachine) {
+  }
+  if (matched === undefined) {
+    for (const { recordCpu, rows: infoRows } of informational) {
+      console.log(`record: ${recordCpu}; this run: ${thisCpu ?? 'unknown CPU'}`);
+      printTable(infoRows, 'Record CPU -> run CPU');
+      console.log('');
+    }
     console.log(
-      `baseline: ${baseCpu ?? 'unknown CPU'}, Node ${baseNode ?? 'unknown'}; this machine: ${thisCpu ?? 'unknown CPU'}, Node ${process.version}: cross-machine numbers, the thresholds below are a tripwire, not a verdict
-`,
+      `no baseline record for ${thisCpu ?? 'unknown CPU'}: the tables above are informational, no threshold applies (exit 0)`,
+    );
+    return 0;
+  }
+  if (recordNode !== null && run.node !== null && recordNode !== run.node) {
+    console.log(
+      `record: ${thisCpu}, Node ${recordNode}; this run: Node ${run.node}: the thresholds apply, but the Node versions differ\n`,
     );
   }
-  const colName = 30;
-  const colBaseline = 14;
-  const colCurrent = 14;
-  const colDelta = 12;
-  const colStatus = 6;
-  const colReason = 12;
-  const separator = '-'.repeat(
-    colName + colBaseline + colCurrent + colDelta + colStatus + colReason + 10,
+  printTable(
+    rows.map((r) => ({ ...r, note: r.reason })),
+    'Reason',
   );
 
-  console.log(
-    `${'Benchmark'.padEnd(colName)} | ${'Baseline'.padStart(colBaseline)} | ${'Current'.padStart(colCurrent)} | ${'Delta'.padStart(colDelta)} | ${'Status'.padStart(colStatus)} | ${'Reason'.padEnd(colReason)}`,
-  );
-  console.log(separator);
-  // Millisecond medians print three decimals; sub-millisecond ones keep three significant digits
-  // (0.000752 ms, not 0.001 ms), so a row reported below the floor still shows its numbers.
-  const fmtMs = (ms: number): string => `${ms >= 1 ? ms.toFixed(3) : ms.toPrecision(3)} ms`;
-  for (const row of rows) {
-    const baselineStr = fmtMs(row.baseline_ms);
-    const currentStr = fmtMs(row.current_ms);
-    const deltaStr = `${row.delta_pct >= 0 ? '+' : ''}${(row.delta_pct * 100).toFixed(1)}%`;
-    console.log(
-      `${row.name.padEnd(colName)} | ${baselineStr.padStart(colBaseline)} | ${currentStr.padStart(colCurrent)} | ${deltaStr.padStart(colDelta)} | ${row.status.padStart(colStatus)} | ${row.reason.padEnd(colReason)}`,
-    );
-  }
-  console.log(separator);
-
-  // Baseline entries this harness does not measure are reported, never silently compared
+  // Entries of the record this harness does not measure are reported, never silently compared
   if (currentPath === undefined) {
     for (const name of unmeasured) console.log(`not measured: ${name}`);
   }
 
-  // 10. Exit code
+  // 12. Exit code
   if (missing || rows.some((r) => r.status === 'FAIL')) return 2;
   if (rows.some((r) => r.status === 'WARN')) return 1;
   return 0;

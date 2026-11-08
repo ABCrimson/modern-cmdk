@@ -11,7 +11,7 @@ pnpm test                        # vitest run (unit)
 pnpm test:e2e                    # playwright test
 pnpm test:docs                   # playwright render tests for the built docs site (pnpm docs:build first)
 pnpm bench                       # vitest bench
-pnpm bench:compare               # standalone harness vs benchmarks/baseline.json (exit 0 pass / 1 warning / 2 failure)
+pnpm bench:compare               # standalone harness vs this CPU's record in benchmarks/baseline.json (exit 0 pass or no record / 1 warning / 2 failure)
 pnpm lint                        # biome check . --error-on-warnings
 pnpm typecheck                   # tsc --noEmit: modern-cmdk, modern-cmdk-codemod, create-modern-cmdk, tests/, tests/e2e, tests/docs; vue-tsc --noEmit: the docs app (no pkg/ needed)
 pnpm size                        # build + size-limit

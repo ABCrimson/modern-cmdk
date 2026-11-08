@@ -4,6 +4,8 @@
 // artifact). The recorded file must be one compare-baseline.ts accepts and reads the same medians from;
 // targets and thresholds carry over; `source` is the history file's path, never a run id; `version`
 // comes from the commit's manifest; five runs are required; a new key needs --target (exit 2).
+// TEB-103, D97: the baseline keeps one record per CPU model; a recording replaces or creates the record
+// of the history file's `environment.cpu` and leaves every other record and the thresholds as they were.
 //
 // Hermetic: every test records against a throwaway git repository (`--repo`) whose one commit holds a
 // packages/modern-cmdk/package.json at version 9.9.9, and whose benchmarks/history/ the test fills from
@@ -28,6 +30,7 @@ interface RecordedRow {
   readonly p99_ms: number;
   readonly target_ms: number;
 }
+/** The record of one CPU model. */
 interface Recorded {
   readonly version: string;
   readonly date: string;
@@ -35,8 +38,26 @@ interface Recorded {
   readonly source: string;
   readonly note: string;
   readonly environment: Record<string, unknown>;
-  readonly regressionThresholds: Record<string, number>;
   readonly benchmarks: Record<string, Record<string, RecordedRow>>;
+}
+interface RecordedFile {
+  readonly schemaVersion: number;
+  readonly regressionThresholds: Record<string, number>;
+  readonly records: Record<string, Recorded>;
+}
+
+/** The CPU model of the fixtures' history files and of baseline.json's one record. */
+const CPU_A = 'Fixture CPU A';
+
+async function loadFile(path: string): Promise<RecordedFile> {
+  return JSON.parse(await readFile(path, 'utf-8')) as RecordedFile;
+}
+
+/** The record of CPU A in a written baseline. */
+async function recordOf(path: string): Promise<Recorded> {
+  const record = (await loadFile(path)).records[CPU_A];
+  if (record === undefined) throw new Error(`${path} has no record for ${CPU_A}`);
+  return record;
 }
 
 // A hook's GIT_DIR (a pre-push from a linked worktree sets it) must not reach the throwaway repository
@@ -149,7 +170,7 @@ describe('D93, D27: record-baseline.ts', () => {
     const history = await place('record-artifact.json');
     const out = join(dir, 'fields.json');
     expect(record(history, out).status).toBe(0);
-    const file = JSON.parse(await readFile(out, 'utf-8')) as Recorded;
+    const file = await recordOf(out);
     expect(file.benchmarks.search?.['ts-scorer-10k']).toMatchObject({
       median_ms: 3.5,
       p99_ms: 6.25,
@@ -164,7 +185,7 @@ describe('D93, D27: record-baseline.ts', () => {
     const history = await place('record-artifact.json');
     const out = join(dir, 'source.json');
     expect(record(history, out).status).toBe(0);
-    const file = JSON.parse(await readFile(out, 'utf-8')) as Recorded;
+    const file = await recordOf(out);
     expect(file.source).toBe(`benchmarks/history/${DAY}-${sha7}.json`);
     expect(file.note).toContain(file.source);
     expect(file.note).not.toMatch(/runs\/\d|run id/);
@@ -174,7 +195,7 @@ describe('D93, D27: record-baseline.ts', () => {
     const history = await place('record-artifact.json');
     const out = join(dir, 'version.json');
     expect(record(history, out).status).toBe(0);
-    const file = JSON.parse(await readFile(out, 'utf-8')) as Recorded;
+    const file = await recordOf(out);
     expect(file.version).toBe('9.9.9');
   });
 
@@ -193,11 +214,66 @@ describe('D93, D27: record-baseline.ts', () => {
     const history = await place('record-artifact.json');
     const out = join(dir, 'carried.json');
     expect(record(history, out).status).toBe(0);
-    const file = JSON.parse(await readFile(out, 'utf-8')) as Recorded;
+    const file = await recordOf(out);
     expect(file.benchmarks.search?.['ts-scorer-10k']?.target_ms).toBe(16);
     expect(file.benchmarks.stateUpdate?.navigate?.target_ms).toBe(1);
     expect(file.benchmarks.stateUpdate?.searchChange?.target_ms).toBe(4);
-    expect(file.regressionThresholds).toEqual({ warning: 0.05, failure: 0.15, floor_ms: 0.01 });
+    expect((await loadFile(out)).regressionThresholds).toEqual({
+      warning: 0.05,
+      failure: 0.15,
+      floor_ms: 0.01,
+    });
+  });
+
+  it("TEB-103: bench:record writes only the record of the history file's CPU", async () => {
+    const twoCpus = resolve(fixtures, 'baseline-two-cpus.json');
+    const before = JSON.parse(await readFile(twoCpus, 'utf-8')) as RecordedFile;
+    const recordWith = (history: string, out: string): ReturnType<typeof run> =>
+      run(recorder, [history, '--repo', dir, '--baseline', twoCpus, '--out', out]);
+
+    // A CPU that has a record: that record is replaced, the other and the thresholds are untouched
+    const onB = await place('record-artifact.json', (f) => {
+      (f.environment as Record<string, unknown>).cpu = 'Fixture CPU B';
+    });
+    const replacedOut = join(dir, 'two-cpus-replaced.json');
+    expect(recordWith(onB, replacedOut).status).toBe(0);
+    const replaced = await loadFile(replacedOut);
+    expect(Object.keys(replaced.records)).toEqual([CPU_A, 'Fixture CPU B']);
+    expect(replaced.records[CPU_A]).toEqual(before.records[CPU_A]);
+    expect(replaced.records['Fixture CPU B']?.commit).toBe(commit);
+    expect(replaced.records['Fixture CPU B']?.benchmarks.stateUpdate?.searchChange?.median_ms).toBe(
+      0.4,
+    );
+    expect(replaced.regressionThresholds).toEqual(before.regressionThresholds);
+
+    // A CPU without a record: a record is created after the existing ones, which stay as they were
+    const onC = await place('record-artifact.json', (f) => {
+      (f.environment as Record<string, unknown>).cpu = 'Fixture CPU C';
+    });
+    const createdOut = join(dir, 'two-cpus-created.json');
+    expect(recordWith(onC, createdOut).status).toBe(0);
+    const created = await loadFile(createdOut);
+    expect(Object.keys(created.records)).toEqual([CPU_A, 'Fixture CPU B', 'Fixture CPU C']);
+    expect(created.records[CPU_A]).toEqual(before.records[CPU_A]);
+    expect(created.records['Fixture CPU B']).toEqual(before.records['Fixture CPU B']);
+    expect(created.records['Fixture CPU C']?.environment).toMatchObject({ cpu: 'Fixture CPU C' });
+    // the target_ms of a row the new CPU never had come from the records that have it
+    expect(created.records['Fixture CPU C']?.benchmarks.search?.['ts-scorer-10k']?.target_ms).toBe(
+      16,
+    );
+    expect(created.regressionThresholds).toEqual(before.regressionThresholds);
+  });
+
+  it('TEB-103: a history file without environment.cpu is refused, nothing written', async () => {
+    const history = await place('record-artifact.json', (f) => {
+      delete (f.environment as Record<string, unknown>).cpu;
+    });
+    const out = join(dir, 'no-cpu.json');
+    const r = record(history, out);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('"environment.cpu"');
+    expect(r.stderr).toContain('usage: node benchmarks/standalone/record-baseline.ts');
+    await expect(readFile(out, 'utf-8')).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it.each([0, 3, undefined])(
@@ -252,7 +328,7 @@ describe('D93, D27: record-baseline.ts', () => {
         { TZ: tz },
       );
       expect(r.status, r.stderr).toBe(0);
-      expect((JSON.parse(await readFile(out, 'utf-8')) as Recorded).date).toBe('2026-11-07');
+      expect((await recordOf(out)).date).toBe('2026-11-07');
     }
   });
 
@@ -280,7 +356,7 @@ describe('D93, D27: record-baseline.ts', () => {
     const out = join(dir, 'targeted.json');
     const r = record(history, out, ['--target', 'search:ts-scorer-100k=80']);
     expect(r.status).toBe(0);
-    const file = JSON.parse(await readFile(out, 'utf-8')) as Recorded;
+    const file = await recordOf(out);
     expect(file.benchmarks.search?.['ts-scorer-100k']).toEqual({
       median_ms: 40,
       p99_ms: 55,
@@ -335,7 +411,7 @@ describe('D93, D27: record-baseline.ts', () => {
     const history = await place('record-artifact.json');
     const out = join(dir, 'note.json');
     expect(record(history, out).status).toBe(0);
-    const { note } = JSON.parse(await readFile(out, 'utf-8')) as Recorded;
+    const { note } = await recordOf(out);
     expect(note).toContain('D93');
     expect(note).toContain("median of the harness's 5 runs' p50");
     expect(note).toContain('ubuntu26 image 20261101.186.1');

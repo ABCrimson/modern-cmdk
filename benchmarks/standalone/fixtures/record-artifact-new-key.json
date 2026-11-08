@@ -8,7 +8,7 @@
     "runner": "ubuntu26",
     "runnerImageVersion": "20261101.186.1",
     "node": "v28.0.0-nightly20261107a43bfb5bb2",
-    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "cpu": "Fixture CPU A",
     "cpuCount": 4
   },
   "runs": 5,
