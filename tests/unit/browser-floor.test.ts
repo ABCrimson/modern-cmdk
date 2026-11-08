@@ -369,15 +369,17 @@ function isInertInit(init: unknown): boolean {
   );
 }
 
-/** Whether a top-level statement runs nothing when evaluated: an import, a function declaration, or a declaration of inert initializers. */
+/** Whether a top-level statement runs nothing when evaluated: a function declaration, or a declaration of plain identifiers with inert initializers. */
 function isInertStatement(statement: AstNode): boolean {
   switch (statement.type) {
-    case 'ImportDeclaration':
     case 'FunctionDeclaration':
       return true;
     case 'VariableDeclaration':
-      return (statement.declarations as AstNode[]).every((declarator) =>
-        isInertInit(declarator.init),
+      return (statement.declarations as AstNode[]).every(
+        (declarator) =>
+          isNode(declarator.id) &&
+          declarator.id.type === 'Identifier' &&
+          isInertInit(declarator.init),
       );
     case 'ExportNamedDeclaration':
       return (
@@ -390,24 +392,42 @@ function isInertStatement(statement: AstNode): boolean {
   }
 }
 
+/** The top-level statements that load another module: every import, `export * from` and `export { x } from`. */
+function moduleLoaders(program: AstNode): AstNode[] {
+  return (program.body as AstNode[]).filter(
+    (statement) =>
+      statement.type === 'ImportDeclaration' ||
+      statement.type === 'ExportAllDeclaration' ||
+      (statement.type === 'ExportNamedDeclaration' && isNode(statement.source)),
+  );
+}
+
 /**
- * One line per violation of "the shim precedes the first read of the symbol" in an ES module's text; empty when it holds.
- *
- * Why source position is evaluation order here: the bundle is one flat ES module, whose top-level statements run in source order
- * once its imports have been evaluated. A class declaration is not hoisted and evaluates its computed keys when its statement
- * runs; a hoisted function declaration runs nothing until it is called, and a call can only come from a top-level statement
- * or from another module that imports this one (after the whole body ran). A read whose own text starts after the shim is
- * therefore safe only if no earlier statement can call it, so the check has two halves: (1) no read starts before the shim, and
- * (2) every top-level statement before a symbol's shim is inert (an import, a function declaration, or a variable declaration
- * whose initializers are literals, expression-free templates, functions or arrows; the other symbol's shim statement is exempt).
- * Together they guarantee that nothing which reads the symbol can run before its shim, the failure on a runtime without the
- * symbol (Safari 18.4: both keys become the property "undefined", and the async disposer would be the sync one). A call
- * statement, a class, or any other code before the shim is reported with its type and offset.
+ * One line per violation of "nothing that reads the disposal symbols runs before their shim" in an ES module's text; empty when
+ * it holds. The module is one flat ES module whose top-level statements run in source order, after every module it loads has
+ * been evaluated. Three rules follow.
+ * (1) Loading another module is never allowed: an import, `export * from` or `export { x } from`, wherever it sits in the text,
+ *     evaluates its target before the module's own statements, so it can run a read before the shim.
+ * (2) No read of a symbol starts before that symbol's shim. A class declaration is not hoisted and evaluates its computed keys
+ *     when its statement runs, so a read in a class key is ordered by its position.
+ * (3) Every top-level statement before a symbol's shim is inert: a function declaration (runs nothing until called, and a call
+ *     can only come from a top-level statement), or a variable declaration whose declarators are plain identifiers with no
+ *     initializer or a literal, an expression-free template, a function or an arrow (destructuring patterns can evaluate
+ *     defaults and computed keys, so they are not inert). The other symbol's shim statement is exempt.
+ * Together they guarantee that no code which reads the symbol runs before its shim, the failure on a runtime without the symbol
+ * (Safari 18.4: both keys become the property "undefined", and the async disposer would be the sync one). Each violation is
+ * reported with its statement type and offset.
  */
 function disposalShimProblems(text: string, file: string): string[] {
   const program = parseAst(text, null, file) as unknown as AstNode;
   const problems: string[] = [];
   const shimsOf = DISPOSAL_SYMBOLS.flatMap((name) => shimStatements(program, name));
+  for (const loader of moduleLoaders(program)) {
+    const source = loader.source as AstNode;
+    problems.push(
+      `${file}: the top-level ${loader.type} at offset ${startOf(loader)} evaluates "${String(source.value)}" before the shims`,
+    );
+  }
   for (const name of DISPOSAL_SYMBOLS) {
     const shims = shimStatements(program, name);
     if (shims.length !== 1) {
@@ -750,6 +770,13 @@ describe('browser floor: the disposal-symbol shim of the built entries (R7, CE-2
         `the top-level ExpressionStatement at offset ${firstShim + 1} runs before the shim`,
       );
     }
+  });
+
+  it('R7: a scratch copy of the built core with a static import fails naming it', () => {
+    const text = [core(), 'import "./chunk.mjs";', ''].join('\n');
+    expect(disposalShimProblems(text, CORE)).toEqual([
+      `${CORE}: the top-level ImportDeclaration at offset ${core().length + 1} evaluates "./chunk.mjs" before the shims`,
+    ]);
   });
 
   it('R7: a shim nested in a function (not evaluated at module load) does not count', () => {
