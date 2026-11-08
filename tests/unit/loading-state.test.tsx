@@ -1,7 +1,7 @@
 // tests/unit/loading-state.test.tsx
 // ARCH-59: a suspending <Command.AsyncItems> drives state.loading, <Command.Loading> and aria-busy
 
-import { act, cleanup, render } from '@testing-library/react';
+import { act, cleanup, type RenderResult, render } from '@testing-library/react';
 import type { CommandItem } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
 import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
@@ -27,6 +27,20 @@ async function settle(): Promise<void> {
   });
 }
 
+/**
+ * Renders inside an awaited act scope. These trees suspend on their first render (a pending AsyncItems promise);
+ * the synchronous act scope of a bare render() ends before React can attach the promise, and React warns that the
+ * act call was not awaited (tests/setup.ts fails the test on that warning).
+ */
+async function renderInAct(ui: ReactNode): Promise<RenderResult> {
+  let result: RenderResult | undefined;
+  await act(async () => {
+    result = render(ui);
+  });
+  if (result === undefined) throw new Error('render did not run');
+  return result;
+}
+
 const busy = (container: HTMLElement): string | null =>
   container.querySelector('[data-command-list]')?.getAttribute('aria-busy') ?? null;
 const loadingEl = (container: HTMLElement): Element | null =>
@@ -50,7 +64,7 @@ const renderItems = (items: readonly CommandItem[]): ReactNode =>
 describe('ARCH-59 loading state from pending AsyncItems', () => {
   it('ARCH-59: a pending AsyncItems shows Command.Loading and aria-busy, both clear after it resolves', async () => {
     const d = deferred();
-    const { container } = render(
+    const { container } = await renderInAct(
       <Shell>
         <Command.AsyncItems items={d.promise}>{renderItems}</Command.AsyncItems>
       </Shell>,
@@ -69,7 +83,7 @@ describe('ARCH-59 loading state from pending AsyncItems', () => {
   it('ARCH-59: with two AsyncItems loading stays until both resolve', async () => {
     const a = deferred();
     const b = deferred();
-    const { container } = render(
+    const { container } = await renderInAct(
       <Shell>
         <Command.AsyncItems items={a.promise}>{renderItems}</Command.AsyncItems>
         <Command.AsyncItems items={b.promise}>{renderItems}</Command.AsyncItems>
@@ -92,7 +106,7 @@ describe('ARCH-59 loading state from pending AsyncItems', () => {
   it('ARCH-59: a rejected promise inside CommandErrorBoundary clears loading', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const d = deferred();
-    const { container } = render(
+    const { container } = await renderInAct(
       <Shell>
         <CommandErrorBoundary fallback={<span data-testid="err">failed</span>}>
           <Command.AsyncItems items={d.promise}>{renderItems}</Command.AsyncItems>
@@ -112,7 +126,7 @@ describe('ARCH-59 loading state from pending AsyncItems', () => {
 
   it('ARCH-59: an unmounted pending AsyncItems clears its share', async () => {
     const d = deferred();
-    const { container, rerender } = render(
+    const { container, rerender } = await renderInAct(
       <Shell>
         <Command.AsyncItems items={d.promise}>{renderItems}</Command.AsyncItems>
       </Shell>,
@@ -125,7 +139,7 @@ describe('ARCH-59 loading state from pending AsyncItems', () => {
   });
 
   it('ARCH-59: an already-resolved promise never leaves loading stuck', async () => {
-    const { container } = render(
+    const { container } = await renderInAct(
       <Shell>
         <Command.AsyncItems items={Promise.resolve(ITEMS)}>{renderItems}</Command.AsyncItems>
       </Shell>,

@@ -1,8 +1,10 @@
 // tests/setup.ts
-// Vitest 5 setup file — the git-environment scrub, fake-indexeddb, the act() environment, and the one ES2026
+// Vitest 5 setup file — the git-environment scrub, fake-indexeddb, the act() environment and its warning guard, and the one ES2026
 // polyfill the supported runtimes still lack (Math.sumPrecise: absent on the Node 26 floor, native on Node 27+).
 
+import { format } from 'node:util';
 import 'fake-indexeddb/auto';
+import { afterEach, beforeEach, vi } from 'vitest';
 
 // A git hook exports its repository to the processes it runs: git 2.56 sets GIT_DIR for a hook that runs in a linked
 // worktree (measured 2026-11-08: a pre-push hook sees GIT_DIR=<repo>/.git/worktrees/<name>; the main checkout exports
@@ -33,6 +35,55 @@ declare global {
 // The tests drive react-dom/client + act() directly (no @testing-library/react), so
 // nothing else sets this flag.
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+// The act guard: a test fails on any React act warning. React reports a state update outside act() ("An update to
+// %s inside a test was not wrapped in act(...)") and a suspension in a synchronous act scope ("A component suspended
+// inside an `act` scope, but the `act` call was not awaited") through console.error, and a test that never reads the
+// console passes with the warning. The wrapper below records the warnings and forwards every call; the afterEach fails
+// the test with their text. It records and fails afterwards, rather than throwing from console.error, because React
+// logs from inside its own render and scheduler paths (a throw there is caught by React or surfaces as an unhandled
+// error attributed to no test), and the afterEach runs after the test file's own hooks (cleanup() included), so a
+// warning raised while unmounting counts too. A test that replaces console.error with a spy keeps the guard: the
+// wrapper is the spy's original, and the afterEach also reads the spy's recorded calls, which a mockImplementation
+// that swallows the output does not hide.
+const ACT_WARNING = /not wrapped in act|suspended inside an `act` scope/;
+const actWarnings: string[] = [];
+
+function noteActWarning(args: readonly unknown[]): void {
+  const text = format(...args);
+  if (ACT_WARNING.test(text)) actWarnings.push(text);
+}
+
+// The console, held in one binding: biome (noConsole) flags each member access on the global itself
+const stderr: Console = console;
+const forwardConsoleError: Console['error'] = stderr.error;
+stderr.error = function guardedConsoleError(...args: unknown[]): void {
+  noteActWarning(args);
+  forwardConsoleError.apply(stderr, args);
+};
+
+// How many of a spy's recorded calls earlier tests have already been judged on
+const judgedCalls = new WeakMap<object, number>();
+
+beforeEach(() => {
+  actWarnings.length = 0;
+});
+
+afterEach(() => {
+  const current: unknown = stderr.error;
+  if (vi.isMockFunction(current)) {
+    const { calls } = current.mock;
+    const judged = judgedCalls.get(current) ?? 0;
+    // a mockClear() between tests empties the list: start again from its beginning
+    for (const args of calls.slice(judged <= calls.length ? judged : 0)) noteActWarning(args);
+    judgedCalls.set(current, calls.length);
+  }
+  if (actWarnings.length === 0) return;
+  // a spy that calls through reaches the wrapper too: report each distinct text once
+  const distinct = [...new Set(actWarnings)];
+  actWarnings.length = 0;
+  throw new Error(`React act warning during the test:\n\n${distinct.join('\n\n')}`);
+});
 
 // Polyfill Math.sumPrecise where the runtime lacks it (Node 26 floor)
 if (typeof Math.sumPrecise !== 'function') {
