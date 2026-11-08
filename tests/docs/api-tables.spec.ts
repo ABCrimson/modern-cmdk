@@ -51,5 +51,33 @@ for (const route of ['api/command-react', 'api/command']) {
         MAX_ROW_HEIGHT,
       );
     });
+
+    it(`${route}: no identifier in a Type or Default cell breaks across lines at ${width} px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.goto(`${route}.html`);
+      await page.evaluate(() => document.fonts.ready);
+      // A word of a code span (text between whitespace; the cell may wrap between words) laid out on two lines has two client
+      // rects: that is a break inside an identifier, which overflow-wrap: anywhere allows as a last resort.
+      const broken = await page.evaluate((): string[] => {
+        const found: string[] = [];
+        const cells = document.querySelectorAll('.vp-doc td:not(:first-child, :last-child) code');
+        for (const code of cells) {
+          const walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT);
+          for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+            for (const word of node.textContent?.matchAll(/\S+/g) ?? []) {
+              const range = document.createRange();
+              range.setStart(node, word.index);
+              range.setEnd(node, word.index + word[0].length);
+              if (range.getClientRects().length > 1) found.push(word[0]);
+            }
+          }
+        }
+        return found;
+      });
+      expect(broken, 'identifiers split across lines').toEqual([]);
+    });
   }
 }

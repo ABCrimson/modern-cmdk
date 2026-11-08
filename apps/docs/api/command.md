@@ -222,7 +222,7 @@ for (const result of results) {
 |---|---|---|
 | `id` | `ItemId` | Matched item ID |
 | `score` | `number` | Match quality (0–1, higher = better) |
-| `matches` | `[number, number][]` | Character ranges for highlighting |
+| `matches` | `Array<[number, number]>` | Character ranges for highlighting |
 
 ### `ScorerFn`
 
@@ -264,7 +264,7 @@ const bonus = frecency.getBonus(itemId('settings')); // e.g., 4.0
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | `boolean` (optional) | `false` | Turns frecency ranking on for `createCommandMachine({ frecency })` and `<Command frecency>`: ranking applies only with `enabled: true`. Flips to `true` in 2.0. `new FrecencyEngine({ storage, namespace })` needs no `enabled` field |
+| `enabled` | `boolean` (optional) | `false` | Ranking applies only with `enabled: true`; the default flips to `true` in 2.0 |
 | `storage` | `FrecencyStorage` | `MemoryFrecencyStorage` | Persistence backend |
 | `namespace` | `string` | `'default'` | Storage namespace for isolation |
 | `decayConfig` | `FrecencyDecayConfig` | See below | Decay curve weights |

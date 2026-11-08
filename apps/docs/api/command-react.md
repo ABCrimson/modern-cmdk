@@ -421,7 +421,7 @@ const highlight = (
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `text` | `string` | Required | Full text to display |
-| `ranges` | `[number, number][]` | Required | Match ranges from search scorer |
+| `ranges` | `Array<[number, number]>` | Required | Match ranges from search scorer |
 | `highlightClassName` | `string` | -- | Class name for `<mark>` elements |
 
 Data attribute: `data-command-highlight` on each `<mark>` element.
