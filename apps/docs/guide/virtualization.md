@@ -39,6 +39,8 @@ function LargeList() {
 You do not need to change any code to benefit from virtualization. The same component API works with and without it. The virtualizer activates transparently when needed.
 :::
 
+`Command.List` renders one element tree in both modes. Crossing the 100-match threshold changes the props of the inner element only (`data-command-list-inner` becomes `data-command-list-virtual`, and the element takes a fixed height and `position: relative`), so the items stay mounted when the match count crosses it (`list.tsx:197-206`).
+
 ## Opting Out
 
 If you need all items rendered in the DOM (for example, for custom scroll behavior or accessibility testing), disable virtualization:
@@ -117,6 +119,10 @@ In auto mode virtualization turns **on** above 100 filtered items and only turns
 Passing an explicit `virtualize` value bypasses both edges.
 :::
 
+## `--command-list-height`
+
+`Command.List` writes the measured height of its inner element, rounded to one decimal and suffixed with `px`, to the `--command-list-height` custom property of the list element. While the list is virtual the inner element's height is the sum of all the row sizes, which would defeat a `height: var(--command-list-height)` rule, so the observer ignores it: the property keeps its last non-virtual value (`0px` when the list mounts virtual) and does not follow the virtual content height (`list.tsx:71-84`, `list.tsx:126`).
+
 ## CSS Optimization
 
 The shipped stylesheet (`modern-cmdk/styles.css`) applies every rule below; none needs adding to your own stylesheet.
@@ -136,7 +142,7 @@ The stylesheet also has a `[data-command-virtual-item]` rule with the same two d
 
 ### `will-change: transform`
 
-When the list virtualizes, the virtual list element (`[data-command-list-virtual]`, rendered at `list.tsx:168`) carries `will-change: transform` (`styles.css:226-229`). Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:78`). The offset is the item's start position inside the list (`use-virtualizer.ts:100`), so it does not change while the list scrolls; the browser's own scrolling of `[data-command-list]` moves the rows:
+When the list virtualizes, the virtual list element (`[data-command-list-virtual]`, set on the inner element at `list.tsx:201`) carries `will-change: transform` (`styles.css:226-229`). Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:104`). The offset is the item's start position inside the list (`use-virtualizer.ts:106`), so it does not change while the list scrolls; the browser's own scrolling of `[data-command-list]` moves the rows:
 
 ```css
 [data-command-list-virtual] {
@@ -147,13 +153,13 @@ When the list virtualizes, the virtual list element (`[data-command-list-virtual
 
 ### Contain Layout
 
-The shipped stylesheet applies `contain: layout style paint` to the list's inner wrapper, `[data-command-list-inner]` (`styles.css:196-199`), which renders only when the list does not virtualize (`list.tsx:174`). Items need no containment rule of their own: `content-visibility: auto` on `[data-command-item]` (`styles.css:209`) already turns on layout, style and paint containment for every item (CSS Containment Level 2), so paint containment can clip an item's descendants, for example a child's focus ring or shadow drawn outside the item's box.
+The shipped stylesheet applies `contain: layout style paint` to the list's inner wrapper, `[data-command-list-inner]` (`styles.css:196-199`), which carries the attribute only while the list does not virtualize (`list.tsx:200`). Items need no containment rule of their own: `content-visibility: auto` on `[data-command-item]` (`styles.css:209`) already turns on layout, style and paint containment for every item (CSS Containment Level 2), so paint containment can clip an item's descendants, for example a child's focus ring or shadow drawn outside the item's box.
 
 ## Performance Tips for 10K+ Items
 
 ::: details Performance Checklist
 
-1. **Watch search cost at scale.** The default TypeScript scorer runs on the main thread each time the machine refilters: once for every `SEARCH_CHANGE` (one per keystroke, even when several keystrokes land in the same scheduler batch), and once more at the end of a batch that registered, updated or removed items while a query is set. It can cause input lag at scale. The WASM search engine is designed for this case but does not work yet; see [WASM Search](/guide/wasm-search).
+1. **Watch search cost at scale.** The default TypeScript scorer runs on the main thread each time the machine refilters: once for every `SEARCH_CHANGE` (one per keystroke, even when several keystrokes land in the same scheduler batch), and once more at the end of a batch that registered, updated or removed items while a query is set. It can cause input lag at scale. The WASM search engine is designed for this case but does not work yet; see [WASM Search](/guide/wasm-search). A search engine you pass as `searchEngine` is yours to dispose: the machine disposes only an engine it created itself, and an engine you pass survives the machine's dispose, suspend and resume.
 
 2. **Keep `estimateSize` accurate.** Set `estimateSize` to the rendered row height: rows are placed at multiples of it, so a wrong value overlaps rows or leaves gaps.
 
@@ -173,11 +179,11 @@ The virtualizer uses a variable-height virtual scrolling strategy:
 
 1. **Sizing** — `Command.List` gives every row `estimateSize` pixels (it measures no item); the `ResizeObserver` tracks only the list's height. `measureElement` from `useVirtualizer` measures the rows of a custom list during `requestIdleCallback` (`setTimeout(fn, 0)` without it).
 
-2. **Windowing** — Only items within the visible viewport (plus overscan) render DOM nodes. A `<Command.Item>` outside the window still mounts and registers, but returns no DOM (`item.tsx:72`); `[data-command-list-virtual]` takes the height of every item together (`list.tsx:169`), so the scrollbar spans the whole list.
+2. **Windowing** — Only items within the visible viewport (plus overscan) render DOM nodes. A `<Command.Item>` outside the window still mounts and registers, but returns no DOM (`item.tsx:98`); `[data-command-list-virtual]` takes the height of every item together (`list.tsx:203-205`), so the scrollbar spans the whole list.
 
-3. **Positioning** — Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:78`), and `[data-command-list-virtual]` carries `will-change: transform` (`styles.css:228`), a hint that the element's transform will change.
+3. **Positioning** — Each visible item is absolutely positioned and offset with the individual CSS `translate` property (`item.tsx:104`), and `[data-command-list-virtual]` carries `will-change: transform` (`styles.css:228`), a hint that the element's transform will change.
 
-4. **Scroll-to-active** — When the active item changes, the list scrolls at once (`behavior: 'instant'`) to put it at the top of the viewport.
+4. **Scroll-to-active** — When the active item changes, the list scrolls it just into view (`'nearest'`): a row that is fully in view does not scroll, a row above meets the top edge and a row below meets the bottom edge. A virtual list scrolls by index with `scrollToIndex(index, 'nearest')` at once (`behavior: 'instant'`); a list that is not virtual calls `scrollIntoView({ block: 'nearest', behavior: 'smooth' })`. An active row under the pointer is not scrolled (`list.tsx:103-121`).
 
 ```
 Viewport (visible area):
@@ -190,6 +196,8 @@ Viewport (visible area):
   └──────────────────────┘
   [9,990 items NOT in DOM] ← [data-command-list-virtual] keeps their height
 ```
+
+The `scrollToIndex(index, align = 'start')` that `useVirtualizer` returns takes an `align` of `'start'` or `'nearest'`. With `'start'` it sets `scrollTop` to the row's offset among the rows, so the row meets the top edge only when nothing precedes the rows, padding included. With `'nearest'` it measures from the element's first child, where the rows start: a row fully in view does not scroll, a row above meets the top edge, and a row below or partly below meets the bottom edge (`hooks/use-virtualizer.ts:26-32`, `:122-146`). `Command.List` scrolls the active row with `'nearest'`.
 
 ::: tip
 The virtualizer integrates with the `useVirtualizer` hook, which you can also use directly for custom list implementations. See the [API Reference](/api/command-react#usevirtualizer-options).
