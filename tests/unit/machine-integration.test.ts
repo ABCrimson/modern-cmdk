@@ -1,6 +1,7 @@
 import type { CommandItem, ItemId } from 'modern-cmdk';
 import { createCommandMachine, groupId, itemId } from 'modern-cmdk';
 import { describe, expect, it, vi } from 'vitest';
+import { UNGROUPED_GROUP_ID } from '../../packages/modern-cmdk/src/core/types.js';
 
 function makeItem(id: string, value: string, opts?: Partial<CommandItem>): CommandItem {
   return { id: itemId(id), value, ...opts };
@@ -308,5 +309,44 @@ describe('Machine Integration', () => {
       // Should have navigated, active item should not be the first
       expect(machine.getState().activeId).not.toBe(itemId('item-0'));
     });
+  });
+});
+
+describe('Machine reserved group id (CE-50)', () => {
+  it('CE-50: REGISTER_GROUP with the ungrouped id is rethrown from a microtask as a RangeError and the batch still commits', async () => {
+    const original = globalThis.queueMicrotask;
+    const reported: unknown[] = [];
+    const spy = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((callback) => {
+      original(() => {
+        try {
+          callback();
+        } catch (error: unknown) {
+          reported.push(error);
+        }
+      });
+    });
+    try {
+      using machine = createCommandMachine();
+      const listener = vi.fn();
+      machine.subscribe(listener);
+      machine.send({ type: 'REGISTER_GROUP', group: { id: UNGROUPED_GROUP_ID, heading: 'Other' } });
+      machine.send({ type: 'REGISTER_ITEM', item: makeItem('a', 'Apple') });
+      await vi.waitFor(() => {
+        expect(machine.getState().filteredCount).toBe(1);
+      });
+      expect(reported).toHaveLength(1);
+      expect(reported[0]).toBeInstanceOf(RangeError);
+      expect(machine.getRegistry().groupCount).toBe(0);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect([...machine.getState().groupedIds.keys()]).toEqual([UNGROUPED_GROUP_ID]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('CE-50: createCommandMachine throws a RangeError for the ungrouped id in the groups option', () => {
+    expect(() =>
+      createCommandMachine({ groups: [{ id: UNGROUPED_GROUP_ID, heading: 'Other' }] }),
+    ).toThrow(RangeError);
   });
 });

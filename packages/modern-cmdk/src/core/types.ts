@@ -24,6 +24,13 @@ export type ItemId = string & { readonly [__itemIdBrand]: never };
 declare const __groupIdBrand: unique symbol;
 export type GroupId = string & { readonly [__groupIdBrand]: never };
 
+/**
+ * The `groupedIds` key of items that have no group. Reserved: `registerGroup` throws a `RangeError` for a
+ * group with this id, so a group can never claim the bucket of the ungrouped items. The value is an
+ * observable key of `CommandState.groupedIds` and stays `'__ungrouped'`.
+ */
+export const UNGROUPED_GROUP_ID: GroupId = '__ungrouped' as GroupId;
+
 /** Create a branded {@link ItemId} from a plain string. Ensures well-formed Unicode. */
 export function itemId(id: string): ItemId {
   return ensureWellFormed(id) as ItemId;

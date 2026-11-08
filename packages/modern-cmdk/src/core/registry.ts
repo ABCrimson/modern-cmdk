@@ -3,6 +3,7 @@
 // Performance: O(1) registration/lookup via Map + Set, O(1) unregistration; order is the Map insertion order
 
 import type { CommandGroup, CommandItem, GroupId, ItemId } from './types.js';
+import { UNGROUPED_GROUP_ID } from './types.js';
 import { mapGroupBy } from './utils/group-by.js';
 import {
   setDifference,
@@ -73,8 +74,11 @@ export class CommandRegistry implements Disposable {
     this.#invalidateCache();
   }
 
-  /** Register a group */
+  /** Register a group; throws a RangeError for {@link UNGROUPED_GROUP_ID}, the reserved bucket of ungrouped items */
   registerGroup(group: CommandGroup): Disposable {
+    if (group.id === UNGROUPED_GROUP_ID) {
+      throw new RangeError(`Group id "${UNGROUPED_GROUP_ID}" is reserved for ungrouped items`);
+    }
     this.#groups.set(group.id, group);
     this.#invalidateGroupCache();
     return {
@@ -120,7 +124,7 @@ export class CommandRegistry implements Disposable {
   /** Get items grouped by groupId — direct Map, no Object.entries conversion */
   getGroupedItems(): ReadonlyMap<GroupId, readonly CommandItem[]> {
     const items = this.getItems();
-    const grouped = mapGroupBy(items, (item) => item.groupId ?? ('__ungrouped' as GroupId));
+    const grouped = mapGroupBy(items, (item) => item.groupId ?? UNGROUPED_GROUP_ID);
 
     // Build result in group priority order, then append ungrouped
     const result = new Map<GroupId, readonly CommandItem[]>();
@@ -133,9 +137,9 @@ export class CommandRegistry implements Disposable {
     }
 
     // Add ungrouped items
-    const ungrouped = grouped.get('__ungrouped' as GroupId);
+    const ungrouped = grouped.get(UNGROUPED_GROUP_ID);
     if (ungrouped) {
-      result.set('__ungrouped' as GroupId, ungrouped);
+      result.set(UNGROUPED_GROUP_ID, ungrouped);
     }
 
     return result;
