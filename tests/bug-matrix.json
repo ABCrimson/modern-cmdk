@@ -1101,8 +1101,8 @@
   },
   {
     "id": "DG-20",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/dialog-open-state.test.tsx::RA-35: a controlled dialog whose parent keeps open stays open after Escape",
+    "status": "covered"
   },
   {
     "id": "DG-22",
@@ -1116,8 +1116,8 @@
   },
   {
     "id": "ARCH-03",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/input-typing.test.tsx::ARCH-03: an edit in the middle of the text keeps the value and the caret",
+    "status": "covered"
   },
   {
     "id": "ARCH-12",
@@ -1126,18 +1126,18 @@
   },
   {
     "id": "ARCH-17",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/react-lifecycle.test.tsx::an items prop change registers added items and unregisters removed ones",
+    "status": "covered"
   },
   {
     "id": "ARCH-18",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/dialog-open-state.test.tsx::ARCH-18: a controlled dialog mounted closed does not call onOpenChange",
+    "status": "covered"
   },
   {
     "id": "ARCH-19",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/react-lifecycle.test.tsx::registrations survive Activity hide/show",
+    "status": "covered"
   },
   {
     "id": "T06",
@@ -1146,13 +1146,13 @@
   },
   {
     "id": "RA-03",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/react-lifecycle.test.tsx::query survives StrictMode remount",
+    "status": "covered"
   },
   {
     "id": "RA-04",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/react-lifecycle.test.tsx::onSelect prop change fires the new callback",
+    "status": "covered"
   },
   {
     "id": "RA-05",
@@ -1166,8 +1166,8 @@
   },
   {
     "id": "RA-16",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/item-hover.test.tsx::D104: hovering an item mounts no Command.Loading and renders no intermediate previous id",
+    "status": "covered"
   },
   {
     "id": "RA-17",
@@ -1186,8 +1186,8 @@
   },
   {
     "id": "RA-21",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/react-lifecycle.test.tsx::Command.Dialog: an onSearchChange prop change after mount reaches the new callback",
+    "status": "covered"
   },
   {
     "id": "ACT-1",
@@ -1206,8 +1206,8 @@
   },
   {
     "id": "CE-48",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine-lifecycle.test.ts::CE-48: OPEN while open and CLOSE while closed emit no openChange",
+    "status": "covered"
   },
   {
     "id": "W44",
@@ -1216,23 +1216,23 @@
   },
   {
     "id": "RA-34",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/dialog-open-state.test.tsx::RA-34: one Escape on a controlled dialog calls onOpenChange(false) once",
+    "status": "covered"
   },
   {
     "id": "RA-35",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/dialog-open-state.test.tsx::RA-35: a controlled dialog whose parent keeps open stays open after Escape",
+    "status": "covered"
   },
   {
     "id": "RA-36",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/use-command-state.test.tsx::RA-36: a selector returning a fresh object renders once per machine tick without a getSnapshot warning",
+    "status": "covered"
   },
   {
     "id": "CE-78",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine-lifecycle.test.ts::CE-78: schedule() after dispose queues nothing",
+    "status": "covered"
   },
   {
     "id": "RA-39",
@@ -1251,8 +1251,8 @@
   },
   {
     "id": "RA-X3",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/dialog-open-state.test.tsx::RA-X3: the dialog focuses its input when the portal container is inside a shadow root",
+    "status": "covered"
   },
   {
     "id": "DGX-ASYNC-4",
@@ -1261,33 +1261,33 @@
   },
   {
     "id": "DGX-CD-5",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/dialog-open-state.test.tsx::RA-34: one Escape on a controlled dialog calls onOpenChange(false) once",
+    "status": "covered"
   },
   {
     "id": "CE-107",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine-lifecycle.test.ts::CE-107: a listener that disposes the machine inside a batch leaves a machine that refuses later sends",
+    "status": "covered"
   },
   {
     "id": "CE-110",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine-lifecycle.test.ts::CE-110: a throw in the frecency hydration commit surfaces as an uncaught exception",
+    "status": "covered"
   },
   {
     "id": "CE-111",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/frecency-save-retry.test.ts::CE-111: a rejected timer save keeps the engine dirty and asyncDispose persists the records",
+    "status": "covered"
   },
   {
     "id": "CE-112",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/frecency-idb.spec.ts::CE-112: three frecency storages on one database name opened in one tick all save and load in Chromium",
+    "status": "covered"
   },
   {
     "id": "CE-113",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/machine-lifecycle.test.ts::CE-113: send() after dispose reduces nothing and calls no option callback",
+    "status": "covered"
   },
   {
     "id": "CE-116",
@@ -1296,13 +1296,13 @@
   },
   {
     "id": "CE-117",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/dialog-open-state.test.tsx::CE-117: an open prop change does not echo onOpenChange",
+    "status": "covered"
   },
   {
     "id": "CE-118",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/dialog-open-state.test.tsx::CE-118: one Escape on an uncontrolled dialog calls onOpenChange(false) once",
+    "status": "covered"
   },
   {
     "id": "CE-119",
@@ -1311,8 +1311,8 @@
   },
   {
     "id": "CE-124",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/react-lifecycle.test.tsx::StrictMode: a query typed before any re-render reaches the live machine",
+    "status": "covered"
   },
   {
     "id": "SEC-73",
