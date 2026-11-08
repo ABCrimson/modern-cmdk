@@ -77,6 +77,16 @@ describe('serve-dist', () => {
     }
   });
 
+  it('answers 400 for a malformed path: a bad percent escape or a NUL byte in the decoded path', async () => {
+    await start();
+    for (const path of [`${BASE}%zz`, `${BASE}%00`, `${BASE}guide/a.html%00.png`]) {
+      const response = await fetch(`${origin}${path}`);
+      expect(response.status, path).toBe(400);
+      await response.text();
+    }
+    expect((await fetch(`${origin}${BASE}`)).status, 'keeps serving').toBe(200);
+  });
+
   it('answers 500 when a file cannot be opened, and keeps serving', async () => {
     await start(async (path) => {
       if (path.endsWith('a.html')) throw Object.assign(new Error('boom'), { code: 'EIO' });
