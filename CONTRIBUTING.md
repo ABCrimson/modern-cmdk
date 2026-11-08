@@ -247,7 +247,7 @@ modern-cmdk/
     standalone/
       compare-baseline.ts          The one CI benchmark harness (`pnpm bench:compare`; optional `--baseline <file>` and `--current <file>`)
       compare-rules.ts             Its comparison rules
-      record-baseline.ts           Re-records benchmarks/baseline.json from the benchmark-results artifact of the first green run after each Node pin bump (D93)
+      record-baseline.ts           Re-records benchmarks/baseline.json from a committed benchmarks/history/<date>-<sha7>.json (the benchmark-results artifact of the first green run after each Node pin bump, D93; D27: source names the committed file)
       fixtures/                    Baseline and current-run JSON files for the rules' tests
   |
   .changeset/
@@ -279,7 +279,7 @@ modern-cmdk/
 | `pnpm test:e2e` | Run E2E tests (Playwright 1.66 -- Chromium; set E2E_ENGINES=all to add Firefox and WebKit) |
 | `pnpm test:docs` | Playwright render tests for the built docs site (run `pnpm docs:build` first) |
 | `pnpm bench` | Run benchmarks (Vitest bench mode) |
-| `pnpm bench:record <results.json> --source <run url or id> [--out <file>] [--baseline <file>] [--target <category>:<key>=<ms>]` | Re-records `benchmarks/baseline.json` (or `--out`) from the `benchmark-results` artifact of the first green run after each Node pin bump (D93); exit 2 on a usage or input error, and nothing is written then |
+| `pnpm bench:record benchmarks/history/<YYYY-MM-DD>-<sha7>.json [--out <file>] [--baseline <file>] [--target <category>:<key>=<ms>]... [--repo <dir>]` | Re-records `benchmarks/baseline.json` (or `--out`) from a committed copy of the `benchmark-results` artifact of the first green run after each Node pin bump (D93): the file name must match its own `date` and `commit`, it must hold 5 runs, `version` comes from that commit's manifest and `source` names the file (D27); exit 2 on a usage or input error, and nothing is written then |
 | `pnpm bench:compare` | Standalone benchmark harness: compares medians with `benchmarks/baseline.json` (exit 0 pass, 1 warning, 2 failure or harness error) |
 | `pnpm lint` | Check lint rules (Biome) |
 | `pnpm lint:fix` | Fix lint issues and write changes |
