@@ -138,6 +138,16 @@ html:root {
   --vp-c-gutter: var(--mc-divider);
   --vp-c-border: var(--mc-divider);
 
+  /* The default-* ramp feeds the alt button, the appearance switch track and other neutral fills (theme-default/styles/vars.css);
+     left unbridged it painted charcoal #32363f and #414853 on the navy page and #ebebef on the light one. */
+  --vp-c-default-1: var(--mc-border-strong);
+  --vp-c-default-2: var(--mc-divider);
+  --vp-c-default-3: var(--mc-bg-soft);
+  --vp-c-default-soft: var(--mc-bg-soft);
+  --vp-button-alt-bg: var(--mc-bg-soft);
+  --vp-button-alt-hover-bg: var(--mc-divider);
+  --vp-button-alt-border: var(--mc-divider);
+
   --vp-c-brand-1: var(--mc-brand-1);
   --vp-c-brand-2: var(--mc-brand-2);
   --vp-c-brand-3: var(--mc-brand-3);
