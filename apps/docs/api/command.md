@@ -29,7 +29,7 @@ import { createCommandMachine, itemId } from 'modern-cmdk';
 
 ### `createCommandMachine(options?)`
 
-Creates a headless command palette state machine with search, frecency, and keyboard shortcut support. Implements `Disposable` for automatic cleanup via `using`.
+Creates a headless command palette state machine with search, frecency, and keyboard shortcut support. It returns `CommandMachine & AsyncDisposable`: `using` disposes it, and `await using` (or `[Symbol.asyncDispose]()`) first awaits the pending frecency save, then disposes. At the top level of a module, `using` disposes at the end of module evaluation; events still pending then are dropped (see [Scheduling](#scheduling)).
 
 ```ts
 import { createCommandMachine, itemId } from 'modern-cmdk';
@@ -51,9 +51,11 @@ using machine = createCommandMachine({
   loop: true,
 });
 
+// send() is scheduled: subscribe first, the listener runs once the batch has committed.
+machine.subscribe(() => console.log(machine.getState().filteredIds));
 machine.send({ type: 'SEARCH_CHANGE', query: 'cop' });
-machine.subscribe(() => console.log(machine.getState()));
-// Automatic cleanup when `machine` goes out of scope
+// `using` disposes at the end of the enclosing scope. At the top level of a module that is the end of
+// module evaluation, which drops the SEARCH_CHANGE above before it runs; keep the machine in a function or a component.
 ```
 
 ### `CommandMachineOptions`
@@ -62,31 +64,61 @@ machine.subscribe(() => console.log(machine.getState()));
 |---|---|---|---|
 | `items` | `CommandItem[]` | `[]` | Pre-registered items to populate on creation |
 | `groups` | `CommandGroup[]` | `[]` | Pre-registered groups for item categorization |
-| `filter` | `Function \| false` | built-in | Custom filter function, or `false` to disable filtering |
-| `search` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM engine) |
-| `label` | `string` | `'Command palette'` | Accessible label for the palette |
+| `filter` | `((item, query) => number \| false) \| false` | built-in | Custom filter function, or `false` to disable filtering (every item is listed in registration order). The function returns a score: above 0 keeps the item (higher ranks first); `false`, `0` or a negative number excludes it. It is called for every item on every non-empty query. When `search` is given, a filter function is not consulted (`false` still disables filtering) |
+| `search` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM engine). Its results are used as returned |
+| `label` | `string` | -- | Accepted in the type, but `createCommandMachine` never reads it. The React components read it as their `aria-label` and default it to `'Command palette'` |
 | `open` | `boolean` | `false` | Initial open state |
-| `frecency` | `FrecencyOptions` | `undefined` | Frecency ranking configuration |
+| `frecency` | `FrecencyOptions` | `undefined` | Frecency ranking configuration; ranking applies only with `enabled: true` |
 | `loop` | `boolean` | `true` | Whether keyboard navigation wraps around |
+| `disabledItems` | `'show' \| 'hide'` | `'show'` | `'show'` keeps disabled items in `filteredIds` under every query; `'hide'` drops them from `filteredIds` in every branch. See [`disabled`](#commanditem) |
+| `shortcutAction` | `'direct' \| 'select'` | `'direct'` | What an item's shortcut does. `'direct'` calls the item's `onSelect` and binds only items that have one. `'select'` dispatches `ITEM_SELECT` for the item (so the disabled guard, frecency, `options.onSelect` and the `select` event apply) and binds every enabled item that has a shortcut. A disabled item is never bound. 2.0 flips the default to `'select'` |
 | `virtualizeThreshold` | `number` | `100` | Accepted but not read yet; `Command.List` virtualizes above a fixed 100 matches (off again at 50 or fewer) |
 | `onSelect` | `(id: ItemId) => void` | -- | Callback when an item is selected |
 | `onActiveChange` | `(id: ItemId \| null) => void` | -- | Callback when the active item changes |
 | `onOpenChange` | `(open: boolean) => void` | -- | Callback when open state changes |
 | `onSearchChange` | `(query: string) => void` | -- | Callback when the search query changes |
 
+Order within a batch: `onOpenChange`, `onSearchChange` and the `openChange` event run while their event is handled, before the batch's single `stateChange` that `subscribe` and `subscribeState` listeners receive.
+
 ### `CommandMachine` Interface
 
 | Method | Returns | Description |
 |---|---|---|
-| `getState()` | `CommandState` | Returns current immutable state snapshot |
-| `send(event)` | `void` | Dispatches an event (batched via `requestAnimationFrame`) |
+| `getState()` | `CommandState` | Returns current immutable state snapshot (the state of the last committed batch, see [Scheduling](#scheduling)) |
+| `send(event)` | `void` | Schedules an event (`requestAnimationFrame` in browsers, `queueMicrotask` where it is absent); does not apply it before returning |
 | `subscribe(listener)` | `() => void` | Subscribe to state changes (`useSyncExternalStore`-compatible) |
 | `subscribeState(listener)` | `Disposable` | Subscribe with full state — returns `Disposable` for `using` |
 | `getRegistry()` | `CommandRegistry` | Access the command registry |
 | `getKeyboardRegistry()` | `KeyboardShortcutRegistry` | Access the keyboard shortcut registry |
 | `getFilteredIdSet()` | `ReadonlySet<ItemId>` | Current filtered IDs — O(1) membership checks |
 | `getFilteredIdIndex()` | `ReadonlyMap<ItemId, number>` | Positional index — O(1) positional lookup |
-| `[Symbol.dispose]()` | `void` | Clean up all resources (search engine, frecency, listeners) |
+| `[Symbol.dispose]()` | `void` | Clean up all resources (search engine, frecency, listeners); scheduled events that have not run are dropped |
+| `[Symbol.asyncDispose]()` | `Promise<void>` | On the returned `CommandMachine & AsyncDisposable`: awaits the pending frecency save, then disposes as above |
+
+### Scheduling
+
+`send()` returns before the event is handled. Events queue on the machine's scheduler, which runs them in one pass on the next animation frame in browsers and on the next microtask where `requestAnimationFrame` is absent (Node, SSR). There is no `isInputPending` or `scheduler.yield()` gate: a batch always runs whole.
+
+- `getState()` right after `send()` still returns the previous state.
+- A batch emits one `stateChange` (if anything changed), however many events it holds. Registry events (`REGISTER_ITEM`, `UPDATE_ITEM`, `UNREGISTER_ITEM`, `ITEMS_LOADED`, `REGISTER_GROUP`, `UNREGISTER_GROUP`) only mark the results dirty, and the end of the batch refilters once for all of them; a `SEARCH_CHANGE` refilters when it is handled. An event sent from inside a handler runs in the next batch.
+- The machine has no public `flush()`. A core-only caller reads the result by subscribing (`machine.subscribe(listener)` or `machine.subscribeState(listener)`), or by awaiting the next frame or microtask before `getState()`.
+- Disposing the machine drops events that have not run yet, so `using machine = createCommandMachine(...)` followed by `send()` at the top level of a module loses the event when the module finishes evaluating.
+
+```ts
+import { createCommandMachine, itemId } from 'modern-cmdk';
+
+async function search(): Promise<void> {
+  using machine = createCommandMachine({ items: [{ id: itemId('home'), value: 'Home' }] });
+
+  const committed = Promise.withResolvers<void>();
+  machine.subscribe(() => committed.resolve()); // runs once per committed batch
+  machine.send({ type: 'SEARCH_CHANGE', query: 'ho' });
+
+  console.log(machine.getState().search); // '' (not applied yet)
+  await committed.promise;
+  console.log(machine.getState().search); // 'ho'
+}
+```
 
 ### `CommandState`
 
@@ -96,9 +128,9 @@ Immutable state snapshot. Each mutation produces a new object reference for effi
 |---|---|---|
 | `search` | `string` | Current search query |
 | `activeId` | `ItemId \| null` | Currently highlighted item, or `null` |
-| `filteredIds` | `readonly ItemId[]` | Ordered list of visible item IDs |
-| `groupedIds` | `ReadonlyMap<GroupId, readonly ItemId[]>` | Group ID → visible item IDs |
-| `filteredCount` | `number` | Count of visible items |
+| `filteredIds` | `readonly ItemId[]` | Ordered list of visible item IDs. Disabled items are listed (under every query) unless `disabledItems: 'hide'` |
+| `groupedIds` | `ReadonlyMap<GroupId, readonly ItemId[]>` | Group ID → visible item IDs. The keys are in group `priority` order (lower first; ungrouped items and unregistered group ids count as 0, ties keep first-appearance order); `filteredIds` and `NAVIGATE` keep the search order. Items without a group sit under `UNGROUPED_GROUP_ID` |
+| `filteredCount` | `number` | Count of visible items (`filteredIds.length`, so it counts listed disabled items) |
 | `loading` | `boolean` | `true` while any `<Command.AsyncItems>` is pending (the `LOADING` event) |
 | `page` | `string` | Current page identifier |
 | `pageStack` | `readonly string[]` | Previous pages for back-navigation |
@@ -110,17 +142,18 @@ Immutable state snapshot. Each mutation produces a new object reference for effi
 | Event Type | Payload | Description |
 |---|---|---|
 | `SEARCH_CHANGE` | `{ query: string }` | Update search query |
-| `ITEM_SELECT` | `{ id: ItemId }` | Select an item |
-| `ITEM_ACTIVATE` | `{ id: ItemId }` | Highlight an item |
-| `NAVIGATE` | `{ direction: 'next' \| 'prev' \| 'first' \| 'last' }` | Navigate items |
+| `ITEM_SELECT` | `{ id: ItemId }` | Select an item: runs its `onSelect`, records frecency, emits `select` and calls `options.onSelect`. Does nothing for a disabled or unknown id |
+| `ITEM_ACTIVATE` | `{ id: ItemId }` | Highlight an item. Lands only on an enabled item in `filteredIds`; otherwise ignored |
+| `NAVIGATE` | `{ direction: 'next' \| 'prev' \| 'first' \| 'last' }` | Navigate items; disabled items are skipped |
 | `PAGE_PUSH` | `{ page: string }` | Push a new page |
 | `PAGE_POP` | -- | Pop to previous page |
 | `OPEN` | -- | Open the palette |
 | `CLOSE` | -- | Close the palette |
 | `TOGGLE` | -- | Toggle open state |
-| `ITEMS_LOADED` | `{ items: readonly CommandItem[] }` | Bulk-load async items |
+| `ITEMS_LOADED` | `{ items: readonly CommandItem[] }` | Bulk-load async items; their shortcuts are bound like those of registered items |
 | `LOADING` | `{ source: string; pending: boolean }` | A `<Command.AsyncItems>` source started (`pending` true) or finished (`pending` false); `loading` is true while any source is pending |
 | `REGISTER_ITEM` | `{ item: CommandItem }` | Register a new item |
+| `UPDATE_ITEM` | `{ item: CommandItem }` | Upsert an item in place: its position is kept (an unknown id is appended), the search index is updated and its shortcut is re-bound (`<Command.Item>` and `useRegisterItem` send it when their props change) |
 | `UNREGISTER_ITEM` | `{ id: ItemId }` | Remove an item |
 | `REGISTER_GROUP` | `{ group: CommandGroup }` | Register a new group |
 | `UNREGISTER_GROUP` | `{ id: GroupId }` | Remove a group |
@@ -148,10 +181,20 @@ const state = createInitialState({ open: true });
 | `value` | `string` | Yes | Display text and primary search target |
 | `keywords` | `readonly string[]` | No | Additional searchable terms |
 | `groupId` | `GroupId` | No | Group this item belongs to |
-| `shortcut` | `string` | No | Keyboard shortcut (e.g., `"Mod+K"`) |
-| `disabled` | `boolean` | No | Excluded from filtering and selection |
+| `shortcut` | `string` | No | Keyboard shortcut (e.g., `"Mod+K"`). Not bound while the item is disabled |
+| `disabled` | `boolean` | No | Listed but inert: see [Disabled items](#disabled-items) |
 | `onSelect` | `() => void` | No | Callback when selected. Called with no arguments, in the core and in `<Command.Item onSelect>` |
 | `data` | `Record<string, unknown>` | No | Arbitrary metadata |
+
+### Disabled items
+
+A `disabled` item takes part in filtering and is listed, but it is inert:
+
+- It is filtered and ordered like any other item under every query, so it appears in `filteredIds`, `groupedIds` and `filteredCount`. `<Command.Item>` renders it with `aria-disabled` and `data-disabled`.
+- It is skipped by `NAVIGATE`, never becomes the active item (an `ITEM_ACTIVATE` for it is ignored and the first active item is the first enabled one), and `ITEM_SELECT` for it does nothing: no `onSelect`, no frecency record.
+- Its `shortcut` is not bound, so it does not fire and the key is left to the page.
+- `disabledItems: 'hide'` drops disabled items from `filteredIds` in every branch, so they are not rendered.
+- A list holding only disabled items has `filteredCount > 0`, so `<Command.Empty>` does not render.
 
 ### `CommandGroup`
 
@@ -159,7 +202,7 @@ const state = createInitialState({ open: true });
 |---|---|---|---|
 | `id` | `GroupId` | Yes | Unique identifier (branded type) |
 | `heading` | `string` | No | Display heading text |
-| `priority` | `number` | No | Sort priority (lower = higher in list) |
+| `priority` | `number` | No | Orders the keys of `CommandState.groupedIds` (lower first, default 0). `filteredIds` and `NAVIGATE` are unchanged, and `<Command.Group>` elements render in JSX order, not by priority |
 
 ### Branded Types
 
