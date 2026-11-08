@@ -6,12 +6,15 @@
 import type { ReactNode } from 'react';
 import { useStateContext } from './context.js';
 
-/** Branded page identifier */
-export type CommandPageId = string & { readonly __brand: 'CommandPageId' };
+/**
+ * A page identifier: a plain string.
+ * @deprecated The page id is a plain string; use string. Removed in 2.0.
+ */
+export type CommandPageId = string;
 
 export interface CommandPageProps {
   /** Page identifier */
-  readonly id: CommandPageId | string;
+  readonly id: string;
   readonly children?: ReactNode;
 }
 
