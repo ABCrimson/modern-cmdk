@@ -26,7 +26,8 @@
 //       CONTRIBUTING.md
 //   Source comments
 //     RA-26 activity.tsx   RA-28 shortcut.tsx   RA-29 page.tsx   RA-30 dialog.tsx   RA-70
-//       dialog.tsx and command.tsx
+//       dialog.tsx and command.tsx   RA-85 dialog.tsx (the open and onOpenChange JSDoc)
+//     RA-86 activity.tsx (the CommandActivity JSDoc) and api/command-react.md (Command.Activity)
 //   Delta table
 //     guide/migration-from-cmdk.md renders every row of tests/unit/cmdk-parity-delta.json (not a
 //       ledger row)
@@ -148,6 +149,23 @@ function header(file: string): string {
     lines.push(text);
   }
   return lines.join('\n');
+}
+
+/** The JSDoc block that ends right above the first line of `file` matching `anchor`, on one line. */
+function jsdocAbove(file: string, anchor: RegExp): string {
+  const lines: string[] = read(file).split(/\r?\n/);
+  const at: number = lines.findIndex((l) => anchor.test(l));
+  expect(at, `${file}: a line matching ${String(anchor)}`).toBeGreaterThan(-1);
+  const block: string[] = [];
+  for (let i = at - 1; i >= 0; i--) {
+    const text: string = (lines[i] ?? '').trim();
+    if (!text.startsWith('*') && !text.startsWith('/**')) break;
+    block.unshift(text.replace(/^\/\*\*\s?|\*\/\s*$/g, '').replace(/^\*\s?/, ''));
+    if (text.startsWith('/**')) break;
+  }
+  const doc: string = block.join(' ').replace(/\s+/g, ' ').trim();
+  expect(doc, `${file}: a JSDoc block above ${String(anchor)}`).not.toBe('');
+  return doc;
 }
 
 /** A module whose first statement is the directive (comment lines may precede it). */
@@ -772,6 +790,60 @@ describe('docs rows of 1.7.0', () => {
       );
       expect(head, `RA-70: ${file} header names no branded types`).not.toMatch(/branded types/i);
     }
+  });
+
+  it('RA-85: packages/modern-cmdk/src/react/dialog.tsx open JSDoc says an undefined open starts closed and nothing opens it', () => {
+    // An uncontrolled dialog starts closed (`useState(controlledOpen ?? false)`) and nothing it
+    // renders or binds opens it: there is no trigger, the keydown listener exists only while it is
+    // open, and the machine is not exposed. The `open` JSDoc must not invite the uncontrolled mode.
+    const file = `${SRC_REACT}dialog.tsx`;
+    const open: string = jsdocAbove(file, /^\s*readonly open\?:/);
+    expect(open, 'RA-85: the open prop is described as controlled state').toMatch(/controlled/i);
+    expect(open, 'RA-85: an undefined open starts (or begins) closed').toMatch(
+      /\b(?:starts|begins) closed\b/,
+    );
+    expect(open, 'RA-85: nothing (or no part of the component) opens it').toMatch(
+      /\b(?:nothing|no part)\b[^.]*\bopens? it\b/,
+    );
+    expect(open, 'RA-85: no invitation to let the dialog own its open state').not.toMatch(
+      /\bowns? its open state\b/,
+    );
+    const changed: string = jsdocAbove(file, /^\s*readonly onOpenChange\?:/);
+    expect(changed, 'RA-85: a controlled dialog reports each request once').toMatch(/controlled/i);
+    expect(changed, 'RA-85: no uncontrolled dialog reports changes').not.toMatch(
+      /uncontrolled[^.]*\b(?:reports?|calls?)\s+(?:it\s+)?(?:each|every|on every)\s+(?:change|request|open)/i,
+    );
+  });
+
+  it('RA-86: packages/modern-cmdk/src/react/activity.tsx and api/command-react.md describe a hidden Activity as kept mounted and hidden, not unrendered', () => {
+    // A hidden Activity keeps its children mounted with their state, hides their DOM with
+    // `display: none` and cleans up their effects: it does not skip rendering them.
+    const texts: ReadonlyMap<string, string> = new Map([
+      [
+        `${SRC_REACT}activity.tsx (the CommandActivity JSDoc)`,
+        jsdocAbove(`${SRC_REACT}activity.tsx`, /^export function CommandActivity\b/),
+      ],
+      [
+        `${DOCS}api/command-react.md (the Command.Activity section)`,
+        sectionOf(`${DOCS}api/command-react.md`, /^`<Command\.Activity>`$/),
+      ],
+    ]);
+    for (const [where, text] of texts) {
+      expect(text, `RA-86: ${where} names the hidden mode`).toMatch(/\bhidden\b/);
+      expect(text, `RA-86: ${where} says the children stay mounted`).toMatch(
+        /\b(?:mounted|keeps|kept)\b/,
+      );
+      expect(text, `RA-86: ${where} says the DOM is hidden, not removed`).toMatch(
+        /display:\s*none|\bhides?\b|\bstays? hidden\b/,
+      );
+      expect(text, `RA-86: ${where} does not call the hidden tree unrendered`).not.toMatch(
+        /preserved in memory|\bwithout render\w*|\bnot (?:be )?rendered\b|\bunrendered\b/i,
+      );
+    }
+    expect(
+      read(`${SRC_REACT}activity.tsx`),
+      'RA-86: the component hands its mode prop to React Activity',
+    ).toMatch(/<ActivityComponent mode=\{mode\}>/);
   });
 
   it('CE-92: api/command.md, packages/modern-cmdk/README.md, ARCHITECTURE.md and CONTRIBUTING.md name the telemetry option', () => {
