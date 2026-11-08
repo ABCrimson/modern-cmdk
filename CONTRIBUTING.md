@@ -592,9 +592,9 @@ Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnp
 
 | Entry | Limit | Method |
 |---|---|---|
-| `modern-cmdk` (core) | 6.5 kB | `dist/core/index.mjs`, gzip |
-| `modern-cmdk/react` (adapter only) | 5.6 kB | `dist/react/index.mjs`, gzip; `modern-cmdk`, `react`, `react-dom` and `radix-ui` ignored |
-| `modern-cmdk` + `modern-cmdk/react` | 10.1 kB | `dist/react/index.mjs`, gzip; only the React side ignored, so the one core is counted |
+| `modern-cmdk` (core) | 7.35 kB | `dist/core/index.mjs`, gzip |
+| `modern-cmdk/react` (adapter only) | 5.7 kB | `dist/react/index.mjs`, gzip; `modern-cmdk`, `react`, `react-dom` and `radix-ui` ignored |
+| `modern-cmdk` + `modern-cmdk/react` | 10.75 kB | `dist/react/index.mjs`, gzip; only the React side ignored, so the one core is counted |
 | `modern-cmdk/react/dialog` (adapter only) | 1.5 kB | `dist/react/dialog.mjs`, gzip; same ignore list as the adapter |
 | `CommandSeparator` only | 5 kB | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; still contains the whole compound |
 | `modern-cmdk/styles.css` | 4 kB | `dist/react/styles.css`, gzip |

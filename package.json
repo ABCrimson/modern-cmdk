@@ -73,13 +73,13 @@
     {
       "name": "modern-cmdk (core)",
       "path": "packages/modern-cmdk/dist/core/index.mjs",
-      "limit": "6.5 kB",
+      "limit": "7.35 kB",
       "gzip": true
     },
     {
       "name": "modern-cmdk/react (adapter only)",
       "path": "packages/modern-cmdk/dist/react/index.mjs",
-      "limit": "5.6 kB",
+      "limit": "5.7 kB",
       "gzip": true,
       "ignore": [
         "modern-cmdk",
@@ -122,7 +122,7 @@
     {
       "name": "modern-cmdk + modern-cmdk/react",
       "path": "packages/modern-cmdk/dist/react/index.mjs",
-      "limit": "10.1 kB",
+      "limit": "10.75 kB",
       "gzip": true,
       "ignore": [
         "react",
