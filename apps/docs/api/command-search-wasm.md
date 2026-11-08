@@ -221,12 +221,16 @@ const largeDataset: CommandItem[] = Array.from({ length: 10_000 }, (_, i) => ({
   value: `Item ${i}`,
 }));
 
-await using searchEngine = await createWasmSearchEngine();
+export async function main(): Promise<void> {
+  await using searchEngine = await createWasmSearchEngine();
 
-using machine = createCommandMachine({
-  search: searchEngine,
-  items: largeDataset,
-});
+  using machine = createCommandMachine({
+    search: searchEngine,
+    items: largeDataset,
+  });
+
+  // ... use the machine here; both are disposed when the function returns
+}
 ```
 
 Via the React adapter:
