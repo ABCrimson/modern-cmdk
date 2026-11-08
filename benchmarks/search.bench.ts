@@ -1,26 +1,10 @@
 import type { CommandItem } from 'modern-cmdk';
 import { createCommandMachine, itemId } from 'modern-cmdk';
 import { describe, test } from 'vitest';
+import { generateItems } from './fixtures.ts';
 
-const WORDS = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
-
-// ES2025 Iterator Helpers — generate benchmark items via iterator pipeline
-function generateItems(count: number): CommandItem[] {
-  return Iterator.from({
-    [Symbol.iterator]: function* () {
-      for (let i = 0; i < count; i++) yield i;
-    },
-  })
-    .map((i) => ({
-      id: itemId(`item-${i}`),
-      value: `${WORDS[i % WORDS.length]} ${i} ${WORDS[(i + 3) % WORDS.length]} action`,
-      keywords: [`keyword-${i}`, `alias-${i % 100}`],
-    }))
-    .toArray();
-}
-
-const items1K = generateItems(1_000);
-const items10K = generateItems(10_000);
+const items1K = generateItems(1_000, 'search', itemId);
+const items10K = generateItems(10_000, 'search', itemId);
 
 /**
  * A machine whose SEARCH_CHANGE is awaited to completion. `machine.send` only schedules the
