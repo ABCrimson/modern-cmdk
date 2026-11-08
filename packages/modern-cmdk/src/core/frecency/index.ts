@@ -76,6 +76,8 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
   #pending: Promise<unknown> = Promise.resolve();
   /** The last started load, never rejecting: a save starts only after it settles */
   #loading: Promise<unknown> = Promise.resolve();
+  /** Set by a rejected load: the engine writes nothing afterwards */
+  #loadFailed = false;
   #abort = new AbortController();
 
   constructor(options: FrecencyOptions) {
@@ -104,12 +106,15 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
    * Merge the data in storage into the engine: frequencies add, `lastUsed` takes the later
    * time, and selections recorded before the load resolves are kept. Call it once per
    * engine; a second load would add the persisted frequencies again. A save started while
-   * the load is in flight waits for it, so the history it writes is the merged one; a load
-   * that rejects releases the save and rejects here.
+   * the load is in flight waits for it, so the history it writes is the merged one, and a load
+   * that never settles holds every save, and `await using`, forever. A failed load rejects here
+   * and turns persistence off for this engine: saving would replace a history it could not read.
    */
   load(): Promise<void> {
     const merged = this.#merge();
-    this.#loading = merged.catch(() => {});
+    this.#loading = merged.catch(() => {
+      this.#loadFailed = true;
+    });
     return merged;
   }
 
@@ -177,7 +182,8 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
 
   /**
    * Flush dirty data to storage and wait for every save in flight; saves run one after
-   * another, each after the load in flight, and a rejected save leaves the data dirty and rethrows to the flush that started it
+   * another, each after the load in flight (one that never settles holds them all), none after a
+   * rejected load, and a rejected save leaves the data dirty and rethrows to the flush that started it
    */
   async flush(): Promise<void> {
     clearTimeout(this.#timer);
@@ -185,7 +191,7 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
     // Clear before awaiting so a selection recorded during the save stays dirty
     this.#dirty = false;
     const save = Promise.all([this.#pending, this.#loading]).then(
-      () => dirty && this.#storage.save(this.#namespace, this.#data),
+      () => dirty && !this.#loadFailed && this.#storage.save(this.#namespace, this.#data),
     );
     this.#pending = save.catch(() => {});
     try {
