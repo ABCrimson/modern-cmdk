@@ -54,7 +54,7 @@ flowchart TB
     subgraph core ["modern-cmdk — Framework-Agnostic Core"]
         direction TB
         SM["State Machine<br/>Pure TS · Disposable<br/>Immutable snapshots"]
-        SE["Search Engine<br/>SearchEngine plug point (option: search)<br/>Incremental filtering"]
+        SE["Search Engine<br/>SearchEngine plug point (option: searchEngine)<br/>Incremental filtering"]
         FE["Frecency Engine<br/>Bucketed recency weights<br/>Pluggable storage · Disposable"]
         REG["Command Registry<br/>Items (Map, insertion order) · Groups (Map) · Id Set<br/>Set-operation helpers · Iterator Helpers · Disposable"]
         KB["Keyboard Shortcut Registry<br/>Parser (split on +) · Matcher<br/>Conflicts (mapGroupBy helper) · Disposable"]
@@ -73,7 +73,7 @@ flowchart TB
     App --> React
     App -.-> Future
     Codemod -.->|"rewrites the application source"| App
-    React -->|"useSyncExternalStore<br/>useTransition / useOptimistic"| core
+    React -->|"useSyncExternalStore"| core
     WASM -.->|"passed as the search option"| core
 ```
 
@@ -87,7 +87,7 @@ The architecture follows strict layering rules:
 
 2. **Adapter layer** (`modern-cmdk/react`) -- Thin React 19 wrapper. Consumes the core via `useSyncExternalStore`. Renders JSX. Handles DOM events. Carries the `'use client'` directive in its shipped output: the shipped `dist/react/index.mjs` and `dist/react/dialog.mjs` begin with `'use client'`, added as the banner of the React config in `packages/modern-cmdk/tsdown.config.ts`; no module under `src/react` carries the directive (`tests/dist/one-core.test.ts` enforces both).
 
-3. **Extension layer** (`modern-cmdk-search-wasm`) -- Optional WASM search engine. It implements the core's `SearchEngine` interface and is handed to the machine through the `search` option. It ships a Rust crate compiled with `wasm-pack`. The package is `private: true` in `packages/command-search-wasm/package.json`; it is not published to npm.
+3. **Extension layer** (`modern-cmdk-search-wasm`) -- Optional WASM search engine. It implements the core's `SearchEngine` interface and is handed to the machine through the `searchEngine` option (`search` is the deprecated name, removed in 2.0). It ships a Rust crate compiled with `wasm-pack`. The package is `private: true` in `packages/command-search-wasm/package.json`; it is not published to npm.
 
 4. **Tooling layer** (`modern-cmdk-codemod`) -- The cmdk to modern-cmdk migration CLI (bin: `modern-cmdk-codemod`; source `packages/modern-cmdk-codemod/src`). It is a separate package with `jscodeshift` as its own dependency, no `exports` and no `types`, and nothing in the runtime imports it. `modern-cmdk` keeps a deprecated `modern-cmdk` bin until 2.0 (see [Build output](#build-output-and-the-scoped-sideeffects-array)).
 
@@ -117,7 +117,9 @@ createCommandMachine(options)
 |  getRegistry()   -+-> Access the CommandRegistry
 |  getKeyboard..() -+-> Access the KeyboardShortcutRegistry
 |  getFilteredIdSet / getFilteredIdIndex -+-> O(1) membership / position lookup
-|  [Symbol.dispose] +-> Cleans up all subsystems (drops queued events)
+|  suspend()/resume() -> Release / take back the global holds (reversible)
+|  refresh()       -+-> Refilters with the options as they read now
+|  [Symbol.dispose] +-> The terminal teardown (drops queued events)
 |  [Symbol.asyncDispose] -> Awaits the pending frecency save, then disposes
 +------------------+
 ```
@@ -131,7 +133,11 @@ createCommandMachine(options)
 - After the last event of the batch, `commit()` refilters once if the results are still dirty, then emits `stateChange` once, and only if the state changed.
 - `setOpen` emits `openChange` and then calls `onOpenChange`; `onSearchChange` runs inside the `SEARCH_CHANGE` handler. All of them therefore come before the batch's single `stateChange`.
 - An event sent from inside a handler runs in the next batch.
-- `[Symbol.dispose]()` drops the queued events, and `using` disposes at the end of its block. `await using` (`[Symbol.asyncDispose]()`) first awaits the pending frecency save, then disposes.
+- `[Symbol.dispose]()` is terminal: it drops the queued events, a batch that is running stops without its commit, and afterwards `send()` reduces nothing and calls no option callback. `using` disposes at the end of its block. `await using` (`[Symbol.asyncDispose]()`) first awaits the pending frecency save, then disposes.
+
+**Lifecycle: `suspend()`, `resume()` and `refresh()`.** `suspend()` is the reversible pause. It runs the pending batch at once, detaches the keyboard registry's `document` keydown listener, removes the frecency engine's `pagehide` and `visibilitychange` listeners and starts the save of pending frecency data. State, registered items and shortcut bindings, the search engine and the frecency storage stay, and `resume()` takes the listeners back. Both are idempotent and do nothing after dispose. They are optional members of the `CommandMachine` interface, and the machine `createCommandMachine` returns always has them. `refresh()` schedules one batch slot that runs the filter again over the registered items and recomputes the active item with the options as they read now; it is not a `CommandEvent` and reports no candidate to `onActiveChange`.
+
+**Controlled `activeId`.** With the `activeId` option defined, `state.activeId` mirrors it while that id is listed and enabled, and is `null` otherwise (`activeId: null` means no active item). Every candidate the machine would choose is reported through `onActiveChange`, and the caller decides whether to pass it back.
 
 **State shape** (`CommandState`):
 
@@ -285,10 +291,10 @@ Two options on `createCommandMachine()` (and, through `CommandMachineOptions`, o
 
 | Option | Type | What it does |
 |---|---|---|
-| `search` | `SearchEngine` | **The pluggable engine.** Replaces the whole default engine: `index(items)`, `search(query, items)` returning an iterator of `SearchResult` (with match ranges), `remove(ids)`, `clear()`, `[Symbol.dispose]()`. The WASM engine implements this interface. |
+| `searchEngine` | `SearchEngine` | **The pluggable engine** (`search` is its deprecated name, removed in 2.0; `searchEngine` wins when both are set). Replaces the whole default engine: `index(items)`, `search(query, items)` returning an iterator of `SearchResult` (with match ranges), `remove(ids)`, `clear()`, `[Symbol.dispose]()`. The WASM engine implements this interface. The machine disposes an engine only if it created it, so an engine you pass is yours to dispose and survives the machine's dispose, suspend and resume. |
 | `filter` | `(item, query) => number \| false`, or `false` | A **score override** for the default engine. Return a positive score to keep the item (higher ranks first); `false`, `0` or a negative number drops it. The machine wraps it as the engine's scorer with `matches: []`, so a `filter` cannot supply highlight ranges. `filter: false` skips searching altogether and lists every registered item in registration order (disabled ones too, unless `disabledItems: 'hide'`). |
 
-When `search` is given, it is used as is (`options.search ?? createSearchEngine(...)` in `machine.ts`), and a `filter` function is not consulted. The engine's `ScorerFn` type (`(query, item) => SearchResult | null`) is only the option type of `createSearchEngine({ scorer })`. A `filter` function is such a scorer, so it is called for every item on every non-empty query (see [Incremental Filtering](#incremental-filtering)).
+When `searchEngine` (or the deprecated `search`) is given, it is used as is (`options.searchEngine ?? options.search ?? createOwnedEngine(options)` in `machine.ts`), and a `filter` function is not consulted. The engine's `ScorerFn` type (`(query, item) => SearchResult | null`) is only the option type of `createSearchEngine({ scorer })`. A `filter` function is such a scorer, so it is called for every item on every non-empty query (see [Incremental Filtering](#incremental-filtering)).
 
 ### Disabled Items
 
@@ -311,7 +317,7 @@ If the new query, lowercased, starts with the previous (non-empty) lowercased qu
 
 The shortcut is for the default scorer only, because a custom scorer need not be monotone (a longer query may match an item a shorter one did not). A custom scorer -- a `filter` function, or `createSearchEngine({ scorer })` -- is called for every item on every non-empty query.
 
-In browser development builds the engine also registers itself with a `FinalizationRegistry` and warns if it is garbage collected without being disposed. This is a diagnostic only; it never affects delivery or pruning.
+In browser development builds the engine also registers itself with a `FinalizationRegistry` and warns if it is garbage collected without being disposed. This is a diagnostic only; it never affects delivery or pruning. The engine a machine creates itself is not subject to the warning: the machine registers it with its own `FinalizationRegistry`, which disposes it when the machine is collected, and `machine[Symbol.dispose]()` or `using` disposes it at once.
 
 ### Frecency Re-Ranking
 
@@ -342,7 +348,7 @@ The weights are the defaults in `DEFAULT_FRECENCY_DECAY` (`types.ts`) and can be
 **Persistence.** Selections are saved to the storage:
 
 - 1000 ms after the last selection (a trailing debounce: each selection restarts the timer);
-- when the page becomes hidden (`visibilitychange`) and on `pagehide`;
+- when the page becomes hidden (`visibilitychange`) and on `pagehide` (`suspend()` removes both listeners and starts the save of pending data, `resume()` re-attaches them);
 - on `flush()` and on dispose.
 
 `load()` merges the stored data into the engine instead of replacing it: frequencies add, and the later `lastUsed` wins. The machine loads in the background when frecency is enabled and refilters once the data has merged (only if a non-empty query is active with filtering on). A failed load or save is reported with `console.warn`, never thrown from the timer or the page listeners.
@@ -365,7 +371,7 @@ Ships with `MemoryFrecencyStorage` (in-memory, no persistence) and `IdbFrecencyS
 
 **Files:** `packages/command-search-wasm/crate/src/` (Rust), `packages/command-search-wasm/src/` (TypeScript wrappers)
 
-The optional WASM engine implements the core's `SearchEngine` interface; you pass it as `search:` to `createCommandMachine()` (or `<Command search={...}>`). It is **not** a `filter` function and not a `ScorerFn`.
+The optional WASM engine implements the core's `SearchEngine` interface; you pass it as `searchEngine:` to `createCommandMachine()` (or `<Command searchEngine={...}>`; the deprecated name `search` still works). It is **not** a `filter` function and not a `ScorerFn`.
 
 - **Trigram index** (`crate/src/trigram.rs`) -- `index_items` receives a JSON array of `[id, value]` pairs and maps every lowercase 3-character window of `value` to the items containing it. Only `value` is indexed; `keywords` are not. A query's score is the share of its trigrams found in an item, results at or below 0.1 are dropped, and match ranges are exact substring hits.
 - **`createWasmSearchEngine()`** (`src/wasm-engine.ts`) -- main-thread wrapper. If the WASM module cannot be loaded it falls back to the TypeScript engine from `modern-cmdk` (`isWasm: false`). `remove(ids)` clears the whole WASM index and does not re-index the remaining items (a known gap).
@@ -430,7 +436,7 @@ Global shortcut management:
 - `.register(shortcutStr, itemId, handler)` returns a `Disposable` -- enables `using` for automatic deregistration. Each `normalized` key keeps a **stack** of bindings, one per item. The later binding wins the keydown, and disposing it restores the earlier one. The same item registering the same key again replaces its own binding in place; that is not a conflict.
 - `.unregister(shortcutStr)` removes every binding of the key. `.unregisterByItem(itemId, keep?)` removes the item's bindings on all other keys and keeps the one named by `keep` (the machine uses it to re-bind in place).
 - `.getBindings()` returns a snapshot of each key's winner, the later binding.
-- Attaches a single `document.addEventListener('keydown', ...)` listener, in the constructor.
+- Attaches a single `document.addEventListener('keydown', ...)` listener, in the constructor. `suspend()` detaches it with every binding kept and `resume()` attaches it again.
 - Safe in SSR -- checks `typeof document` before attaching.
 - Implements `Disposable` -- removes the global listener and clears all bindings.
 
@@ -466,19 +472,21 @@ The machine's `.getState()` returns the same object reference until the next sta
 
 ### Compound Components
 
-All components consume the machine via React context using `use(CommandContext)` (React 19):
+All components read the machine through two React contexts, a stable one (the machine, ids, the label and `updateSearch`) and a state one (the current `CommandState`), with `use()` (React 19). `Command` and `Command.Dialog` create one machine per mount, suspend it in the layout-effect cleanup (an unmount, an `<Activity>` hide, a StrictMode replay), resume it in the setup, and never dispose it; the search engine a machine creates is disposed when the machine is collected.
+
+The machine's `telemetry` hooks are a prop of `Command` and `Command.Dialog` (a `CommandMachineOptions` field), read at the end of each batch, so a changed prop reaches the machine without a remount.
 
 | Component | Role | Key Props |
 |---|---|---|
 | `Command` | Root -- creates machine, provides context | every `CommandMachineOptions` field (`items`, `groups`, `filter`, `search`, `loop`, `frecency`, ...) plus `label`, `className` |
-| `Command.Dialog` | Radix Dialog wrapper with overlay and portal | `open`, `onOpenChange` |
+| `Command.Dialog` | Radix Dialog wrapper with overlay and portal. A controlled dialog reports a machine-originated open change (an item selection that closes it, `CLOSE`, `OPEN` or `TOGGLE`) once through `onOpenChange` and keeps the `open` you pass | `open`, `onOpenChange` |
 | `Command.Input` | Search input bound to machine state; keeps its own urgent draft value | `placeholder`, `onValueChange` |
 | `Command.List` | Scrollable list with auto-virtualization and `aria-live` | `virtualize` |
-| `Command.Item` | Selectable item -- registers/unregisters on mount/unmount | `value`, `onSelect`, `shortcut`, `disabled` |
-| `Command.Group` | Logical group with heading | `heading` |
+| `Command.Item` | Selectable item -- registers/unregisters on mount/unmount; the registration id is `id ?? forceId ?? useId()` (`forceId` is deprecated, removed in 2.0) | `id`, `value`, `onSelect`, `shortcut`, `disabled` |
+| `Command.Group` | Logical group with heading; `id` is the registration id, as on `Command.Item` | `id`, `heading` |
 | `Command.Empty` | Rendered when `filteredCount === 0` | -- |
-| `Command.Loading` | Rendered when its `loading` prop is `true`; when the prop is omitted, rendered while `state.loading` is true or the optimistic active-item transition is pending (`loading={false}` hides it in all cases) | `loading` |
-| `Command.Separator` | Visual divider | -- |
+| `Command.Loading` | Rendered when its `loading` prop is `true`; when the prop is omitted, rendered while `state.loading` is true (`loading={false}` hides it in all cases) | `loading` |
+| `Command.Separator` | Visual divider; with `alwaysRender={false}` it hides while a search is active (default `true` through 1.x) | `alwaysRender` |
 | `Command.Highlight` | Fuzzy match character highlighting | `text`, `ranges` |
 | `Command.Badge` | Status badge on items | -- |
 | `Command.Shortcut` | Keyboard shortcut display (platform-aware) | `shortcut` |
@@ -489,20 +497,19 @@ All components consume the machine via React context using `use(CommandContext)`
 All components:
 - Reach the consumer with the `'use client'` directive: the shipped `dist/react/index.mjs` and `dist/react/dialog.mjs` begin with `'use client'`, added as the banner of the React config in `packages/modern-cmdk/tsdown.config.ts`; no module under `src/react` carries the directive (`tests/dist/one-core.test.ts` enforces both)
 - Accept `ref` as a prop (React 19 -- no `forwardRef`)
-- Use `useId()` for stable, SSR-safe ARIA IDs
+- Use `useId()` for stable, SSR-safe ARIA IDs, and for the registration id of an item or group that is given no `id`
 
 ### Concurrent Features
 
 | React 19 Feature | Usage |
 |---|---|
 | `useSyncExternalStore` | Subscribe to machine state without tearing |
-| `useTransition` | Wraps **only** the optimistic active-item setter (`setOptimisticActiveId`). It does not wrap search: `isPending` never reflects a search. |
-| `useOptimistic` | Optimistic `activeId` updates -- instant visual feedback on navigation |
+| `Activity` | `Command.Activity` passes its `mode` to React's `<Activity>` when React exports it (feature-detected) |
 | `useId` | Generate stable IDs for `aria-labelledby`, `aria-controls`, `aria-activedescendant` |
 | `use()` | Consume `CommandContext` (replaces `useContext`) |
 | `ref` as prop | All components accept `ref` directly -- no `forwardRef` wrapper |
 
-**Search is not a transition.** `Command.Input` keeps the typed text in local state (`draft`), set inside the change event, so the input is always responsive. The same handler then calls `machine.send({ type: 'SEARCH_CHANGE', query })`, which only enqueues the event on the machine's scheduler (see [Scheduler](#scheduler)). Filtering and the state update happen on that scheduler tick, outside React; React sees the result through `useSyncExternalStore`. On every machine tick `Command.Input` reconciles its draft: an echo of a query typed here is ignored, and any other `search` value (an external `SEARCH_CHANGE`, a reset) replaces the draft. No `startTransition` wraps a search, so a search never marks `isPending` and `Command.Loading` does not appear for one.
+**Search is not a transition.** `Command.Input` keeps the typed text in local state (`draft`), set inside the change event, so the input is always responsive. The same handler then calls `machine.send({ type: 'SEARCH_CHANGE', query })`, which only enqueues the event on the machine's scheduler (see [Scheduler](#scheduler)). Filtering and the state update happen on that scheduler tick, outside React; React sees the result through `useSyncExternalStore`. On every machine tick `Command.Input` reconciles its draft: an echo of a query typed here is ignored, and any other `search` value (an external `SEARCH_CHANGE`, a reset) replaces the draft. No transition wraps a search: `useCommand().isPending` is constant `false` (deprecated, removed in 2.0, as is `setOptimisticActiveId`, which sends `ITEM_ACTIVATE`), hovering an item sends `ITEM_ACTIVATE` directly, and `Command.Loading` reads `state.loading` only, which the machine sets from `LOADING` events, never from a search.
 
 ---
 
@@ -551,13 +558,13 @@ sequenceDiagram
 What resolves today:
 
 - Item background: `[data-command-item]` declares a `background-color` transition over `--command-duration-item` (120ms) with a `linear()` ease (styles.css:207); it runs on the background the app sets for `[data-active]` (the library sets one only under `forced-colors`, :571). `content-visibility: auto` skips off-screen item rendering (:209).
-- List height: `[data-command-list]` declares `transition: height` over `--command-duration-list` with `--command-spring-easing` and sets `will-change: height` (styles.css:188-189). Both tokens resolve because the list sits inside `[data-command-root]`. The library sets only `--command-list-height` on the list (list.tsx:105), not `height`, so the transition interpolates once the app sets `height: var(--command-list-height)` on `[data-command-list]` (the sample in apps/docs/guide/migration-from-cmdk.md).
-- Virtual positioning: each virtual item is absolutely positioned and offset with the `translate` property (`translate: 0 <start>px`, item.tsx:78), and the virtual list sets `will-change: transform` (styles.css:228). The motion is transform-based, which keeps it off the layout path.
+- List height: `[data-command-list]` declares `transition: height` over `--command-duration-list` with `--command-spring-easing` and sets `will-change: height` (styles.css:188-189). Both tokens resolve because the list sits inside `[data-command-root]`. The library sets only `--command-list-height` on the list (list.tsx:125-126), not `height`, so the transition interpolates once the app sets `height: var(--command-list-height)` on `[data-command-list]` (the sample in apps/docs/guide/migration-from-cmdk.md). The property holds the content height of the list's inner element while the list is not virtual. While the list is virtual that element's height is the sum of all the row sizes, so the observer ignores it and the property keeps its last non-virtual value (`0px` when the list mounts virtual).
+- Virtual positioning: each virtual item is absolutely positioned and offset with the `translate` property (`translate: 0 <start>px`, item.tsx:104), and the virtual list sets `will-change: transform` (styles.css:228). The motion is transform-based, which keeps it off the layout path. The list renders one element tree in both modes: crossing the virtualization threshold (more than 100 matches on, 50 or fewer off) changes the props of the inner element and which items render, so the items that stay in the window stay mounted. Keyboard navigation scrolls the active row just into view with `scrollToIndex(index, 'nearest')`; `scrollToIndex(index)` defaults to `'start'`, which sets `scrollTop` to the row's offset among the rows, with no allowance for padding or anything before them.
 - Overlay tint: `--command-overlay-opacity` is a registered property (:24) read by the overlay background (:134) and set to 0 or 0.4 by the state rules (:319, :329). The value switches with `data-state`; the `transition` declarations beside it (:321-325, :331-335) read unset tokens, so it does not interpolate.
 
 What is declared and inert until DT-19:
 
-The tokens are declared only in `[data-command-root]` (styles.css:45-103). The overlay and dialog elements sit outside it: `dialog.tsx` renders the Command root inside the dialog content (dialog.tsx:114). Every `transition`, `backdrop-filter` and size declaration that reads an unset token is invalid at computed-value time, so the dialog and overlay open and close transitions (styles.css:312-374) do not run. DT-19 moves the tokens to a selector the overlay and dialog match. Until then an app sets all twelve tokens on `[data-command-overlay], [data-command-dialog]`; see `apps/docs/guide/theming.md` (Library Tokens).
+The tokens are declared only in `[data-command-root]` (styles.css:45-103). The overlay and dialog elements sit outside it: `dialog.tsx` renders the Command root element inside the dialog content (dialog.tsx:144). Every `transition`, `backdrop-filter` and size declaration that reads an unset token is invalid at computed-value time, so the dialog and overlay open and close transitions (styles.css:312-374) do not run. DT-19 moves the tokens to a selector the overlay and dialog match. Until then an app sets all twelve tokens on `[data-command-overlay], [data-command-dialog]`; see `apps/docs/guide/theming.md` (Library Tokens).
 
 ```
 declared (inert until DT-19)
@@ -729,7 +736,7 @@ Without `Disposable`, cleanup relies on convention. With it, the language gives 
 
 ### Why Radix UI for the React adapter dialog?
 
-The `Command.Dialog` component wraps Radix UI's Dialog primitive (the `radix-ui` package) and is also exported as `CommandDialog` from the `modern-cmdk/react/dialog` subpath. `Command.Dialog` is a member of the `Command` compound, so any `modern-cmdk/react` import loads `radix-ui`: it is a required peer dependency (`>=1.4.0 <2.0.0`) through 1.x and becomes optional again in 2.0, when the barrel drops `Command.Dialog`. It is used for:
+The `Command.Dialog` component wraps Radix UI's Dialog primitive (the `radix-ui` package) and is also exported as `CommandDialog` from the `modern-cmdk/react/dialog` subpath. `Command.Dialog` is a member of the `Command` compound, so an import of `Command` loads `radix-ui` (a bundle that imports only individual components, such as `CommandSeparator`, drops it; see [Build output](#build-output-and-the-scoped-sideeffects-array)): it is a required peer dependency (`>=1.4.0 <2.0.0`) through 1.x and becomes optional again in 2.0, when the barrel drops `Command.Dialog`. It is used for:
 - Portal rendering (escapes z-index stacking contexts)
 - Focus trapping and restoration
 - Scroll locking
@@ -773,7 +780,7 @@ This prevents accidentally passing a `GroupId` where an `ItemId` is expected. Th
 
 What that does and does not buy: it removes **unused exports**, not subsystems the machine itself uses. `createCommandMachine` imports and constructs the `CommandRegistry`, `KeyboardShortcutRegistry`, `FrecencyEngine`, `TypedEmitter` and scheduler, so a consumer who imports only `createCommandMachine` still ships all of them, and with them the parser, the matcher's `detectConflicts`, the `mapGroupBy` helper and every set helper the registry calls. Bundling `dist/core/index.mjs` with esbuild 0.28.2 from a single `createCommandMachine` import (checked 2026-11-08 on the built `dist/core/index.mjs`) drops the exports the machine never reaches: `IdbFrecencyStorage` (and with it the `idb-keyval` import), `createTelemetryMiddleware`, `formatShortcut`, `findMatchingShortcut`, `scoreItem` (the engine calls the internal `scoreItemPreLowered`), `scoreItemAsync` / `batchScoreItems`, `itemId` and `groupId`. `DEFAULT_MACHINE_OPTIONS` is not dropped: the machine reads `loop` and `open` from it (`machine.ts` `navigate`, `types.ts` `createInitialState`). The `Symbol.dispose` / `Symbol.asyncDispose` fallbacks to `Symbol.for(...)` (`core/frecency/idb-storage.ts`) ship too, which is why the browser floor of the core reaches Safari 18.4. `parseShortcut` ships whenever `createCommandMachine` or `KeyboardShortcutRegistry` is imported, and `TypedEmitter` whenever `createCommandMachine` is; importing `CommandRegistry` alone pulls in neither. `objectGroupBy` is not in `dist/core/index.mjs` at all: it is not exported, so the package build already removes it. The set helpers in `utils/set-ops.ts` are not exported from `modern-cmdk`; they ship whenever `CommandRegistry` is bundled, which `createCommandMachine` always does.
 
-The `modern-cmdk/react` side gets nothing from `sideEffects`: `Command` is built with `Object.assign(CommandRoot, { ..., Dialog: CommandDialog, ... })`, so importing any export, even `CommandSeparator` alone, keeps `CommandDialog`, `CommandRoot` and the `radix-ui` import (4812 B gzip against 5539 B for the whole adapter, `benchmarks/size-history/1.5.0.json`). Dropping that cost is the 2.0 change (D33).
+The `modern-cmdk/react` side relies on a pure annotation instead: `Command` is `/* @__PURE__ */ Object.assign(CommandRoot, { ..., Dialog: CommandDialog, ... })` (D116), and `CommandRoot` is not exported, so a bundle that imports only individual components, such as `CommandSeparator`, drops `Command`, `CommandRoot`, `CommandDialog` and the `radix-ui` import, in a bundler that honours the pure marker. A bundle that imports `Command` keeps every static. The barrel still lists `Command.Dialog` through 1.x (D33).
 
 ### The codemod package, the shim and their removal in 2.0
 
@@ -791,7 +798,7 @@ packages/modern-cmdk/src/core/
   types.ts               -- Branded types, interfaces, defaults (DEFAULT_FRECENCY_DECAY, createInitialState)
   machine.ts             -- State machine (createCommandMachine)
   registry.ts            -- Item/group registry (Map + Set)
-  telemetry.ts           -- createTelemetryMiddleware: returns hooks the caller invokes itself (no machine or React telemetry option)
+  telemetry.ts           -- CommandTelemetryHooks (the machine's `telemetry` option); createTelemetryMiddleware (the helper for callers that drive the hooks themselves)
   search/
     types.ts             -- SearchEngine (the plug point), SearchResult, ScorerFn type
     index.ts             -- createSearchEngine (incremental filtering, optional scorer)
