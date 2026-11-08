@@ -367,10 +367,10 @@ describe('codemod files: discovery', () => {
     await git(join(dir, 'sub'), ['commit', '-q', '-m', 'inner']);
     await git(dir, ['init', '-q']);
     await git(dir, ['add', 'sub']);
-    // The submodule's own git calls fail on a broken config (exit 128): its gitlinks are listed first (SEC-56), then check-ignore runs there (SEC-55); discovery must swallow neither.
+    // The submodule's own git calls fail on a broken config (exit 128). `ls-files` runs in `sub` before `check-ignore` since SEC-56 (it lists the gitlinks below `sub`), so it is the call that fails first and must not be swallowed; the check-ignore exit-code guard alone is not exercised here.
     await appendFile(join(dir, 'sub', '.git', 'config'), '[broken\n');
     await expect(find(['sub/*.ts'], 'modern-cmdk-codemod')).rejects.toThrow(
-      /^git (?:ls-files|check-ignore) failed \(exit 128\): .*config/is,
+      /^git ls-files failed \(exit 128\): .*config/is,
     );
     expect(await find(['sub/*.ts'], 'modern-cmdk')).toEqual(['sub/x.ts']);
   });
