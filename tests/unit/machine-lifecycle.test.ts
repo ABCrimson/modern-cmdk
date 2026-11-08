@@ -1,5 +1,5 @@
 import { setImmediate } from 'node:timers/promises';
-import type { CommandItem, FrecencyData, FrecencyStorage } from 'modern-cmdk';
+import type { CommandItem, FrecencyData, FrecencyStorage, ItemId } from 'modern-cmdk';
 import {
   createCommandMachine,
   createSearchEngine,
@@ -345,4 +345,72 @@ it('D102: a collected machine disposes the search engine it created, so the leak
       String(message).includes('garbage collected without being disposed'),
     ),
   ).toEqual([]);
+});
+
+const abc: CommandItem[] = ['a', 'b', 'c'].map((id) => ({ id: itemId(id), value: `Item ${id}` }));
+const [a, b, c] = abc.map((item) => item.id) as [ItemId, ItemId, ItemId];
+
+it('ARCH-29: controlled activeId: navigation reports the candidate and the state holds', () => {
+  const onActiveChange = vi.fn();
+  using machine = createCommandMachine({ items: abc, activeId: a, onActiveChange });
+  expect(machine.getState().activeId).toBe(a);
+
+  machine.send({ type: 'NAVIGATE', direction: 'next' });
+  nextBatch();
+  expect(onActiveChange).toHaveBeenCalledExactlyOnceWith(b);
+  expect(machine.getState().activeId).toBe(a);
+
+  machine.send({ type: 'ITEM_ACTIVATE', id: c });
+  nextBatch();
+  expect(onActiveChange).toHaveBeenLastCalledWith(c);
+  expect(machine.getState().activeId).toBe(a);
+
+  // The refilter's fallback is a candidate too: the controlled item left the list
+  machine.send({ type: 'SEARCH_CHANGE', query: 'Item b' });
+  nextBatch();
+  expect(onActiveChange).toHaveBeenLastCalledWith(b);
+  expect(machine.getState().activeId).toBe(a);
+});
+
+it("ARCH-29: controlled activeId: activating the option's own id applies it without a callback", () => {
+  const onActiveChange = vi.fn();
+  let controlled: ItemId | null = a;
+  using machine = createCommandMachine({
+    items: abc,
+    get activeId(): ItemId | null {
+      return controlled;
+    },
+    onActiveChange,
+  });
+
+  controlled = b; // the caller moved the active item; its root tells the machine
+  machine.send({ type: 'NAVIGATE', direction: 'next' }); // from the option's b to c
+  machine.send({ type: 'ITEM_ACTIVATE', id: b });
+  nextBatch();
+  expect(onActiveChange).toHaveBeenCalledExactlyOnceWith(c);
+  expect(machine.getState().activeId).toBe(b);
+});
+
+it('ARCH-29: controlled activeId: undefined leaves the machine in charge of the active item', () => {
+  const onActiveChange = vi.fn();
+  using machine = createCommandMachine({ items: abc, activeId: undefined, onActiveChange });
+  expect(machine.getState().activeId).toBe(a); // the first item
+
+  machine.send({ type: 'NAVIGATE', direction: 'next' });
+  nextBatch();
+  expect(machine.getState().activeId).toBe(b);
+  machine.send({ type: 'ITEM_ACTIVATE', id: c });
+  nextBatch();
+  expect(machine.getState().activeId).toBe(c);
+  expect(onActiveChange.mock.calls).toEqual([[b], [c]]);
+});
+
+it('ARCH-29: controlled activeId: construction calls no callback, whatever the option names', () => {
+  const onActiveChange = vi.fn();
+  const missing = itemId('missing');
+  using named = createCommandMachine({ items: abc, activeId: missing, onActiveChange });
+  using none = createCommandMachine({ items: abc, activeId: null, onActiveChange });
+  expect(onActiveChange).not.toHaveBeenCalled();
+  expect(named.getState().activeId).toBe(missing);
+  expect(none.getState().activeId).toBeNull();
 });
