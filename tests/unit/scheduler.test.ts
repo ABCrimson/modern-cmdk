@@ -1,5 +1,5 @@
 import { createScheduler } from 'modern-cmdk';
-import { describe, expect, it, type MockInstance, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 
 describe('Scheduler', () => {
   it('should create a scheduler', () => {
@@ -9,41 +9,54 @@ describe('Scheduler', () => {
     expect(typeof scheduler.flush).toBe('function');
   });
 
-  it('should execute scheduled updates', async () => {
-    using scheduler = createScheduler();
-    const fn = vi.fn();
+  describe('on the animation frame', () => {
+    // The scheduler reads the global requestAnimationFrame when it schedules, so the fakes installed here are the ones it calls.
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
-    scheduler.schedule(fn);
+    it('should execute scheduled updates on the next frame, not before (TUB-27)', () => {
+      using scheduler = createScheduler();
+      const fn = vi.fn();
 
-    // Wait for microtask/rAF to execute
-    await vi.waitFor(() => {
+      scheduler.schedule(fn);
+      expect(fn, 'the update must wait for the frame').not.toHaveBeenCalled();
+
+      vi.advanceTimersToNextFrame();
       expect(fn).toHaveBeenCalledOnce();
     });
-  });
 
-  it('should batch multiple updates into one execution', async () => {
-    using scheduler = createScheduler();
-    const fn1 = vi.fn();
-    const fn2 = vi.fn();
-    const fn3 = vi.fn();
+    it('should batch multiple updates into one execution and one frame request (TUB-27, TUB-41)', () => {
+      using scheduler = createScheduler();
+      using raf = vi.spyOn(globalThis, 'requestAnimationFrame');
+      const fn1 = vi.fn();
+      const fn2 = vi.fn();
+      const fn3 = vi.fn();
 
-    scheduler.schedule(fn1);
-    scheduler.schedule(fn2);
-    scheduler.schedule(fn3);
+      scheduler.schedule(fn1);
+      scheduler.schedule(fn2);
+      scheduler.schedule(fn3);
+      expect(fn1).not.toHaveBeenCalled();
+      expect(fn2).not.toHaveBeenCalled();
+      expect(fn3).not.toHaveBeenCalled();
 
-    await vi.waitFor(() => {
+      vi.advanceTimersToNextFrame();
       expect(fn1).toHaveBeenCalledOnce();
       expect(fn2).toHaveBeenCalledOnce();
       expect(fn3).toHaveBeenCalledOnce();
+      expect(raf).toHaveBeenCalledOnce();
     });
   });
 
-  it('should flush pending updates synchronously', async () => {
+  it('should flush pending updates synchronously', () => {
     using scheduler = createScheduler();
     const fn = vi.fn();
 
     scheduler.schedule(fn);
-    await scheduler.flush();
+    scheduler.flush();
 
     expect(fn).toHaveBeenCalledOnce();
   });
@@ -67,19 +80,19 @@ describe('Scheduler', () => {
     expect(typeof scheduler[Symbol.dispose]).toBe('function');
   });
 
-  it('should auto-dispose via using declaration', async () => {
+  it('should auto-dispose via using declaration', () => {
     const fn = vi.fn();
 
     {
       using scheduler = createScheduler();
       scheduler.schedule(fn);
-      await scheduler.flush();
+      scheduler.flush();
     }
 
     expect(fn).toHaveBeenCalledOnce();
   });
 
-  it('should handle rapid sequential scheduling', async () => {
+  it('should handle rapid sequential scheduling', () => {
     using scheduler = createScheduler();
     let counter = 0;
 
@@ -89,7 +102,7 @@ describe('Scheduler', () => {
       });
     }
 
-    await scheduler.flush();
+    scheduler.flush();
     expect(counter).toBe(50);
   });
 
@@ -99,7 +112,7 @@ describe('Scheduler', () => {
     expect(() => scheduler.flush()).not.toThrow();
   });
 
-  it('should execute updates in FIFO order', async () => {
+  it('should execute updates in FIFO order', () => {
     using scheduler = createScheduler();
     const order: number[] = [];
 
@@ -107,7 +120,7 @@ describe('Scheduler', () => {
     scheduler.schedule(() => order.push(2));
     scheduler.schedule(() => order.push(3));
 
-    await scheduler.flush();
+    scheduler.flush();
     expect(order).toEqual([1, 2, 3]);
   });
   it('loads on a runtime without a navigator global (feature detection must not throw)', async () => {
