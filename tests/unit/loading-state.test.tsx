@@ -6,7 +6,8 @@ import type { CommandItem } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
 import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { silenceConsoleError } from '../act-guard.ts';
 
 afterEach(cleanup);
 
@@ -104,7 +105,7 @@ describe('ARCH-59 loading state from pending AsyncItems', () => {
   });
 
   it('ARCH-59: a rejected promise inside CommandErrorBoundary clears loading', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const errorSpy = silenceConsoleError();
     const d = deferred();
     const { container } = await renderInAct(
       <Shell>
