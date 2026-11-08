@@ -32,7 +32,13 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { listTarEntries } from './check-package.ts';
-import { buildWorkspaceYaml, parseWorkspaceYaml } from './consumer-smoke.ts';
+import {
+  buildWorkspaceYaml,
+  parseWorkspaceYaml,
+  pnpmUsage,
+  resolvePnpmEntry,
+  spawnTarget,
+} from './consumer-smoke.ts';
 
 export const TEMPLATES: readonly ['react-basic', 'react-dialog', 'react-full'] = [
   'react-basic',
@@ -186,19 +192,15 @@ export function run(
   options: { readonly cwd: string; readonly timeoutMs: number },
 ): Promise<RunResult> {
   return new Promise<RunResult>((resolvePromise: (value: RunResult) => void): void => {
-    // pnpm is a .cmd shim on Windows, which Node only spawns through cmd.exe. The arguments are
-    // constants of this file, never user input.
-    const viaCmd = IS_WINDOWS && command === 'pnpm';
-    const child = spawn(
-      viaCmd ? 'cmd.exe' : command,
-      viaCmd ? ['/d', '/c', command, ...args] : [...args],
-      {
-        cwd: options.cwd,
-        env: { ...process.env, CI: '1' },
-        windowsHide: true,
-        detached: !IS_WINDOWS,
-      },
-    );
+    // No shell: 'pnpm' becomes the entry npm_execpath names (resolvePnpmEntry in consumer-smoke.ts),
+    // spawned directly or through this Node, so no argument is re-parsed by a shell.
+    const target = spawnTarget(command, args);
+    const child = spawn(target.file, [...target.args], {
+      cwd: options.cwd,
+      env: { ...process.env, CI: '1' },
+      windowsHide: true,
+      detached: !IS_WINDOWS,
+    });
     let output = '';
     let timedOut = false;
     const collect = (chunk: Buffer): void => {
@@ -391,6 +393,10 @@ async function smokeTemplate(
 }
 
 async function main(argv: readonly string[]): Promise<number> {
+  if (resolvePnpmEntry(process.env) === undefined) {
+    process.stderr.write(pnpmUsage('template-smoke', 'test:templates'));
+    return 2;
+  }
   const parsed = parseCli(argv);
   if (parsed.kind === 'usage') {
     process.stderr.write(

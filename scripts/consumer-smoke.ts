@@ -328,6 +328,55 @@ const ROOT: string = resolve(import.meta.dirname, '..');
 const IS_WINDOWS: boolean = process.platform === 'win32';
 const TAIL_LINES = 40;
 
+/** A file to spawn and the arguments that come before the caller's own. */
+interface PnpmEntry {
+  readonly file: string;
+  readonly leading: readonly string[];
+}
+
+/**
+ * Where to spawn pnpm without a shell. A pnpm script (`pnpm test:templates`, `pnpm test:consumers`)
+ * runs this file with npm_execpath naming pnpm's own entry: an executable (the standalone pnpm, the
+ * kind pnpm/action-setup installs on CI and pnpm.exe on Windows) is spawned directly, and a JavaScript
+ * entry (.cjs, .mjs or .js) is spawned as the first argument of this Node. Neither goes through a
+ * shell, so no argument is ever re-parsed (CodeQL js/shell-command-injection-from-environment).
+ * An .exe is spawnable because it is not a .cmd shim: .bat and .cmd files are not executable on their
+ * own on Windows (Node 28.0.0-nightly20261107a43bfb5bb2 docs, read 2026-11-07,
+ * https://nodejs.org/download/nightly/v28.0.0-nightly20261107a43bfb5bb2/docs/api/child_process.html,
+ * "Spawning .bat and .cmd files on Windows"). Returns undefined outside pnpm: npm_execpath absent or
+ * naming another tool (npm's entry is npm-cli.js).
+ */
+export function resolvePnpmEntry(
+  env: Readonly<Record<string, string | undefined>>,
+  nodePath: string = process.execPath,
+): PnpmEntry | undefined {
+  const entry = env['npm_execpath'];
+  if (entry === undefined || entry === '') return undefined;
+  const name = entry.split(/[\\/]/).at(-1) ?? '';
+  if (!/^pnpm(?:[-.].*)?$/i.test(name)) return undefined;
+  return /\.(?:cjs|mjs|js)$/i.test(name)
+    ? { file: nodePath, leading: [entry] }
+    : { file: entry, leading: [] };
+}
+
+/** The usage line printed, with exit code 2, when a smoke script runs outside pnpm. */
+export function pnpmUsage(script: string, pnpmScript: string): string {
+  return `${script}: run it through pnpm, which names its own entry in npm_execpath (npm_execpath is absent or is not pnpm here): pnpm ${pnpmScript}\n`;
+}
+
+/** The file and arguments to spawn for run(): pnpm resolves through resolvePnpmEntry, anything else is spawned as given. */
+export function spawnTarget(
+  command: string,
+  args: readonly string[],
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): { readonly file: string; readonly args: readonly string[] } {
+  if (command !== 'pnpm') return { file: command, args };
+  const entry = resolvePnpmEntry(env);
+  if (entry === undefined)
+    throw new Error('pnpm is not available: npm_execpath does not name pnpm');
+  return { file: entry.file, args: [...entry.leading, ...args] };
+}
+
 interface RunResult {
   readonly code: number | null;
   readonly timedOut: boolean;
@@ -384,19 +433,15 @@ export function run(
   },
 ): Promise<RunResult> {
   return new Promise<RunResult>((resolvePromise: (value: RunResult) => void): void => {
-    // pnpm is a .cmd shim on Windows, which Node only spawns through cmd.exe. The arguments are
-    // constants of this file, never user input.
-    const viaCmd = IS_WINDOWS && command === 'pnpm';
-    const child = spawn(
-      viaCmd ? 'cmd.exe' : command,
-      viaCmd ? ['/d', '/c', command, ...args] : [...args],
-      {
-        cwd: options.cwd,
-        env: { ...process.env, CI: '1', NEXT_TELEMETRY_DISABLED: '1', ...options.env },
-        windowsHide: true,
-        detached: !IS_WINDOWS,
-      },
-    );
+    // No shell: 'pnpm' becomes the entry npm_execpath names (see resolvePnpmEntry), spawned directly
+    // or through this Node, so no argument is re-parsed by a shell.
+    const target = spawnTarget(command, args);
+    const child = spawn(target.file, [...target.args], {
+      cwd: options.cwd,
+      env: { ...process.env, CI: '1', NEXT_TELEMETRY_DISABLED: '1', ...options.env },
+      windowsHide: true,
+      detached: !IS_WINDOWS,
+    });
     let output = '';
     let timedOut = false;
     const collect = (chunk: Buffer): void => {
@@ -896,6 +941,10 @@ async function resolveTarball(options: CliOptions, tempDirs: string[]): Promise<
 }
 
 async function main(argv: readonly string[]): Promise<number> {
+  if (resolvePnpmEntry(process.env) === undefined) {
+    process.stderr.write(pnpmUsage('consumer-smoke', 'test:consumers'));
+    return 2;
+  }
   const parsed = parseCli(argv);
   if (parsed.kind === 'usage') {
     process.stderr.write(
