@@ -29,14 +29,17 @@ interface Mounted {
 }
 
 /** Fresh module graph so the hook's module-scoped dev check re-reads the stubbed NODE_ENV. */
-async function mountDevtools(label: string): Promise<Mounted> {
+async function mountDevtools(
+  label: string,
+  options?: { readonly redactQuery?: boolean },
+): Promise<Mounted> {
   vi.resetModules();
   const { Command, CommandStableContext, useCommandDevtools }: typeof ReactEntry = await import(
     'modern-cmdk/react'
   );
   let machine: CommandMachine | undefined;
   const devtools = (probeLabel: string): void => {
-    useCommandDevtools(probeLabel);
+    useCommandDevtools(probeLabel, options);
     machine = use(CommandStableContext)?.machine;
   };
   const container = document.createElement('div');
@@ -143,5 +146,44 @@ describe('useCommandDevtools', () => {
     expect(events.get(DEVTOOLS_EVENT)?.[0]?.detail).toEqual(
       events.get(DEPRECATED_EVENT)?.[0]?.detail,
     );
+  });
+
+  /** Mounts with the option, sends one search change and returns the registry entry and the event detail. */
+  async function searchWith(
+    label: string,
+    options?: { readonly redactQuery?: boolean },
+  ): Promise<{ entry: unknown; detail: unknown }> {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
+    const mounted = await mountDevtools(label, options);
+    cleanup = mounted.cleanup;
+    let detail: unknown;
+    const listener = (event: Event): void => {
+      detail = (event as CustomEvent).detail;
+    };
+    globalThis.addEventListener(DEVTOOLS_EVENT, listener);
+    try {
+      await act(async () => {
+        mounted.machine.send({ type: 'SEARCH_CHANGE', query: 'secret' });
+        vi.advanceTimersToNextFrame();
+      });
+    } finally {
+      globalThis.removeEventListener(DEVTOOLS_EVENT, listener);
+    }
+    const registry = Reflect.get(globalThis, DEVTOOLS_KEY) as Map<string, unknown>;
+    return { entry: registry.get(label), detail };
+  }
+
+  it('SEC-32: redactQuery replaces the query with its length', async () => {
+    const { entry, detail } = await searchWith('unit-redacted', { redactQuery: true });
+    expect(entry).toMatchObject({ searchQuery: 6 });
+    expect(detail).toMatchObject({ label: 'unit-redacted', state: { searchQuery: 6 } });
+    expect(JSON.stringify([entry, detail])).not.toContain('secret');
+  });
+
+  it('SEC-32: without redactQuery the registry carries the raw query', async () => {
+    const { entry, detail } = await searchWith('unit-raw');
+    expect(entry).toMatchObject({ searchQuery: 'secret' });
+    expect(detail).toMatchObject({ state: { searchQuery: 'secret' } });
   });
 });
