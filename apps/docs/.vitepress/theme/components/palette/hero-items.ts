@@ -1,6 +1,7 @@
 import type { PaletteEntry, PaletteLink } from './types';
 
-// The home hero's 19 rows (design-final.md §3.5, amended per report.md, fix round 2026-11-08): 8 Go to, 7 Topics, 4 Actions.
+// The home hero's 19 rows: 8 Go to, 7 Topics, 4 Actions (design-final.md §3.5 of the design run, a run document outside
+// the repository, listed 18; this file is the list).
 // Every site `href` is a page under apps/docs (the commit that added this file records the existence check). The two
 // external Action rows carry absolute URLs; the install command the copy action writes lives in usePalette.ts.
 export const HERO_ITEMS: readonly PaletteEntry[] = [
