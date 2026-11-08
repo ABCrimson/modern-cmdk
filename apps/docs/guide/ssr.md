@@ -22,7 +22,7 @@ export function useMachineState(machine: CommandMachine) {
 
 ## Next.js App Router
 
-All components are marked with `'use client'` — they automatically become Client Components when imported into Server Component trees:
+The built entries of `modern-cmdk/react` start with `'use client'`, so a Server Component that imports them gets client references: the palette renders on the client (and in the server HTML), and a Server Component can place it. The `Command.X` members (`Command.Input`, `Command.List`, `Command.Item`, ...) are properties of the `Command` client reference, which a Server Component cannot read (`Cannot access Command.Input on the server`), so write them only in `'use client'` modules. Wrap the palette in a Client Component, as below (a Server Component can also render the named exports `CommandInput`, `CommandList`, `CommandItem`, ... as elements, with no function props):
 
 ```tsx fragment
 // app/page.tsx (Server Component)
@@ -72,46 +72,59 @@ export function CommandPalette() {
 The `<Command.Dialog>` component works with React Suspense boundaries. Async items via `<Command.AsyncItems>` integrate with `use()` for streaming.
 
 `items` takes the **promise itself**, not a function, and `children` is a render function
-that receives the resolved items:
+that receives the resolved items. The promise is created per request: an async Server Component calls the
+fetcher without awaiting it and passes the promise as a prop to a `'use client'` palette, which hands it to
+`Command.AsyncItems items`. The promise belongs to the request, not to the module, and it is the same object on every render of the palette:
+
+```tsx fragment
+// app/page.tsx (Server Component)
+import { itemId } from 'modern-cmdk';
+import type { CommandItem } from 'modern-cmdk';
+import { db } from './db';
+import { StreamedPalette } from './streamed-palette';
+
+async function loadResults(): Promise<readonly CommandItem[]> {
+  const rows = await db.commands.findMany();
+  return rows.map((row) => ({ id: itemId(row.slug), value: row.title }));
+}
+
+export default function Page() {
+  // Called on every request and not awaited: the palette receives the promise
+  return <StreamedPalette results={loadResults()} />;
+}
+```
 
 ```tsx
+// app/streamed-palette.tsx (Client Component)
 'use client';
 
-import { itemId } from 'modern-cmdk';
+import type { CommandItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
 
-interface ResultRow {
-  readonly slug: string;
-  readonly title: string;
-}
-
-async function fetchResults(): Promise<readonly ResultRow[]> {
-  const res = await fetch('/api/results');
-  return res.json();
-}
-
-// Created once, outside render — a new promise on every render re-suspends forever.
-const resultsPromise = fetchResults().then((rows) =>
-  rows.map((row) => ({ id: itemId(row.slug), value: row.title })),
-);
-
-export function StreamedResults() {
+export function StreamedPalette({ results }: { readonly results: Promise<readonly CommandItem[]> }) {
   return (
-    <Command.AsyncItems
-      items={resultsPromise}
-      fallback={<Command.Loading loading>Searching...</Command.Loading>}
-    >
-      {(items) =>
-        items.map((item) => (
-          <Command.Item key={item.id} value={item.value}>
-            {item.value}
-          </Command.Item>
-        ))
-      }
-    </Command.AsyncItems>
+    <Command>
+      <Command.Input placeholder="Search..." />
+      <Command.List>
+        <Command.AsyncItems
+          items={results}
+          fallback={<Command.Loading loading>Searching...</Command.Loading>}
+        >
+          {(items) =>
+            items.map((item) => (
+              <Command.Item key={item.id} id={item.id} value={item.value}>
+                {item.value}
+              </Command.Item>
+            ))
+          }
+        </Command.AsyncItems>
+      </Command.List>
+    </Command>
   );
 }
 ```
+
+A fetch started at module scope of a Client Component runs once per server process, so every request would share its result, and a new promise created in render suspends again on every render. Create the promise per request in a Server Component, as above, or per query in a client cache (see [Async Items](/guide/async-items)).
 
 ::: warning
 `items` must resolve to `CommandItem[]` -- objects with a branded `id` and a `value`. Raw
@@ -121,7 +134,13 @@ version.
 
 ## Static Generation (SSG)
 
-Command palettes are inherently interactive — they render an empty initial state during SSG, then hydrate on the client. No special configuration needed.
+The server HTML lists the palette's items and groups under an empty query. Items and groups register with the machine in layout effects, which do not run on the server, so an `Item` or `Group` that the registry does not hold yet renders instead of waiting for registration (`item.tsx`, `group.tsx`), and the hydration pass renders the same markup. Three parts wait for the client:
+
+- `Command.Empty` renders nothing on the server and in the hydration pass, because an empty registry says nothing about the query before the items register (`empty.tsx`; the `useHydrated` server snapshot is `false`).
+- The live region of `Command.List` stays empty until hydration, and then announces the result count.
+- `Command.Shortcut` renders the neutral platform's text (`formatShortcut` with `'other'`) on the server and in the hydration pass, then re-renders with the detected platform's, so the markup matches on every platform.
+
+No special configuration needed.
 
 ## Common Patterns
 
@@ -185,7 +204,7 @@ export function CommandPalette({ initialItems }: { readonly initialItems: readon
       <Command.Input placeholder="Search..." />
       <Command.List>
         {initialItems.map((item) => (
-          <Command.Item key={item.id} value={item.value}>
+          <Command.Item key={item.id} id={item.id} value={item.value}>
             {item.value}
           </Command.Item>
         ))}
