@@ -37,11 +37,13 @@ stateDiagram-v2
 
 The machine has no named search or navigation states. It holds one `CommandState` record (read it with `machine.getState()`), and each event updates fields of it: `SEARCH_CHANGE` updates `search`, `filteredIds`, `groupedIds`, `filteredCount` and `activeId`; `NAVIGATE` and `ITEM_ACTIVATE` update `activeId`; `ITEM_SELECT` changes no state field (it calls the item's and the machine's `onSelect`, emits `select` and records the selection in the frecency engine); and `PAGE_PUSH` / `PAGE_POP` update `page` and `pageStack`. Only `open` behaves like a state.
 
+`send()` does not apply an event at once: it queues the event on the scheduler (`core/utils/scheduler.ts`), which runs the pending events on `requestAnimationFrame` in browsers and in a microtask where that is absent (Node.js, SSR), so `getState()` right after `send()` still returns the previous state. The events of one batch run in order; the machine refilters at most once per batch and emits `stateChange` once. `openChange`, `onOpenChange` and `onSearchChange` run as their events are handled, before that single `stateChange` (`core/machine.ts`: `send()`, `commit()`, `setOpen()`).
+
 ### Key Subsystems
 
 | Module | Responsibility |
 |--------|---------------|
-| `machine.ts` | State transitions, subscriber notification |
+| `machine.ts` | State transitions, event batching, subscriber notification |
 | `registry.ts` | Item/group registration with set operation helpers (union/intersection/difference) |
 | `search/default-scorer.ts` | Fuzzy matching and scoring |
 | `search/index.ts` | Search engine factory, pluggable scorer interface |
@@ -146,14 +148,14 @@ const items: readonly CommandItem[] = [
   { id: itemId('paste'), value: 'Paste' },
 ];
 
-// Synchronous — using
+// Synchronous disposal — using
 {
   using engine = createSearchEngine();
   engine.index(items);
   engine.search('query', items).toArray();
 } // engine[Symbol.dispose]() called automatically
 
-// Asynchronous — await using
+// Asynchronous disposal — await using
 {
   await using engine = await createWasmSearchEngine();
   engine.index(items);
@@ -176,10 +178,12 @@ const items: readonly CommandItem[] = [
 | Feature | Edition | Where Used | Native/Helper |
 |---------|---------|-----------|---------------|
 | Iterator Helpers | ES2025 | Search pipelines, registry operations, frecency bonuses | Native |
-| `Symbol.dispose` / `Symbol.asyncDispose` (`using` / `await using`) | ESNext (TS `lib` `esnext.disposable`) | Engines, storages and the machine implement the protocol, so consumers can write `using` | Native |
-| `Promise.withResolvers` | ES2024 | Worker communication in the unpublished `modern-cmdk-search-wasm` package | Native |
-| `RegExp.escape` | ES2025 | Not used | -- |
+| `Symbol.dispose` / `Symbol.asyncDispose` (`using` / `await using`) | ESNext (TS `lib` `esnext.disposable`) | Engines, storages and the machine implement the protocol, so consumers can write `using`; the built code has no `using` declaration. `createCommandMachine()` returns `CommandMachine & AsyncDisposable`: `await using` waits for the pending frecency save | Native where present; otherwise the core assigns `Symbol.for('Symbol.dispose')` and `Symbol.for('Symbol.asyncDispose')` (`core/frecency/idb-storage.ts`) |
+| `Promise.withResolvers` | ES2024 | Worker communication in the unpublished `modern-cmdk-search-wasm` package (`packages/command-search-wasm/src/worker-engine.ts`) and per-file requests in the codemod CLI (`packages/modern-cmdk-codemod/src/cli.ts`); not in the core or React entries | Native |
+| `RegExp.escape` | ES2025 | Not used in `packages/modern-cmdk/src`; `tests/unit/browser-floor.json` fails the build if it appears in the built core or React code | -- |
 | Set methods (`union`, `intersection`, `difference`) | ES2025 | Registry union/intersection/difference for group operations | Helper functions (`set-ops.ts`) |
 | `Map.groupBy` / `Object.groupBy` | ES2024 | Shortcut conflict detection, item grouping | Helper functions (`group-by.ts`) |
 | `Date.now()` | ES5 | Frecency timestamps, state `lastUpdated` | Native (replaces Temporal) |
 | `String.prototype.toWellFormed` | ES2024 | Branded ID creation | Helper function (`string-wellformed.ts`) |
+
+The browser floor that the built core and React code need (Chrome and Edge 122, Firefox 131, Safari 18.4, set by Iterator Helpers) is in [Installation](/guide/installation#requirements).
