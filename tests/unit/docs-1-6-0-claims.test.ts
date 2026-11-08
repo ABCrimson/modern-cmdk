@@ -99,9 +99,8 @@ function fenceWith(file: string, ...needles: readonly (string | RegExp)[]): Fenc
 describe('docs rows of 1.6.0', () => {
   it('DAE-09: examples/frecency.md states the IndexedDB save flow (1000 ms debounce, visibilitychange, pagehide) and passes a module-scope storage to the React frecency prop', () => {
     // apps/docs/examples/frecency.md:110-114 (What persists, and when), :77 (const storage = new IdbFrecencyStorage(...)), :82-86 (frecency={{ enabled: true, storage, ... }}).
-    // The row's claim: "Your history persists across reloads" held only if the engine saved before the page went away, and it saved
-    // on dispose alone, with the storage already disposed. The page states the real flow: a 1000 ms trailing debounce plus
-    // visibilitychange and pagehide. The sample keeps one module-scope storage that the caller disposes (D95); no view object wraps it.
+    // "Your history persists across reloads" is true only if the engine saves before the page goes away, so the page states the real
+    // flow (a 1000 ms trailing debounce, visibilitychange, pagehide, dispose) and never presents dispose as the only save. The sample keeps one module-scope storage that the caller disposes (D95); no view object wraps it.
     const file = 'apps/docs/examples/frecency.md';
     const persistence: string = section(read(file), /^IndexedDB Persistence$/);
     expect.soft(persistence, 'DAE-09: the debounce').toContain('1000 ms');
@@ -195,8 +194,8 @@ describe('docs rows of 1.6.0', () => {
   });
 
   it("DAE-28: api/command.md's Disabled items section says a disabled item takes part in filtering, never that it is excluded, and names both disabledItems values", () => {
-    // apps/docs/api/command.md:194-204 (### Disabled items: "takes part in filtering" at :196, the 'hide' bullet at :201), :78 (the disabledItems row: 'show' | 'hide', default 'show').
-    // The row's false sentence read "disabled: Excluded from filtering"; the search path lists disabled items, so the page says they take part.
+    // apps/docs/api/command.md:194-203 (### Disabled items: "takes part in filtering" at :196, the 'hide' bullet at :201), :78 (the disabledItems row: 'show' | 'hide', default 'show').
+    // The search path lists disabled items, so the page says they take part in filtering and never says "Excluded from filtering".
     const markdown: string = read('apps/docs/api/command.md');
     const disabled: string = section(markdown, /^Disabled items$/);
     expect.soft(disabled, 'DAE-28: the Disabled items section exists').not.toBe('');
@@ -304,7 +303,7 @@ describe('docs rows of 1.6.0', () => {
       .toContain('machine[Symbol.dispose]();');
   });
 
-  it('guard: no ts/tsx sample declares a module-top-level using machine or await using storage', () => {
+  it('guard: no fenced script sample declares a module-top-level using machine or await using storage', () => {
     // Column 0 of a fenced sample is module top level: there `using` disposes when the module finishes evaluating (the DAE-15 defect),
     // and `await using` of a storage disposes it before the UI exists. No sample is exempt: a sample that needs disposal wraps it in a function.
     const slashes = (file: string): string => file.replaceAll(String.fromCharCode(92), '/');
