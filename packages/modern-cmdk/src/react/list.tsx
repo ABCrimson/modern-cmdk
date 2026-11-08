@@ -67,10 +67,10 @@ export function CommandList({
   const shouldVirtualize: boolean = virtualize ?? nextLatched;
 
   // ResizeObserver for the --command-list-height CSS custom property. The one inner element is always
-  // mounted, so the observer never watches a detached node. It reports the inner element's content height:
-  // the rows' natural height without virtualization and the virtual total (the sum of the row sizes) with it.
-  // No rule of styles.css reads the property; a consumer that sizes the list from it clamps that height with
-  // its own max-height.
+  // mounted, so the observer never watches a detached node. It reports the inner element's content height
+  // while the list is not virtual. While the inner element is virtual its height is the sum of all the row
+  // sizes, which would defeat a consumer's `height: var(--command-list-height)`, so the observer ignores
+  // that entry and the property holds its last non-virtual value (0px when the list mounts virtual).
   useEffect(() => {
     const element = innerRef.current;
     if (!element) return;
@@ -78,7 +78,9 @@ export function CommandList({
     const observer = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
       // Single observed element — take the last entry's height
       const lastEntry = entries.at(-1);
-      if (lastEntry) setHeight(lastEntry.contentRect.height);
+      if (lastEntry && !lastEntry.target.hasAttribute('data-command-list-virtual')) {
+        setHeight(lastEntry.contentRect.height);
+      }
     });
 
     observer.observe(element);
