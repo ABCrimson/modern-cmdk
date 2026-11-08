@@ -198,13 +198,14 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
   /**
    * (Re)binds an item's keyboard shortcut — the one place that does it, for initial items, ITEMS_LOADED,
-   * REGISTER_ITEM and UPDATE_ITEM. The item's old binding goes first. A disabled item's shortcut does nothing:
-   * 'select' dispatches ITEM_SELECT, whose guard checks the item; 'direct' checks the registry entry itself
-   * (so an item that UPDATE_ITEM disabled after binding is covered) and only binds an item with an onSelect.
+   * REGISTER_ITEM and UPDATE_ITEM. The item's old binding goes first. A disabled item is not bound at all (its key
+   * stays free for the page and for other items on it); UPDATE_ITEM re-binds, so enabling an item binds it. Under
+   * 'select' the binding dispatches ITEM_SELECT, whose guard checks the item; under 'direct' it only binds an item
+   * with an onSelect and checks the registry entry again before calling it.
    */
-  function bind({ id, shortcut, onSelect }: CommandItem): void {
+  function bind({ id, shortcut, disabled, onSelect }: CommandItem): void {
     keyboardRegistry.unregisterByItem(id);
-    if (!shortcut) return;
+    if (!shortcut || disabled) return;
     if (options.shortcutAction === 'select') {
       keyboardRegistry.register(shortcut, id, () => machine.send({ type: 'ITEM_SELECT', id }));
     } else if (onSelect) {

@@ -1030,3 +1030,91 @@ describe('CommandMachine events, callbacks and getters (TUB-25)', () => {
     });
   });
 });
+
+describe('CommandMachine disabled shortcuts are not bound (CE-09 fix round)', () => {
+  const item = (id: string, extra?: Partial<CommandItem>): CommandItem => ({
+    id: itemId(id),
+    value: id,
+    ...extra,
+  });
+  /** Events run in order, and each call waits for a page no earlier call pushed */
+  let pages = 0;
+  async function settle(machine: CommandMachine): Promise<void> {
+    const page = `settled-${++pages}`;
+    machine.send({ type: 'PAGE_PUSH', page });
+    await vi.waitFor(() => {
+      expect(machine.getState().page).toBe(page);
+    });
+  }
+  const press = (key: string): KeyboardEvent => {
+    const event = new KeyboardEvent('keydown', { key, ctrlKey: true, cancelable: true });
+    document.dispatchEvent(event);
+    return event;
+  };
+
+  describe.for(['direct', 'select'] as const)("shortcutAction '%s'", (shortcutAction) => {
+    it("a disabled item's key press is not defaultPrevented and the item has no binding", () => {
+      using machine = createCommandMachine({
+        items: [item('off', { shortcut: 'Ctrl+C', onSelect: () => {}, disabled: true })],
+        shortcutAction,
+      });
+      expect(machine.getKeyboardRegistry().getBindings().size).toBe(0);
+      expect(press('c').defaultPrevented).toBe(false);
+    });
+
+    it('an item that UPDATE_ITEM disables loses its binding: its key is no longer defaultPrevented', async () => {
+      const onSelect = vi.fn();
+      using machine = createCommandMachine({
+        items: [item('a', { shortcut: 'Ctrl+C', onSelect })],
+        shortcutAction,
+      });
+      machine.send({
+        type: 'UPDATE_ITEM',
+        item: item('a', { shortcut: 'Ctrl+C', onSelect, disabled: true }),
+      });
+      await settle(machine);
+      expect(machine.getKeyboardRegistry().getBindings().size).toBe(0);
+      expect(press('c').defaultPrevented).toBe(false);
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('enabled A then disabled B on one key: the key fires A and there is no conflict', async () => {
+      const a = vi.fn();
+      const b = vi.fn();
+      using machine = createCommandMachine({
+        items: [
+          item('a', { shortcut: 'Ctrl+K', onSelect: a }),
+          item('b', { shortcut: 'Ctrl+K', onSelect: b, disabled: true }),
+        ],
+        shortcutAction,
+      });
+      expect(machine.getKeyboardRegistry().getConflicts().size).toBe(0);
+      press('k');
+      await settle(machine);
+      expect(a).toHaveBeenCalledTimes(1);
+      expect(b).not.toHaveBeenCalled();
+    });
+
+    it('re-enabling B through UPDATE_ITEM binds it again and B wins the key', async () => {
+      const a = vi.fn();
+      const b = vi.fn();
+      using machine = createCommandMachine({
+        items: [
+          item('a', { shortcut: 'Ctrl+K', onSelect: a }),
+          item('b', { shortcut: 'Ctrl+K', onSelect: b, disabled: true }),
+        ],
+        shortcutAction,
+      });
+      machine.send({
+        type: 'UPDATE_ITEM',
+        item: item('b', { shortcut: 'Ctrl+K', onSelect: b }),
+      });
+      await settle(machine);
+      expect(machine.getKeyboardRegistry().getConflicts().size).toBe(1);
+      press('k');
+      await settle(machine);
+      expect(b).toHaveBeenCalledTimes(1);
+      expect(a).not.toHaveBeenCalled();
+    });
+  });
+});
