@@ -10,21 +10,42 @@ const nextFrame = (): Promise<void> =>
     requestAnimationFrame(() => resolve());
   });
 
+/** The most major collections one `collectGarbage` call runs while its predicate stays false. */
+const MAX_COLLECTIONS = 20;
+
+/** Collections a `collectGarbage` call without a predicate runs. */
+const FIXED_COLLECTIONS = 3;
+
 /**
- * Runs a full GC. A WeakRef target created or dereferenced in this task stays alive until the
- * microtask queue drains (V8 clears kept objects at the end of the microtask checkpoint; an await is
- * not enough), so yield a macrotask first. Fails loudly when the worker has no gc().
+ * Runs major GCs until `settled()` is true, at most MAX_COLLECTIONS of them; without a predicate it
+ * runs FIXED_COLLECTIONS passes. TUB-81: a single major GC can leave one of many young objects
+ * uncollected (CI run 42455685144: 9999 of 10000 WeakRefs cleared, one survived), so the loop
+ * repeats the collection until the refs settle. Each pass is
+ * `gc({ type: 'major', execution: 'async', flavor: 'last-resort' })`, awaited, then a macrotask
+ * turn: a WeakRef target created or dereferenced in a task stays alive until the microtask queue
+ * drains (V8 clears kept objects at the end of the microtask checkpoint; an await is not enough),
+ * and FinalizationRegistry callbacks run in their own tasks. The predicate only decides when to
+ * stop: callers still assert the strict zero afterwards, so a ref that survives all
+ * MAX_COLLECTIONS passes (a real leak) still fails. Fails loudly when the worker has no gc().
  */
-async function collectGarbage(): Promise<void> {
+async function collectGarbage(settled?: () => boolean): Promise<void> {
   const gc = globalThis.gc;
   if (typeof gc !== 'function') {
     throw new Error(
       'gc() is missing: the unit project must run with --expose-gc (vitest.config.ts execArgv)',
     );
   }
-  await setImmediate();
-  gc();
+  const passes = settled === undefined ? FIXED_COLLECTIONS : MAX_COLLECTIONS;
+  for (let pass = 0; pass < passes; pass++) {
+    await gc({ type: 'major', execution: 'async', flavor: 'last-resort' });
+    await setImmediate();
+    if (settled?.()) return;
+  }
 }
+
+/** True when every ref's target has been collected. */
+const allCollected = (refs: readonly WeakRef<object>[]): boolean =>
+  refs.every((ref) => ref.deref() === undefined);
 
 // ES2025 Iterator helpers: 1000 items, "Item 0" .. "Item 999"
 const items: readonly CommandItem[] = Iterator.from({
@@ -89,7 +110,7 @@ describe('memory leak detection', () => {
     const refs = await runLifecycles();
     expect(refs).toHaveLength(100);
 
-    await collectGarbage();
+    await collectGarbage(() => allCollected(refs));
     expect(refs.filter((ref) => ref.deref() !== undefined)).toHaveLength(0);
 
     // The system still works after 100 create/dispose cycles
@@ -129,7 +150,7 @@ describe('memory leak detection', () => {
     expect(sink.calls).toBe(0);
     unsubLive();
 
-    await collectGarbage();
+    await collectGarbage(() => allCollected(refs));
     expect(refs.filter((ref) => ref.deref() !== undefined)).toHaveLength(0);
     // The machine is still referenced and usable after the collection
     expect(machine.getState().search).toBe('test');
@@ -140,7 +161,7 @@ describe('memory leak detection', () => {
     const listenerRef = subscribeOne(machine);
 
     machine[Symbol.dispose]();
-    await collectGarbage();
+    await collectGarbage(() => listenerRef.deref() === undefined);
 
     expect(listenerRef.deref()).toBeUndefined();
     // The machine itself was alive for the whole collection
