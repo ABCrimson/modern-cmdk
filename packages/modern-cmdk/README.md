@@ -133,8 +133,9 @@ const unsubscribe = machine.subscribe(() => {
 });
 
 // send() is batched: the machine applies these three events on the next animation frame
-// (a microtask where requestAnimationFrame is absent, such as Node), refilters once and
-// notifies subscribers once. getState() right after send() still returns the previous state.
+// (a microtask where requestAnimationFrame is absent, such as Node), commits one
+// stateChange for the batch (each SEARCH_CHANGE filters when it runs; registry events refilter once
+// per batch). getState() right after send() still returns the previous state.
 machine.send({ type: 'SEARCH_CHANGE', query: 'cop' });
 machine.send({ type: 'NAVIGATE', direction: 'next' });
 machine.send({ type: 'ITEM_SELECT', id: itemId('copy') });
@@ -157,7 +158,7 @@ export function teardown(): void {
 - **React 19 adapter** -- compound components over `useSyncExternalStore`, `useTransition` and `use()`; React Compiler compatible.
 - **Automatic virtualization** -- turns on when more than 100 items match and off again at 50 or fewer (fixed thresholds; force it with `<Command.List virtualize>` or `virtualize={false}`). The `virtualizeThreshold` option is accepted but not read yet.
 - **Fuzzy search and frecency** -- a built-in TypeScript scorer with match ranges, and frequency x recency ranking with memory or IndexedDB persistence. `modern-cmdk-search-wasm` is an experimental, unpublished workspace package that does not work yet.
-- **Keyboard shortcuts** -- a registry with a cross-platform `Mod` key. Two items bound to one key are a conflict: the first registration wins, `getConflicts()` lists the keys with two or more bindings and `getBindings()` returns the winning binding of each key.
+- **Keyboard shortcuts** -- a registry with a cross-platform `Mod` key. Two items bound to one key are a conflict: the later binding wins the keydown (disposing it restores the earlier one), `getConflicts()` lists the keys with two or more bindings and `getBindings()` returns the winning binding of each key.
 - **Accessibility** -- WAI-ARIA combobox pattern, `aria-live` announcements, `forced-colors`, `prefers-contrast`, `prefers-reduced-motion`.
 - **Animation** -- the stylesheet defines the dialog enter and exit on opacity, scale and translate, which are compositor-only; the overlay fades opacity and also transitions `--command-overlay-opacity`, its background alpha, which repaints, and the list height and item background-color transitions are not compositor-only either. In 1.x neither the dialog nor the overlay animates on enter or exit, because their duration and easing tokens are declared only on `[data-command-root]`, which sits inside the dialog (DT-19, planned for 1.8.0).
 - **Extras** -- `CommandErrorBoundary`, `useCommandDevtools()` and `createTelemetryMiddleware()`, which returns hooks that your code calls itself (the machine and the React components have no telemetry option).
