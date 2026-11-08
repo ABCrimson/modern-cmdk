@@ -368,13 +368,16 @@ const bonus = frecency.getBonus(itemId('settings')); // 4.0: frequency 1 x hourW
 | `IdbFrecencyStorage` | IndexedDB persistence via `idb-keyval`. `new IdbFrecencyStorage(dbName = 'modern-cmdk', storeName = 'frecency')`; also has `delete(namespace)`. Implements `Disposable` and `AsyncDisposable`. |
 
 ```ts
-import { IdbFrecencyStorage } from 'modern-cmdk';
+import { createCommandMachine, IdbFrecencyStorage } from 'modern-cmdk';
 
 // Persist frecency data across browser sessions. A storage you pass is yours to dispose, so keep it
-// for the page and dispose it at teardown, after the machine that uses it.
+// for the page and dispose it at teardown, after `await machine[Symbol.asyncDispose]()` has settled:
+// a sync machine dispose leaves its last save queued, and a disposed storage drops it.
 const storage = new IdbFrecencyStorage('my-db', 'frecency-store');
+const machine = createCommandMachine({ frecency: { enabled: true, storage } });
 
-export function teardown(): void {
+export async function teardown(): Promise<void> {
+  await machine[Symbol.asyncDispose]();
   storage[Symbol.dispose]();
 }
 ```
