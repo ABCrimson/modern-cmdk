@@ -65,7 +65,9 @@ export interface CommandMachine extends Disposable {
    * registered items and recomputes the active item, and reports no candidate to `onActiveChange` (the caller changed
    * its own props, which is not a choice the machine makes). It is not a `CommandEvent`: it passes through no `send()`,
    * so what observes `send()` does not see it. An options object whose getters return new values for `activeId`,
-   * `disabledItems` or `filter` calls it after a change; the React root does so on a change of those props.
+   * `disabledItems` or `filter` calls it after a change; the React root does so when its `activeId`, `disabledItems`
+   * or `filter` prop changes (its `filter` getter returns a value of the first render's kind, so a swap to the
+   * other kind refilters with the first render's filter).
    * Does nothing after dispose. Optional like `suspend`; the machine `createCommandMachine` returns always has it.
    */
   refresh?(): void;
