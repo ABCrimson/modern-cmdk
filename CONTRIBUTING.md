@@ -248,7 +248,7 @@ modern-cmdk/
                                  Rust & WASM, e2e, docs, phantom claims (`scripts/check-claims.mjs`), links (lychee 0.24.2 over the shipped
                                  Markdown, `lychee.toml`; `scripts/check-repo-links.ts` for the repository's own blob/tree/raw links), size, audit, benchmarks, package integrity, the consumer
                                  apps, the Node 24 install, templates; "CI Summary" gates them
-      release.yml                Wait for CI, then changeset version / publish; backfill task
+      release.yml                Wait for CI, then changeset version / publish
       docs.yml                   VitePress deploy
       codeql.yml                 CodeQL static analysis
       lanes.yml                  Scheduled non-blocking lanes (React canary, TypeScript latest/rc, the xcode-27 image, weekly audit)
@@ -775,8 +775,6 @@ Publishing authenticates via **npm OIDC Trusted Publishing** -- the workflow's `
 ### Release tags
 
 The legacy tags `v1.1.5`, the `v0.x` tags and `vscode-modern-cmdk@1.0.0` are kept as history. Every tag from `modern-cmdk@1.2.3` and `create-modern-cmdk@1.2.2` on is created by the release workflow, never by hand.
-
-The `backfill` task (Actions > Release > Run workflow) is a temporary job meant to create the missing `modern-cmdk@1.2.2` and `create-modern-cmdk@1.2.1` tags and GitHub releases through the GitHub API; like every dispatched task it waits for CI on the dispatched commit first. Creating a release at those old commits needs a token with the Workflows permission, which the workflow's `GITHUB_TOKEN` cannot have, so the job fails with HTTP 403 until it is given such a token. It is deleted once every npm version has a GitHub release.
 
 ### Configuration
 

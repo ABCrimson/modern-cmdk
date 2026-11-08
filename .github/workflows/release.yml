@@ -2,26 +2,15 @@ name: Release
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      task:
-        description: maintenance task; every task waits for CI on the dispatched commit
-        type: choice
-        required: true
-        options: [backfill]
 
-# A dispatched run gets its own group, so it can never replace a queued release run for a push.
 concurrency:
-  group: release-${{ github.event_name }}-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 # Reset permissions; each job declares only what it needs.
 permissions: {}
 
 # Job graph. On a push to main: ci-gate -> select-mode -> (version -> first-publish-tarball -> first-publish-smoke -> first-publish-attest) | (pack -> attest -> publish).
-# On a manual dispatch: ci-gate -> backfill. A job whose `needs` ancestor is skipped is
-# skipped too, so a dispatch never reaches select-mode, version, first-publish-tarball, first-publish-smoke,
-# first-publish-attest, pack, attest or publish and a push never reaches backfill.
 #
 # D62, a third published package (modern-cmdk-codemod): npm's trusted publishing is configured per existing
 # package, so the owner first-publishes modern-cmdk-codemod 1.0.0 by hand. first-publish-tarball (version
@@ -64,9 +53,8 @@ permissions: {}
 # tags through the GitHub API with their default `github-token` (github.token); a
 # GITHUB_TOKEN env var is ignored. publish's `push-git-tags` and
 # `create-github-releases` default to true, so per-package tags and GitHub releases are
-# created after a publish. backfill is meant to create the missing tags and releases for
-# the two npm versions that were published without them and for the hand-published
-# modern-cmdk-codemod 1.0.0 (see the job for why it needs a token other than the GITHUB_TOKEN).
+# created after a publish; changeset publish drops a version npm already has from its publish plan, so the
+# hand-published modern-cmdk-codemod 1.0.0 gets its tag and GitHub release outside this workflow.
 #
 # Per the changesets guide, git credentials are not persisted on disk and no job here restores the
 # pnpm cache (cache poisoning): setup-node keys it on the OS, architecture and lockfile hash alone,
@@ -123,7 +111,6 @@ jobs:
           done
 
   select-mode:
-    if: github.event_name == 'push'
     needs: ci-gate
     runs-on: ubuntu-26.04
     timeout-minutes: 10
@@ -190,7 +177,7 @@ jobs:
   # Any other path, any other package.json line or any lockfile change fails the job.
   # Once the version is on npm (the publish plan then skips it), the job compares that package's contents
   # with a fresh pack of the branch instead and produces nothing to attest; a later version of a published package is skipped.
-  # Temporary, like backfill: delete this job once the 1.5.0 post-cut gate has passed.
+  # Temporary: delete this job once the 1.5.0 post-cut gate has passed.
   first-publish-tarball:
     if: needs.select-mode.outputs.mode == 'version'
     needs: [select-mode, version]
@@ -706,92 +693,3 @@ jobs:
         uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
-
-  # Temporary: modern-cmdk@1.2.2 and create-modern-cmdk@1.2.1 reached npm (commit 33678255)
-  # without a git tag or GitHub release, and modern-cmdk-codemod@1.0.0 reaches npm by the owner's hand
-  # (D62) before the Version PR merges. changeset publish drops a version npm already has from its
-  # publish plan (@changesets/cli 3.0.3 getPublishPlan: `if (!publishedVersions.includes(localVersion))`
-  # builds the "publish" release), so for the hand-published version it creates neither the tag nor the
-  # GitHub release; this job does. The Version PR lands as one commit on main (the repository allows only
-  # rebase and squash merges), and that commit is the oldest to set `"version": "1.0.0"` in
-  # packages/modern-cmdk-codemod/package.json, which is how `version-commit` below finds the target.
-  # `gh release create` creates each tag through the API at
-  # --target, so no tag is pushed by hand. That API call needs a token authorized to modify
-  # workflows when the target commit's .github/workflows differs from the default branch's
-  # (docs.github.com, "Create a release"); the GITHUB_TOKEN cannot be, and the workflows changed
-  # after 33678255, so with the GITHUB_TOKEN below the two historical entries fail with HTTP 403
-  # (run 41786088539) until D34 is wired. A failed entry is recorded and the loop goes on, so those two
-  # cannot stop the codemod entry; the job exits 1 at the end, listing every failed tag.
-  # It works only after GH_TOKEN is pointed at a token holding the Workflows permission.
-  # Delete this job (and the `backfill` dispatch option) once the 1.5.0 post-cut gate
-  # "gh release list equals npm" has passed.
-  backfill:
-    if: github.event_name == 'workflow_dispatch' && inputs.task == 'backfill'
-    needs: ci-gate
-    runs-on: ubuntu-26.04
-    timeout-minutes: 10
-    permissions:
-      contents: write # create tags and GitHub releases (gh release create)
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Create the missing tags and releases
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "$GITHUB_REF" != refs/heads/main ]; then
-            echo "::error::backfill resolves version-commit on main; dispatch it on main (this run is on $GITHUB_REF)"
-            exit 1
-          fi
-          # tag | package directory | CHANGELOG heading of that version | target commit, or `version-commit`
-          entries=(
-            "modern-cmdk-codemod@1.0.0|modern-cmdk-codemod|## 1.0.0|version-commit"
-            "modern-cmdk@1.2.2|modern-cmdk|## 1.2.2|33678255dcee29a02a1222c10f5698f47cf7f24c"
-            "create-modern-cmdk@1.2.1|create-modern-cmdk|## 1.2.1|33678255dcee29a02a1222c10f5698f47cf7f24c"
-          )
-          # Runs inside `if !`, where `set -e` is off: every step that can fail returns 1 itself.
-          backfill_one() {
-            local tag=$1 dir=$2 heading=$3 sha=$4 notes version
-            if gh release view "$tag" > /dev/null 2>&1; then
-              echo "::notice::Release $tag already exists; skipping"
-              return 0
-            fi
-            if [ "$sha" = version-commit ]; then
-              version=${heading#\#\# }
-              # The oldest commit on the checked-out main that set this version; sed -n 1p reads all of git log's output (head -n1 would SIGPIPE it).
-              sha=$(git log --reverse --format=%H -G "\"version\": \"${version//./\\.}\"" -- "packages/$dir/package.json" | sed -n 1p) || return 1
-              if [ -z "$sha" ]; then
-                echo "::error::No commit on this checkout set \"version\": \"$version\" in packages/$dir/package.json"
-                return 1
-              fi
-            fi
-            notes=$(mktemp)
-            # The CHANGELOG section under $heading, without the heading line and without surrounding blank lines.
-            awk -v heading="$heading" '
-              $0 == heading { on = 1; next }
-              on && /^## / { exit }
-              on && NF == 0 { blank++; next }
-              on { if (started) while (blank-- > 0) print ""; blank = 0; started = 1; print }
-            ' "packages/$dir/CHANGELOG.md" > "$notes" || return 1
-            if [ ! -s "$notes" ]; then
-              echo "::error::No '$heading' section in packages/$dir/CHANGELOG.md"
-              return 1
-            fi
-            gh release create "$tag" --target "$sha" --title "$tag" --notes-file "$notes" --latest=false --verify-tag=false || return 1
-          }
-          failed=()
-          for entry in "${entries[@]}"; do
-            IFS='|' read -r tag dir heading sha <<< "$entry"
-            if ! backfill_one "$tag" "$dir" "$heading" "$sha"; then
-              echo "::error::Backfilling $tag failed"
-              failed+=("$tag")
-            fi
-          done
-          if [ "${#failed[@]}" -ne 0 ]; then
-            echo "::error::Backfill failed for: ${failed[*]}"
-            exit 1
-          fi
