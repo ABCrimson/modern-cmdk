@@ -73,6 +73,7 @@ describe('ci.yml', () => {
     const step = block.slice(block.indexOf('      - uses: actions/upload-artifact@'));
     expect(step).toMatch(/^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40} # v\d/m);
     expect(step).toMatch(/^ {8}if: always\(\)$/m);
+    expect(step).toMatch(/^ {10}name: docs-render$/m);
     expect(step).toMatch(/^ {10}path: test-results\/$/m);
     expect(block.indexOf('pnpm test:docs')).toBeLessThan(block.indexOf('upload-artifact'));
   });
