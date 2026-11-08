@@ -494,10 +494,36 @@ function rewriteTailwind(text: string, report: SiteReport): string {
   return applyEdits(text, tailwindEdits(text, report));
 }
 
+/** `group-`, `peer-` or `in-` right before a `data-` variant: the state it tests is on another element. */
+const OTHER_ELEMENT_PREFIX = /(?<![\w-])(?:group|peer|in)-$/;
+
+/**
+ * Where the `group-`, `peer-` or `in-` prefix of the data variant at `index` starts, or -1 for a
+ * variant on the bound element itself. Such a variant styles the element by the state of an
+ * ancestor or a sibling, which need not be a cmdk element (a cmdk item has no cmdk ancestor with
+ * a selected state), so it is reported instead of rewritten.
+ */
+function otherElementStart(text: string, index: number): number {
+  const prefix = OTHER_ELEMENT_PREFIX.exec(text.slice(0, index));
+  return prefix === null ? -1 : prefix.index;
+}
+
+function reportOtherElement(text: string, start: number, end: number, report: SiteReport): void {
+  report(
+    start,
+    `${text.slice(start, end)}: styles this element by the state of another element (an ancestor or a sibling) that need not be a cmdk element, so it cannot be migrated automatically; left unchanged`,
+  );
+}
+
 /** The edits rewriteTailwind applies, as ranges of `text`. */
 function tailwindEdits(text: string, report: SiteReport): Edit[] {
   const edits: Edit[] = [];
   for (const m of text.matchAll(TAILWIND_PRESENCE)) {
+    const other = otherElementStart(text, m.index);
+    if (other !== -1) {
+      reportOtherElement(text, other, m.index + m[0].length, report);
+      continue;
+    }
     const name = `data-${m[1]}`;
     const presence = STATE_ATTRS.get(name) as string;
     report(
@@ -506,6 +532,11 @@ function tailwindEdits(text: string, report: SiteReport): Edit[] {
     );
   }
   for (const m of text.matchAll(TAILWIND_STATE)) {
+    const other = otherElementStart(text, m.index);
+    if (other !== -1) {
+      reportOtherElement(text, other, m.index + m[0].length, report);
+      continue;
+    }
     const presence = STATE_ATTRS.get(`data-${m[1]}`) as string;
     const value = m[3] ?? m[4];
     if (value === 'true') {
