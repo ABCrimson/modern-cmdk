@@ -271,7 +271,7 @@ it("D112: a refilter that throws at the commit still reports that batch's teleme
   const onItemSelected = vi.fn();
   using machine = createCommandMachine({
     items,
-    filter: (item, query) => {
+    filter: (item: CommandItem, query: string) => {
       if (item.value === 'Applet') throw failure;
       return item.value.toLowerCase().includes(query.toLowerCase()) ? 1 : false;
     },
