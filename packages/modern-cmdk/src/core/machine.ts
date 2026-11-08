@@ -167,6 +167,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   let dirty = false;
   let changed = false;
   let disposed = false; // set by dispose: a frecency load that settles later does nothing
+  let announce = false; // set after the initial filter: a controlled activeId then hears the refilter's candidate
 
   // Register initial items and groups
   if (options.items) {
@@ -183,6 +184,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   // Run initial filter (nobody listens yet: it is not a change to announce)
   refilter('');
   changed = false;
+  announce = true;
 
   function setState(patch: Partial<CommandState>): void {
     state = { ...state, ...patch, lastUpdated: Date.now() };
@@ -242,10 +244,14 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     navIds = filteredIds.filter(isEnabled);
 
     // Keep the active item while it is still listed and enabled, else the first enabled one
-    const activeId =
-      state.activeId && filteredIdSet.has(state.activeId) && isEnabled(state.activeId)
-        ? state.activeId
-        : (navIds[0] ?? null);
+    const current = currentActiveId();
+    let activeId =
+      current && filteredIdSet.has(current) && isEnabled(current) ? current : (navIds[0] ?? null);
+    // A controlled activeId only hears the candidate: the state keeps its value
+    if (options.activeId !== undefined) {
+      if (announce && activeId !== current) options.onActiveChange?.(activeId);
+      activeId = state.activeId;
+    }
 
     setState({
       search: query,
@@ -280,8 +286,22 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     keyboardRegistry.register(bound, id, handler);
   }
 
+  /** The active item: the controlled `options.activeId` when defined, else the state's */
+  function currentActiveId(): ItemId | null {
+    return options.activeId === undefined ? state.activeId : options.activeId;
+  }
+
+  /**
+   * Makes `id` the active item. Uncontrolled: applies it and reports it. Controlled (`options.activeId` defined):
+   * the option's own id is applied without a report, any other id is only reported.
+   */
+  function activate(id: ItemId | null): void {
+    if (options.activeId === undefined || id === options.activeId) setState({ activeId: id });
+    if (options.activeId !== id) options.onActiveChange?.(id);
+  }
+
   function navigate(direction: 'next' | 'prev' | 'first' | 'last'): void {
-    const { activeId } = state;
+    const activeId = currentActiveId();
     const last = navIds.length - 1;
     if (last < 0) return;
 
@@ -296,10 +316,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     else index = current <= 0 ? (loop ? last : 0) : current - 1;
 
     const newActiveId = navIds[index] ?? null;
-    if (newActiveId !== activeId) {
-      setState({ activeId: newActiveId });
-      options.onActiveChange?.(newActiveId);
-    }
+    if (newActiveId !== activeId) activate(newActiveId);
   }
 
   /** Ends a batch: one refilter if a registry event ran, then one stateChange even if the refilter throws. */
@@ -339,8 +356,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
       case 'ITEM_ACTIVATE':
         // O(1) Set.has instead of O(n) Array.includes; a disabled item cannot become active
         if (filteredIdSet.has(event.id) && isEnabled(event.id)) {
-          setState({ activeId: event.id });
-          options.onActiveChange?.(event.id);
+          activate(event.id);
         }
         break;
 

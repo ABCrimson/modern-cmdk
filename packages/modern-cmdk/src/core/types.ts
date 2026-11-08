@@ -210,6 +210,15 @@ export interface CommandMachineOptions {
   readonly onSelect?: ((id: ItemId) => void) | undefined;
   /** Callback fired when the active (highlighted) item changes */
   readonly onActiveChange?: ((id: ItemId | null) => void) | undefined;
+  /**
+   * The active (highlighted) item, controlled by the caller. When defined (`null` is a value: no active item),
+   * the machine reads it on every use and never changes `state.activeId` by itself. A different candidate
+   * (navigation, `ITEM_ACTIVATE` of another id, the fallback after the list changes) is reported through
+   * `onActiveChange(candidate)`, and the caller decides. `ITEM_ACTIVATE` of this option's own id applies it to
+   * the state without calling `onActiveChange`: the caller already knows it. Construction calls no callback;
+   * the initial state takes this value. Leave it `undefined` for the machine to own the active item.
+   */
+  readonly activeId?: ItemId | null | undefined;
   /** Callback fired when the dialog open state changes */
   readonly onOpenChange?: ((open: boolean) => void) | undefined;
   /** Callback fired when the search query changes */
@@ -247,7 +256,7 @@ export const DEFAULT_MACHINE_OPTIONS: Partial<CommandMachineOptions> = {
 export function createInitialState(options?: CommandMachineOptions): CommandState {
   return {
     search: '',
-    activeId: null,
+    activeId: options?.activeId ?? null,
     filteredIds: [],
     groupedIds: new Map(),
     filteredCount: 0,
