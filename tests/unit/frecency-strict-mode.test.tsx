@@ -26,7 +26,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-/** Let the scheduler's frame and the debounced save (1000 ms real time would be slow: flush it) run. */
+/** Let the machine's scheduler frame run. */
 const frame = (): Promise<void> =>
   act(async () => {
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
