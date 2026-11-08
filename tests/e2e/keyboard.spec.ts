@@ -66,9 +66,7 @@ test.describe('Keyboard Navigation', () => {
     const input = page.getByRole('combobox');
     await input.focus();
     const items = page.locator('[data-command-item]');
-    const count = await items.count();
-
-    if (count < 2) return;
+    await expect(items).toHaveCount(15);
 
     // Move down twice
     await input.press('ArrowDown');
@@ -89,9 +87,7 @@ test.describe('Keyboard Navigation', () => {
     const input = page.getByRole('combobox');
     await input.focus();
     const items = page.locator('[data-command-item]');
-    const count = await items.count();
-
-    if (count < 2) return;
+    await expect(items).toHaveCount(15);
 
     // Navigate to the last item using End
     await input.press('End');
@@ -110,9 +106,7 @@ test.describe('Keyboard Navigation', () => {
     const input = page.getByRole('combobox');
     await input.focus();
     const items = page.locator('[data-command-item]');
-    const count = await items.count();
-
-    if (count < 2) return;
+    await expect(items).toHaveCount(15);
 
     // First item should be active
     const firstItem = items.first();
@@ -149,9 +143,7 @@ test.describe('Keyboard Navigation', () => {
     const input = page.getByRole('combobox');
     await input.focus();
     const items = page.locator('[data-command-item]');
-    const count = await items.count();
-
-    if (count < 3) return;
+    await expect(items).toHaveCount(15);
 
     // Navigate down a few items
     await input.press('ArrowDown');
@@ -179,9 +171,7 @@ test.describe('Keyboard Navigation', () => {
     const input = page.getByRole('combobox');
     await input.focus();
     const enabledItems = page.locator('[data-command-item]:not([data-disabled])');
-    const count = await enabledItems.count();
-
-    if (count < 2) return;
+    await expect(enabledItems).toHaveCount(14);
 
     // Go to end — wait for last enabled item to become active
     await input.press('End');
@@ -216,9 +206,7 @@ test.describe('Keyboard Navigation', () => {
     const input = page.getByRole('combobox');
     await input.focus();
     const items = page.locator('[data-command-item]');
-    const count = await items.count();
-
-    if (count < 3) return;
+    await expect(items).toHaveCount(15);
 
     // Navigate to third item
     await input.press('ArrowDown');
@@ -321,7 +309,7 @@ test.describe('Keyboard Navigation', () => {
 
   test('should filter in real-time as characters are typed sequentially', async ({ page }) => {
     const input = page.getByRole('combobox');
-    const initialCount = await page.getByRole('option').count();
+    await expect(page.getByRole('option')).toHaveCount(15);
 
     // Type one character at a time and verify filtering progresses
     await input.pressSequentially('a', { delay: 50 });
@@ -334,7 +322,7 @@ test.describe('Keyboard Navigation', () => {
 
     // The filtered count should be less than or equal to the initial
     expect(afterThreeChars).toBeLessThanOrEqual(afterOneChar);
-    expect(afterOneChar).toBeLessThanOrEqual(initialCount);
+    expect(afterOneChar).toBeLessThanOrEqual(15);
   });
 
   // ---------- Keyboard Shortcut Registration ----------
@@ -418,7 +406,7 @@ test.describe('Keyboard Navigation', () => {
   test('should handle clear search then navigate', async ({ page }) => {
     const input = page.getByRole('combobox');
     await input.focus();
-    const initialCount = await page.getByRole('option').count();
+    await expect(page.getByRole('option')).toHaveCount(15);
 
     // Type to filter
     await input.pressSequentially('test', { delay: 50 });
@@ -429,7 +417,7 @@ test.describe('Keyboard Navigation', () => {
     await expect(input).toHaveValue('');
 
     // All items should return
-    await expect(page.getByRole('option')).toHaveCount(initialCount);
+    await expect(page.getByRole('option')).toHaveCount(15);
 
     // Navigation should work on full list
     await input.press('ArrowDown');
@@ -444,9 +432,7 @@ test.describe('Keyboard Navigation', () => {
     const input = page.getByRole('combobox');
     await input.focus();
     const items = page.locator('[data-command-item]');
-    const count = await items.count();
-
-    if (count < 2) return;
+    await expect(items).toHaveCount(15);
 
     // Get initial active item
     const firstItem = items.first();

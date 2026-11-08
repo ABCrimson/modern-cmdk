@@ -137,8 +137,7 @@ test.describe('Basic Command Palette', () => {
 
   test('should activate item on hover (pointer move)', async ({ page }) => {
     const options = page.getByRole('option');
-    const count = await options.count();
-    if (count < 2) return;
+    await expect(options).toHaveCount(15);
 
     const secondOption = options.nth(1);
     await secondOption.hover();
