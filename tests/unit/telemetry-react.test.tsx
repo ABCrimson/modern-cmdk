@@ -43,6 +43,10 @@ const settle = (): Promise<void> =>
     await new Promise<void>((resolve) => setTimeout(resolve, 50));
   });
 
+// React 19.0, the peer floor, exports no Activity; the tests that render <Activity> exercise the
+// experimental build. A named import of the missing export is undefined at run time.
+const itWithActivity = it.skipIf(Activity === undefined);
+
 /** A controlled input's change handler that keeps the value fixed */
 const noop = (): void => {};
 
@@ -112,30 +116,33 @@ describe('telemetry reports of controlled inputs (CE-18)', () => {
     expect(onSearchComplete).not.toHaveBeenCalled();
   });
 
-  it('CE-18: an Activity show of a controlled Command.Input reports no search', async () => {
-    const onSearchComplete = vi.fn();
-    const tree = (mode: 'visible' | 'hidden'): ReactNode => (
-      <Activity mode={mode}>
-        <Command label="telemetry" telemetry={{ onSearchComplete }}>
-          <Command.Input value="app" onValueChange={noop} />
-          {list}
-        </Command>
-      </Activity>
-    );
-    await render(tree('visible'));
-    await settle();
-    // The mount reports the one change of the committed query, '' to 'app', with the batch's count
-    expect(onSearchComplete).toHaveBeenCalledTimes(1);
-    expect(onSearchComplete.mock.calls[0]?.slice(0, 2)).toEqual(['app', 1]);
-
-    for (let i = 0; i < 2; i++) {
-      await render(tree('hidden'));
-      await settle();
+  itWithActivity(
+    'CE-18: an Activity show of a controlled Command.Input reports no search',
+    async () => {
+      const onSearchComplete = vi.fn();
+      const tree = (mode: 'visible' | 'hidden'): ReactNode => (
+        <Activity mode={mode}>
+          <Command label="telemetry" telemetry={{ onSearchComplete }}>
+            <Command.Input value="app" onValueChange={noop} />
+            {list}
+          </Command>
+        </Activity>
+      );
       await render(tree('visible'));
       await settle();
-    }
-    expect(onSearchComplete).toHaveBeenCalledTimes(1);
-  });
+      // The mount reports the one change of the committed query, '' to 'app', with the batch's count
+      expect(onSearchComplete).toHaveBeenCalledTimes(1);
+      expect(onSearchComplete.mock.calls[0]?.slice(0, 2)).toEqual(['app', 1]);
+
+      for (let i = 0; i < 2; i++) {
+        await render(tree('hidden'));
+        await settle();
+        await render(tree('visible'));
+        await settle();
+      }
+      expect(onSearchComplete).toHaveBeenCalledTimes(1);
+    },
+  );
 });
 
 /** A dialog rendered open while `show` holds, as a parent that mounts it on demand renders it */
@@ -173,7 +180,7 @@ function Grab({ into }: { readonly into: CommandMachine[] }): null {
 }
 
 describe('telemetry of a hidden root (D114)', () => {
-  it("D114: a hidden root's machine reports a consumer's own send", async () => {
+  itWithActivity("D114: a hidden root's machine reports a consumer's own send", async () => {
     const onSearchComplete = vi.fn();
     const onSearchChange = vi.fn();
     const captured: CommandMachine[] = [];
