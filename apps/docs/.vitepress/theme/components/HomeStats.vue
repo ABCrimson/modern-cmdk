@@ -68,9 +68,11 @@ const tiles = computed<Tile[]>(() => {
     stat: 'deps',
     value: String(deps.length),
     label:
-      deps.length === 1
+      deps.length === 1 && deps[0] === 'idb-keyval'
         ? 'runtime dependency, loaded only for IndexedDB frecency'
-        : 'runtime dependencies',
+        : deps.length === 1
+          ? 'runtime dependency'
+          : 'runtime dependencies',
     mark: '³',
     path: 'packages/modern-cmdk/package.json',
   });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // biome-ignore-start lint/correctness/noUnusedImports: Biome does not read the template, where these bindings are used
 // biome-ignore-start lint/correctness/noUnusedVariables: Biome does not read the template, where these bindings are used
-import { onScopeDispose, ref, useId } from 'vue';
+import { onMounted, onScopeDispose, ref, useId, useTemplateRef } from 'vue';
 
 // The install block of the home hero (design-final.md 3.3, 5). A native fieldset of three radios is the segmented
 // control; the visible command is chosen in CSS with :has(), so it switches before the page hydrates. The copy key
@@ -20,6 +20,8 @@ const BUBBLE_MS = 1600;
 
 // biome-ignore lint/correctness/useHookAtTopLevel: <script setup> runs inside setup(); the rule models React hooks
 const group = useId();
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> runs inside setup(); the rule models React hooks
+const fieldset = useTemplateRef<HTMLFieldSetElement>('fieldset');
 const manager = ref<ManagerId>('pnpm');
 const bubble = ref('');
 const announcement = ref('');
@@ -52,6 +54,13 @@ async function copy(): Promise<void> {
   }
 }
 
+// A choice made before hydration is a DOM state Vue does not know; the default carries a static `checked` so hydration
+// leaves it alone, and the state is read back here.
+onMounted(() => {
+  const checked = fieldset.value?.querySelector<HTMLInputElement>('input:checked')?.value;
+  if (MANAGERS.some((entry) => entry.id === checked)) manager.value = checked as ManagerId;
+});
+
 onScopeDispose(() => clearTimeout(timer));
 // biome-ignore-end lint/correctness/noUnusedVariables: end of the script
 // biome-ignore-end lint/correctness/noUnusedImports: end of the script
@@ -59,16 +68,18 @@ onScopeDispose(() => clearTimeout(timer));
 
 <template>
   <div class="mc-install" data-mc="install">
-    <fieldset class="managers">
+    <fieldset ref="fieldset" class="managers">
       <legend class="sr-only">Package manager</legend>
       <label v-for="entry in MANAGERS" :key="entry.id" class="manager">
         <input
+          v-if="entry.id === 'pnpm'"
           type="radio"
           :name="`mc-pm-${group}`"
           :value="entry.id"
-          :checked="entry.id === 'pnpm'"
+          checked
           @change="manager = entry.id"
         />
+        <input v-else type="radio" :name="`mc-pm-${group}`" :value="entry.id" @change="manager = entry.id" />
         <span>{{ entry.id }}</span>
       </label>
     </fieldset>

@@ -41,7 +41,10 @@ const releaseUrl = `https://github.com/ABCrimson/modern-cmdk/releases/tag/modern
       </template>
       <template #home-hero-actions-after><InstallBlock /></template>
       <template #home-hero-image>
-        <PaletteDemo mode="hero" label="Try the palette" :ssr-links="HERO_SSR_LINKS" />
+        <div class="palette-wrap">
+          <PaletteDemo mode="hero" label="Try the palette" :ssr-links="HERO_SSR_LINKS" />
+          <p class="palette-caption">A live modern-cmdk core, driven from Vue. There is no React on this page.</p>
+        </div>
       </template>
     </VPHomeHero>
     <VPHomeFeatures class="mc-reveal" />
@@ -72,6 +75,18 @@ const releaseUrl = `https://github.com/ABCrimson/modern-cmdk/releases/tag/modern
   .VPHome > :is(.VPHomeFeatures, .VPHomeContent) {
     margin-block-start: var(--mc-space-9);
   }
+}
+
+/* The caption sits under the panel, at the panel's width; the wrapper keeps the column a single flex item */
+.palette-wrap {
+  inline-size: 100%;
+}
+
+.palette-caption {
+  margin: var(--mc-space-3) 0 0;
+  color: var(--mc-text-2);
+  font-size: var(--mc-step--1);
+  line-height: var(--mc-step--1-lh);
 }
 
 /* Eyebrow chip: Geist Mono, text-2 on a brand-soft pill */
@@ -106,6 +121,8 @@ const releaseUrl = `https://github.com/ABCrimson/modern-cmdk/releases/tag/modern
  */
 .VPHome :deep(.VPHero .image) {
   order: 2;
+  /* VPHero centres the whole container below 960 px; the palette rows read start-aligned */
+  text-align: start;
   margin: var(--mc-space-6) 0 0;
 }
 
