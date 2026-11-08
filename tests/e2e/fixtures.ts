@@ -56,8 +56,9 @@ export { expect };
  * 1. `page.goto(path)` loads the route.
  * 2. `.demo-container` is visible: every demo renders it, so React has rendered the text. The
  *    command root is no signal, because `/dialog` renders none until its trigger is clicked.
- * 3. `document.fonts.ready` resolves: it is awaited after step 2 because, before React has
- *    rendered text, no font load has started and the promise would resolve at once.
+ * 3. `document.fonts.ready` resolves: a second guard for any font a rendered element still
+ *    requests (a family no FontFace preloaded). Such a load starts only once the text exists, so
+ *    this follows step 2; with the preloaded fonts it resolves at once.
  */
 export async function open(page: Page, path: string): Promise<void> {
   await page.goto(path);

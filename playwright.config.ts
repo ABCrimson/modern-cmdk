@@ -4,7 +4,7 @@ const isCI = !!process.env.CI;
 const baseURL = 'http://localhost:5173';
 
 export default defineConfig({
-  // Failure reports carry the commit and the working-tree diff
+  // Puts commit info and the commit diff in the report of every run (off by default locally)
   captureGitInfo: { commit: true, diff: true },
   testDir: './tests/e2e',
   fullyParallel: true,
