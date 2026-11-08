@@ -155,6 +155,8 @@ export function createCommandMachine(
   }
 
   function setOpen(open: boolean): void {
+    // OPEN while open and CLOSE while closed change nothing: no state change, no openChange, no onOpenChange
+    if (state.open === open) return;
     setState({ open });
     emitter.emit('openChange', open);
     options.onOpenChange?.(open);
