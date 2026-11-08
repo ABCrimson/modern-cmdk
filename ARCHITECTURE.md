@@ -214,15 +214,17 @@ The scheduler coalesces state updates to prevent redundant re-renders:
 Browser environment (requestAnimationFrame exists):
   schedule(update) -> pending[] -> requestAnimationFrame -> executeBatch()
 
-Node.js / test environment:
+Node.js / SSR / test environment (no requestAnimationFrame):
   schedule(update) -> pending[] -> queueMicrotask -> executeBatch()
 ```
 
-- `schedule()` pushes the update, then arms exactly one rAF (`rafId ??= requestAnimationFrame(...)`) or one microtask for the whole batch.
-- `executeBatch()` snapshots and clears the queue before running it, so updates scheduled while a batch runs land in the next one. Each update runs in a `try`/`catch`; a throwing update is re-thrown from a `queueMicrotask` so it surfaces without stopping the rest of the batch.
-- For a batch of more than 10 updates, if `navigator.scheduling.isInputPending()` is available and reports pending input, the batch is re-queued and resumed after `scheduler.yield()` (or the next rAF when `yield` is missing). `isInputPending` is Chromium-only and is declared ambiently in `core/es2026.d.ts`.
-- `flush()` is **synchronous**: it cancels a pending rAF, clears the microtask flag and runs `executeBatch()` immediately. It returns `void`, not a promise.
-- Implements `Disposable` -- cancels pending rAF and clears the queue.
+- `schedule()` pushes the update, then arms exactly one rAF (`rafId ??= requestAnimationFrame(...)`) or one microtask for the whole batch. Which of the two is decided once at module load, by `typeof requestAnimationFrame === 'function'`.
+- `executeBatch()` snapshots and clears the queue before running it, so an update scheduled while a batch runs lands in the next one (the next frame or microtask). The updates of a batch run whole and in the order they were scheduled.
+- Error isolation: each update runs in a `try`/`catch`; a failing update is rethrown from a `queueMicrotask`, so the error surfaces and the rest of the batch still runs.
+- `flush()` is **synchronous**: it cancels a pending rAF, clears the microtask flag and runs `executeBatch()` at once, so it applies the updates pending when it is called, in order. It returns `void`, not a promise. An update scheduled during the flush runs on the next frame or microtask, not inside it.
+- Implements `Disposable` -- cancels a pending rAF and drops the queued updates, which never run.
+- There is **no `isInputPending` / `scheduler.yield()` gate**. An earlier version re-queued whole batches when input was pending, so `flush()` could apply nothing. MDN (read 2026-11-07) marks `isInputPending` deprecated and experimental and Chromium-only, and `scheduler.yield()` is not Baseline (no Safari); a batch now always runs whole (`scheduler.ts`, header).
+- The machine itself has no public `flush()`: `send()` goes through `scheduler.schedule`, so `getState()` right after `send()` returns the previous state. Code that needs the result subscribes (`machine.subscribe`) or waits for the next frame or microtask (see [State Machine](#state-machine)).
 
 ---
 
@@ -735,7 +737,6 @@ packages/modern-cmdk/src/core/
   machine.ts             -- State machine (createCommandMachine)
   registry.ts            -- Item/group registry (Map + Set)
   telemetry.ts           -- Telemetry middleware hooks
-  es2026.d.ts            -- Ambient declaration for Navigator.scheduling.isInputPending (absent from lib.dom)
   search/
     types.ts             -- SearchEngine (the plug point), SearchResult, ScorerFn type
     index.ts             -- createSearchEngine (incremental filtering, optional scorer)
@@ -753,7 +754,7 @@ packages/modern-cmdk/src/core/
   utils/
     env.ts               -- isDev flag (NODE_ENV)
     event-emitter.ts     -- TypedEmitter (strong refs, Set per event)
-    scheduler.ts         -- rAF/microtask batching, synchronous flush()
+    scheduler.ts         -- rAF/microtask batching, synchronous flush() of the pending updates
     set-ops.ts           -- Plain-loop Set operation helpers
     group-by.ts          -- mapGroupBy / objectGroupBy helpers
     string-wellformed.ts -- ensureWellFormed()
