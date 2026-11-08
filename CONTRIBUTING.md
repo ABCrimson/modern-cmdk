@@ -96,7 +96,7 @@ modern-cmdk/
           types.ts                Branded types, interfaces, state
           machine.ts              State machine factory (createCommandMachine)
           registry.ts             Item/group registry
-          telemetry.ts            createTelemetryMiddleware: returns hooks the caller invokes (no telemetry option on the machine)
+          telemetry.ts            CommandTelemetryHooks (the machine's `telemetry` option); createTelemetryMiddleware (the helper for callers that drive the hooks themselves)
           search/                 Search engine subsystem
             types.ts              SearchEngine, SearchResult, ScorerFn
             index.ts              Engine factory (incremental filtering with the default scorer only)
@@ -627,7 +627,7 @@ These limits are defined in the root `.size-limit.mjs`, which measures with `pro
 - **No barrel re-exports** -- Biome enforces `noBarrelFile` and `noReExportAll`. Each export is explicit.
 - **Iterator Helpers over intermediate arrays** -- Use `.values().filter().map().toArray()` instead of creating temporary arrays.
 - **Set methods over manual loops** -- Use `.intersection()`, `.difference()`, `.union()` for bulk ID operations.
-- **Animate cheap properties** -- `styles.css` animates `opacity`, `scale`, `translate` and `background-color`; the dialog and overlay transitions (`styles.css:319-380`) are declared but inert until DT-19; never `width`, `top` or `left`. The one deliberate exception is the height of `[data-command-list]`: it declares `transition: height` with `will-change: height` (`styles.css:195-196`), but the library sets only `--command-list-height` on the list (the ResizeObserver height, `list.tsx:107`), so the height animates once the app sets `height: var(--command-list-height)` on `[data-command-list]` (as ARCHITECTURE.md says); no further reason is recorded in the code.
+- **Animate cheap properties** -- `styles.css` animates `opacity`, `scale`, `translate` and `background-color`; the dialog and overlay transitions (`styles.css:312-374`) are declared but inert until DT-19; never `width`, `top` or `left`. The one deliberate exception is the height of `[data-command-list]`: it declares `transition: height` with `will-change: height` (`styles.css:188-189`), but the library sets only `--command-list-height` on the list (the ResizeObserver height, `list.tsx:125-126`), so the height animates once the app sets `height: var(--command-list-height)` on `[data-command-list]` (as ARCHITECTURE.md says); no further reason is recorded in the code.
 
 ---
 
