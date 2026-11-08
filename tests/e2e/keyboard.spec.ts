@@ -332,22 +332,34 @@ test.describe('Keyboard Navigation', () => {
 
   // ---------- Disabled Item Behavior ----------
 
-  test('should skip disabled items during keyboard navigation', async ({ page }) => {
+  test('D78: should skip the rendered disabled item during keyboard navigation', async ({
+    page,
+  }) => {
     const input = page.getByRole('combobox');
     await input.focus();
 
-    // The core excludes disabled items from the filtered list, so the basic demo's
-    // disabled "Pear" is never rendered as an option
-    await expect(page.getByRole('option', { name: /Pear/ })).toHaveCount(0);
+    // The body must run: the disabled "Pear" is rendered with aria-disabled and data-disabled
+    const pear = page.getByRole('option', { name: /Pear/ });
+    await expect(pear).toHaveCount(1);
+    await expect(pear).toHaveAttribute('aria-disabled', 'true');
+    await expect(pear).toHaveAttribute('data-disabled', /.*/);
 
+    const active = page.locator('[data-command-item][data-active]');
     const totalCount = await page.locator('[data-command-item]').count();
 
-    // Navigate through all items
-    for (let i = 0; i < totalCount; i++) {
-      // Active item should never be a disabled item (disabled items are filtered out)
-      await expect(page.locator('[data-command-item][data-active][data-disabled]')).toHaveCount(0);
-
-      await input.press('ArrowDown');
+    // ArrowDown and ArrowUp through more than the whole list, pressing Enter on each stop:
+    // the active option is never [data-disabled] and Pear is never active or selected
+    for (const key of ['ArrowDown', 'ArrowUp']) {
+      for (let i = 0; i < totalCount + 1; i++) {
+        const before = await input.getAttribute('aria-activedescendant');
+        await input.press(key);
+        await expect(input).not.toHaveAttribute('aria-activedescendant', before ?? '');
+        await expect(active).toHaveCount(1);
+        await expect(active).not.toHaveAttribute('data-disabled', /.*/);
+        await input.press('Enter');
+        await expect(pear).not.toHaveAttribute('data-active', /.*/);
+        await expect(pear).not.toHaveAttribute('aria-selected', 'true');
+      }
     }
   });
 
