@@ -485,10 +485,15 @@
       padding: 0.625rem 0.75rem;
       border-radius: var(--radius-md);
       font-size: 0.875rem;
-      color: var(--text-secondary);
       transition:
         background-color var(--duration-fast) var(--ease-out),
         color var(--duration-fast) var(--ease-out);
+
+      /* This colour and the disabled rule below stay out of forced-colors, so the library's
+         a11y layer (GrayText, opacity 1) paints the disabled item there */
+      @media (forced-colors: none) {
+        color: var(--text-secondary);
+      }
 
       &[data-active] {
         background: var(--bg-active);
@@ -496,9 +501,11 @@
         transform: translate3d(0, 0, 0);
       }
 
-      &[data-disabled] {
-        color: var(--text-muted);
-        opacity: 0.6;
+      @media (forced-colors: none) {
+        &[data-disabled] {
+          color: var(--text-muted);
+          opacity: 0.6;
+        }
       }
     }
 
@@ -756,10 +763,6 @@
         background: Highlight;
         color: HighlightText;
         forced-color-adjust: none;
-      }
-
-      &[data-disabled] {
-        color: GrayText;
       }
     }
 
