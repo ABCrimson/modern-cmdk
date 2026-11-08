@@ -15,7 +15,9 @@ import type { ItemId } from './types.js';
  * The hooks the machine calls at the end of each batch, after its own state reports
  * (`onSearchChange`, `onActiveChange`, `onOpenChange` and the `stateChange` subscribers). Within
  * one batch the order is open, search, selects, close. A hook that throws loses only the later
- * telemetry calls of that batch, never a state report.
+ * telemetry calls of that batch, never a state report. A hook that flushes the machine
+ * synchronously (for example `suspend()`) runs a nested batch inside the report: an open that batch
+ * reports restamps the session, so the outer batch's close reports a shorter duration.
  */
 export interface CommandTelemetryHooks {
   /**
