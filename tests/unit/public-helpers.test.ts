@@ -21,8 +21,8 @@
 // scoreItemAsync, batchScoreItems
 //   this file
 //
-// D33: differenceFrom and symmetricDifferenceWith are pinned here; CE-121 (1.12.0) decides
-// whether differenceFrom stays.
+// D33: differenceFrom and symmetricDifferenceWith are pinned in tests/unit/registry.test.ts;
+// CE-121 (1.12.0) decides whether differenceFrom stays.
 
 import type { CommandItem } from 'modern-cmdk';
 import { batchScoreItems, itemId, scoreItem, scoreItemAsync } from 'modern-cmdk';
