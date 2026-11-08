@@ -49,9 +49,10 @@ import type { FrecencyStorage } from 'modern-cmdk';
 import { IdbFrecencyStorage } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
 
-// One IndexedDB storage for the page. The machine disposes the storage it is given, and React
-// disposes the machine on every unmount (twice in development under StrictMode), so the palette
-// gets a view that forwards load and save and leaves disposal to this module.
+// One IndexedDB storage for the page. The machine disposes the storage it is given, and <Command>
+// disposes its machine when it unmounts, and once more before the remount under StrictMode in
+// development, so the palette gets a view that forwards load and save and leaves disposal to
+// this module.
 const idb = new IdbFrecencyStorage();
 const storage: FrecencyStorage = {
   load: (namespace) => idb.load(namespace),
@@ -242,7 +243,7 @@ async function rankByFrecency(): Promise<readonly string[]> {
   using subscription = machine.subscribeState(next.resolve);
 
   // Both events run in the same batch, in order: the selection is recorded with Date.now(),
-  // then the search ranks with it. One stateChange follows.
+  // then the search ranks with it. The batch emits one stateChange; where there is no requestAnimationFrame (Node), the background frecency load can emit a second one with the same order.
   machine.send({ type: 'ITEM_SELECT', id: itemId('sessions') });
   machine.send({ type: 'SEARCH_CHANGE', query: 'open' });
 
