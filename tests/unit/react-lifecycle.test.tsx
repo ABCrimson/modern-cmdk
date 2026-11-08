@@ -120,6 +120,18 @@ class WeakSpy {
   };
 }
 
+/** Counts the renders of a `useCommandState` reader inside `<Command>`: one per machine tick that changes what it reads, plus the parent's. */
+class RenderCounter {
+  renders = 0;
+
+  /** Probe child: place it inside `<Command>`. */
+  readonly Probe = (): null => {
+    useCommandState((state) => state.filteredCount);
+    this.renders++;
+    return null;
+  };
+}
+
 const apple: CommandItem = { id: itemId('apple'), value: 'apple' };
 const banana: CommandItem = { id: itemId('banana'), value: 'banana' };
 
@@ -360,6 +372,35 @@ describe('React lifecycle (C1)', () => {
     expect(spy.machine.getState().filteredIds.length).toBe(1);
   });
 
+  it('an items prop change registers added items and unregisters removed ones', async () => {
+    const cherry: CommandItem = { id: itemId('cherry'), value: 'cherry' };
+    const spy = new Spy();
+    const tree = (items: readonly CommandItem[]): ReactNode => (
+      <Command items={items}>
+        <spy.Probe />
+      </Command>
+    );
+    await mount(tree([apple, banana]));
+    await settle();
+    expect(spy.machine.getState().filteredIds).toEqual([apple.id, banana.id]);
+
+    await update(tree([banana, cherry]));
+    await settle();
+    expect(spy.machine.getRegistry().getItems()).toEqual([banana, cherry]);
+    expect(spy.machine.getState().filteredIds).toEqual([banana.id, cherry.id]);
+
+    const renamed: CommandItem = { ...banana, value: 'blueberry' };
+    await update(tree([renamed, cherry]));
+    await settle();
+    expect(spy.machine.getRegistry().getItem(banana.id)).toBe(renamed);
+    expect(
+      spy.machine
+        .getRegistry()
+        .getItems()
+        .map((item) => item.id),
+    ).toEqual([banana.id, cherry.id]);
+  });
+
   it('Command.Dialog: an onSearchChange prop change after mount reaches the new callback', async () => {
     const first = vi.fn();
     const second = vi.fn();
@@ -444,5 +485,25 @@ describe('React lifecycle (C1)', () => {
     }
 
     expect(onSearchChange.mock.calls).toEqual([['ap'], ['ban'], ['ap']]);
+  });
+
+  it('a parent that passes an inline items array does not loop', async () => {
+    const counter = new RenderCounter();
+    const tree = (tick: number): ReactNode => (
+      <Command items={[{ ...apple }, { ...banana, value: `banana ${tick}` }]}>
+        <counter.Probe />
+      </Command>
+    );
+    await mount(tree(0));
+    for (const tick of [1, 2, 3]) {
+      await update(tree(tick));
+      await settle();
+    }
+    const afterUpdates = counter.renders;
+    await settle();
+    await settle();
+
+    expect(counter.renders).toBe(afterUpdates);
+    expect(afterUpdates).toBeLessThan(30);
   });
 });

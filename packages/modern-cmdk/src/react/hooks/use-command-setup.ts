@@ -31,6 +31,25 @@ interface Forwarded {
 type Callback = 'onSearchChange' | 'onActiveChange' | 'onOpenChange';
 
 /**
+ * Calls `upsert` for each entry of `after` that is new or a different object than the entry of the same id in
+ * `before`, and `remove` for each entry of `before` whose id `after` lacks.
+ */
+function diffById<T extends { readonly id: string }>(
+  before: readonly T[] | undefined,
+  after: readonly T[] | undefined,
+  upsert: (entry: T) => void,
+  remove: (entry: T) => void,
+): void {
+  if (before === after) return;
+  const old = new Map(before?.map((entry) => [entry.id, entry]));
+  for (const entry of after ?? []) {
+    if (old.get(entry.id) !== entry) upsert(entry);
+    old.delete(entry.id);
+  }
+  for (const entry of old.values()) remove(entry);
+}
+
+/**
  * The options object the machine keeps for its whole life: the first render's props, with the callbacks
  * replaced by trampolines over `latest.current` and `activeId`, `loop`, `disabledItems` and `filter` replaced by
  * getters over it, so a prop change after mount reaches them. The engine kind (a custom scorer or the default)
@@ -131,11 +150,25 @@ export function useCommandSetup(
     };
   }, [machine]);
 
-  // Every commit: publish the props to the options object, then refilter if `disabledItems` changed (the machine
-  // reads it in its refilter; upserting an unchanged item triggers one)
+  // Every commit: publish the props to the options object, then register what changed. `UPDATE_ITEM` upserts, so it
+  // serves a new item and a changed one. StrictMode's replay and a re-render from the machine's own state pass the
+  // same arrays, so the diff sends nothing. A `disabledItems` change refilters (the machine reads it in its refilter;
+  // upserting an unchanged item triggers one).
   useLayoutEffect(() => {
     const previous = latest.current;
     latest.current = options;
+    diffById(
+      previous.items,
+      options.items,
+      (item) => machine.send({ type: 'UPDATE_ITEM', item }),
+      ({ id }) => machine.send({ type: 'UNREGISTER_ITEM', id }),
+    );
+    diffById(
+      previous.groups,
+      options.groups,
+      (group) => machine.send({ type: 'REGISTER_GROUP', group }),
+      ({ id }) => machine.send({ type: 'UNREGISTER_GROUP', id }),
+    );
     if (previous.disabledItems !== options.disabledItems) {
       const [item] = machine.getRegistry().getItems();
       if (item) machine.send({ type: 'UPDATE_ITEM', item });
