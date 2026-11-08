@@ -236,25 +236,153 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
 
   // ---------- Disabled Items ----------
 
-  test('should exclude disabled items from the rendered list', async ({ page }) => {
-    // The core excludes disabled items from the filtered list, so the basic demo's
-    // disabled "Pear" is never rendered as an option
-    await expect(page.getByRole('option', { name: /Pear/ })).toHaveCount(0);
+  test('should render the disabled "Pear" option at rest with aria-disabled="true" and data-disabled', async ({
+    page,
+  }) => {
+    // disabledItems defaults to 'show': a disabled item is listed, not dropped (PG-04)
+    const pear = page.getByRole('option', { name: /Pear/ });
+    await expect(pear).toHaveCount(1);
+    await expect(pear).toBeVisible();
+    await expect(pear).toHaveAttribute('aria-disabled', 'true');
+    await expect(pear).toHaveAttribute('data-disabled', /.*/);
+    await expect(page.locator('[data-command-item][data-disabled]')).toHaveCount(1);
+    // The enabled items carry no aria-disabled
+    await expect(page.getByRole('option', { name: /Apple/ })).not.toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 
-  test('disabled items should not become active via keyboard', async ({ page }) => {
+  test('keyboard navigation never makes a rendered disabled option active, in either direction, with loop', async ({
+    page,
+  }) => {
     const input = page.getByRole('combobox');
     await input.focus();
 
-    const items = page.locator('[data-command-item]');
-    const totalCount = await items.count();
+    const options = page.locator('[data-command-item]');
+    const disabled = page.locator('[data-command-item][data-disabled]');
+    const active = page.locator('[data-command-item][data-active]');
 
-    // Navigate through all items and verify no disabled item becomes active
-    for (let i = 0; i < totalCount + 1; i++) {
-      await expect(page.locator('[data-command-item][data-active][data-disabled]')).toHaveCount(0);
+    // The body must run: a disabled option is rendered, so the checks below can fail
+    await expect(disabled).toHaveCount(1);
+    const disabledId = await disabled.getAttribute('id');
+    expect(disabledId).toBe('item-pear');
+    const totalCount = await options.count();
+    const enabledCount = totalCount - (await disabled.count());
+    expect(enabledCount).toBeGreaterThan(1);
 
-      await input.press('ArrowDown');
+    const visited = new Set<string>();
+    // One press and one check: exactly one active option, never the disabled one
+    const pressAndCheck = async (key: string): Promise<void> => {
+      const before = await input.getAttribute('aria-activedescendant');
+      await input.press(key);
+      await expect(input).not.toHaveAttribute('aria-activedescendant', before ?? '');
+      await expect(active).toHaveCount(1);
+      await expect(active).not.toHaveAttribute('data-disabled', /.*/);
+      await expect(active).not.toHaveAttribute('aria-disabled', 'true');
+      const id = await active.getAttribute('id');
+      expect(id).not.toBe(disabledId);
+      await expect(input).toHaveAttribute('aria-activedescendant', id as string);
+      visited.add(id as string);
+    };
+
+    // Down through more than the whole list: wraps around (loop) and skips the disabled option
+    for (let i = 0; i < totalCount + 2; i++) {
+      await pressAndCheck('ArrowDown');
     }
+    // Every enabled option was reached, the disabled one never
+    expect(visited.size).toBe(enabledCount);
+    expect(visited.has(disabledId as string)).toBe(false);
+
+    // End and Home land on enabled options
+    await pressAndCheck('End');
+    await expect(active).not.toHaveAttribute('data-disabled', /.*/);
+    await pressAndCheck('Home');
+    // From the first option ArrowUp loops to the last enabled option
+    await pressAndCheck('ArrowUp');
+    for (let i = 0; i < totalCount + 2; i++) {
+      await pressAndCheck('ArrowUp');
+    }
+    expect(visited.has(disabledId as string)).toBe(false);
+  });
+
+  test('Enter while navigating never activates the disabled option', async ({ page }) => {
+    const input = page.getByRole('combobox');
+    await input.focus();
+
+    const pear = page.getByRole('option', { name: /Pear/ });
+    await expect(pear).toHaveAttribute('aria-disabled', 'true');
+
+    // Step through the list pressing Enter on each active option: the disabled option is
+    // neither active nor selected at any point
+    for (let i = 0; i < 8; i++) {
+      await input.press('ArrowDown');
+      await input.press('Enter');
+      await expect(pear).not.toHaveAttribute('data-active', /.*/);
+      await expect(pear).not.toHaveAttribute('aria-selected', 'true');
+      await expect(pear).toHaveAttribute('aria-disabled', 'true');
+    }
+  });
+
+  test('a query matching the disabled "Pear" still renders it with aria-disabled and it is not the active option', async ({
+    page,
+  }) => {
+    const input = page.getByRole('combobox');
+    await input.pressSequentially('pear', { delay: 50 });
+
+    const pear = page.getByRole('option', { name: /Pear/ });
+    await expect(pear).toHaveCount(1);
+    await expect(pear).toBeVisible();
+    await expect(pear).toHaveAttribute('aria-disabled', 'true');
+    await expect(pear).toHaveAttribute('data-disabled', /.*/);
+    const ad = await input.getAttribute('aria-activedescendant');
+    expect(ad).not.toBe(await pear.getAttribute('id'));
+
+    // ArrowDown and Enter still do not make it active
+    await input.press('ArrowDown');
+    await input.press('Enter');
+    await expect(pear).not.toHaveAttribute('data-active', /.*/);
+  });
+
+  test('should pass axe audit while a disabled option is rendered and a query matches it', async ({
+    page,
+  }) => {
+    const input = page.getByRole('combobox');
+    await input.pressSequentially('pear', { delay: 50 });
+    await expect(page.getByRole('option', { name: /Pear/ })).toBeVisible();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+
+    expect(results.violations).toEqual([]);
+  });
+
+  test('forced-colors: the High Contrast demo shows its disabled item at rest, painted in GrayText', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ forcedColors: 'active' });
+    await page.goto('/high-contrast');
+
+    const disabled = page.locator('[data-command-item][data-disabled]');
+    await expect(disabled).toHaveCount(1);
+    await expect(disabled).toBeVisible();
+    await expect(disabled).toHaveAttribute('aria-disabled', 'true');
+    await expect(disabled).toContainText('Disabled Item');
+    await expect(disabled).not.toHaveAttribute('data-active', /.*/);
+
+    // Under forced-colors the stylesheet sets `color: GrayText` for [data-disabled]: compare
+    // with the system colour resolved by the browser itself. Opacity is not asserted: the
+    // playground's own unlayered rule (opacity: 0.6) overrides the library's layered one
+    const grayText = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.color = 'GrayText';
+      document.body.append(probe);
+      const resolved = getComputedStyle(probe).color;
+      probe.remove();
+      return resolved;
+    });
+    await expect(disabled).toHaveCSS('color', grayText);
   });
 
   // ---------- Empty State ----------
