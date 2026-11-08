@@ -28,6 +28,7 @@ export class KeyboardShortcutRegistry implements Disposable {
   #keysByItem = new Map<ItemId, Set<string>>();
   #globalListener: ((event: KeyboardEvent) => void) | null = null;
   #enabled = true;
+  #disposed = false;
 
   constructor(options?: { enabled?: boolean }) {
     this.#enabled = options?.enabled ?? true;
@@ -107,7 +108,7 @@ export class KeyboardShortcutRegistry implements Disposable {
   }
 
   #attachGlobalListener(): void {
-    if (typeof document === 'undefined') return;
+    if (this.#globalListener || typeof document === 'undefined') return;
 
     this.#globalListener = (event: KeyboardEvent): void => {
       if (!this.#enabled) return;
@@ -127,6 +128,19 @@ export class KeyboardShortcutRegistry implements Disposable {
     document.addEventListener('keydown', this.#globalListener);
   }
 
+  /**
+   * Detach the document keydown listener while keeping every binding, so a suspended registry holds nothing
+   * global and can be collected once unreferenced. Idempotent; does nothing after dispose.
+   */
+  suspend(): void {
+    this.#detachGlobalListener();
+  }
+
+  /** Re-attach the document keydown listener `suspend()` detached. Idempotent; does nothing after dispose. */
+  resume(): void {
+    if (!this.#disposed) this.#attachGlobalListener();
+  }
+
   #detachGlobalListener(): void {
     if (this.#globalListener && typeof document !== 'undefined') {
       document.removeEventListener('keydown', this.#globalListener);
@@ -135,6 +149,7 @@ export class KeyboardShortcutRegistry implements Disposable {
   }
 
   [Symbol.dispose](): void {
+    this.#disposed = true;
     this.#detachGlobalListener();
     this.#bindings.clear();
     this.#keysByItem.clear();

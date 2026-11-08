@@ -60,8 +60,8 @@ const FLUSH_DELAY_MS = 1000;
  * becomes hidden or is hidden for good (`visibilitychange`, `pagehide`), on
  * `flush()` and on dispose; a save waits for a `load()` in flight, so it writes the merged
  * history. Dispose disposes the storage only when the engine created it (no `storage`
- * option): a storage the caller passes is the caller's to dispose. Uses Date.now() for
- * timestamps.
+ * option): a storage the caller passes is the caller's to dispose. `suspend()` and `resume()` release and
+ * re-take the page-exit listeners without ending the engine. Uses Date.now() for timestamps.
  */
 export class FrecencyEngine implements Disposable, AsyncDisposable {
   #storage: FrecencyStorage;
@@ -78,7 +78,10 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
   #loading: Promise<unknown> = Promise.resolve();
   /** Set by a rejected load: the engine writes nothing afterwards */
   #loadFailed = false;
-  #abort = new AbortController();
+  /** Set by dispose, which is final: suspend and resume then do nothing */
+  #disposed = false;
+  /** Aborting it removes the page-exit listeners; undefined while suspended or disposed */
+  #listening: AbortController | undefined;
 
   constructor(options: FrecencyOptions) {
     this.#ownsStorage = options.storage === undefined;
@@ -93,13 +96,42 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/pagehide_event — "In browsers that
     // don't support visibilitychange the pagehide event is the next-best alternative."
     // Node and SSR have neither target; the dirty flag makes both listeners idempotent.
-    const { signal } = this.#abort;
+    this.#listen();
+  }
+
+  #listen(): void {
+    if (this.#listening) return;
+    this.#listening = new AbortController();
+    const { signal } = this.#listening;
     globalThis.addEventListener?.('pagehide', this.#save, { signal });
     globalThis.document?.addEventListener(
       'visibilitychange',
       () => document.hidden && this.#save(),
       { signal },
     );
+  }
+
+  #unlisten(): void {
+    this.#listening?.abort();
+    this.#listening = undefined;
+  }
+
+  /**
+   * Release every global hold: start the save of pending data (through the failure-reporting path, never
+   * throwing; it also clears the debounce timer) and remove the `pagehide` and `visibilitychange` listeners.
+   * Records and storage stay. A selection recorded while suspended stays dirty and schedules no timer: the next
+   * page-exit save after `resume()`, `flush()`, dispose or a later `recordSelection` saves it.
+   * Idempotent; does nothing after dispose.
+   */
+  suspend(): void {
+    if (!this.#listening) return;
+    this.#unlisten();
+    if (this.#dirty) void this.#save();
+  }
+
+  /** Re-attach the page-exit listeners `suspend()` removed. Idempotent; does nothing after dispose. */
+  resume(): void {
+    if (!this.#disposed) this.#listen();
   }
 
   /**
@@ -149,8 +181,8 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
     (this.#data.records as Map<ItemId, FrecencyRecord>).set(itemId, updated);
     this.#dirty = true;
     clearTimeout(this.#timer);
-    // After dispose the storage is gone: keep the record, schedule nothing
-    if (!this.#abort.signal.aborted) this.#timer = setTimeout(this.#save, FLUSH_DELAY_MS);
+    // Suspended or disposed: keep the record, schedule nothing
+    if (this.#listening) this.#timer = setTimeout(this.#save, FLUSH_DELAY_MS);
   }
 
   /** Get frecency bonus for an item */
@@ -220,14 +252,19 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
    * when the save rejects (the rejection propagates). Use with `await using`.
    */
   [Symbol.asyncDispose](): Promise<void> {
-    this.#abort.abort();
+    this.#end();
     return this.flush().finally(this.#disposeStorage);
   }
 
   /** Sync dispose — starts the flush without awaiting it and disposes the storage the engine created once it settles */
   [Symbol.dispose](): void {
-    this.#abort.abort();
+    this.#end();
     this.#save().finally(this.#disposeStorage).catch(this.#warn);
+  }
+
+  #end(): void {
+    this.#disposed = true;
+    this.#unlisten();
   }
 
   #disposeStorage = (): void => {
