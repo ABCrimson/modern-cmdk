@@ -260,12 +260,15 @@ jobs:
           cargo deny check
           cargo audit
       # The wasm package imports modern-cmdk, so that builds first; then the wasm-pack output
-      # (pkg/), the package's tests against it (pkg-stub.test.ts, the src/pkg.d.ts drift guard, skips
-      # itself without pkg/, so this is the one CI run where it executes), the package's own typecheck
+      # (pkg/), the package's tests against it (pkg-stub.test.ts, the src/pkg.d.ts drift guard, and wasm-engine.real.test.ts skip
+      # themselves without pkg/, so this is the one CI run where they execute), the package's own typecheck
       # against the real pkg/ types, and its tsdown build.
       - run: pnpm --filter modern-cmdk run build
       - run: pnpm --filter modern-cmdk-search-wasm run build:wasm
+      # MODERN_CMDK_REQUIRE_WASM_PKG=1 turns the skip of wasm-engine.real.test.ts (CE-116, the engine against the real pkg/) into a failure
       - run: pnpm exec vitest run packages/command-search-wasm
+        env:
+          MODERN_CMDK_REQUIRE_WASM_PKG: "1"
       - run: pnpm --filter modern-cmdk-search-wasm exec tsc --noEmit
       - run: pnpm --filter modern-cmdk-search-wasm run build
       # Docs-samples gate (TEB-84), the one run with both dists present: the wasm-importing samples type-check here (the modern-cmdk dist is built earlier in this job)

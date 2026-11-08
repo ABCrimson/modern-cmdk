@@ -43,18 +43,24 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
       instance.free();
     };
 
+    // The crate rebuilds its trigram index from every `index_items` call, so it cannot add to what it holds.
+    // The adapter keeps the indexed values by id and hands the crate the whole map on each change.
+    const indexed = new Map<ItemId, string>();
+    const syncIndex = (): void => {
+      instance.index_items(JSON.stringify(Array.from(indexed)));
+    };
+
     const engine: WasmSearchEngine = {
       isWasm: true,
 
+      /**
+       * Indexing is incremental: the handed items are upserted by id (an id that is already indexed is
+       * replaced by the new value) and ids not in `items` stay indexed.
+       */
       index(items: readonly { id: ItemId; value: string }[]): void {
         assertLive();
-        const serialized = JSON.stringify(
-          items
-            .values()
-            .map((item) => [item.id, item.value])
-            .toArray(),
-        );
-        instance.index_items(serialized);
+        for (const item of items) indexed.set(item.id, item.value);
+        syncIndex();
       },
 
       *search(query: string, items: readonly { id: ItemId }[]): Generator<SearchResult> {
@@ -74,14 +80,17 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
         );
       },
 
-      remove(_ids: ReadonlySet<ItemId>): void {
+      /** Deletes only the given ids; every other indexed id stays searchable. */
+      remove(ids: ReadonlySet<ItemId>): void {
         assertLive();
-        // Clears the whole index: the remaining items are not re-indexed (known gap, ledger W05)
-        instance.clear();
+        for (const id of ids) indexed.delete(id);
+        syncIndex();
       },
 
+      /** Empties the kept map and the crate's index. */
       clear(): void {
         assertLive();
+        indexed.clear();
         instance.clear();
       },
 
