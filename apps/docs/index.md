@@ -133,7 +133,7 @@ export function CommandPalette() {
 ```ts [Core]
 import { createCommandMachine, itemId } from 'modern-cmdk';
 
-using machine = createCommandMachine({
+const machine = createCommandMachine({
   items: [
     { id: itemId('copy'), value: 'Copy', shortcut: 'Mod+C' },
     { id: itemId('paste'), value: 'Paste', shortcut: 'Mod+V' },
