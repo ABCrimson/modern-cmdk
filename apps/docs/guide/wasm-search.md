@@ -91,8 +91,8 @@ const items = [
 engine.index(items);
 
 // Search with fuzzy matching + typo tolerance
-const results = engine.search('applcation', items); // trigram overlap tolerates the dropped letter: matches "Application Settings"
-// => yields { id: 'item-1', score: 0.75, matches: [] }
+const results = engine.search('applcation', items).toArray(); // trigram overlap tolerates the dropped letter: matches "Application Settings"
+// => [{ id: 'item-1', score: 0.75, matches: [] }]
 ```
 
 ::: tip
@@ -239,8 +239,9 @@ const machine = createCommandMachine({
   items: largeDataset,
 });
 
-// The machine calls the engine only for a non-empty query with the filter on. An empty query, or
-// `filter: false`, lists the items without calling it.
+// The machine indexes the items in the engine when it is created and as they register, and searches
+// with it only for a non-empty query with the filter on; an empty query, or `filter: false`, lists
+// the items without a search.
 
 // Dispose on teardown, not at module top level. Disposing the machine disposes the engine it was given.
 export function teardown(): void {

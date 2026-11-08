@@ -370,8 +370,13 @@ const bonus = frecency.getBonus(itemId('settings')); // 4.0: frequency 1 x hourW
 ```ts
 import { IdbFrecencyStorage } from 'modern-cmdk';
 
-// Persist frecency data across browser sessions
-await using storage = new IdbFrecencyStorage('my-db', 'frecency-store');
+// Persist frecency data across browser sessions. A storage you pass is yours to dispose, so keep it
+// for the page and dispose it at teardown, after the machine that uses it.
+const storage = new IdbFrecencyStorage('my-db', 'frecency-store');
+
+export function teardown(): void {
+  storage[Symbol.dispose]();
+}
 ```
 
 ### `FrecencyStorage` Interface
