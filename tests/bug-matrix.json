@@ -1191,8 +1191,8 @@
   },
   {
     "id": "ACT-1",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/activity.test.tsx::ACT-1: the visible child's text is polled with a hard assertion",
+    "status": "covered"
   },
   {
     "id": "W05",
