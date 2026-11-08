@@ -51,6 +51,8 @@ function Palette({ children }: { children: ReactNode }) {
 
 ### Props
 
+Extends the machine options (`CommandMachineOptions`) and `ComponentPropsWithRef<'div'>`: every other attribute and the `ref` of a `div` reach the root element. The root's own `data-command-root`, `data-command-state`, `role` and `aria-label` come after yours and win.
+
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `children` | `ReactNode` | -- | Child components |
@@ -58,17 +60,21 @@ function Palette({ children }: { children: ReactNode }) {
 | `label` | `string` | `'Command palette'` | Accessible label (`aria-label`) |
 | `items` | `CommandItem[]` | `[]` | Pre-registered items |
 | `groups` | `CommandGroup[]` | `[]` | Pre-registered groups |
-| `filter` | `Function \| false` | built-in | Custom filter function `(item, query) => number \| false` (above 0 keeps the item, higher ranks first; `false`, `0` or a negative number excludes it), or `false` to disable. Not consulted when `search` is given |
-| `search` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM) |
+| `filter` | `Function \| false` | built-in | Custom filter function `(item, query) => number \| false` (above 0 keeps the item, higher ranks first; `false`, `0` or a negative number excludes it), or `false` to disable. Not consulted when `searchEngine` (or `search`) is given |
+| `searchEngine` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM). Read once, when the component mounts (a later change warns in development; give the component a new key to apply it). The machine disposes only an engine it created: an engine you pass is yours to dispose, and it survives the machine's dispose, `suspend()` and `resume()`; the root suspends its machine on unmount and never disposes it |
+| `search` | `SearchEngine` | built-in | Deprecated name of `searchEngine`, which wins when both are set; removed in 2.0. The same ownership rule holds: an engine you pass is yours to dispose |
 | `frecency` | `FrecencyOptions` | -- | Frecency ranking configuration; ranking is on only with `enabled: true` (`enabled` is optional, default `false`). A storage passed in `frecency.storage` is yours to dispose; the engine disposes only the storage it created |
 | `loop` | `boolean` | `true` | Whether keyboard navigation wraps |
 | `disabledItems` | `'show' \| 'hide'` | `'show'` | `'show'` renders disabled items (`aria-disabled`, `data-disabled`), skipped by navigation and selection under every query; `'hide'` drops them from the list. See [Disabled items](/api/command#disabled-items) |
 | `shortcutAction` | `'direct' \| 'select'` | `'direct'` | What an item's `shortcut` does: `'direct'` calls its `onSelect`; `'select'` dispatches `ITEM_SELECT` (frecency, the root `onSelect` and the disabled guard apply). A disabled item's shortcut never fires. 2.0 flips the default to `'select'` |
-| `open` | `boolean` | `false` | Initial open state |
-| `onSelect` | `(id: ItemId) => void` | -- | Fired when an item is selected |
-| `onActiveChange` | `(id: ItemId \| null) => void` | -- | Fired when the active item changes |
-| `onOpenChange` | `(open: boolean) => void` | -- | Fired when open state changes |
-| `onSearchChange` | `(query: string) => void` | -- | Fired when the search query changes |
+| `open` | `boolean` | `false` | Initial open state, read once when the component mounts |
+| `onSelect` | `(id: ItemId) => void` | -- | Fired for every select of an enabled item (never deduped) |
+| `activeId` | `ItemId \| null` | `undefined` | The active item, controlled by the caller. `state.activeId` mirrors it while that id is listed and enabled, else `null`; `activeId={null}` means no active item. Every candidate the machine would choose (navigation, hover, the fallback after the list or the query changes) is reported through `onActiveChange`, repeats included, and the caller decides. A changed value applies without a report. Leave it `undefined` for the machine to own the active item |
+| `onActiveChange` | `(id: ItemId \| null) => void` | -- | Fired when navigation or hover makes an item active, once per distinct value (a repeat of the last value is dropped). With a controlled `activeId`, fired for every candidate, repeats included |
+| `onOpenChange` | `(open: boolean) => void` | -- | Fired when open state changes, once per distinct value |
+| `onSearchChange` | `(query: string) => void` | -- | Fired when the search query changes, once per distinct value. A query that comes from the `value` prop of `<Command.Input>` is not reported back |
+| `telemetry` | `CommandTelemetryHooks` | -- | Hooks the machine calls once per batch, at the batch's end, after its state reports, in the order open, search, selects, close. The latest value is read at each batch's end, and telemetry follows the machine, not the root's visibility. See [Telemetry](/api/command#telemetry) |
+| `virtualizeThreshold` | `number` | `100` | Accepted but not read yet; `Command.List` virtualizes above a fixed 100 matches (off again at 50 or fewer) |
 
 ### Data Attributes
 
@@ -103,13 +109,14 @@ const input = (
 
 ### Props
 
-Extends `ComponentPropsWithRef<'input'>` (excluding `value`, `onChange`, `type`, `role`).
+Extends `ComponentPropsWithRef<'input'>` (excluding `onChange`, `type`, `role`).
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `ref` | `Ref<HTMLInputElement>` | -- | Ref to the input element |
 | `placeholder` | `string` | `'Search...'` | Placeholder text |
-| `onValueChange` | `(value: string) => void` | -- | Callback when input value changes |
+| `value` | `string` | -- | The search text, controlled by you. When defined the input shows it, a change calls `onValueChange` and sends nothing to the machine, and the prop is sent to the machine as the search query whenever it changes. The root's `onSearchChange` is not called for a query that comes from this prop, the first one at mount included. Leave it `undefined` for the input to keep its own text |
+| `onValueChange` | `(value: string) => void` | -- | Called with the new text on every change. Controlled (`value` defined): you apply it by passing the next `value`; an ignored change leaves the input at its `value` |
 
 ### Data Attributes
 
@@ -122,7 +129,7 @@ Extends `ComponentPropsWithRef<'input'>` (excluding `value`, `onChange`, `type`,
 | Attribute | Value |
 |---|---|
 | `role` | `"combobox"` |
-| `aria-expanded` | `true` when `filteredCount > 0` |
+| `aria-expanded` | `true` |
 | `aria-controls` | ID of the `<Command.List>` |
 | `aria-activedescendant` | ID of the active item |
 | `aria-autocomplete` | `"list"` |
@@ -157,6 +164,7 @@ Extends `ComponentPropsWithRef<'div'>`.
 | `virtualize` | `boolean` | unset (auto) | Unset: virtualizes above 100 filtered items and stops again at 50 or fewer. `true` forces it on; `false` disables it |
 | `estimateSize` | `number` | `44` | Estimated item height in pixels |
 | `overscan` | `number` | `8` | Items rendered beyond the visible viewport (each direction) |
+| `announceResults` | `(count: number) => string` | built-in | Formats the `aria-live` announcement from the filtered count (for i18n); the built-in text is `<n> result(s) available.` |
 
 ### Data Attributes
 
@@ -165,6 +173,7 @@ Extends `ComponentPropsWithRef<'div'>`.
 | `data-command-list` | Always present |
 | `data-command-list-inner` | Inner container (non-virtual mode) |
 | `data-command-list-virtual` | Inner container (virtual mode) |
+| `data-command-list-status` | Status container after the listbox, where `<Command.Empty>` renders |
 
 ### ARIA
 
@@ -220,7 +229,9 @@ Extends `ComponentPropsWithRef<'div'>` (excluding `onSelect`, `value`).
 | `onSelect` | `() => void` | -- | Callback when the item is selected; called with no argument (the item value arrives as the first argument in 2.0) |
 | `disabled` | `boolean` | `false` | A disabled item is still filtered and rendered (`aria-disabled`, `data-disabled`) but skipped by keyboard navigation, never active, not selectable by click or Enter, and its `shortcut` does not fire. With the root's `disabledItems="hide"` it is not rendered |
 | `shortcut` | `string` | -- | Keyboard shortcut string (e.g., `"Mod+K"`); bound while the item is enabled |
-| `forceId` | `string` | -- | Override the auto-generated item ID |
+| `id` | `string` | `useId()` | The registration id and the DOM `id`. The registration id is `id ?? forceId ?? useId()`; in development a warning fires once when `id` and `forceId` are both given and differ. Pass the stable id of a loaded, fetched or persisted item |
+| `forceId` | `string` | -- | Deprecated; use `id`. Removed in 2.0 |
+| `propsMerge` | `'override' \| 'compose'` | `'override'` | How the props you pass meet the item's own handlers and style. `'override'` spreads your props last, so an `onClick`, `onPointerMove` or `style` of yours replaces the item's. `'compose'` spreads them first: your `onClick` and `onPointerMove` run, then the item selects or activates unless the event is default-prevented, your `style` merges under the virtual position, and the `id`, `role` and `aria-*` attributes the item manages win. The default becomes `'compose'` in 2.0 |
 
 ### Data Attributes
 
@@ -266,7 +277,8 @@ Extends `ComponentPropsWithRef<'div'>`.
 | `ref` | `Ref<HTMLDivElement>` | -- | Ref to the group container |
 | `heading` | `string` | -- | Heading text displayed above the group |
 | `priority` | `number` | -- | Orders the keys of `CommandState.groupedIds` (lower first). React renders the groups in the JSX order of the `<Command.Group>` elements, not by this number, and `filteredIds` and keyboard navigation keep the search order |
-| `forceId` | `string` | -- | Override the auto-generated group ID |
+| `id` | `string` | `useId()` | The registration id and the `id` attribute of the group element. The registration id is `id ?? forceId ?? useId()`; in development a warning fires once when `id` and `forceId` are both given and differ |
+| `forceId` | `string` | -- | Deprecated; use `id`. Removed in 2.0 |
 
 ### Data Attributes
 
@@ -301,7 +313,7 @@ Extends `ComponentPropsWithRef<'div'>`. Data attribute: `data-command-empty`. AR
 
 ## `<Command.Loading>`
 
-Renders while `state.loading` is `true` or the optimistic active-item transition is pending (`isPending`). `state.loading` is `true` while any `<Command.AsyncItems>` is pending (the machine's `LOADING` event), so the component needs no props to show async loading; a search never sets `isPending`. The `loading` prop is an override, not a requirement. Keep it on a `<Command.Loading>` used as an `AsyncItems` fallback, so the element renders on the fallback's first render.
+Renders while `state.loading` is `true`. `state.loading` is `true` while any `<Command.AsyncItems>` is pending (the machine's `LOADING` event), so the component needs no props to show async loading. The `loading` prop is an override, not a requirement. Keep it on a `<Command.Loading>` used as an `AsyncItems` fallback, so the element renders on the fallback's first render.
 
 ```tsx
 import { Command } from 'modern-cmdk/react';
@@ -315,7 +327,7 @@ Extends `ComponentPropsWithRef<'div'>`.
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `loading` | `boolean` | auto-detected | Override loading state detection (`state.loading` or `isPending`) |
+| `loading` | `boolean` | auto-detected | Overrides `state.loading` |
 
 Data attribute: `data-command-loading`. ARIA: `role="status"`, `aria-busy`, `aria-live="assertive"`.
 
@@ -332,6 +344,10 @@ const separator = <Command.Separator />;
 ```
 
 Extends `ComponentPropsWithRef<'div'>`. Data attribute: `data-command-separator`. ARIA: `role="none"`.
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `alwaysRender` | `boolean` | `true` | Render the separator while a search is active. With `false` it renders nothing while the search is non-empty. 2.0 flips the default to `false` |
 
 ---
 
@@ -379,7 +395,7 @@ function CommandPalette() {
 
 ### Props
 
-Inherits all `CommandMachineOptions` props, plus:
+Inherits all `CommandMachineOptions` props (`telemetry` included, forwarded as in `<Command>`), plus:
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
@@ -389,8 +405,8 @@ Inherits all `CommandMachineOptions` props, plus:
 | `contentClassName` | `string` | -- | Class name for the inner content container |
 | `label` | `string` | `'Command palette'` | Accessible label |
 | `description` | `string` | `'Type a command or search...'` | Accessible description for screen readers |
-| `open` | `boolean` | -- | Controlled open state (omit for uncontrolled mode) |
-| `onOpenChange` | `(open: boolean) => void` | -- | Called when open state changes |
+| `open` | `boolean` | -- | Controlled open state. When defined, the dialog is open exactly while it is `true`: a request to open or close calls `onOpenChange(requested)` once and changes nothing else, so the parent decides, and a parent that keeps `open={true}` keeps the dialog open. When omitted the dialog starts closed, and nothing the component renders or binds opens it (it has no trigger and no open shortcut), so pass `open` |
+| `onOpenChange` | `(open: boolean) => void` | -- | Called with the requested open state. A controlled dialog reports each request once: the user's (Escape, a click outside, the overlay) and the palette's own (an item selection that closes it, `CLOSE`, `OPEN` or `TOGGLE` from a shortcut or a `send`). An uncontrolled one reports each change of its open state. A change of the `open` prop does not call it |
 | `container` | `HTMLElement \| null` | `document.body` | Portal container element |
 
 ### Data Attributes
@@ -463,7 +479,7 @@ Renders content conditionally based on the active page. Used for multi-page comm
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `id` | `string` | Required | Page identifier |
+| `id` | `string` | Required | Page identifier, a plain `string`. The exported type `CommandPageId` is an alias of `string`, deprecated; removed in 2.0 |
 | `children` | `ReactNode` | -- | Page content |
 
 Data attributes: `data-command-page`, `data-command-page-id`.
@@ -484,23 +500,28 @@ async function fetchItems(): Promise<CommandItem[]> {
   return [{ id: itemId('home'), value: 'Home' }];
 }
 
+// Created outside render, so the same promise reaches every render.
+const itemsPromise = fetchItems();
+
 const asyncItems = (
   <Command.AsyncItems
-    items={fetchItems()}
+    items={itemsPromise}
     fallback={<Command.Loading loading>Loading...</Command.Loading>}
   >
     {(items) => items.map((item) => (
-      <Command.Item key={item.id} value={item.value}>{item.value}</Command.Item>
+      <Command.Item key={item.id} id={item.id} value={item.value}>{item.value}</Command.Item>
     ))}
   </Command.AsyncItems>
 );
 ```
 
+Create the promise outside render (at module scope for static data, or in a per-query cache or a `useMemo` keyed on a deferred query): a new promise on every render, such as `items={fetchItems()}`, suspends again on every render. Each `Command.Item` passes `id={item.id}` because the machine keeps one registration per id: the rendered item and the loaded item are one entry, and an item without an `id` registers under a generated id and counts twice (in development a warning fires when its value is in the batch).
+
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `items` | `Promise<readonly CommandItem[]>` | Required | Async item source |
 | `fallback` | `ReactNode` | -- | Fallback during loading (passed to `<Suspense>`) |
-| `children` | `(items: CommandItem[]) => ReactNode` | Required | Render function for resolved items |
+| `children` | `(items: readonly CommandItem[]) => ReactNode` | Required | Render function for resolved items |
 
 ---
 
@@ -565,26 +586,26 @@ function ResultCount() {
 
 ### `useCommand(machine)`
 
-Low-level hook that binds a `CommandMachine` to React via `useSyncExternalStore` and `useOptimistic`, with a transition around the optimistic active-item setter only. `<Command>` uses it internally; reach for it only when building a custom root.
+Low-level hook that binds a `CommandMachine` to React via `useSyncExternalStore`. `<Command>` uses it internally; reach for it only when building a custom root.
 
 Returns `UseCommandReturn`:
 
 | Field | Type | Description |
 |---|---|---|
 | `state` | `CommandState` | Current state snapshot |
-| `isPending` | `boolean` | `true` while the optimistic active-item transition is pending; never reflects a search |
+| `isPending` | `boolean` | Always `false`. Deprecated; read `state.loading` for the machine's loading state. Removed in 2.0 |
 | `updateSearch` | `(query: string) => void` | Send a `SEARCH_CHANGE` event to the machine; it is applied on the machine's scheduler tick, not inside a transition |
-| `setOptimisticActiveId` | `(id: ItemId \| null) => void` | Optimistically highlight an item |
+| `setOptimisticActiveId` | `(id: ItemId \| null) => void` | Sends `ITEM_ACTIVATE` for a non-null `id` and does nothing for `null`. Deprecated; send `ITEM_ACTIVATE` through the machine. Removed in 2.0 |
 | `filteredIdSet` | `ReadonlySet<ItemId>` | O(1) membership set for filtered items |
 | `id` | `CommandRootId` | Stable SSR-safe root ID (from `useId`) |
 
 ### `useRegisterItem(value, options?)`
 
-Register a command item imperatively — auto-deregisters on unmount. Returns the branded `ItemId`. Options: `keywords`, `groupId`, `shortcut`, `disabled`, `onSelect`, `data`, `forceId`. When `value`, `keywords`, `groupId`, `shortcut` or `disabled` change, the item is updated in place (an `UPDATE_ITEM` event: its position is kept, and so is the active item while it is still listed and enabled) instead of being unregistered and registered again. `onSelect` and `data` are read through refs, so a new function or object per render does not update the item.
+Register a command item imperatively — auto-deregisters on unmount. Returns the branded `ItemId`. Options: `keywords`, `groupId`, `shortcut`, `disabled`, `onSelect`, `data`, `id`, `forceId` (deprecated; use `id`, removed in 2.0). The registration id is `id ?? forceId ?? useId()`. When `value`, `keywords`, `groupId`, `shortcut` or `disabled` change, the item is updated in place (an `UPDATE_ITEM` event: its position is kept, and so is the active item while it is still listed and enabled) instead of being unregistered and registered again. `onSelect` and `data` are read through refs, so a new function or object per render does not update the item.
 
 ### `useRegisterGroup(heading?, options?)`
 
-Register a command group imperatively — auto-deregisters on unmount. Returns the branded `GroupId`. Options: `priority`, `forceId`.
+Register a command group imperatively — auto-deregisters on unmount. Returns the branded `GroupId`. Options: `priority`, `id`, `forceId` (deprecated; use `id`, removed in 2.0). The registration id is `id ?? forceId ?? useId()`.
 
 ### `useVirtualizer(options)`
 
@@ -600,9 +621,9 @@ Lightweight list virtualizer built on `ResizeObserver` and scroll tracking. `<Co
 
 Returns `{ virtualItems, totalSize, scrollToIndex, measureElement }`.
 
-### `useCommandDevtools(label?)`
+### `useCommandDevtools(label?, options?)`
 
-Exposes palette internals (registered/filtered item counts, query, active ID, page stack, open/loading state) on a global registry (`__CRIMSON_COMMAND_DEVTOOLS__`) for inspection from the browser console. Development-only — the effect is gated on `process.env.NODE_ENV` and inert in production builds. Call it from a component rendered inside `<Command>`.
+Exposes palette internals (registered/filtered item counts, query, active ID, page stack, open/loading state) on `globalThis.__MODERN_CMDK_DEVTOOLS__` (a `Map` keyed by `label`) and in a `modern-cmdk-devtools` `CustomEvent` on `globalThis` (`detail`: `{ label, state }`), for inspection from the browser console. Any script on the page can read both, the search query included. `options.redactQuery: true` publishes the query's length (a number) in place of the query, in the `Map` and in the events; it defaults to `false` in 1.x. `globalThis.__CRIMSON_COMMAND_DEVTOOLS__` (the same `Map`) and the `crimson-command-devtools` event are deprecated aliases of the two names above; removed in 2.0. Development-only — the effect is gated on `process.env.NODE_ENV` and inert in production builds. Call it from a component rendered inside `<Command>`.
 
 ### `createKeydownHandler(machine, getState)`
 
@@ -620,6 +641,7 @@ Factory for the root `keydown` handler — `ArrowUp`/`ArrowDown`/`Home`/`End` na
 | `[data-command-list]` | `Command.List` |
 | `[data-command-list-inner]` | `Command.List` (non-virtual) |
 | `[data-command-list-virtual]` | `Command.List` (virtual) |
+| `[data-command-list-status]` | `Command.List` |
 | `[data-command-item]` | `Command.Item` |
 | `[data-active]` | `Command.Item` (active) |
 | `[data-disabled]` | `Command.Item` (disabled) |
@@ -637,16 +659,40 @@ Factory for the root `keydown` handler — `ArrowUp`/`ArrowDown`/`Home`/`End` na
 | `[data-command-shortcut]` | `Command.Shortcut` |
 | `[data-command-badge]` | `Command.Badge` |
 | `[data-command-page]` | `Command.Page` |
-| `[data-command-virtual-item]` | Reserved hook; no component emits it (for custom rows built on `useVirtualizer`, see the [Theming guide](/guide/theming)) |
-| `[data-command-scroll-indicator]` | Reserved hook; no component emits it (see the [Theming guide](/guide/theming)) |
-| `[data-command-aria-live]` | Live region (screen reader only) |
+| `[data-command-page-id]` | `Command.Page` (the page `id`) |
+| `[data-state]` | `Command.Dialog` (overlay and dialog: `"open"` or `"closed"`) |
+| `[data-command-aria-live]` | `Command.List` (live region, screen reader only) |
+
+`[data-command-virtual-item]` and `[data-command-scroll-indicator]` are reserved hooks: the stylesheet styles them and no component emits them (for custom rows built on `useVirtualizer`, see the [Theming guide](/guide/theming)).
 
 ## All CSS Custom Properties
 
 | Property | Syntax | Default | Description |
 |---|---|---|---|
 | `--command-list-height` | `<length>` | `0px` | Measured list inner height |
-| `--command-count` | `<integer>` | `0` | Filtered item count |
+| `--command-count` | `<integer>` | `0` | Declared in the stylesheet, written by no component: it stays `0` unless you set it |
 | `--command-overlay-opacity` | `<number>` | `0` | Overlay backdrop opacity |
 | `--command-dialog-scale` | `<number>` | `0.96` | Dialog entrance scale |
 | `--command-dialog-translate` | `<length>` | `8px` | Dialog entrance translate offset |
+| `--command-spring-easing` | -- | `linear(...)` | Easing of the list height and the enter opacity; settles without overshoot |
+| `--command-spring-easing-bouncy` | -- | `linear(...)` | Easing of the dialog enter scale and translate; peaks at 1.033 before settling |
+| `--command-easing-exit` | -- | `cubic-bezier(0.4, 0, 1, 1)` | Easing of the exit transitions |
+| `--command-duration-enter` | -- | `200ms` | Overlay and dialog enter duration |
+| `--command-duration-enter-scale` | -- | `250ms` | Dialog enter scale and translate duration |
+| `--command-duration-exit` | -- | `150ms` | Exit duration |
+| `--command-duration-item` | -- | `120ms` | Item background transition |
+| `--command-duration-list` | -- | `200ms` | List height transition |
+| `--command-duration-page` | -- | `200ms` | `Command.Page` enter animation |
+| `--command-duration-loading` | -- | `1.5s` | `Command.Loading` pulse |
+| `--command-scale-from` | -- | `0.96` | Dialog scale at the start of the enter and the end of the exit |
+| `--command-translate-from` | -- | `8px` | Dialog (and page) translate offset at the start of the enter |
+| `--command-overlay-blur` | -- | `4px` | Overlay backdrop blur |
+| `--command-dialog-radius` | -- | `12px` | Border radius of the dialog content |
+| `--command-dialog-max-width` | -- | `640px` | Maximum inline size of the dialog content |
+| `--command-dialog-max-height` | -- | `480px` | Maximum block size of the dialog content |
+| `--command-item-height` | -- | `44px` | Intrinsic size (`contain-intrinsic-size`) an item reserves while `content-visibility: auto` skips its rendering |
+| `--command-fade-edge-size` | -- | `16px` | Block size of the list's scroll fade edges |
+| `--command-highlight-color` | -- | `oklch(0.85 0.15 90 / 0.3)` | Background of `[data-command-highlight]` |
+| `--command-muted-color` | -- | `light-dark(oklch(0.45 0.015 260), oklch(0.75 0.015 260))` | Color of secondary text: group headings, shortcuts, the empty state, the input placeholder |
+
+A `--` in the Syntax column means the property has no registered syntax: it is declared on `[data-command-root]`, outside every `@layer`. See the [Theming guide](/guide/theming) for overriding order.
