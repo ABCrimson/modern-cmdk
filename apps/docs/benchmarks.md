@@ -4,19 +4,19 @@ This page lists only figures that come from a committed benchmark record. Nothin
 
 ## Benchmark Results
 
-The figures below are copied by hand from [`benchmarks/baseline.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/baseline.json) and the run it was taken from, [`benchmarks/history/2026-11-08-201f701.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/history/2026-11-08-201f701.json): the record of the AMD EPYC 7763 in `benchmarks/baseline.json`.
+The figures below are copied by hand from [`benchmarks/baseline.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/baseline.json) and the run it was taken from, [`benchmarks/history/2026-11-08-79e3c14.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/history/2026-11-08-79e3c14.json): the record of the AMD EPYC 7763 in `benchmarks/baseline.json`.
 
 | Field | Value |
 |-------|-------|
 | Date | 2026-11-08 |
-| Commit | `201f701` (version 1.4.0) |
+| Commit | `79e3c14` (version 1.4.0) |
 | Node | v28.0.0-nightly20261107a43bfb5bb2 |
 | OS / runner | linux 7.0.0-1019-azure, GitHub-hosted `ubuntu26` (image 20261101.186.1) |
 | CPU | AMD EPYC 7763 64-Core Processor, 4 cores |
 | Method | 5 runs of 1000 samples each; the median of the runs' p50 and p99 (5000 samples per task) |
 
 > [!WARNING]
-> Runner noise is +/-20-40 %. Each CI comparison is the median of five runs on one shared runner, so the 5 % and 15 % comparison below is a coarse tripwire, not a precise regression gate, and CI goes red only when a re-run of the comparison also fails (see [Regression Tracking](#regression-tracking)); the one sub-0.01 ms baseline (`stateUpdate:navigate`, 0.902 microseconds) is reported below a 0.01 ms floor instead of compared, and a median above its `target_ms` still fails. Run `pnpm bench:compare` locally for numbers from your own machine.
+> Runner noise is +/-20-40 %. Each CI comparison is the median of five runs on one shared runner, so the 5 % and 15 % comparison below is a coarse tripwire, not a precise regression gate, and CI goes red only when a re-run of the comparison also fails (see [Regression Tracking](#regression-tracking)); the one sub-0.01 ms baseline (`stateUpdate:navigate`, 1.02 microseconds) is reported below a 0.01 ms floor instead of compared, and a median above its `target_ms` still fails. Run `pnpm bench:compare` locally for numbers from your own machine.
 
 ### Gated tasks
 
@@ -24,45 +24,45 @@ Three tasks are gated. Median and P99 are the median of the five runs’ p50 and
 
 | Task | Median | P99 | Target |
 |------|--------|-----|--------|
-| `search:ts-scorer-10k` (TypeScript scorer over 10K items) | 3.79 ms | 7.92 ms | 16 ms |
-| `stateUpdate:navigate` (arrow-key navigation) | 0.000902 ms | 0.0070 ms | 1 ms |
-| `stateUpdate:searchChange` (search change) | 0.39 ms | 0.72 ms | 4 ms |
+| `search:ts-scorer-10k` (TypeScript scorer over 10K items) | 3.80 ms | 7.42 ms | 16 ms |
+| `stateUpdate:navigate` (arrow-key navigation) | 0.00102 ms | 0.0082 ms | 1 ms |
+| `stateUpdate:searchChange` (search change) | 0.41 ms | 0.73 ms | 4 ms |
 
-The relative margin of error (tinybench `rme`, the median over the five runs) of `stateUpdate:navigate` in that run was 13 %, so treat its figure as an order of magnitude.
+The relative margin of error (tinybench `rme`, the median over the five runs) of `stateUpdate:navigate` in that run was 10 %, so treat its figure as an order of magnitude.
 
 ### Bundle size
 
-The figures come from [`benchmarks/size-history/1.5.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/4498a0f/benchmarks/size-history/1.5.0.json) (git blob `3df2e95`, committed in `4498a0f`), measured at commit `d5ce6ff` on 2026-11-07 with size-limit 14.3.0 on Node v28.0.0-nightly20261106ec4d4c2950 by `pnpm size` (`pnpm build && size-limit`). Each row is one entry of `size-limit` in the root `package.json`. Sizes are gzip bytes unless the method says otherwise; `react`, `react-dom`, `react/jsx-runtime`, `radix-ui` and, where listed, `modern-cmdk` are externals that size-limit ignores. The 1.4.0 record had one codemod row, 3325793 B for the whole bin. Run `pnpm size` for a reading from your own checkout.
+The figures come from [`benchmarks/size-history/1.7.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/b42c483/benchmarks/size-history/1.7.0.json) (git blob `4b42cee`, committed in `b42c483`), measured at commit `a7838c9` on 2026-11-08 with size-limit 14.3.0 on Node v28.0.0-nightly20261107a43bfb5bb2 by `pnpm size` (`pnpm build && size-limit`). Each row is one entry of the root `.size-limit.mjs`. Sizes are gzip bytes unless the method says otherwise; `react`, `react-dom`, `react/jsx-runtime`, `radix-ui` and, where listed, `modern-cmdk` are externals that size-limit ignores. Run `pnpm size` for a reading from your own checkout.
 
 | Entry | Size | Limit | Method |
 |-------|------|-------|--------|
-| `modern-cmdk` (core) | 6399 B | 7.4 kB | `dist/core/index.mjs`, minified and gzipped |
-| `modern-cmdk/react` (adapter only) | 5539 B | 5.7 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is ignored, so the core is not counted |
-| `modern-cmdk` + `modern-cmdk/react` | 10003 B | 10.85 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is not ignored, so the one core is counted once |
-| `modern-cmdk/react/dialog` (adapter only) | 1422 B | 1.5 kB | `dist/react/dialog.mjs`, gzip; the `radix-ui` import is ignored |
-| `modern-cmdk/react`: `CommandSeparator` only | 4812 B | 5 kB | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import because `Command` is a compound (see [SSR](/guide/ssr#tree-shaking)) |
-| `modern-cmdk/styles.css` | 3959 B | 4 kB | `dist/react/styles.css`, gzip |
-| `modern-cmdk` codemod bin (bundled) | 3150372 B (raw) | 3.4 MB | `dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs` installed size, no compression; includes the 897 B shim |
+| `modern-cmdk` (core) | 7742 B | 7.84 kB | `dist/core/index.mjs`, minified and gzipped |
+| `modern-cmdk/react` (adapter only) | 6491 B | 6.59 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is ignored, so the core is not counted |
+| `modern-cmdk` + `modern-cmdk/react` | 12038 B | 12.13 kB | `dist/react/index.mjs`, gzip; `modern-cmdk` is not ignored, so the one core is counted once |
+| `modern-cmdk/react/dialog` (adapter only) | 2104 B | 2.2 kB | `dist/react/dialog.mjs`, gzip; the `radix-ui` import is ignored |
+| `modern-cmdk/react`: `CommandSeparator` only | 293 B | 390 B | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; `Command` is a `/* @__PURE__ */ Object.assign` (D116), so the bundle holds the separator and not `CommandDialog`, `CommandRoot` or the `radix-ui` import (see [SSR](/guide/ssr#tree-shaking)) |
+| `modern-cmdk/styles.css` | 3986 B | 4 kB | `dist/react/styles.css`, gzip |
+| `modern-cmdk` codemod bin (bundled) | 3153027 B (raw) | 3.4 MB | `dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs` installed size, no compression; includes the 897 B shim |
 | `modern-cmdk` codemod shim (`bin.mjs`) | 897 B (raw) | 1000 B | `dist/codemod/bin.mjs` installed size, no compression |
-| `modern-cmdk-codemod` (own files) | 98030 B (raw) | 100000 B | `dist/*.mjs` plus `dist/transforms/*.mjs` of `packages/modern-cmdk-codemod`, jscodeshift excluded, no compression |
+| `modern-cmdk-codemod` (own files) | 100685 B (raw) | 102000 B | `dist/*.mjs` plus `dist/transforms/*.mjs` of `packages/modern-cmdk-codemod`, jscodeshift excluded, no compression |
 
-For comparison, 1.3 (commit `85a33bf`, size-limit at that commit, quoted from the `baseline_1_3` block of [`benchmarks/size-history/1.4.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/5f1e01e/benchmarks/size-history/1.4.0.json) (git blob `4687fa7`)) measured `modern-cmdk` at 6355 B and `modern-cmdk/react` at 9844 B, where the React figure was `dist/react/index.mjs` with the core inlined: the pair summed to 16199 B because the core was counted twice. The 1.4.0 build keeps the core external to the adapter (`modern-cmdk` is imported by name): in 1.4.0 the adapter alone was 5403 B and the core plus the adapter together 9830 B (1.4.0 record), and 1.5.0 measures 5539 B and 10003 B.
+For comparison, 1.3 (commit `85a33bf`, size-limit at that commit, quoted from the `baseline_1_3` block of [`benchmarks/size-history/1.4.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/5f1e01e/benchmarks/size-history/1.4.0.json) (git blob `4687fa7`)) measured `modern-cmdk` at 6355 B and `modern-cmdk/react` at 9844 B, where the React figure was `dist/react/index.mjs` with the core inlined: the pair summed to 16199 B because the core was counted twice. The build keeps the core external to the adapter (`modern-cmdk` is imported by name): in 1.6.0 the adapter alone was 5610 B and the core plus the adapter together 10764 B (1.6.0 record), and 1.7.0 measures 6491 B and 12038 B.
 
 ## Browser bench
 
-The figures above time the headless machine in Node. The browser bench (`benchmarks/browser/run.ts`) times a full React mount in Chromium: it builds the playground (with `react-dom/profiling`, so React's Profiler reports commit durations), serves it, and drives its `/bench` route at 1000 and 10000 items. Each size runs 1 warm-up and 7 measured runs, every run a fresh page load, and a figure is the median of the 7. Only the 10K mount is checked, by a tripwire at 75 ms (D94), set from the runner's first measurement of 47.80 ms (1.5x the 47.80 ms median, rounded up to the next 5 ms; re-measured at the RC); the other figures are recorded.
+The figures above time the headless machine in Node. The browser bench (`benchmarks/browser/run.ts`) times a full React mount in Chromium: it builds the playground (with `react-dom/profiling`, so React's Profiler reports commit durations), serves it, and drives its `/bench` route at 1000 and 10000 items. Each size runs 1 warm-up and 7 measured runs, every run a fresh page load, and a figure is the median of the 7. Only the 10K mount is checked, by a tripwire at 75 ms (D94), set from the runner's first measurement of 47.80 ms on an AMD EPYC 7763 (1.5x the 47.80 ms median, rounded up to the next 5 ms); the 1.7.0 RC measured 54.70 ms on an AMD EPYC 9V74 and the tripwire stands (D120); the other figures are recorded.
 
-The figures below are the CI job "Browser bench (Chromium, 10K mount gate)" on a GitHub-hosted ubuntu-26.04 runner (image 20261101.186.1, AMD EPYC 7763, 4 cores, Linux 7.0.0-1019-azure, Node v28.0.0-nightly20261107a43bfb5bb2) with Chromium 158.0.8127.18, new headless mode, measured at commit `8362840` on 2026-11-08 and recorded in `benchmarks/browser/results/1.4.0-8362840.json`. The `1.4.0` in the file name is the version in the package manifest when the run was made, not a release that was benchmarked. The items come from the shared `basic` dataset (`apps/playground/src/bench/dataset.ts`), the query is `g` (250 matches at 1K, 2500 at 10K), and times are in milliseconds.
+The figures below are the CI job "Browser bench (Chromium, 10K mount gate)" on GitHub-hosted ubuntu-26.04 runners (image 20261101.186.1, 4 cores, Linux 7.0.0-1019-azure, Node v28.0.0-nightly20261107a43bfb5bb2) with Chromium 158.0.8127.18, new headless mode. GitHub hands the job either of two CPUs, so each column names its CPU: the 1.7.0 RC record was measured at commit `79e3c14` on 2026-11-08 on an AMD EPYC 9V74 and is recorded in `benchmarks/browser/results/1.4.0-79e3c14.json`; the earlier record was measured at commit `8362840` on 2026-11-08 on an AMD EPYC 7763 and is recorded in `benchmarks/browser/results/1.4.0-8362840.json`. The `1.4.0` in the file names is the version in the package manifest when the run was made, not a release that was benchmarked. The items come from the shared `basic` dataset (`apps/playground/src/bench/dataset.ts`), the query is `g` (250 matches at 1K, 2500 at 10K), and times are in milliseconds.
 
-| Metric | N = 1000 | N = 10000 |
-|--------|----------|-----------|
-| Mount (first `REGISTER_ITEM` sent to the first state holding all N items) | 27.4 | 47.8 |
-| Filter (keystroke to the first state with the new search) | 11.0 | 15.5 |
-| Keystroke to paint (the keystroke to the animation frame after the one that shows the result) | 28.6 | 244.1 |
-| React commit of the mount (sum of Profiler `actualDuration`) | 25.3 | 145.3 |
-| React commit of the filter | 5.7 | 46.7 |
+| Metric | N = 1000, EPYC 9V74 | N = 10000, EPYC 9V74 | N = 1000, EPYC 7763 | N = 10000, EPYC 7763 |
+|--------|----------|-----------|----------|-----------|
+| Mount (first `REGISTER_ITEM` sent to the first state holding all N items) | 12.7 | 54.7 | 27.4 | 47.8 |
+| Filter (keystroke to the first state with the new search) | 14.8 | 13.0 | 11.0 | 15.5 |
+| Keystroke to paint (the keystroke to the animation frame after the one that shows the result) | 33.7 | 198.2 | 28.6 | 244.1 |
+| React commit of the mount (sum of Profiler `actualDuration`) | 31.4 | 183.6 | 25.3 | 145.3 |
+| React commit of the filter | 8.0 | 40.9 | 5.7 | 46.7 |
 
-The seven 10K mount runs ranged from 40.7 to 59.7 ms around the 47.80 ms median. For context, the same harness on the development machine (Intel Core Ultra 9 290HX Plus, Windows) measured a 10K mount median of 18.80 ms on 2026-11-08; a shared CI runner is slower and noisier, so read the table above, not that line, as the reference.
+The seven 10K mount runs ranged from 47.7 to 65.7 ms around the 54.70 ms median on the EPYC 9V74, and from 40.7 to 59.7 ms around the 47.80 ms median on the EPYC 7763; the 54.70 ms median lies inside the range of the other CPU, so the 75 ms tripwire stands (D120). For context, the same harness on the development machine (Intel Core Ultra 9 290HX Plus, Windows) measured a 10K mount median of 18.80 ms on 2026-11-08; a shared CI runner is slower and noisier, so read the table above, not that line, as the reference.
 
 ## Why It's Fast
 
