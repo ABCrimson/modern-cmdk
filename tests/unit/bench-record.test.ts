@@ -47,6 +47,7 @@ const env = Object.fromEntries(
 function run(
   script: string,
   args: readonly string[],
+  extraEnv: Readonly<Record<string, string>> = {},
 ): {
   status: number | null;
   stdout: string;
@@ -55,7 +56,7 @@ function run(
   const r = spawnSync(process.execPath, [script, ...args], {
     encoding: 'utf-8',
     timeout: 30_000,
-    env,
+    env: { ...env, ...extraEnv },
   });
   return { status: r.status, stdout: r.stdout, stderr: r.stderr };
 }
@@ -222,6 +223,39 @@ describe('D93, D27: record-baseline.ts', () => {
     expect(record(wrongSha, join(dir, 'name.json')).status).toBe(2);
   });
 
+  it.each(['HEAD', '-x', 'ABCDEF0123456789ABCDEF0123456789ABCDEF01', 'abcdef0'])(
+    'a commit that is not a 40-character lower-case hex sha (%j) exits 2 before git sees it',
+    async (bad) => {
+      const history = await place('record-artifact.json', (f) => {
+        f.commit = bad;
+      });
+      const r = record(history, join(dir, 'bad-commit.json'));
+      expect(r.status).toBe(2);
+      expect(r.stderr).toContain('"commit" must be a 40-character lower-case hex sha');
+      expect(r.stderr).toContain('usage: node benchmarks/standalone/record-baseline.ts');
+    },
+  );
+
+  it('the date is the UTC day: 2026-11-07T23:30Z is 2026-11-07 even where the local day is later or earlier', async () => {
+    const history = await place(
+      'record-artifact.json',
+      (f) => {
+        f.date = '2026-11-07T23:30:00.000Z';
+      },
+      `2026-11-07-${sha7}.json`,
+    );
+    for (const tz of ['America/Chicago', 'Pacific/Auckland']) {
+      const out = join(dir, `utc-day-${tz.replace('/', '-')}.json`);
+      const r = run(
+        recorder,
+        [history, '--repo', dir, '--baseline', resolve(fixtures, 'baseline.json'), '--out', out],
+        { TZ: tz },
+      );
+      expect(r.status, r.stderr).toBe(0);
+      expect((JSON.parse(await readFile(out, 'utf-8')) as Recorded).date).toBe('2026-11-07');
+    }
+  });
+
   it('a file outside benchmarks/history/ exits 2', async () => {
     const elsewhere = join(dir, `${DAY}-${sha7}.json`);
     await writeFile(elsewhere, await readFile(await place('record-artifact.json'), 'utf-8'));
@@ -270,6 +304,9 @@ describe('D93, D27: record-baseline.ts', () => {
     'search:ts-scorer-10k=-4',
     'search:ts-scorer-10k=Infinity',
     'search:ts-scorer-10k=abc',
+    'search:ts-scorer-10k=0x10',
+    'search:ts-scorer-10k=1e3',
+    'search:ts-scorer-10k= 5',
   ])('the --target value %j is a usage error, exit 2', async (target) => {
     const history = await place('record-artifact.json');
     const r = record(history, join(dir, 'bad-target.json'), ['--target', target]);
