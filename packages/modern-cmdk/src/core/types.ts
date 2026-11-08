@@ -194,7 +194,17 @@ export interface CommandMachineOptions {
   readonly open?: boolean | undefined;
   /** Frecency configuration for usage-aware ranking */
   readonly frecency?: FrecencyOptions | undefined;
-  /** Pluggable search engine — drop-in replacement for the default scorer (e.g., WASM engine) */
+  /**
+   * Pluggable search engine — drop-in replacement for the default scorer (e.g., WASM engine). A search engine
+   * you pass is yours to dispose; the machine disposes only the engine it creates when you pass none.
+   */
+  readonly searchEngine?: import('./search/types.js').SearchEngine | undefined;
+  /**
+   * Pluggable search engine, the name `searchEngine` replaces. A search engine you pass is yours to dispose; the
+   * machine disposes only the engine it creates when you pass none.
+   *
+   * @deprecated Use `searchEngine`; it wins when both are set. `search` is removed in 2.0.
+   */
   readonly search?: import('./search/types.js').SearchEngine | undefined;
   /** Callback fired when an item is selected */
   readonly onSelect?: ((id: ItemId) => void) | undefined;

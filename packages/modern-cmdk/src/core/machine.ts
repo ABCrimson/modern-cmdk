@@ -78,8 +78,11 @@ export function createCommandMachine(
   let navIds: ItemId[] = [];
 
   const registry = new CommandRegistry();
-  // Pluggable search engine: use options.search if provided, otherwise create default.
+  // Pluggable search engine: use options.searchEngine (or the deprecated options.search) if provided, otherwise
+  // create the default. A caller's engine is the caller's to dispose: the machine disposes only the one it creates.
+  const ownsEngine = (options.searchEngine ?? options.search) === undefined;
   const searchEngine: SearchEngine =
+    options.searchEngine ??
     options.search ??
     createSearchEngine(
       typeof options.filter === 'function'
@@ -438,7 +441,7 @@ export function createCommandMachine(
       queued = nextQueued = 0; // the scheduler drops its pending closures
       scheduler[Symbol.dispose]();
       registry[Symbol.dispose]();
-      searchEngine[Symbol.dispose]();
+      if (ownsEngine) searchEngine[Symbol.dispose]();
       emitter[Symbol.dispose]();
       keyboardRegistry[Symbol.dispose]();
       frecencyEngine?.[Symbol.dispose]();

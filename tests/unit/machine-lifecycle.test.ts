@@ -1,6 +1,6 @@
 import { setImmediate } from 'node:timers/promises';
 import type { FrecencyData, FrecencyStorage } from 'modern-cmdk';
-import { createCommandMachine, itemId } from 'modern-cmdk';
+import { createCommandMachine, createSearchEngine, itemId } from 'modern-cmdk';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 // The scheduler batches on requestAnimationFrame (happy-dom has it). Each test fakes only the frame
@@ -100,4 +100,20 @@ it('CE-110: a throw in the frecency hydration commit surfaces as an uncaught exc
   } finally {
     process.off('unhandledRejection', onRejection);
   }
+});
+
+it("D103: dispose leaves a caller's searchEngine undisposed and disposes the engine the machine created", () => {
+  // The search engine unregisters its dev leak sentinel from the FinalizationRegistry when it is disposed
+  // (the sentinel is the unregister token), so an unregister call observes the disposal
+  using unregister = vi.spyOn(FinalizationRegistry.prototype, 'unregister');
+
+  using callerEngine = createSearchEngine();
+  const callerDispose = vi.spyOn(callerEngine, Symbol.dispose);
+  createCommandMachine({ searchEngine: callerEngine })[Symbol.dispose]();
+  createCommandMachine({ search: callerEngine })[Symbol.dispose]();
+  expect(callerDispose).not.toHaveBeenCalled();
+  expect(unregister).not.toHaveBeenCalled();
+
+  createCommandMachine()[Symbol.dispose]();
+  expect(unregister).toHaveBeenCalledTimes(1);
 });
