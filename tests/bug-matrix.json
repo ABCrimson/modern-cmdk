@@ -906,8 +906,8 @@
   },
   {
     "id": "RDG-38",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::guard: no fenced script sample declares a module-top-level using machine or await using storage",
+    "status": "covered"
   },
   {
     "id": "TUB-05",
