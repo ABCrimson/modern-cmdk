@@ -270,7 +270,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
             >
               {(items: readonly CommandItemType[]): ReactNode[] =>
                 items.map((item) => (
-                  <Command.Item key={item.id} value={item.value} forceId={item.id}>
+                  <Command.Item key={item.id} value={item.value} id={item.id}>
                     {item.value}
                   </Command.Item>
                 ))
@@ -291,8 +291,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
         'Failed to load items',
       );
     });
-    expect(onError).toHaveBeenCalledOnce();
-    expect(onError.mock.calls[0]?.[0]).toBe(failure);
+    expect(onError).toHaveBeenCalledExactlyOnceWith(failure, expect.anything());
   });
 
   it('T35: reset after a rejection renders a new resolved batch and the machine holds it', async () => {
@@ -314,7 +313,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
             <Command.AsyncItems items={itemsPromise} fallback={<div>Loading...</div>}>
               {(items: readonly CommandItemType[]): ReactNode[] =>
                 items.map((item) => (
-                  <Command.Item key={item.id} value={item.value} forceId={item.id}>
+                  <Command.Item key={item.id} value={item.value} id={item.id}>
                     {item.value}
                   </Command.Item>
                 ))
