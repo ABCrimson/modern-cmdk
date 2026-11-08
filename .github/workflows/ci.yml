@@ -636,7 +636,9 @@ jobs:
             if ! sudo apt-get update; then echo "::warning::apt-get update failed before attempt $((i + 1))"; fi
             sleep 15
           done
-      - run: node scripts/consumer-smoke.ts --app ${{ matrix.variant }} --report consumers-${{ matrix.variant }}.json
+      # Through `pnpm run`, never bare node: the script spawns pnpm by the entry npm_execpath names and exits 2
+      # outside pnpm (SEC-70, SEC-72).
+      - run: pnpm run test:consumers --app ${{ matrix.variant }} --report consumers-${{ matrix.variant }}.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -714,7 +716,9 @@ jobs:
         with:
           name: tarballs
           path: ${{ runner.temp }}/pack
-      - run: node scripts/template-smoke.ts --pack-dir "$RUNNER_TEMP/pack" --template all
+      # Through `pnpm run`, never bare node: the script spawns pnpm by the entry npm_execpath names and exits 2
+      # outside pnpm (SEC-70, SEC-72).
+      - run: pnpm run test:templates --pack-dir "$RUNNER_TEMP/pack" --template all
 
   summary:
     name: CI Summary
