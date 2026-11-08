@@ -36,7 +36,7 @@ The palette's lifecycle, ids and telemetry are specified and tested: the open st
 **Search engine and production builds**
 
 - The machine disposes only a search engine it created; one you pass is yours to dispose (D103).
-- A production build (`process.env.NODE_ENV` defined as `"production"`) drops modern-cmdk's development-only code: the search engine's leak warning, the init-only prop warnings and the devtools hook no longer ship to production bundles, and they stay on in a development build without a `process` global such as Vite's dev server (PERF-15).
+- A production build (`process.env.NODE_ENV` defined as `"production"`) drops modern-cmdk's development-only code: the search engine's leak warning, the init-only prop warnings and the devtools bridge's registry code no longer ship to production bundles, and they stay on in a development build without a `process` global such as Vite's dev server (PERF-15).
 - `modern-cmdk-search-wasm`: its development-only warnings (the TypeScript-scorer fallback, a failed worker request, the main-thread fallback) no longer ship to production bundles (PERF-15).
 - The `Command` namespace object is marked pure, so a bundle that imports only individual components (for example `CommandSeparator`) no longer carries the whole adapter (D116).
 
@@ -126,7 +126,7 @@ Each is deprecated in 1.7.0 and removed in 2.0.
 
 - `createTelemetryMiddleware`'s `onSearch` stops accepting a `Date.now()` `startTime` (a value above 1e12); `startTime` must be a `performance.now()` reading (G-56, D114, D117).
 - `Command.Item`'s `onSelect` stays `() => void` through 1.x; receiving the item value is a 2.0 change (D66, ARCH-62).
-- The defaults `propsMerge: 'override'`, `Command.Separator`'s `alwaysRender: true` and `useCommandDevtools`'s `redactQuery: false` change to `'compose'`, `false` and `true` (D101).
+- The defaults `propsMerge: 'override'`, `Command.Separator`'s `alwaysRender: true` and `useCommandDevtools`'s `redactQuery: false` change to `'compose'`, `false` and `true` (D101; `propsMerge`: RA-13, the 2.0 roadmap's behaviour-defaults row).
 - After a search change the active item is kept while it is still listed and enabled, else the first enabled item of the ranked list becomes active; whether a changed query makes the top-ranked match active, as cmdk does, is ARCH-65 (2.0).
 
 **Size**
