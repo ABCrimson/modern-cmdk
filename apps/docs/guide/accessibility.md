@@ -94,7 +94,7 @@ export function LocalizedList() {
 
 ### Disabled items
 
-A disabled item (`disabled` on `Command.Item`, or `disabled: true` on a core item) stays in the list, rendered with `aria-disabled="true"` and `data-disabled`, under every query. It is never the active item, `ArrowDown`, `ArrowUp`, `Home` and `End` skip it, and `Enter`, a click and an `ITEM_SELECT` event do not select it. Its keyboard shortcut is not bound, so the shortcut does not fire its `onSelect` and leaves the key to the page. Pass `disabledItems="hide"` to `<Command>` (`disabledItems: 'hide'` to `createCommandMachine`) to drop disabled items from the results instead of rendering them (`core/machine.ts`: `navIds`, `bind()`, `refilter()`).
+A disabled item (`disabled` on `Command.Item`, or `disabled: true` on a core item) is searched and listed like any other item: whenever it matches (always at an empty query or with `filter={false}`), it is rendered, with `aria-disabled="true"` and `data-disabled`. It is never the active item, `ArrowDown`, `ArrowUp`, `Home` and `End` skip it, and `Enter`, a click and an `ITEM_SELECT` event do not select it. Its keyboard shortcut is not bound, so the shortcut does not fire its `onSelect` and leaves the key to the page. Pass `disabledItems="hide"` to `<Command>` (`disabledItems: 'hide'` to `createCommandMachine`) to drop disabled items from the results instead of rendering them (`core/machine.ts`: `navIds`, `bind()`, `refilter()`).
 
 Because disabled items are listed, they count: `filteredCount`, the result announcement and the virtualization threshold include them, a group that holds only disabled items still shows, and `Command.Empty` does not appear while only disabled items match.
 
