@@ -249,6 +249,13 @@ export interface CommandMachineOptions {
   readonly shortcutAction?: 'select' | 'direct' | undefined;
   /** Accepted but not read yet: Command.List uses fixed thresholds (on above 100 matches, off at 50 or fewer) (default: 100) */
   readonly virtualizeThreshold?: number | undefined;
+  /**
+   * Telemetry hooks the machine calls: `onPaletteOpen` and `onPaletteClose` when the open state changes,
+   * `onSearchComplete` after each search refilter, `onItemSelected` for each select of an enabled item (see
+   * `CommandTelemetryHooks` for the arguments). With none set the machine calls no hook. The machine reads this
+   * option at each call; `<Command>` and `<Command.Dialog>` forward the latest `telemetry` prop.
+   */
+  readonly telemetry?: import('./telemetry.js').CommandTelemetryHooks | undefined;
 }
 
 /**

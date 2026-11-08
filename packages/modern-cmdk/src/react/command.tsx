@@ -58,6 +58,7 @@ function CommandRoot({
   disabledItems,
   shortcutAction,
   virtualizeThreshold,
+  telemetry,
   ...divProps
 }: CommandRootProps): ReactNode {
   // Every machine option except `label` (the root's own prop): a key CommandMachineOptions gains makes this
@@ -79,6 +80,7 @@ function CommandRoot({
     disabledItems,
     shortcutAction,
     virtualizeThreshold,
+    telemetry,
   } satisfies Record<Exclude<keyof CommandMachineOptions, 'label'>, unknown>;
 
   const { state, handleKeyDown, stableContextValue, stateContextValue } = useCommandSetup(
