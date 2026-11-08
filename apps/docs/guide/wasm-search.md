@@ -276,7 +276,7 @@ No harness measures the WASM engine (`benchmarks/baseline.json` has no wasm entr
 | Dataset Size | TypeScript Scorer (measured) | WASM Scorer, main thread (target) | WASM Scorer, worker (target) |
 |---|---|---|---|
 | 1K items | not measured | < 0.1 ms | < 0.2 ms |
-| 10K items | 3.79 ms median, 7.92 ms p99 (`benchmarks/history/2026-11-08-201f701.json`) | < 1 ms | < 1 ms |
+| 10K items | 3.80 ms median, 7.42 ms p99 (`benchmarks/history/2026-11-08-79e3c14.json`) | < 1 ms | < 1 ms |
 | 50K items | not measured | < 2 ms | < 2 ms |
 | 100K items | not measured | < 3 ms | < 3 ms |
 
