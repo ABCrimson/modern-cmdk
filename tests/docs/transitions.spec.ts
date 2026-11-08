@@ -60,7 +60,9 @@ const docMarker = (page: Page): Promise<number> =>
   page.evaluate(() => Reflect.get(window, '__docMarker') as number);
 
 /** Opens `path` and waits for Vue to render into #app (the renderer stores the root vnode on the container as `_vnode`; the
- *  static HTML has none), so the first click is handled by the router and not by the browser as a full-document link. */
+ *  static HTML has none). VitePress registers its click listener synchronously when the entry module runs (router.js:95,
+ *  createRouter at module top level), before the load event goto() waits for, so this wait does not guard the router: it
+ *  only makes sure the app has rendered before the first click. */
 async function open(page: Page, path: string): Promise<void> {
   await page.goto(path);
   await page.waitForFunction(() => Reflect.has(document.querySelector('#app') ?? {}, '_vnode'));
@@ -69,15 +71,22 @@ async function open(page: Page, path: string): Promise<void> {
 const log = (page: Page): Promise<Entry[]> =>
   page.evaluate(() => Reflect.get(window, '__vtLog') as Entry[]);
 
-/** Client-navigates through the sidebar to the guide page `path`, which also caches its page module. */
-async function visitThen(page: Page, path: string): Promise<void> {
-  await page.locator(link(path)).first().click();
-  await page.waitForURL(new RegExp(`/guide/${path}\\.html`));
-  await expect(page.locator('h1')).toBeVisible();
-}
-
 const notMarked = (page: Page): Promise<void> =>
   expect(page.locator('html')).not.toHaveAttribute('data-mc-transition', /.*/);
+
+/**
+ * Client-navigates through the sidebar to the guide page `path`, which also caches its page module, and returns only when the
+ * navigation has finished: the new page's h1 (`heading`) is on screen and the transition marker is released. The URL alone is
+ * not enough: VitePress calls history.pushState in changeRoute (router.js:195) before it loads the page (router.js:27), and
+ * the transition starts in onAfterPageLoad (view-transitions.ts), so right after waitForURL the old h1 is still on screen
+ * and a view-transition log entry may not exist yet. The h1 swap happens inside the update callback, after the entry is logged.
+ */
+async function visitThen(page: Page, path: string, heading: RegExp): Promise<void> {
+  await page.locator(link(path)).first().click();
+  await page.waitForURL(new RegExp(`/guide/${path}\\.html`));
+  await expect(page.locator('h1')).toContainText(heading);
+  await notMarked(page);
+}
 
 it.describe('route view transitions', () => {
   it('a navigation overtaken by a later one does not release the later one early (M1)', async ({
@@ -98,9 +107,9 @@ it.describe('route view transitions', () => {
     await recordViewTransitions(page);
     await open(page, 'guide/frecency.html');
     const marker = await docMarker(page);
-    await visitThen(page, 'getting-started');
-    await visitThen(page, 'frecency');
-    await visitThen(page, 'getting-started');
+    await visitThen(page, 'getting-started', /getting started/i);
+    await visitThen(page, 'frecency', /frecency/i);
+    await visitThen(page, 'getting-started', /getting started/i);
     const before = (await log(page)).length;
 
     // Both clicks in one task: the router drops the accessibility load once the frecency one has started.
@@ -136,7 +145,7 @@ it.describe('route view transitions', () => {
     // traversals get a hard cut, and a traversal must not leave a flag behind that swallows the next click.
     await recordViewTransitions(page);
     await open(page, 'guide/getting-started.html');
-    await visitThen(page, 'installation');
+    await visitThen(page, 'installation', /installation/i);
     await notMarked(page);
     const before = (await log(page)).length;
     await page.goBack();
@@ -146,7 +155,7 @@ it.describe('route view transitions', () => {
     await expect(page).toHaveURL(/installation\.html/);
     await expect(page.locator('h1')).toContainText(/installation/i);
     expect((await log(page)).length, 'no transition on back or forward').toBe(before);
-    await visitThen(page, 'frecency');
+    await visitThen(page, 'frecency', /frecency/i);
     await expect
       .poll(async () => (await log(page)).length, {
         message: 'the click after the traversals transitions',
@@ -157,7 +166,7 @@ it.describe('route view transitions', () => {
   it('a page-to-page click starts a transition and releases the marker', async ({ page }) => {
     await recordViewTransitions(page);
     await open(page, 'guide/getting-started.html');
-    await visitThen(page, 'installation');
+    await visitThen(page, 'installation', /installation/i);
     await expect.poll(async () => (await log(page)).length).toBe(1);
     await notMarked(page);
   });
@@ -177,7 +186,7 @@ it.describe('route view transitions', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await recordViewTransitions(page);
     await open(page, 'guide/getting-started.html');
-    await visitThen(page, 'installation');
+    await visitThen(page, 'installation', /installation/i);
     expect(await log(page)).toEqual([]);
   });
 });
