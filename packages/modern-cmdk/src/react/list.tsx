@@ -10,6 +10,7 @@ import type {
   CSSProperties,
   PointerEvent,
   ReactNode,
+  RefCallback,
   RefObject,
 } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -166,19 +167,29 @@ export function CommandList({
     [stateCtx, visibleIdSet, virtualPositionMap],
   );
 
-  // Stabilize external ref via useRef — prevents ref callback recreation when caller passes inline ref
-  const externalRefRef = useRef(ref);
-  externalRefRef.current = ref;
-
-  // Ref merge callback — combines internal scrollRef with external ref prop (stable forever)
-  // Also updates scrollElement state to trigger re-render so virtualizer gets the DOM element
-  const setScrollRef = useCallback((el: HTMLDivElement | null): void => {
-    (scrollRef as RefObject<HTMLDivElement | null>).current = el;
-    setScrollElement(el);
-    const externalRef = externalRefRef.current;
-    if (typeof externalRef === 'function') externalRef(el);
-    else if (externalRef) (externalRef as RefObject<HTMLDivElement | null>).current = el;
-  }, []);
+  // Ref callback that merges the internal scroll ref, the scroll-element state and the consumer's `ref`
+  // prop. It returns a cleanup (a React 19 ref cleanup), so React never calls it with null: the cleanup
+  // undoes what the callback set. A new `ref` identity (an inline callback) detaches the old callback and
+  // attaches a new one, which hands the element to the new ref; the scroll-element state ends the commit
+  // at the same element, so the re-render that follows bails out and the cycle ends there.
+  const setScrollRef = useCallback(
+    (el: HTMLDivElement | null): (() => void) => {
+      (scrollRef as RefObject<HTMLDivElement | null>).current = el;
+      setScrollElement(el);
+      let refCleanup: ReturnType<RefCallback<HTMLDivElement>>;
+      if (typeof ref === 'function') refCleanup = ref(el);
+      else if (ref) ref.current = el;
+      return (): void => {
+        (scrollRef as RefObject<HTMLDivElement | null>).current = null;
+        setScrollElement(null);
+        // A ref callback that returned a cleanup gets no null call, as in React
+        if (typeof refCleanup === 'function') refCleanup();
+        else if (typeof ref === 'function') ref(null);
+        else if (ref) ref.current = null;
+      };
+    },
+    [ref],
+  );
 
   const statusContainerRef = useRef<HTMLDivElement>(null);
 
