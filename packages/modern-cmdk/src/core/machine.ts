@@ -189,6 +189,10 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   let inHandler = false;
   let dirty = false;
   let changed = false;
+  // Telemetry bookkeeping of the batch in progress: report() derives the reports from the committed state
+  let reportedSearch = ''; // the query of the last commit
+  let searchStart = -1; // performance.now() at the batch's first SEARCH_CHANGE, -1 when none
+  let selected: ItemId[] = []; // the enabled items selected in this batch, in order
   let disposed = false; // set by dispose: the scheduler queues nothing for a disposed machine, a batch stops at the next event and skips its commit, and a frecency load that settles later does nothing
   let announce = false; // set after the initial filter: a controlled activeId then hears the refilter's candidate
 
@@ -346,6 +350,23 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     if (newActiveId !== activeId) activate(newActiveId);
   }
 
+  /**
+   * Calls the telemetry hooks for the batch just committed. The bookkeeping updates first, so a hook that
+   * throws never makes a later commit report the same thing again.
+   */
+  function report(): void {
+    if (disposed) return;
+    const { search } = state;
+    const searched = search !== reportedSearch;
+    const start = searchStart;
+    const ids = selected;
+    reportedSearch = search;
+    searchStart = -1;
+    selected = [];
+    if (searched) telemetry.onSearch(search, state.filteredCount, start);
+    for (const id of ids) telemetry.onSelect(id, search, filteredIdIndex.get(id) ?? -1);
+  }
+
   /** Ends a batch: one refilter if a registry event ran, then one stateChange even if the refilter throws. */
   function commit(): void {
     try {
@@ -356,6 +377,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
         emitter.emit('stateChange', state);
       }
     }
+    report();
   }
 
   function handleEvent(event: CommandEvent): void {
@@ -365,9 +387,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     }
     switch (event.type) {
       case 'SEARCH_CHANGE': {
-        const start = performance.now();
+        if (searchStart < 0) searchStart = performance.now();
         refilter(event.query);
-        telemetry.onSearch(event.query, state.filteredCount, start);
         options.onSearchChange?.(event.query);
         break;
       }
@@ -379,7 +400,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
           frecencyEngine?.recordSelection(event.id);
           emitter.emit('select', event.id);
           options.onSelect?.(event.id);
-          telemetry.onSelect(event.id, state.search, filteredIdIndex.get(event.id) ?? -1);
+          selected.push(event.id);
         }
         break;
       }

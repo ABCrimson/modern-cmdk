@@ -13,6 +13,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
@@ -97,4 +98,92 @@ it('CE-74: a wall-clock step yields no negative duration', () => {
 
   expect(onPaletteClose).toHaveBeenCalledTimes(1);
   expect(onPaletteClose.mock.calls[0]?.[0]).toBeGreaterThanOrEqual(0);
+});
+
+it('CE-18: onSearchComplete reports the count the batch ends with when items register after the query', () => {
+  const onSearchComplete = vi.fn();
+  using machine = createCommandMachine({ items, telemetry: { onSearchComplete } });
+  nextBatch();
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  machine.send({
+    type: 'REGISTER_ITEM',
+    item: { id: itemId('applesauce'), value: 'Applesauce' },
+  });
+  nextBatch();
+
+  expect(machine.getState().filteredCount).toBe(3);
+  expect(onSearchComplete).toHaveBeenCalledTimes(1);
+  expect(onSearchComplete.mock.calls[0]?.slice(0, 2)).toEqual(['app', 3]);
+});
+
+it('CE-18: a SEARCH_CHANGE that repeats the current query reports nothing', () => {
+  const onSearchComplete = vi.fn();
+  using machine = createCommandMachine({ items, telemetry: { onSearchComplete } });
+  nextBatch();
+
+  machine.send({ type: 'SEARCH_CHANGE', query: '' }); // the committed query already
+  nextBatch();
+  expect(onSearchComplete).not.toHaveBeenCalled();
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  nextBatch();
+  expect(onSearchComplete).toHaveBeenCalledTimes(1);
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  nextBatch();
+  expect(onSearchComplete).toHaveBeenCalledTimes(1);
+
+  // A batch that leaves the committed query where it was reports nothing
+  machine.send({ type: 'SEARCH_CHANGE', query: 'a' });
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  nextBatch();
+  expect(onSearchComplete).toHaveBeenCalledTimes(1);
+});
+
+it('CE-18: a throwing onSearchComplete does not skip onSearchChange', () => {
+  const errors: unknown[] = [];
+  // The scheduler rethrows a failing slot through queueMicrotask: collect it instead of failing the run
+  vi.stubGlobal('queueMicrotask', (run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      errors.push(error);
+    }
+  });
+  const onSearchChange = vi.fn();
+  const failure = new Error('analytics down');
+  using machine = createCommandMachine({
+    items,
+    onSearchChange,
+    telemetry: {
+      onSearchComplete: () => {
+        throw failure;
+      },
+    },
+  });
+  nextBatch();
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  nextBatch();
+
+  expect(onSearchChange).toHaveBeenCalledExactlyOnceWith('app');
+  expect(errors).toEqual([failure]);
+});
+
+it('CE-18: a select of a disabled item reports nothing', () => {
+  const onItemSelected = vi.fn();
+  using machine = createCommandMachine({
+    items: [...items, { id: itemId('grape'), value: 'Grape', disabled: true }],
+    telemetry: { onItemSelected },
+  });
+  nextBatch();
+
+  machine.send({ type: 'ITEM_SELECT', id: itemId('grape') });
+  nextBatch();
+  expect(onItemSelected).not.toHaveBeenCalled();
+
+  machine.send({ type: 'ITEM_SELECT', id: itemId('apple') });
+  nextBatch();
+  expect(onItemSelected).toHaveBeenCalledTimes(1);
 });
