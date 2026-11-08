@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { expect, open, test } from './fixtures';
 
 // Locator-first assertions throughout
-test.describe('Keyboard Navigation', () => {
+test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
   test.beforeEach(async ({ page }) => {
     await open(page, '/');
     // Wait for hydration using locator-first pattern
@@ -124,12 +124,14 @@ test.describe('Keyboard Navigation', () => {
 
     // Navigate through enabled items — disabled items are skipped by ArrowDown
     const enabledItems = page.locator('[data-command-item]:not([data-disabled])');
-    const enabledCount = await enabledItems.count();
+    await expect(enabledItems).toHaveCount(14);
+    const enabledCount = 14;
 
     for (let i = 0; i < enabledCount; i++) {
-      // Use auto-retrying assertion to wait for React state propagation
+      // Use auto-retrying assertions to wait for React state propagation
       const activeItems = page.locator('[data-command-item][data-active]');
       await expect(activeItems).toHaveCount(1);
+      await expect(enabledItems.nth(i)).toHaveAttribute('data-active', '');
 
       if (i < enabledCount - 1) {
         await input.press('ArrowDown');
@@ -225,7 +227,7 @@ test.describe('Keyboard Navigation', () => {
 
   // ---------- Escape to Close ----------
 
-  test('should close the palette with Escape', async ({ page }) => {
+  test('should close the palette with Escape', { tag: '@dialog' }, async ({ page }) => {
     await open(page, '/dialog');
 
     // Open the dialog first
@@ -330,7 +332,9 @@ test.describe('Keyboard Navigation', () => {
 
   // ---------- Keyboard Shortcut Registration ----------
 
-  test('should register and respond to Ctrl+K shortcut for dialog toggle', async ({ page }) => {
+  test('should register and respond to Ctrl+K shortcut for dialog toggle', {
+    tag: '@dialog',
+  }, async ({ page }) => {
     await open(page, '/dialog');
 
     // Press Ctrl+K to toggle

@@ -191,7 +191,9 @@ test.describe('Basic Command Palette', () => {
 
   // ---------- Dialog Mode ----------
 
-  test('should open and close dialog with animation states', async ({ page }) => {
+  test('should open and close dialog with animation states', { tag: '@dialog' }, async ({
+    page,
+  }) => {
     await open(page, '/dialog');
 
     // Dialog should initially be closed
@@ -216,7 +218,7 @@ test.describe('Basic Command Palette', () => {
     await expect(dialog).toBeHidden({ timeout: 5_000 });
   });
 
-  test('should open dialog with Ctrl+K keyboard shortcut', async ({ page }) => {
+  test('should open dialog with Ctrl+K keyboard shortcut', { tag: '@dialog' }, async ({ page }) => {
     await open(page, '/dialog');
 
     // Press Ctrl+K to open
