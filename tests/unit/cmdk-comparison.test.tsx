@@ -22,8 +22,9 @@
 // of each library must equal its recorded value, so drift on either side is a failure. A 'same'
 // row holds two equal values and a 'differs' row two unequal ones, so a status that disagrees
 // with the values fails too. `reason` is a sentence for a migrating cmdk user and `ref` names the
-// ruling or ledger row. The last differential test requires the table's keys to equal the case
-// ids, in case order.
+// ledger row or DECISIONS.md ruling that explains the parity or the difference; a null `ref` means
+// no ruling or row explains the row. The last differential test requires the table's keys to equal
+// the case ids, in case order.
 //
 // What the installed type declarations say (cmdk: node_modules/cmdk/dist/index.d.ts; modern-cmdk:
 // packages/modern-cmdk/dist/react/index.d.mts, with src/react/*.tsx):
@@ -98,7 +99,7 @@ interface DeltaRow {
   readonly cmdk: Json;
   readonly modernCmdk: Json;
   readonly reason: string;
-  readonly ref: string;
+  readonly ref: string | null;
 }
 
 function parseDelta(raw: unknown): Readonly<Record<string, DeltaRow>> {
@@ -110,7 +111,9 @@ function parseDelta(raw: unknown): Readonly<Record<string, DeltaRow>> {
       throw new Error(`${id}: status "${String(status)}"`);
     }
     if (typeof reason !== 'string' || reason === '') throw new Error(`${id}: reason is empty`);
-    if (typeof ref !== 'string' || ref === '') throw new Error(`${id}: ref is empty`);
+    if (ref !== null && (typeof ref !== 'string' || ref === '')) {
+      throw new Error(`${id}: ref is neither a non-empty string nor null`);
+    }
     rows[id] = { status, cmdk: cmdk as Json, modernCmdk: modernCmdk as Json, reason, ref };
   }
   return rows;
