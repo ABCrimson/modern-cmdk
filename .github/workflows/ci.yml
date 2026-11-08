@@ -505,7 +505,7 @@ jobs:
         # +19.0% with no reproducible code change; an A/B on a local host gave -2.4% / -3.8%). After a first
         # exit 2 the step re-runs once: a passing re-run leaves a warning annotation, so a flaky pass stays
         # visible, and a second exit 2 leaves an error annotation. A baseline median
-        # below floor_ms (0.01 ms; today only stateUpdate:navigate, 0.75 microseconds) is reported, not
+        # below floor_ms (0.01 ms; today only stateUpdate:navigate, 0.902 microseconds) is reported, not
         # compared, because runner noise at that scale exceeds 5%/15%.
         # `|| code=$?` is not a mask: it records the status of the deciding run, so exit 1 can become a
         # warning and exit 2 can trigger the one re-run; every other non-zero status is re-raised by

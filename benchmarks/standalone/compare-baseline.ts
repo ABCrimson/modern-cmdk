@@ -7,7 +7,7 @@
 // environment.cpu when it has one) selects the record whose key equals it; the thresholds
 // (regressionThresholds, shared by all records) apply to that record only.
 // Verdicts come from compare-rules.ts: a median above its target_ms fails; a baseline median below
-// the floor (regressionThresholds.floor_ms, 0.01 ms; today only stateUpdate:navigate, 0.75 microseconds)
+// the floor (regressionThresholds.floor_ms, 0.01 ms; today only stateUpdate:navigate, 0.902 microseconds)
 // is reported, not compared, because run-to-run noise at that scale exceeds the thresholds; every
 // other median is compared with the baseline.
 // A run whose CPU model has no record prints one table per record, status INFO, each row naming the
@@ -503,7 +503,7 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
       resultsUrl,
       `${JSON.stringify(
         {
-          schemaVersion: 1,
+          schemaVersion: 2,
           commit,
           date: new Date().toISOString(),
           environment: {
