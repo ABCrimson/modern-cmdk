@@ -2,13 +2,12 @@
 // Type-safe event emitter — strong refs for reliable delivery, `using` for auto-unsub
 // Performance: for...of in the hot emit() path; listenerCount() reads Set.size
 
-type EventMap = { [key: string]: unknown };
-
 /**
  * Type-safe event emitter with strong references and Disposable subscriptions.
+ * `T` maps event names to payload types; an interface or a type alias both work (`object`, not an index signature, which an interface lacks).
  * Returns Disposable from `on()` for automatic unsubscription via `using`.
  */
-export class TypedEmitter<T extends EventMap> implements Disposable {
+export class TypedEmitter<T extends object> implements Disposable {
   #listeners = new Map<keyof T, Set<(data: never) => void>>();
 
   /** Subscribe to an event. Returns a Disposable that removes the listener when disposed. */
