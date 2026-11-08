@@ -107,7 +107,7 @@ const hasSizeTiles = computed(() => tiles.value.some((tile) => tile.mark === '¹
         record's own <code>note</code>).
       </li>
       <li>
-        <span class="mark" aria-hidden="true">&#x00B3;</span> Dependencies: <code>packages/modern-cmdk/package.json</code>.
+        <span class="mark" aria-hidden="true">&#x00B3;</span> Dependencies: <code>packages/modern-cmdk/package.json</code>. <code>radix-ui</code> is a required peer, imported only by <code>modern-cmdk/react</code> and <code>modern-cmdk/react/dialog</code>.
       </li>
     </ol>
   </div>
