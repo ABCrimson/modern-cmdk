@@ -47,7 +47,8 @@ export function CommandList({
 }: CommandListProps): ReactNode {
   const stable = useStableContext('Command.List');
   const stateCtx = useStateContext('Command.List');
-  // The live-region text waits for hydration: the registry is empty in the server and hydration passes
+  // The live-region text waits for hydration: until then the registry lacks the items that register
+  // in effects
   const hydrated: boolean = useHydrated();
 
   const innerRef = useRef<HTMLDivElement>(null);
