@@ -133,8 +133,8 @@ const releaseUrl = `https://github.com/ABCrimson/modern-cmdk/releases/tag/modern
 }
 
 @media (min-width: 60rem) {
-  /* The palette centres against the text column, and the hero gives up its bottom padding so every home section is one 96 px
-     step apart (it was 152 px from the hero to the features and 88 px to the content). */
+  /* The palette centres against the text column, and the hero gives up its bottom padding so the hero, the features and the
+     content sit one 88 px step apart (measured at 1440: 88 and 88; it was 152 and 88). */
   .VPHome :deep(.VPHero) {
     padding-bottom: 0;
   }
