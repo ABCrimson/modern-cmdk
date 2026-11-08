@@ -10,7 +10,7 @@ import type {
   PointerEvent,
   ReactNode,
 } from 'react';
-import { use, useCallback, useRef } from 'react';
+import { use, useCallback, useLayoutEffect, useRef } from 'react';
 import { CommandGroupContext, useStableContext, useStateContext } from './context.js';
 import { useRegisterItem } from './hooks/use-register.js';
 
@@ -77,9 +77,12 @@ export function CommandItem({
     }
   }, [stable.machine, id, disabled]);
 
-  // Use ref for activeId to avoid re-creating callback on every active change
+  // Use ref for activeId to avoid re-creating callback on every active change; the layout effect commits the
+  // value before any pointer event can read it
   const activeIdRef = useRef(stateCtx.state.activeId);
-  activeIdRef.current = stateCtx.state.activeId;
+  useLayoutEffect(() => {
+    activeIdRef.current = stateCtx.state.activeId;
+  }, [stateCtx.state.activeId]);
 
   const handlePointerMove = useCallback((): void => {
     if (!disabled && activeIdRef.current !== id) {
