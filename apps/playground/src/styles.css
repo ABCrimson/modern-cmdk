@@ -149,7 +149,7 @@
   }
 
   html {
-    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size: 16px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -226,7 +226,7 @@
       align-items: center;
       gap: var(--space-xs);
       padding: 0.2em 0.6em;
-      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-family: "JetBrains Mono Variable", ui-monospace, monospace;
       font-size: 0.75rem;
       font-weight: 500;
       color: var(--accent);
@@ -387,7 +387,7 @@
     & kbd {
       display: inline-block;
       padding: 0.15em 0.45em;
-      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-family: "JetBrains Mono Variable", ui-monospace, monospace;
       font-size: 0.8em;
       background: var(--bg-elevated);
       border: 1px solid var(--border-default);
@@ -532,7 +532,7 @@
 
     & [data-command-shortcut] {
       color: var(--text-muted);
-      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-family: "JetBrains Mono Variable", ui-monospace, monospace;
       font-size: 0.6875rem;
     }
   }
