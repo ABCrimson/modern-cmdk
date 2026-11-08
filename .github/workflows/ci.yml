@@ -496,8 +496,9 @@ jobs:
         # contract) and 2 for a regression above 15%, a median above its target_ms or a harness error.
         # Exit 2 fails the job only when a second run also exits 2 (two consecutive fails): a single run
         # of a shared runner and a Node nightly is noisy (CI run 42452131225, measured 2026-11-08: +16.1% and
-        # +19.0% with no reproducible code change; an A/B on a local host gave -2.4% / -3.8%). The first
-        # failure is surfaced as a warning annotation, so a flaky pass stays visible. A baseline median
+        # +19.0% with no reproducible code change; an A/B on a local host gave -2.4% / -3.8%). After a first
+        # exit 2 the step re-runs once: a passing re-run leaves a warning annotation, so a flaky pass stays
+        # visible, and a second exit 2 leaves an error annotation. A baseline median
         # below floor_ms (0.01 ms; today only stateUpdate:navigate, 0.75 microseconds) is reported, not
         # compared, because runner noise at that scale exceeds 5%/15%.
         # `|| code=$?` is not a mask: it records the status of the deciding run, so exit 1 can become a
