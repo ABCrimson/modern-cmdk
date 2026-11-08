@@ -124,7 +124,7 @@ createCommandMachine(options)
 
 `send()` never applies an event synchronously: it schedules a closure that handles the event, so state changes on the scheduler's next tick (a `requestAnimationFrame` in browsers, a microtask elsewhere). `getState()` right after `send()` returns the previous state, and the machine has no public `flush()`: subscribe with `machine.subscribe`, or wait for the next frame or microtask.
 
-**One batch, one refilter, one `stateChange`.** The closures of one scheduler batch (see [Scheduler](#scheduler)) run in the order sent:
+**One batch, at most one deferred refilter, at most one `stateChange`.** The closures of one scheduler batch (see [Scheduler](#scheduler)) run in the order sent:
 
 - A registry event (`REGISTER_ITEM`, `UPDATE_ITEM`, `UNREGISTER_ITEM`, `ITEMS_LOADED`, `REGISTER_GROUP`, `UNREGISTER_GROUP`) only marks the results dirty.
 - `SEARCH_CHANGE` refilters when it runs. A `NAVIGATE` or `ITEM_ACTIVATE` that follows a registry event of the batch refilters first, so it reads up-to-date ids.
@@ -185,7 +185,7 @@ CommandRegistry
   +-- registerItem(item) -> Disposable      -- `using` auto-deregister; an existing id is replaced in place
   +-- registerItems(items) -> Disposable    -- batch registration
   +-- unregisterItem(id) -> void            -- single removal
-  +-- unregisterItems(ids: Set) -> void     -- bulk removal (setDifference on the order set)
+  +-- unregisterItems(ids: Set) -> void     -- bulk removal (one Map and Set delete per id)
   +-- registerGroup(group) -> Disposable    -- group lifecycle
   +-- unregisterGroup(id) -> void
   +-- getItem(id) / getGroup(id)            -- O(1) Map lookup
@@ -262,7 +262,7 @@ flowchart LR
     J --> K
     ALL --> HD
     K --> HD["disabledItems: 'hide' drops disabled items;<br/>the default 'show' keeps them (never active)"]
-    HD --> L["Update filteredIds + activeId<br/>(first enabled item)"]
+    HD --> L["Update filteredIds + activeId<br/>(kept while listed and enabled, else the first enabled item)"]
     L --> M["Emit stateChange<br/>(once per batch)"]
 ```
 
@@ -292,10 +292,10 @@ When `search` is given, it is used as is (`options.search ?? createSearchEngine(
 
 ### Disabled Items
 
-A disabled item (`disabled: true`) is searched and listed like any other item whenever it matches, and `filteredIds` holds it. What differs is what can reach it:
+By default (`disabledItems: 'show'`) a disabled item (`disabled: true`) is searched and listed like any other item whenever it matches, and `filteredIds` holds it. What differs is what can reach it:
 
 - It renders with `aria-disabled` and `data-disabled` (`react/item.tsx`).
-- Navigation (`NAVIGATE`), `ITEM_ACTIVATE` and `ITEM_SELECT` skip it; `activeId` is the first enabled item, never a disabled one (`machine.ts`, `refilter`, `navigate`, `handleEvent`).
+- Navigation (`NAVIGATE`), `ITEM_ACTIVATE` and `ITEM_SELECT` skip it. `activeId` is never a disabled item: a refilter keeps the active item while it is listed and enabled, and otherwise takes the first enabled one (`machine.ts`, `refilter`, `navigate`, `handleEvent`).
 - `disabledItems: 'hide'` drops it from `filteredIds` under every query, after the search, so an engine that searches its own index is covered too. The default is `'show'`.
 - Its keyboard shortcut is not bound (CE-09): the key stays free for the page and for other items. `UPDATE_ITEM` re-binds, so enabling an item binds its shortcut.
 
@@ -597,7 +597,7 @@ rule driven by it. Both are wrapped in `@supports (animation-timeline: scroll())
 }
 ```
 
-The guard is there because Safari before 26 and Firefox before 159 lack `animation-timeline` (the stylesheet comment, from web-features 3.45.0-dev read 2026-11-08): without it a time-based run would settle in its end state. At the Safari 18.4 / Firefox 131 floor the fade edges and the progress bar therefore stay static.
+The guard is there because Safari before 26 and Firefox before 159 lack `animation-timeline` (styles.css:432; web-features 3.45.0-dev-20261103105955-64427e2, `scroll-driven-animations`): without it a time-based run would settle in its end state. At the Safari 18.4 / Firefox 131 floor the fade edges and the progress bar therefore stay static.
 
 No JavaScript scroll event listeners. Zero main-thread cost where the timeline is supported.
 
