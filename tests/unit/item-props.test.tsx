@@ -6,7 +6,7 @@ import { fireEvent } from '@testing-library/react';
 import type { CommandItem, CommandMachine } from 'modern-cmdk';
 import { groupId, itemId } from 'modern-cmdk';
 import { Command, CommandStableContext, useRegisterItem } from 'modern-cmdk/react';
-import type { MouseEvent, ReactNode } from 'react';
+import type { MouseEvent, PointerEvent, ReactNode } from 'react';
 import { act, use } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -120,6 +120,18 @@ describe('Command.Item and Command.Group id', () => {
     expect(host.querySelector('input')?.getAttribute('aria-activedescendant')).toBe('by-force');
     expect(libraryWarnings(warn)).toEqual([]);
 
+    // Both given and equal: the same id twice is no conflict, so no warning.
+    await update(
+      tree(
+        <Command.Item value="same" id="twin" forceId="twin">
+          Same
+        </Command.Item>,
+      ),
+    );
+    await settle();
+    expect(spy.registry.getItem(itemId('twin'))?.value).toBe('same');
+    expect(libraryWarnings(warn)).toEqual([]);
+
     // Both given and different: the `id` wins, one warning, and a re-render does not warn again.
     const both = (
       <Command.Item value="gamma" id="wins" forceId="loses">
@@ -190,20 +202,21 @@ class SizedObserver {
 
 describe('Command.Item propsMerge', () => {
   it('RA-13: propsMerge compose calls the consumer onClick and still selects', async () => {
+    vi.stubGlobal('ResizeObserver', SizedObserver);
     const calls: string[] = [];
     const onSelect = vi.fn(() => calls.push('select'));
     const blocked = vi.fn();
     const host = await mount(
       <Command>
         <Command.Input />
-        <Command.List>
+        <Command.List virtualize>
           <Command.Item
             value="alpha"
             propsMerge="compose"
             onSelect={onSelect}
             onClick={(): number => calls.push('consumer')}
             onPointerMove={(): number => calls.push('move')}
-            style={{ color: 'red' }}
+            style={{ color: 'red', position: 'static', translate: '5px 5px' }}
           >
             Alpha
           </Command.Item>
@@ -218,12 +231,19 @@ describe('Command.Item propsMerge', () => {
           >
             Beta
           </Command.Item>
+          <Command.Item
+            value="gamma"
+            propsMerge="compose"
+            onPointerMove={(event: PointerEvent<HTMLDivElement>): void => event.preventDefault()}
+          >
+            Gamma
+          </Command.Item>
         </Command.List>
       </Command>,
     );
     await settle();
-    const [alpha, beta] = itemsOf(host);
-    if (!alpha || !beta) throw new Error('items missing');
+    const [alpha, beta, gamma] = itemsOf(host);
+    if (!alpha || !beta || !gamma) throw new Error('items missing');
 
     // The consumer handler runs first, then the item selects.
     await click(alpha);
@@ -239,6 +259,10 @@ describe('Command.Item propsMerge', () => {
     expect(alpha.style.color).toBe('red');
     expect(beta.style.color).toBe('blue');
 
+    // The virtual position wins over a consumer position and translate.
+    expect(alpha.style.position).toBe('absolute');
+    expect(alpha.style.translate).toBe('0 0px');
+
     // The consumer onPointerMove runs, and the item still activates.
     await act(async () => {
       fireEvent.pointerMove(beta);
@@ -250,6 +274,14 @@ describe('Command.Item propsMerge', () => {
     });
     await settle();
     expect(calls).toContain('move');
+    expect(alpha.getAttribute('aria-selected')).toBe('true');
+
+    // A consumer onPointerMove that prevents default stops the activation.
+    await act(async () => {
+      fireEvent.pointerMove(gamma);
+    });
+    await settle();
+    expect(gamma.getAttribute('aria-selected')).toBe('false');
     expect(alpha.getAttribute('aria-selected')).toBe('true');
   });
 
