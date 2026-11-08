@@ -70,10 +70,14 @@ describe('Stress Tests', () => {
     engine.index(items);
 
     const query = 'elderberry';
+    // Each longer prefix can only narrow the previous result set
+    let prev = Number.POSITIVE_INFINITY;
     for (let i = 1; i <= query.length; i++) {
       const partial = query.slice(0, i);
       const results = engine.search(partial, items).toArray();
-      expect(results.length).toBeGreaterThanOrEqual(0);
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.length).toBeLessThanOrEqual(prev);
+      prev = results.length;
     }
   });
 
@@ -89,7 +93,7 @@ describe('Stress Tests', () => {
     }
   });
 
-  it('should handle 10K frecency selections without degradation', () => {
+  it('should handle 10K frecency selections across 500 ids', () => {
     using engine = new FrecencyEngine({ enabled: true, storage: new MemoryFrecencyStorage() });
 
     for (let i = 0; i < 10_000; i++) {
@@ -105,7 +109,7 @@ describe('Stress Tests', () => {
     });
   });
 
-  it('should handle concurrent search + frecency', { timeout: 15_000 }, () => {
+  it('should handle interleaved search + frecency', { timeout: 15_000 }, () => {
     const items = generateItems(10_000);
     using searchEngine = createSearchEngine();
     using frecencyEngine = new FrecencyEngine({
@@ -181,27 +185,53 @@ describe('Stress Tests', () => {
     using engine = createSearchEngine();
     engine.index(items);
 
-    const specialQueries = ['<script>', 'test"value', "o'reilly", 'hello\nworld', '🍎'];
+    // Positive control: the engine does return results for a plain query, so the zero-length
+    // assertions below cannot pass merely because it returns nothing for everything
+    expect(engine.search('apple', items).toArray().length).toBeGreaterThan(0);
+
+    // No generated item contains any of these, so each query must return no results (and not throw);
+    // the last two are lone surrogates, written as escapes
+    const specialQueries = [
+      '<script>',
+      'test"value',
+      "o'reilly",
+      'hello\nworld',
+      '🍎',
+      '\uD83C',
+      'a\uDC00',
+    ];
     for (const query of specialQueries) {
-      // Should not throw
       const results = engine.search(query, items).toArray();
-      expect(results).toBeInstanceOf(Array);
+      expect(results).toHaveLength(0);
     }
   });
 
-  it('machine should handle state transitions under load', { timeout: 15_000 }, () => {
+  it('machine should handle state transitions under load', { timeout: 15_000 }, async () => {
     const items = generateItems(5_000);
     using machine = createCommandMachine({ items });
 
-    // Rapid state transitions
+    // Rapid SEARCH_CHANGE sends; the machine batches them through its scheduler
+    let lastQuery = '';
     for (let i = 0; i < 100; i++) {
-      const query = (WORDS[i % WORDS.length] ?? '').slice(0, (i % 5) + 1);
-      machine.send({ type: 'SEARCH_CHANGE', query });
+      lastQuery = (WORDS[i % WORDS.length] ?? '').slice(0, (i % 5) + 1);
+      machine.send({ type: 'SEARCH_CHANGE', query: lastQuery });
     }
 
+    // The whole batch runs in one animation frame
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
     const state = machine.getState();
-    expect(state).toBeDefined();
-    expect(typeof state.search).toBe('string');
+    expect(state.search).toBe(lastQuery);
+
+    using reference = createSearchEngine();
+    reference.index(items);
+    const expectedIds = reference
+      .search(lastQuery, items)
+      .toArray()
+      .map((result) => result.id);
+    expect(state.filteredIds.length).toBeGreaterThan(0);
+    expect(state.filteredIds.length).toBeLessThan(items.length);
+    expect(state.filteredIds).toEqual(expectedIds);
   });
 
   it('P05: mounting 5,000 items in one tick emits stateChange once and holds every item', {
