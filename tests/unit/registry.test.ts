@@ -259,3 +259,120 @@ describe('CommandRegistry reserved group id (CE-50)', () => {
     expect([...registry.getGroupedItems().keys()]).toEqual([UNGROUPED_GROUP_ID]);
   });
 });
+
+describe('CommandRegistry set predicates, groups and caches (TUB-26)', () => {
+  const ids = (...names: string[]): Set<ReturnType<typeof itemId>> => new Set(names.map(itemId));
+  const abc = (): CommandRegistry => {
+    const registry = new CommandRegistry();
+    registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
+    return registry;
+  };
+
+  it('isSubsetOf is true when every registered id is in the given set', () => {
+    using registry = abc();
+    expect(registry.isSubsetOf(ids('a', 'b', 'c', 'd'))).toBe(true);
+    expect(registry.isSubsetOf(ids('a', 'b', 'c'))).toBe(true);
+    expect(registry.isSubsetOf(ids('a', 'b'))).toBe(false);
+  });
+
+  it('isSupersetOf is true when every id of the given set is registered', () => {
+    using registry = abc();
+    expect(registry.isSupersetOf(ids('a', 'c'))).toBe(true);
+    expect(registry.isSupersetOf(ids())).toBe(true);
+    expect(registry.isSupersetOf(ids('a', 'z'))).toBe(false);
+  });
+
+  it('isDisjointFrom is true only when no id is shared', () => {
+    using registry = abc();
+    expect(registry.isDisjointFrom(ids('x', 'y'))).toBe(true);
+    expect(registry.isDisjointFrom(ids('c', 'y'))).toBe(false);
+  });
+
+  it('symmetricDifferenceWith returns the ids that are in exactly one of the two sets', () => {
+    using registry = abc();
+    expect([...registry.symmetricDifferenceWith(ids('b', 'c', 'd'))].sort()).toEqual(['a', 'd']);
+  });
+
+  it('unregisterGroup removes the group, its count and its entry in getGroups()', () => {
+    using registry = new CommandRegistry();
+    registry.registerGroup({ id: groupId('g1'), heading: 'One' });
+    registry.registerGroup({ id: groupId('g2'), heading: 'Two' });
+    expect(registry.getGroups()).toHaveLength(2);
+    registry.unregisterGroup(groupId('g1'));
+    expect(registry.getGroup(groupId('g1'))).toBeUndefined();
+    expect(registry.groupCount).toBe(1);
+    expect(registry.getGroups().map((g) => g.id)).toEqual(['g2']);
+  });
+
+  it('getGroups sorts by priority (lower first, default 0), stable for equal priorities', () => {
+    using registry = new CommandRegistry();
+    registry.registerGroup({ id: groupId('late'), priority: 5 });
+    registry.registerGroup({ id: groupId('first-zero') });
+    registry.registerGroup({ id: groupId('early'), priority: -1 });
+    registry.registerGroup({ id: groupId('second-zero'), priority: 0 });
+    expect(registry.getGroups().map((g) => g.id)).toEqual([
+      'early',
+      'first-zero',
+      'second-zero',
+      'late',
+    ]);
+  });
+
+  it('getGroupedItems lists groups by priority, then the ungrouped bucket last', () => {
+    using registry = new CommandRegistry();
+    registry.registerGroup({ id: groupId('b'), priority: 2 });
+    registry.registerGroup({ id: groupId('a'), priority: 1 });
+    registry.registerGroup({ id: groupId('empty'), priority: 0 });
+    registry.registerItems([
+      makeItem('loose'),
+      makeItem('in-b', 'B', 'b'),
+      makeItem('in-a', 'A', 'a'),
+    ]);
+    const grouped = registry.getGroupedItems();
+    // A group without items is left out; ungrouped items come after every registered group
+    expect([...grouped.keys()]).toEqual(['a', 'b', UNGROUPED_GROUP_ID]);
+    expect(grouped.get(UNGROUPED_GROUP_ID)?.map((i) => i.id)).toEqual(['loose']);
+  });
+
+  it('getItems returns the same array until a mutation, then a new one', () => {
+    using registry = abc();
+    const first = registry.getItems();
+    expect(registry.getItems()).toBe(first);
+
+    registry.registerItem(makeItem('d'));
+    const second = registry.getItems();
+    expect(second).not.toBe(first);
+    expect(second.map((i) => i.id)).toEqual(['a', 'b', 'c', 'd']);
+    expect(registry.getItems()).toBe(second);
+
+    registry.unregisterItem(itemId('d'));
+    expect(registry.getItems()).not.toBe(second);
+    const third = registry.getItems();
+    registry.unregisterItems(ids('a'));
+    expect(registry.getItems()).not.toBe(third);
+  });
+
+  it('getItems is not invalidated by a group mutation, getGroups is not invalidated by an item mutation', () => {
+    using registry = abc();
+    registry.registerGroup({ id: groupId('g') });
+    const items = registry.getItems();
+    const groups = registry.getGroups();
+    registry.registerGroup({ id: groupId('h') });
+    expect(registry.getItems()).toBe(items);
+    expect(registry.getGroups()).not.toBe(groups);
+    const groups2 = registry.getGroups();
+    registry.registerItem(makeItem('d'));
+    expect(registry.getGroups()).toBe(groups2);
+  });
+
+  it('registering an existing id again replaces the item and refreshes the getItems cache', () => {
+    using registry = abc();
+    const before = registry.getItems();
+    const replacement = makeItem('b', 'Replaced');
+    registry.registerItem(replacement);
+    expect(registry.getItems()).not.toBe(before);
+    expect(registry.getItems()[1]).toBe(replacement);
+    expect(registry.size).toBe(3);
+    expect(registry.getItemIds().size).toBe(3);
+  });
+});
