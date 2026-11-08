@@ -16,6 +16,9 @@ const PKG_ID = '../pkg/command_search_wasm.js';
 /** Counts the calls that reach the (fake) wasm-bindgen instance. */
 const calls = { free: 0, clear: 0, indexItems: 0, search: 0 };
 
+/** The payloads `index_items` received, in call order. */
+const payloads: string[] = [];
+
 class FakeWasmInstance {
   free(): void {
     calls.free++;
@@ -23,8 +26,9 @@ class FakeWasmInstance {
   clear(): void {
     calls.clear++;
   }
-  index_items(_items: string): void {
+  index_items(items: string): void {
     calls.indexItems++;
+    payloads.push(items);
   }
   search(_query: string, _max: number): unknown[] {
     calls.search++;
@@ -43,6 +47,7 @@ async function loadWasmEngine(): Promise<WasmSearchEngine> {
 
 beforeEach(() => {
   calls.free = calls.clear = calls.indexItems = calls.search = 0;
+  payloads.length = 0;
 });
 
 afterEach(() => {
@@ -110,6 +115,59 @@ describe('WASM engine dispose', () => {
     const results = [...engine.search('a', [{ id: 'a' as ItemId, value: 'a' }])];
     expect(results).toEqual([{ id: 'a', score: 1, matches: [[0, 1]] }]);
     expect(calls.search).toBe(1);
+  });
+});
+
+describe('WASM engine index map', () => {
+  const a = { id: 'a' as ItemId, value: 'Alpha' };
+  const b = { id: 'b' as ItemId, value: 'Beta' };
+  const c = { id: 'c' as ItemId, value: 'Gamma' };
+
+  it('CE-116: index() upserts into the kept map and hands the crate every indexed item', async () => {
+    const engine = await loadWasmEngine();
+    engine.index([a, b]);
+    engine.index([c]);
+    expect(payloads.map((p) => JSON.parse(p))).toEqual([
+      [
+        ['a', 'Alpha'],
+        ['b', 'Beta'],
+      ],
+      [
+        ['a', 'Alpha'],
+        ['b', 'Beta'],
+        ['c', 'Gamma'],
+      ],
+    ]);
+  });
+
+  it('CE-116: index() replaces the value of an id that is already indexed, in place', async () => {
+    const engine = await loadWasmEngine();
+    engine.index([a, b]);
+    engine.index([{ id: 'a' as ItemId, value: 'Alpha 2' }]);
+    expect(JSON.parse(payloads.at(-1) ?? '[]')).toEqual([
+      ['a', 'Alpha 2'],
+      ['b', 'Beta'],
+    ]);
+  });
+
+  it('CE-116: remove() deletes only the given ids and re-indexes the rest', async () => {
+    const engine = await loadWasmEngine();
+    engine.index([a, b, c]);
+    engine.remove(new Set(['b' as ItemId, 'missing' as ItemId]));
+    expect(calls.clear).toBe(0);
+    expect(JSON.parse(payloads.at(-1) ?? '[]')).toEqual([
+      ['a', 'Alpha'],
+      ['c', 'Gamma'],
+    ]);
+  });
+
+  it('CE-116: clear() empties the kept map and the crate index', async () => {
+    const engine = await loadWasmEngine();
+    engine.index([a, b]);
+    engine.clear();
+    expect(calls.clear).toBe(1);
+    engine.index([c]);
+    expect(JSON.parse(payloads.at(-1) ?? '[]')).toEqual([['c', 'Gamma']]);
   });
 });
 
