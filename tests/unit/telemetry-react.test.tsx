@@ -3,10 +3,10 @@
 // option.
 
 import { fireEvent } from '@testing-library/react';
-import type { CommandTelemetryHooks } from 'modern-cmdk';
-import { Command } from 'modern-cmdk/react';
+import type { CommandMachine, CommandTelemetryHooks } from 'modern-cmdk';
+import { Command, CommandStableContext } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
-import { Activity, act, StrictMode, useState } from 'react';
+import { Activity, act, StrictMode, use, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -162,5 +162,45 @@ describe('telemetry reports of a Command.Dialog mounted open (D113)', () => {
 
     expect(onPaletteOpen).toHaveBeenCalledTimes(1);
     expect(onPaletteClose).not.toHaveBeenCalled();
+  });
+});
+
+/** Pushes the root's machine into `into`, for a test's own sends */
+function Grab({ into }: { readonly into: CommandMachine[] }): null {
+  const machine = use(CommandStableContext)?.machine;
+  if (machine && !into.includes(machine)) into.push(machine);
+  return null;
+}
+
+describe('telemetry of a hidden root (D114)', () => {
+  it("D114: a hidden root's machine reports a consumer's own send", async () => {
+    const onSearchComplete = vi.fn();
+    const onSearchChange = vi.fn();
+    const captured: CommandMachine[] = [];
+    const tree = (mode: 'visible' | 'hidden'): ReactNode => (
+      <Activity mode={mode}>
+        <Command label="telemetry" telemetry={{ onSearchComplete }} onSearchChange={onSearchChange}>
+          <Grab into={captured} />
+          <Command.Input />
+          <Command.List>
+            <Command.Item value="Apple">Apple</Command.Item>
+          </Command.List>
+        </Command>
+      </Activity>
+    );
+    await render(tree('visible'));
+    await settle();
+    await render(tree('hidden'));
+    await settle();
+
+    const hidden = captured[0];
+    if (!hidden) throw new Error('no machine captured');
+    await act(async () => {
+      hidden.send({ type: 'SEARCH_CHANGE', query: 'ap' });
+    });
+    await settle();
+
+    expect(onSearchComplete).toHaveBeenCalledWith('ap', expect.any(Number), expect.any(Number));
+    expect(onSearchChange).not.toHaveBeenCalled();
   });
 });
