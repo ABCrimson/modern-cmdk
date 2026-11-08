@@ -13,8 +13,13 @@ export const SAMPLE_COUNT = 7;
  * 8362840, ubuntu-26.04 image 20261101.186.1, AMD EPYC 7763 at 4 cores, Chromium 158.0.8127.18; the
  * seven samples span 40.70 to 59.70 ms, three above 50). The threshold is that runner's measurement at
  * 1.5x the median, rounded up to the next 5 ms: ceil(47.80 x 1.5 = 71.70 / 5) x 5 = 75 ms. It is
- * re-measured at the RC and never raised silently. An absolute threshold: no relative comparison until
- * CodSpeed at 1.9 (D20).
+ * re-measured at the RC and never raised silently. Re-measured at the 1.7.0 RC (CI run 42504230690,
+ * 2026-11-08, release/1.7.0 at 79e3c14, the same image on an AMD EPYC 9V74 at 4 cores, Chromium
+ * 158.0.8127.18): 54.70 ms median, seven samples 47.70 to 65.70 ms, inside the tripwire, recorded
+ * as benchmarks/browser/results/1.4.0-79e3c14.json beside the first record. The threshold stands
+ * (D120): it moves only when an RC median falls outside the recorded range of the same CPU, or on
+ * a new runner image with its own first measurement, never on one sample from a different CPU. An
+ * absolute threshold: no relative comparison until CodSpeed at 1.9 (D20).
  */
 export const MOUNT_GATE_THRESHOLD_MS = 75;
 
