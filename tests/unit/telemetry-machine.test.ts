@@ -415,3 +415,38 @@ it('CE-18: one batch reports the open, then the search, then the select', () => 
 
   expect(log).toEqual(['open', 'search', 'select']);
 });
+
+it('D117: a telemetry option that throws at the open report leaves the session unmarked', () => {
+  const errors: unknown[] = [];
+  // The scheduler rethrows a failing commit through queueMicrotask: collect it, do not fail the run
+  vi.stubGlobal('queueMicrotask', (run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      errors.push(error);
+    }
+  });
+  const failure = new Error('telemetry getter down');
+  const onPaletteClose = vi.fn();
+  let reads = 0;
+  const options = { items };
+  Object.defineProperty(options, 'telemetry', {
+    enumerable: true,
+    get: () => {
+      reads += 1;
+      if (reads === 1) throw failure;
+      return { onPaletteClose };
+    },
+  });
+  using machine = createCommandMachine(options);
+  nextBatch();
+
+  machine.send({ type: 'OPEN' });
+  nextBatch();
+  machine.send({ type: 'CLOSE' });
+  nextBatch();
+
+  expect(errors).toEqual([failure]);
+  // The open was never reported, so the close has no open to measure from
+  expect(onPaletteClose).not.toHaveBeenCalled();
+});
