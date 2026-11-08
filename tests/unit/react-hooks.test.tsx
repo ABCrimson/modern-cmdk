@@ -6,6 +6,8 @@
 //   - useVirtualizer: the exact virtual window, overscan and its clamps, scrollToIndex alignments
 //   - useCommandDevtools: no event and no global in production, a mount and a state change
 //     included; `dev` is false where `process` does not exist
+//   - useCommand: the state, search and active-item actions it returns for a machine
+//   - createKeydownHandler: the key to machine-event mapping and the keys it leaves alone
 // RA-33: Command.Highlight ordering, the exclusive end index and highlightClassName. The other
 // gaps RA-33 names are pinned in other files; this table maps each to the titles that cover it
 // (titles verbatim).
@@ -57,10 +59,13 @@
 //                                  'ARCH-58: unchanged resetKeys keep the fallback'
 
 import type { CommandMachine, CommandState } from 'modern-cmdk';
-import { groupId, itemId } from 'modern-cmdk';
+import { createCommandMachine, groupId, itemId } from 'modern-cmdk';
 import {
   Command,
   CommandStableContext,
+  createKeydownHandler,
+  type UseCommandReturn,
+  useCommand,
   useCommandState,
   useRegisterGroup,
   useRegisterItem,
@@ -750,5 +755,143 @@ describe('Command.Highlight', () => {
     expect(marks.map((mark) => mark.textContent)).toEqual(['H', 'o', 'World']);
     expect(marks.map((mark) => mark.className)).toEqual(['hit', 'hit', 'hit']);
     expect(container.querySelectorAll('.hit')).toHaveLength(3);
+  });
+});
+
+/** Calls useCommand for `machine` and hands the return value to `onValue`. */
+function CommandProbe({
+  machine,
+  onValue,
+}: {
+  readonly machine: CommandMachine;
+  readonly onValue: (value: UseCommandReturn) => void;
+}): null {
+  onValue(useCommand(machine));
+  return null;
+}
+
+const fruit = [
+  { id: itemId('a'), value: 'Alpha' },
+  { id: itemId('b'), value: 'Beta' },
+  { id: itemId('c'), value: 'Gamma' },
+];
+
+describe('useCommand', () => {
+  async function mountCommand(machine: CommandMachine): Promise<() => UseCommandReturn> {
+    let value: UseCommandReturn | undefined;
+    await mount(
+      <CommandProbe
+        machine={machine}
+        onValue={(next: UseCommandReturn): void => {
+          value = next;
+        }}
+      />,
+    );
+    return () => {
+      if (!value) throw new Error('the hook never rendered');
+      return value;
+    };
+  }
+
+  it('T10: useCommand exposes the machine state and its actions drive the machine', async () => {
+    using machine = createCommandMachine({ items: fruit });
+    const live = await mountCommand(machine);
+    expect(live().state).toBe(machine.getState());
+    expect(live().isPending).toBe(false);
+    expect(live().id).not.toBe('');
+    expect([...live().filteredIdSet]).toEqual([itemId('a'), itemId('b'), itemId('c')]);
+
+    await step(() => live().updateSearch('bet'));
+    expect(live().state.search).toBe('bet');
+    expect(live().state).toBe(machine.getState());
+    expect([...live().filteredIdSet]).toEqual([itemId('b')]);
+  });
+
+  it('T10: useCommand setOptimisticActiveId activates an item and ignores null', async () => {
+    using machine = createCommandMachine({ items: fruit });
+    const live = await mountCommand(machine);
+    await step(() => live().setOptimisticActiveId(itemId('c')));
+    expect(live().state.activeId).toBe(itemId('c'));
+
+    await step(() => live().setOptimisticActiveId(null));
+    expect(live().state.activeId).toBe(itemId('c'));
+  });
+});
+
+describe('createKeydownHandler', () => {
+  const frame = (): Promise<void> =>
+    new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+  /** Dispatches a cancelable keydown through `handler` and waits for the machine's frame. */
+  async function press(
+    handler: (event: KeyboardEvent) => void,
+    key: string,
+  ): Promise<KeyboardEvent> {
+    const event = new KeyboardEvent('keydown', { key, cancelable: true });
+    handler(event);
+    await frame();
+    return event;
+  }
+
+  it('T10: createKeydownHandler maps the arrow, Home and End keys to navigation and prevents default', async () => {
+    using machine = createCommandMachine({ items: fruit });
+    const handler = createKeydownHandler(machine, machine.getState);
+    await frame();
+    expect(machine.getState().activeId).toBe(itemId('a'));
+    const keys: [string, string][] = [
+      ['ArrowDown', 'b'],
+      ['End', 'c'],
+      ['ArrowUp', 'b'],
+      ['Home', 'a'],
+    ];
+    for (const [key, id] of keys) {
+      const event = await press(handler, key);
+      expect(event.defaultPrevented, key).toBe(true);
+      expect(machine.getState().activeId, key).toBe(itemId(id));
+    }
+  });
+
+  it('T10: createKeydownHandler selects the active item on Enter and leaves unmapped keys alone', async () => {
+    const onSelect = vi.fn();
+    using machine = createCommandMachine({ items: fruit, onSelect });
+    const handler = createKeydownHandler(machine, machine.getState);
+    await frame();
+    await press(handler, 'ArrowDown');
+
+    const enter = await press(handler, 'Enter');
+    expect(enter.defaultPrevented).toBe(true);
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith(itemId('b'));
+
+    const before = machine.getState();
+    for (const key of ['x', 'Tab', 'Backspace']) {
+      const event = await press(handler, key);
+      expect(event.defaultPrevented, key).toBe(false);
+    }
+    expect(machine.getState()).toBe(before);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('T10: createKeydownHandler closes on Escape unless it is already prevented and pops a page on an empty Backspace', async () => {
+    using machine = createCommandMachine({ items: fruit });
+    const handler = createKeydownHandler(machine, machine.getState);
+    machine.send({ type: 'OPEN' });
+    machine.send({ type: 'PAGE_PUSH', page: 'sub' });
+    await frame();
+    expect(machine.getState().open).toBe(true);
+    expect(machine.getState().page).toBe('sub');
+
+    const backspace = await press(handler, 'Backspace');
+    expect(backspace.defaultPrevented).toBe(true);
+    expect(machine.getState().pageStack).toEqual([]);
+
+    const taken = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+    taken.preventDefault();
+    handler(taken);
+    await frame();
+    expect(machine.getState().open).toBe(true);
+
+    const escaped = await press(handler, 'Escape');
+    expect(escaped.defaultPrevented).toBe(true);
+    expect(machine.getState().open).toBe(false);
   });
 });
