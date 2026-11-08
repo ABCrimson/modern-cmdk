@@ -16,15 +16,15 @@ import { useRegisterItem } from './hooks/use-register.js';
 
 export interface CommandItemProps extends Omit<ComponentPropsWithRef<'div'>, 'onSelect' | 'value'> {
   readonly value: string;
-  readonly keywords?: readonly string[];
+  readonly keywords?: readonly string[] | undefined;
   /** Called when the item is selected by click, Enter or shortcut (no argument in 1.x; the value arrives in 2.0) */
-  readonly onSelect?: () => void;
-  readonly disabled?: boolean;
-  readonly shortcut?: string;
+  readonly onSelect?: (() => void) | undefined;
+  readonly disabled?: boolean | undefined;
+  readonly shortcut?: string | undefined;
   /** The registration id and the DOM id; defaults to a `useId` id. Wins over the deprecated `forceId`. */
   readonly id?: string | undefined;
   /** @deprecated Use `id`. Removed in 2.0. */
-  readonly forceId?: string;
+  readonly forceId?: string | undefined;
   /**
    * How the props you pass meet the item's own handlers and style. The default `'override'` spreads your props last, so
    * an `onClick`, `onPointerMove` or `style` of yours replaces the item's. `'compose'` spreads them first: your
@@ -56,13 +56,13 @@ export function CommandItem({
   const groupCtx = use(CommandGroupContext);
 
   const id = useRegisterItem(value, {
-    ...(keywords !== undefined && { keywords }),
-    ...(shortcut !== undefined && { shortcut }),
+    keywords,
+    shortcut,
     disabled,
-    ...(onSelect !== undefined && { onSelect }),
-    ...(idProp !== undefined && { id: idProp }),
-    ...(forceId !== undefined && { forceId }),
-    ...(groupCtx !== null && { groupId: groupCtx.groupId }),
+    onSelect,
+    id: idProp,
+    forceId,
+    groupId: groupCtx?.groupId,
   });
 
   const isActive: boolean = stateCtx.state.activeId === id;

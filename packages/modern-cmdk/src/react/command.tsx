@@ -32,9 +32,9 @@ import { CommandShortcut } from './shortcut.js';
 export interface CommandRootProps
   extends CommandMachineOptions,
     Omit<ComponentPropsWithRef<'div'>, keyof CommandMachineOptions | 'children'> {
-  readonly children?: ReactNode;
-  readonly className?: string;
-  readonly label?: string;
+  readonly children?: ReactNode | undefined;
+  readonly className?: string | undefined;
+  readonly label?: string | undefined;
 }
 
 /** Root compound component that provides the command state machine context to all children. */

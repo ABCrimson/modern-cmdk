@@ -105,33 +105,20 @@ describe('React prop types (C2)', () => {
       enabled: undefined;
     };
 
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<RootUndefined>().toExtend<CommandRootProps>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<DialogUndefined>().toExtend<CommandDialogProps>();
     expectTypeOf<AsyncItemsUndefined>().toExtend<CommandAsyncItemsProps>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<ErrorBoundaryUndefined>().toExtend<CommandErrorBoundaryProps>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<GroupUndefined>().toExtend<CommandGroupProps>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<HighlightUndefined>().toExtend<CommandHighlightProps>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<InputUndefined>().toExtend<CommandInputProps>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<ItemUndefined>().toExtend<CommandItemProps>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<ListUndefined>().toExtend<CommandListProps>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<LoadingUndefined>().toExtend<CommandLoadingProps>();
     expectTypeOf<PageUndefined>().toExtend<CommandPageProps>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<ShortcutUndefined>().toExtend<CommandShortcutProps>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<RegisterItemUndefined>().toExtend<RegisterItemOptions>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<RegisterGroupUndefined>().toExtend<RegisterGroupOptions>();
-    // @ts-expect-error ARCH-30 red state: removed with the widening
     expectTypeOf<VirtualizerUndefined>().toExtend<VirtualizerOptions>();
 
     // A runtime value too: the props object holds what it was given.

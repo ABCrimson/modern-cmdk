@@ -35,16 +35,16 @@ function resolveId(id: string | undefined, forceId: string | undefined, generate
 
 /** Options for item registration */
 export interface RegisterItemOptions {
-  readonly keywords?: readonly string[];
-  readonly groupId?: string;
-  readonly shortcut?: string;
-  readonly disabled?: boolean;
-  readonly onSelect?: () => void;
-  readonly data?: Readonly<Record<string, unknown>>;
+  readonly keywords?: readonly string[] | undefined;
+  readonly groupId?: string | undefined;
+  readonly shortcut?: string | undefined;
+  readonly disabled?: boolean | undefined;
+  readonly onSelect?: (() => void) | undefined;
+  readonly data?: Readonly<Record<string, unknown>> | undefined;
   /** The registration id; defaults to a `useId` id. Wins over the deprecated `forceId`. */
   readonly id?: string | undefined;
   /** @deprecated Use `id`. Removed in 2.0. */
-  readonly forceId?: string;
+  readonly forceId?: string | undefined;
 }
 
 /** Register a command item with the machine — auto-deregisters on unmount */
@@ -134,11 +134,11 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
 
 /** Options for group registration */
 export interface RegisterGroupOptions {
-  readonly priority?: number;
+  readonly priority?: number | undefined;
   /** The registration id; defaults to a `useId` id. Wins over the deprecated `forceId`. */
   readonly id?: string | undefined;
   /** @deprecated Use `id`. Removed in 2.0. */
-  readonly forceId?: string;
+  readonly forceId?: string | undefined;
 }
 
 /** Register a command group with the machine — auto-deregisters on unmount */

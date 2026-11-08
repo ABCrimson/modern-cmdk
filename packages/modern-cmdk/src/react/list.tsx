@@ -25,13 +25,13 @@ import { useVirtualizer } from './hooks/use-virtualizer.js';
 
 export interface CommandListProps extends ComponentPropsWithRef<'div'> {
   /** Override automatic virtualization (default: auto at >100 items, false to opt-out) */
-  readonly virtualize?: boolean;
+  readonly virtualize?: boolean | undefined;
   /** Estimated item height for virtualization (default: 44px) */
-  readonly estimateSize?: number;
+  readonly estimateSize?: number | undefined;
   /** Overscan count for virtualization (default: 8) */
-  readonly overscan?: number;
+  readonly overscan?: number | undefined;
   /** Custom aria-live announcement formatter for i18n (receives filtered count, returns announcement text) */
-  readonly announceResults?: (count: number) => string;
+  readonly announceResults?: ((count: number) => string) | undefined;
 }
 
 /** Scrollable list container with auto-virtualization and aria-live announcements. */

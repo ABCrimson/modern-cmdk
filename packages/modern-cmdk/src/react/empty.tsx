@@ -19,8 +19,9 @@ export function CommandEmpty({ ref, children, ...props }: CommandEmptyProps): Re
   const statusContainerRef = use(CommandListStatusContext);
   const hydrated: boolean = useHydrated();
 
-  // Only show when there's a search query but no results. Before hydration the registry is empty because
-  // items register in layout effects, which says nothing about the query, so the server and the hydration pass render nothing.
+  // Show whenever nothing matches (an empty query included) and no source is loading. Before hydration the registry is
+  // empty because items register in layout effects, which says nothing about the query, so the server and the
+  // hydration pass render nothing.
   if (!hydrated || stateCtx.state.filteredCount > 0 || stateCtx.state.loading) return null;
 
   const content = (

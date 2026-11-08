@@ -11,16 +11,16 @@ import { useRegisterGroup } from './hooks/use-register.js';
 
 export interface CommandGroupProps extends ComponentPropsWithRef<'div'> {
   /** Heading text displayed above the group */
-  readonly heading?: string;
+  readonly heading?: string | undefined;
   /**
    * Orders the keys of `CommandState.groupedIds` (lower first). React renders the groups in the JSX order
    * of the group elements, not by this number.
    */
-  readonly priority?: number;
+  readonly priority?: number | undefined;
   /** The registration id, also the id of the group element; the registration id defaults to a `useId` id. Wins over the deprecated `forceId`. */
   readonly id?: string | undefined;
   /** @deprecated Use `id`. Removed in 2.0. */
-  readonly forceId?: string;
+  readonly forceId?: string | undefined;
 }
 
 /** Visual grouping container with an optional heading that hides when no items match. */
@@ -38,11 +38,7 @@ export function CommandGroup({
   const stable = useStableContext('Command.Group');
 
   const headingId: string = useId();
-  const groupId = useRegisterGroup(heading, {
-    ...(priority !== undefined && { priority }),
-    ...(id !== undefined && { id }),
-    ...(forceId !== undefined && { forceId }),
-  });
+  const groupId = useRegisterGroup(heading, { priority, id, forceId });
 
   // Check if any of this group's own items are visible: a group whose id is the ungrouped bucket's
   // (forceId="__ungrouped") would otherwise count every ungrouped item, including those outside it
