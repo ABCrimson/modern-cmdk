@@ -70,7 +70,7 @@ body:
         modern-cmdk: 1.4.0
         modern-cmdk-codemod: (if used)
         React: 0.0.0-experimental-5b610964-20261106
-        TypeScript: 7.1.0-dev.20261107.1
+        TypeScript: 7.1.0-dev.20261108.1
         Vite: 8.3.6
     validations:
       required: false

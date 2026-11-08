@@ -17,7 +17,7 @@ catalog:
   react: 0.0.0-experimental-5b610964-20261106
   react-dom: 0.0.0-experimental-5b610964-20261106
   tsdown: 0.23.7
-  typescript: 7.1.0-dev.20261107.1
+  typescript: 7.1.0-dev.20261108.1
   vite: 8.3.6
 overrides:
   react: 'catalog:'
@@ -62,7 +62,7 @@ trustPolicyExclude:
   - lefthook@2.2.2
   - semver@5.7.2
   - semver@6.3.1
-# Exact versions published less than minimumReleaseAge before the 2026-11-08 sweep install (pruned 2026-11-08 02:40 UTC);
+# Exact versions published less than minimumReleaseAge before the 2026-11-08 sweep install (pruned 2026-11-08 08:37 UTC);
 # pnpm 12.18.0 refuses them otherwise. Entries age out of need after a day.
 minimumReleaseAgeExclude:
   # next@16.5.0-canary.44 (the root devDependency for the docs-samples gate, TEB-84 and D57, and the tests/consumers/next-app pin) was
@@ -84,13 +84,13 @@ minimumReleaseAgeExclude:
   - '@playwright/test@1.66.0-alpha-2026-11-08'
   - playwright@1.66.0-alpha-2026-11-08
   - playwright-core@1.66.0-alpha-2026-11-08
-  # typescript@7.1.0-dev.20261107.1 (next; published 2026-11-07T08:11:06Z) and its seven @typescript/typescript-<platform> binaries
-  # (08:06-08:09Z) were under the 24 h minimumReleaseAge at the 2026-11-07 bump from the previous day's dev build. Drop after a day.
-  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261107.1'
-  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261107.1'
-  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261107.1'
-  - '@typescript/typescript-linux-arm@7.1.0-dev.20261107.1'
-  - '@typescript/typescript-linux-x64@7.1.0-dev.20261107.1'
-  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261107.1'
-  - '@typescript/typescript-win32-x64@7.1.0-dev.20261107.1'
-  - typescript@7.1.0-dev.20261107.1
+  # typescript@7.1.0-dev.20261108.1 (next; published 2026-11-08T08:23:58Z) and its seven @typescript/typescript-<platform> binaries
+  # (08:19-08:23Z) were under the 24 h minimumReleaseAge at the 2026-11-08 bump from the previous day's dev build. Drop after a day.
+  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261108.1'
+  - '@typescript/typescript-darwin-x64@7.1.0-dev.20261108.1'
+  - '@typescript/typescript-linux-arm64@7.1.0-dev.20261108.1'
+  - '@typescript/typescript-linux-arm@7.1.0-dev.20261108.1'
+  - '@typescript/typescript-linux-x64@7.1.0-dev.20261108.1'
+  - '@typescript/typescript-win32-arm64@7.1.0-dev.20261108.1'
+  - '@typescript/typescript-win32-x64@7.1.0-dev.20261108.1'
+  - typescript@7.1.0-dev.20261108.1

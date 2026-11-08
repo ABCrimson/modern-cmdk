@@ -157,13 +157,13 @@ describe('buildTempWorkspaceYaml', () => {
       'minimumReleaseAge: 1440',
       'minimumReleaseAgeExclude:',
       '  - "vite@8.3.6"',
-      '  - "typescript@7.1.0-dev.20261107.1"',
+      '  - "typescript@7.1.0-dev.20261108.1"',
       '',
     ].join('\n');
     const copied = parseWorkspaceYaml(buildTempWorkspaceYaml(twoEntries));
     expect(copied.minimumReleaseAgeExclude).toEqual([
       'vite@8.3.6',
-      'typescript@7.1.0-dev.20261107.1',
+      'typescript@7.1.0-dev.20261108.1',
     ]);
     // The assertion bites: a one-entry list is not what a two-entry root yields.
     expect(copied.minimumReleaseAgeExclude).not.toEqual(['vite@8.3.6']);
