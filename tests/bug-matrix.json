@@ -1318,5 +1318,15 @@
     "id": "SEC-73",
     "test": "tests/unit/release-workflow.test.ts::SEC-73: the seeded syft version and digest agree across ci.yml and release.yml",
     "status": "covered"
+  },
+  {
+    "id": "RA-80",
+    "test": "tests/unit/dialog-open-state.test.tsx::a controlled dialog the parent closes before the machine has followed its opening stays closed and reports nothing",
+    "status": "covered"
+  },
+  {
+    "id": "RA-81",
+    "test": "tests/unit/dialog-open-state.test.tsx::D109: a refused close is put back even when a second request lands in the put-back frame",
+    "status": "covered"
   }
 ]
