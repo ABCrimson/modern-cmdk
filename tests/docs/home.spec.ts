@@ -288,10 +288,10 @@ it.describe('layout shift', () => {
       // below 960 px the panel sits under the text; autoplay needs it half visible, as a visitor scrolling would make it
       await palette.scrollIntoViewIfNeeded();
       await expect(palette).toHaveAttribute('data-autoplay', /.*/, { timeout: 15_000 });
-      // the first cycle types frec, short and dark in turn; the third word is on screen, then it clears
+      // the first cycle types frec, short and theme in turn; the third word is on screen, then it clears
       await page.waitForFunction(
         () =>
-          document.querySelector<HTMLInputElement>('[data-mc="palette-input"]')?.value === 'dark',
+          document.querySelector<HTMLInputElement>('[data-mc="palette-input"]')?.value === 'theme',
         undefined,
         { timeout: 30_000 },
       );

@@ -18,13 +18,21 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     kind: 'Guide',
     href: '/guide/installation',
   },
-  { id: 'go-core-api', label: 'Core API', group: 'Go to', kind: 'API', href: '/api/command' },
+  {
+    id: 'go-core-api',
+    label: 'Core API',
+    group: 'Go to',
+    kind: 'API',
+    href: '/api/command',
+    keywords: ['sorted by frecency', 'register a shortcut'],
+  },
   {
     id: 'go-react-adapter',
     label: 'React adapter',
     group: 'Go to',
     kind: 'API',
     href: '/api/command-react',
+    keywords: ['theme hooks'],
   },
   {
     id: 'go-examples',
@@ -39,6 +47,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Go to',
     kind: 'Recipe',
     href: '/recipes/spotlight-search',
+    keywords: ['recent items by frecency', 'open with a shortcut'],
   },
   {
     id: 'go-migrate-from-cmdk',
@@ -53,7 +62,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Topics',
     kind: 'Guide',
     href: '/guide/frecency',
-    keywords: ['recent', 'ranking', 'history'],
+    keywords: ['frecency', 'recent', 'ranking', 'history'],
   },
   {
     id: 'topic-shortcuts',
@@ -61,7 +70,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Topics',
     kind: 'Guide',
     href: '/guide/shortcuts',
-    keywords: ['hotkey', 'keybinding'],
+    keywords: ['shortcut', 'hotkey', 'keybinding'],
   },
   {
     id: 'topic-virtualization',
@@ -101,7 +110,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     group: 'Topics',
     kind: 'Guide',
     href: '/guide/theming',
-    keywords: ['css', 'styles', 'dark'],
+    keywords: ['theme', 'css', 'styles', 'dark'],
   },
   {
     id: 'action-copy-install',
@@ -110,6 +119,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     kind: 'Action',
     action: 'copy-install',
     shortcut: 'Alt+Shift+C',
+    keywords: ['copy shortcut'],
   },
   {
     id: 'action-toggle-dark',
@@ -118,6 +128,7 @@ export const HERO_ITEMS: readonly PaletteEntry[] = [
     kind: 'Action',
     action: 'toggle-dark',
     shortcut: 'Alt+Shift+D',
+    keywords: ['color theme', 'toggle shortcut'],
   },
   {
     id: 'action-github',
@@ -140,3 +151,9 @@ export const HERO_SSR_LINKS: readonly PaletteLink[] = HERO_ITEMS.filter(
   (entry): entry is PaletteEntry & { readonly href: string } =>
     entry.group === 'Go to' && entry.href !== undefined,
 ).map((entry): PaletteLink => ({ text: entry.label, href: entry.href, kind: entry.kind }));
+
+// The three words the hero types (usePalette.ts, design-final.md §3.5). Each fills at least three of the 18 rows and
+// tests/unit/docs-autoplay-queries.test.ts keeps that true. A keyword is a phrase the row's page really covers; the scorer
+// ranks a keyword that starts with the query above a label that merely contains it (core/search/default-scorer.ts:
+// starts-with 0.9 + 0.1 * query/target, substring 0.5 + ...), so the topic row carries the bare word and the others a phrase.
+export const HERO_AUTOPLAY_QUERIES = ['frec', 'short', 'theme'] as const;
