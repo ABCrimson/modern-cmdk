@@ -88,13 +88,13 @@ it.describe('home page with the palette', () => {
 
     const rows = page.locator('[data-mc="palette"] [role="option"]');
     await expect(rows.first()).toContainText('Frecency');
-    // every row that remains is a fuzzy match of the four letters, so the 18 entries shrink
-    expect(await rows.count()).toBeLessThan(18);
-    for (const row of await rows.all()) {
-      expect(
-        ((await row.locator('[data-mc="palette-label"]').textContent()) ?? '').toLowerCase(),
-      ).toMatch(/f.*r.*e.*c/);
-    }
+    // the 18 entries shrink to the rows that match the four letters in their label or in a keyword: the topic row leads, and
+    // the two pages that document frecency follow (hero-items.ts keywords)
+    await expect(rows.locator('[data-mc="palette-label"]')).toHaveText([
+      'Frecency ranking',
+      'Core API',
+      'Spotlight recipe',
+    ]);
 
     await input.press('Enter');
     await page.waitForURL('**/modern-cmdk/guide/frecency.html');
