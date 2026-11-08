@@ -423,7 +423,7 @@ const highlight = (
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `text` | `string` | Required | Full text to display |
-| `ranges` | `ReadonlyArray<readonly [number, number]>` | Required | Match ranges from search scorer: half-open `[start, end)` indices into `text` (the default scorer indexes the item's original `value`; a keyword-only match gives `[]`) |
+| `ranges` | `ReadonlyArray<readonly [number, number]>` | Required | Match ranges from search scorer |
 | `highlightClassName` | `string` | -- | Class name for `<mark>` elements |
 
 Data attribute: `data-command-highlight` on each `<mark>` element.
