@@ -1,5 +1,11 @@
 import type { FrecencyRecord, ItemId } from 'modern-cmdk';
-import { computeFrecencyBonus, FrecencyEngine, itemId, MemoryFrecencyStorage } from 'modern-cmdk';
+import {
+  computeFrecencyBonus,
+  DEFAULT_FRECENCY_DECAY,
+  FrecencyEngine,
+  itemId,
+  MemoryFrecencyStorage,
+} from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
 describe('computeFrecencyBonus', () => {
@@ -103,6 +109,32 @@ describe('FrecencyEngine', () => {
     const data = engine.getData();
     const record = data.records.get(id);
     expect(record?.frequency).toBe(3);
+  });
+
+  it('TUB-23: without a decayConfig getConfig returns the defaults and setConfig changes later bonuses', () => {
+    using engine = new FrecencyEngine({});
+    const id = itemId('cfg');
+    expect(engine.getConfig()).toEqual(DEFAULT_FRECENCY_DECAY);
+
+    engine.recordSelection(id);
+    expect(engine.getAllBonuses().get(id)).toBe(DEFAULT_FRECENCY_DECAY.hourWeight);
+
+    engine.setConfig({ hourWeight: 11 });
+    expect(engine.getBonus(id)).toBe(11);
+    expect(engine.getAllBonuses().get(id)).toBe(11);
+    expect(engine.getConfig()).toEqual({ ...DEFAULT_FRECENCY_DECAY, hourWeight: 11 });
+  });
+
+  it('TUB-23: load hydrates a fresh engine from custom storage so persisted items get a bonus', async () => {
+    const id = itemId('persisted');
+    const storage = new MemoryFrecencyStorage();
+    storage.save('ns', { records: new Map([[id, { frequency: 3, lastUsed: Date.now() }]]) }); // 3 x hourWeight 4
+    using engine = new FrecencyEngine({ storage, namespace: 'ns' });
+    expect(engine.getBonus(id)).toBe(0);
+
+    await engine.load();
+
+    expect(engine.getBonus(id)).toBe(12); // frequency 3 x the default hourWeight 4
   });
 
   it('should return 0 bonus for unrecorded items', () => {
