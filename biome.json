@@ -111,13 +111,7 @@
               "level": "error",
               "options": {
                 "available": "newly",
-                "allowProperties": [
-                  "clip",
-                  "user-select",
-                  "scroll-timeline",
-                  "animation-timeline",
-                  "animation-range"
-                ]
+                "allowProperties": ["clip", "user-select"]
               }
             }
           }
