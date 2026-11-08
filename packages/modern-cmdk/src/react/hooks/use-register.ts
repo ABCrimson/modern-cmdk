@@ -56,17 +56,20 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
 
   // The batch of an enclosing Command.AsyncItems, or null
   const batch = use(CommandAsyncItemsContext);
+  // In development, an item without an id whose value equals a loaded item's value is taken to render that loaded item,
+  // so it warns: the generated id makes it a second entry
   if (dev && process.env.NODE_ENV !== 'production') {
     if (
       batch !== null &&
       options?.id === undefined &&
       options?.forceId === undefined &&
-      !warnedAsyncWithoutId
+      !warnedAsyncWithoutId &&
+      batch.some((item) => item.value === value)
     ) {
       warnedAsyncWithoutId = true;
       // biome-ignore lint/suspicious/noConsole: development-only misuse diagnostic, gated on NODE_ENV
       console.warn(
-        '[modern-cmdk] An item inside Command.AsyncItems has no `id`: it registers under a generated id, so the loaded item and the rendered item become two entries. Pass `id={item.id}` to Command.Item (or `id` to useRegisterItem).',
+        '[modern-cmdk] An item inside Command.AsyncItems has no `id` and the same value as a loaded item: it registers under a generated id, so the loaded item and the rendered item become two entries. Pass `id={item.id}` to Command.Item (or `id` to useRegisterItem).',
       );
     }
   }
