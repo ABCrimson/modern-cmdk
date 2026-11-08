@@ -54,8 +54,8 @@ using machine = createCommandMachine({
 // send() is scheduled: subscribe first, the listener runs once the batch has committed.
 machine.subscribe(() => console.log(machine.getState().filteredIds));
 machine.send({ type: 'SEARCH_CHANGE', query: 'cop' });
-// `using` disposes at the end of the enclosing scope. At the top level of a module that is the end of
-// module evaluation, which drops the SEARCH_CHANGE above before it runs; keep the machine in a function or a component.
+// `using` disposes at the end of its block and drops events that have not run: here (module top level) the
+// SEARCH_CHANGE above never runs. Await the commit inside the scope (see Scheduling), or keep a long-lived machine in a `const` and dispose it on teardown.
 ```
 
 ### `CommandMachineOptions`
@@ -65,7 +65,7 @@ machine.send({ type: 'SEARCH_CHANGE', query: 'cop' });
 | `items` | `CommandItem[]` | `[]` | Pre-registered items to populate on creation |
 | `groups` | `CommandGroup[]` | `[]` | Pre-registered groups for item categorization |
 | `filter` | `((item, query) => number \| false) \| false` | built-in | Custom filter function, or `false` to disable filtering (every item is listed in registration order). The function returns a score: above 0 keeps the item (higher ranks first); `false`, `0` or a negative number excludes it. It is called for every item on every non-empty query. When `search` is given, a filter function is not consulted (`false` still disables filtering) |
-| `search` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM engine). Its results are used as returned |
+| `search` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM engine), called only for a non-empty query with filtering on. Its order is kept, except that frecency (when enabled) re-ranks it and `disabledItems: 'hide'` drops disabled items |
 | `label` | `string` | -- | Accepted in the type, but `createCommandMachine` never reads it. The React components read it as their `aria-label` and default it to `'Command palette'` |
 | `open` | `boolean` | `false` | Initial open state |
 | `frecency` | `FrecencyOptions` | `undefined` | Frecency ranking configuration; ranking applies only with `enabled: true` |
@@ -100,9 +100,9 @@ Order within a batch: `onOpenChange`, `onSearchChange` and the `openChange` even
 `send()` returns before the event is handled. Events queue on the machine's scheduler, which runs them in one pass on the next animation frame in browsers and on the next microtask where `requestAnimationFrame` is absent (Node, SSR). There is no `isInputPending` or `scheduler.yield()` gate: a batch always runs whole.
 
 - `getState()` right after `send()` still returns the previous state.
-- A batch emits one `stateChange` (if anything changed), however many events it holds. Registry events (`REGISTER_ITEM`, `UPDATE_ITEM`, `UNREGISTER_ITEM`, `ITEMS_LOADED`, `REGISTER_GROUP`, `UNREGISTER_GROUP`) only mark the results dirty, and the end of the batch refilters once for all of them; a `SEARCH_CHANGE` refilters when it is handled. An event sent from inside a handler runs in the next batch.
+- A batch emits one `stateChange` (if anything changed), however many events it holds. Registry events (`REGISTER_ITEM`, `UPDATE_ITEM`, `UNREGISTER_ITEM`, `ITEMS_LOADED`, `REGISTER_GROUP`, `UNREGISTER_GROUP`) only mark the results dirty; the batch refilters once for them at its end, or earlier when a later `SEARCH_CHANGE`, `NAVIGATE` or `ITEM_ACTIVATE` of the same batch needs current results. Each `SEARCH_CHANGE` refilters when it is handled. An event sent from inside a handler runs in the next batch.
 - The machine has no public `flush()`. A core-only caller reads the result by subscribing (`machine.subscribe(listener)` or `machine.subscribeState(listener)`), or by awaiting the next frame or microtask before `getState()`.
-- Disposing the machine drops events that have not run yet, so `using machine = createCommandMachine(...)` followed by `send()` at the top level of a module loses the event when the module finishes evaluating.
+- Disposing the machine drops events that have not run yet. `using` disposes at the end of its block, so a `send()` in a block that ends before the next frame or microtask (a module's top level, a synchronous function) is lost; await the commit inside the scope, as below, or keep the machine in a `const` that you dispose on teardown.
 
 ```ts
 import { createCommandMachine, itemId } from 'modern-cmdk';
@@ -413,7 +413,7 @@ const conflicts = registry.getConflicts();
 | `register(shortcut, itemId, handler)` | `Disposable` | Bind a shortcut — `using` auto-unregisters |
 | `unregister(shortcut)` | `void` | Remove every binding of that key (by shortcut string, normalized), whichever items hold them |
 | `unregisterByItem(itemId, keep?)` | `void` | Remove all bindings of an item. The optional `keep` shortcut string names one key whose binding stays (a re-bind then replaces it in place) |
-| `getBindings()` | `ReadonlyMap<string, binding>` | Snapshot of the winning binding of every key (normalized shortcut → the later registration) |
+| `getBindings()` | `ReadonlyMap<string, { readonly shortcut: ParsedShortcut; readonly itemId: ItemId; readonly handler: () => void }>` | Snapshot of the winning binding of every key (normalized shortcut → the later registration) |
 | `getConflicts()` | `ReadonlyMap<string, readonly ParsedShortcut[]>` | Normalized shortcut → the shortcuts of the bindings that share the key, earliest first |
 | `setEnabled(enabled)` | `void` | Turn global `keydown` handling on or off |
 | `[Symbol.dispose]()` | `void` | Remove the global `keydown` listener and clear all bindings |

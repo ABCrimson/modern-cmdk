@@ -580,7 +580,7 @@ Returns `UseCommandReturn`:
 
 ### `useRegisterItem(value, options?)`
 
-Register a command item imperatively — auto-deregisters on unmount. Returns the branded `ItemId`. Options: `keywords`, `groupId`, `shortcut`, `disabled`, `onSelect`, `data`, `forceId`. When `value`, `keywords`, `groupId`, `shortcut` or `disabled` change, the item is updated in place (an `UPDATE_ITEM` event: its position and the active item are kept) instead of being unregistered and registered again. `onSelect` and `data` are read through refs, so a new function or object per render does not update the item.
+Register a command item imperatively — auto-deregisters on unmount. Returns the branded `ItemId`. Options: `keywords`, `groupId`, `shortcut`, `disabled`, `onSelect`, `data`, `forceId`. When `value`, `keywords`, `groupId`, `shortcut` or `disabled` change, the item is updated in place (an `UPDATE_ITEM` event: its position is kept, and so is the active item while it is still listed and enabled) instead of being unregistered and registered again. `onSelect` and `data` are read through refs, so a new function or object per render does not update the item.
 
 ### `useRegisterGroup(heading?, options?)`
 
