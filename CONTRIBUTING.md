@@ -96,11 +96,10 @@ modern-cmdk/
           types.ts                Branded types, interfaces, state
           machine.ts              State machine factory (createCommandMachine)
           registry.ts             Item/group registry
-          telemetry.ts            Telemetry middleware hooks
-          es2026.d.ts             Ambient declaration for Navigator.scheduling.isInputPending (absent from lib.dom)
+          telemetry.ts            createTelemetryMiddleware: returns hooks the caller invokes (no telemetry option on the machine)
           search/                 Search engine subsystem
             types.ts              SearchEngine, SearchResult, ScorerFn
-            index.ts              Engine factory (incremental filtering)
+            index.ts              Engine factory (incremental filtering with the default scorer only)
             default-scorer.ts     Built-in fuzzy scorer
             fuzzy-scorer.ts       Async scorer
           frecency/               Frecency ranking subsystem
@@ -232,13 +231,23 @@ modern-cmdk/
   benchmarks/
     baseline.json                 Committed CI baseline numbers
     history/                      Committed CI benchmark results, one JSON per date and commit
+    size-history/                 Committed `pnpm size` readings, one JSON per release
+    fixtures.ts                   The item generator every bench shares (from apps/playground/src/bench/dataset.ts)
     search.bench.ts
     frecency.bench.ts
     filter-10k.bench.ts
     filter-100k.bench.ts
+    mount.bench.ts                Node mount series: the headless machine holding 1K and 10K registered items
+    registration.bench.ts         Registration complexity budget: per-item time at 10K against 1K
     wasm-search.bench.ts          Excluded from `vitest bench` (browser-target WASM)
+    browser/
+      run.ts                      The browser bench and the 10K mount gate (`node benchmarks/browser/run.ts`, Chromium)
+      stats.ts                    Its pure rules: the median of 7 runs and the gate verdict
+      results/                    Committed results of local runs, one JSON per manifest version and commit
     standalone/
-      compare-baseline.ts          The one CI benchmark harness (`pnpm bench:compare`)
+      compare-baseline.ts          The one CI benchmark harness (`pnpm bench:compare`; optional `--baseline <file>` and `--current <file>`)
+      compare-rules.ts             Its comparison rules
+      fixtures/                    Baseline and current-run JSON files for the rules' tests
   |
   .changeset/
     config.json                   Changesets config (public access, GitHub changelog)
@@ -246,8 +255,9 @@ modern-cmdk/
     workflows/
       ci.yml                     Lint & typecheck, build, tests, React lanes, built-package tests, coverage,
                                  Rust & WASM, e2e, docs, phantom claims (`scripts/check-claims.mjs`), links (lychee 0.24.2 over the shipped
-                                 Markdown, `lychee.toml`; `scripts/check-repo-links.ts` for the repository's own blob/tree/raw links), size, audit, benchmarks, package integrity, the consumer
-                                 apps, the Node 24 install, templates; "CI Summary" gates them
+                                 Markdown, `lychee.toml`; `scripts/check-repo-links.ts` for the repository's own blob/tree/raw links), size, audit, benchmarks, the browser bench
+                                 (Chromium, 10K mount gate), package integrity, the consumer apps, the Node 24 install, templates;
+                                 "CI Summary" gates all 19 of them
       release.yml                Wait for CI, then changeset version / publish
       docs.yml                   VitePress deploy
       codeql.yml                 CodeQL static analysis
@@ -477,22 +487,24 @@ Coverage is collected with the V8 provider over `packages/*/src`. Excluded (see 
 - Use `using` for machine/registry cleanup in tests:
 
 ```ts
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createCommandMachine, itemId } from 'modern-cmdk';
 
 describe('CommandMachine', () => {
-  it('should filter items by search query', () => {
+  it('should filter items by search query', async () => {
     using machine = createCommandMachine({
       items: [
         { id: itemId('copy'), value: 'Copy' },
         { id: itemId('paste'), value: 'Paste' },
       ],
     });
+    // No query yet: both items are listed, so the wait below cannot pass on the initial state
+    expect(machine.getState().filteredCount).toBe(2);
 
     machine.send({ type: 'SEARCH_CHANGE', query: 'cop' });
-    // Flush the scheduler
-    const state = machine.getState();
-    expect(state.filteredCount).toBe(1);
+    // send() is scheduled (requestAnimationFrame where it exists, a microtask otherwise), so the
+    // state still shows the previous result here; wait for the batch to commit
+    await vi.waitFor(() => expect(machine.getState().filteredCount).toBe(1));
   });
 });
 ```
@@ -577,7 +589,7 @@ Benchmark targets are the `target_ms` values in `benchmarks/baseline.json`; `pnp
 
 `pnpm bench:compare` runs the named operations 5 times and takes, per task, the median of the 5 runs' p50, p99 and rme. A median more than 5 % above its baseline warns (exit 1); more than 15 % above, or above its target, fails (exit 2, which also covers a harness error). CI is red only on two consecutive fails: after a first exit 2 the step re-runs `pnpm bench:compare` once; a passing re-run leaves a warning annotation, a second exit 2 an error. `benchmarks/baseline.json` is re-recorded from the `benchmark-results` artifact of the first green run after each Node pin bump. `pnpm bench:record benchmarks/history/<YYYY-MM-DD>-<sha7>.json` does the re-record from the committed copy of that artifact (it records the history file as `source`, takes `version` from the commit's manifest, carries each row's `target_ms` over and needs `--target <category>:<key>=<ms>` for a new row).
 
-`pnpm bench` (Vitest bench, the `perf` project) also times incremental filtering (`filter-10k`, `filter-100k`) and frecency, but those suites have no baseline entry and no target; `wasm-search.bench.ts` is excluded from the project until the engine initialises (W01).
+`pnpm bench` (Vitest bench, the `perf` project) also times incremental filtering (`filter-10k`, `filter-100k`), frecency, the headless machine's mount at 1K and 10K items (`mount.bench.ts`) and registration (`registration.bench.ts`), but those suites have no baseline entry and no target. One of them asserts: `registration.bench.ts` fails when the per-item time of a register or unregister path at 10K items exceeds `GROWTH_FACTOR` (4) times its per-item time at 1K, so CI's `pnpm bench --run` goes red on quadratic registration work (ledger P33). The mount gate itself is the browser bench (`node benchmarks/browser/run.ts`, CI job "Browser bench (Chromium, 10K mount gate)": the 10K mount median must be at most 50 ms). `wasm-search.bench.ts` is excluded from the project until the engine initialises (W01).
 
 ---
 
@@ -677,13 +689,17 @@ chore: bump Biome to 2.6.6
 
 5. **CI checks** -- The CI pipeline runs:
    - Lint and type-check (`pnpm lint`, `pnpm typecheck`)
+   - Phantom claims (`scripts/check-claims.mjs` against the wiki) and links (lychee over the shipped Markdown, then `pnpm check:repo-links`)
    - Unit tests (3 OS, on Node 26.4.0 and the `.nvmrc` Node), React lanes, built-package tests, coverage with the ratchet
    - Rust & WASM, E2E tests (Chromium), docs build and render tests
    - Bundle size check (`size-limit`)
    - Package integrity (`pnpm check:package --pack-dir`, the codemod tarball smoke `scripts/codemod-tarball-smoke.ts`, the notices check `scripts/third-party-notices.ts --check`, `pnpm check:licenses`, an SPDX SBOM artifact `sbom` made with syft v1.57.0), the Consumer app matrix (next-turbopack, next-webpack, vite) and a Node 24 engine-strict install of the packed tarball
    - Templates (scaffold `react-basic`, `react-dialog` and `react-full` from the packed tarballs, `tsc -b` and build each; `scripts/template-smoke.ts --template all`, timeout 10 minutes)
    - Benchmarks (`pnpm bench:compare` against `benchmarks/baseline.json`, then `pnpm bench --run`)
+   - Browser bench (Chromium, 10K mount gate): `node benchmarks/browser/run.ts` builds the playground, drives its `/bench` route at 1K and 10K items (1 warm-up and 7 measured runs each) and fails the job when the 10K mount median is above 50 ms or the harness errors (exit 1 or 2); the results JSON is uploaded as the `browser-bench-results` artifact
    - Security audit (`pnpm audit`)
+
+   "CI Summary" needs all 19 jobs of `ci.yml` and fails unless every one succeeded.
 
 6. **Review** -- The `main` ruleset requires a pull request (0 approvals), the "CI Summary" check must pass, and force-pushes and deletion of `main` are blocked.
 
@@ -715,7 +731,7 @@ State machine processes the event:
   - OPEN/CLOSE/TOGGLE -> update dialog state
     |
     v
-Machine emits 'stateChange' with new immutable state snapshot
+Machine emits 'stateChange' (at most once per batch) with the new immutable state snapshot
     |
     v
 useSyncExternalStore detects state change, triggers React re-render
