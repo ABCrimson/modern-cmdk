@@ -349,8 +349,9 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   }
 
   /**
-   * Calls the telemetry hooks for the batch just committed. The bookkeeping updates first, so a
-   * hook that throws never makes a later commit report the same thing again.
+   * Calls the telemetry hooks for the batch just committed. The option is read first and the
+   * bookkeeping updates next, so a hook that throws never makes a later commit report the same
+   * thing again, and an option that throws leaves the session unmarked.
    */
   function report(): void {
     if (disposed) return;
@@ -359,18 +360,19 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     const searched = search !== reportedSearch;
     const start = searchStart;
     const ids = selected;
+    const hooks = options.telemetry;
     reportedOpen = open;
     reportedSearch = search;
     searchStart = -1;
     selected = [];
-    const hooks = options.telemetry;
     if (turned && open) {
       openedAt = performance.now();
       hooks?.onPaletteOpen?.();
     }
     if (searched) hooks?.onSearchComplete?.(search, state.filteredCount, performance.now() - start);
     for (const id of ids) hooks?.onItemSelected?.(id, search, filteredIdIndex.get(id) ?? -1);
-    // A close turns the open state that an earlier report turned open, so openedAt is set
+    // A close turns an open that an earlier report marked and stamped (it reads the option first and
+    // stamps before its hook runs), so openedAt is set
     if (turned && !open) hooks?.onPaletteClose?.(performance.now() - openedAt);
   }
 
