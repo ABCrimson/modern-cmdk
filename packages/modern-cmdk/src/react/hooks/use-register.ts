@@ -103,7 +103,7 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
 
   // useLayoutEffect ensures registration happens before paint. A new AsyncItems batch is a dependency: the old
   // batch's cleanup unregistered this id, so the item sends its entry again after the new batch's ITEMS_LOADED.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: keywordsDep is a derived string for stable identity; options.keywords is read via ref-like pattern
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keywordsDep is a derived string for stable identity; options.keywords is read via ref-like pattern; batch re-sends the entry after a new AsyncItems batch
   useLayoutEffect(() => {
     const item: CommandItem = {
       id,
