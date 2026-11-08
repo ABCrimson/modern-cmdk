@@ -1,6 +1,6 @@
 {
   "name": "modern-cmdk-codemod",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Codemods that migrate cmdk code to modern-cmdk",
   "license": "MIT",
