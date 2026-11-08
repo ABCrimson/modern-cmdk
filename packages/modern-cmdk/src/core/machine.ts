@@ -15,7 +15,7 @@ import type {
   GroupId,
   ItemId,
 } from './types.js';
-import { createInitialState, DEFAULT_MACHINE_OPTIONS } from './types.js';
+import { createInitialState, DEFAULT_MACHINE_OPTIONS, UNGROUPED_GROUP_ID } from './types.js';
 import { TypedEmitter } from './utils/event-emitter.js';
 import { mapGroupBy } from './utils/group-by.js';
 import type { Scheduler } from './utils/scheduler.js';
@@ -170,10 +170,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     const priority = (g: GroupId): number => registry.getGroup(g)?.priority ?? 0;
     const groupedIds = new Map(
       [
-        ...mapGroupBy(
-          filteredIds,
-          (id) => registry.getItem(id)?.groupId ?? ('__ungrouped' as GroupId),
-        ),
+        ...mapGroupBy(filteredIds, (id) => registry.getItem(id)?.groupId ?? UNGROUPED_GROUP_ID),
       ].sort((x, y) => priority(x[0]) - priority(y[0])),
     );
 
