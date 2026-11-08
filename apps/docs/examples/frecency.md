@@ -69,19 +69,12 @@ Persist frecency data across browser sessions with `IdbFrecencyStorage`:
 ```tsx
 'use client';
 
-import type { FrecencyStorage } from 'modern-cmdk';
 import { IdbFrecencyStorage } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
 
-// One IndexedDB storage for the page. The machine disposes the storage it is given, and <Command>
-// disposes its machine when it unmounts, and once more before the remount under StrictMode in
-// development, so <Command> gets a view that forwards load and save and leaves disposal to this module.
-const idb = new IdbFrecencyStorage('my-app-db', 'frecency');
-const storage: FrecencyStorage = {
-  load: (namespace) => idb.load(namespace),
-  save: (namespace, data) => idb.save(namespace, data),
-  [Symbol.dispose]: () => {},
-};
+// One IndexedDB storage for the page. A storage you pass is yours to dispose, so it belongs to this
+// module and outlives every mount of <Command>.
+const storage = new IdbFrecencyStorage('my-app-db', 'frecency');
 
 export function PersistentFrecencyExample() {
   return (
@@ -161,12 +154,10 @@ import { createCommandMachine, itemId } from 'modern-cmdk';
 import type { CommandState } from 'modern-cmdk';
 import { IdbFrecencyStorage } from 'modern-cmdk';
 async function demo() {
-  const storage = new IdbFrecencyStorage();
-
-  // `await using` awaits the pending frecency save, then disposes the machine, which in turn
-  // disposes the storage it was given, so the storage needs no `using` of its own. (A storage declared
-  // with `await using` before a sync `using machine` is marked disposed before the machine's queued
-  // save runs, and that save is dropped.)
+  // Declarations dispose in reverse order: the machine first (its async dispose writes the last
+  // selection), then the storage, which is yours to dispose. With a sync `using machine` after the
+  // storage, the storage would be disposed before that save ran and the selection would be lost.
+  await using storage = new IdbFrecencyStorage();
   await using machine = createCommandMachine({
     items: [
       { id: itemId('settings'), value: 'Settings' },

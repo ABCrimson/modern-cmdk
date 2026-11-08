@@ -60,7 +60,7 @@ function Palette({ children }: { children: ReactNode }) {
 | `groups` | `CommandGroup[]` | `[]` | Pre-registered groups |
 | `filter` | `Function \| false` | built-in | Custom filter function `(item, query) => number \| false` (above 0 keeps the item, higher ranks first; `false`, `0` or a negative number excludes it), or `false` to disable. Not consulted when `search` is given |
 | `search` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM) |
-| `frecency` | `FrecencyOptions` | -- | Frecency ranking configuration; ranking is on only with `enabled: true` (`enabled` is optional, default `false`) |
+| `frecency` | `FrecencyOptions` | -- | Frecency ranking configuration; ranking is on only with `enabled: true` (`enabled` is optional, default `false`). A storage passed in `frecency.storage` is yours to dispose; the engine disposes only the storage it created |
 | `loop` | `boolean` | `true` | Whether keyboard navigation wraps |
 | `disabledItems` | `'show' \| 'hide'` | `'show'` | `'show'` renders disabled items (`aria-disabled`, `data-disabled`), skipped by navigation and selection under every query; `'hide'` drops them from the list. See [Disabled items](/api/command#disabled-items) |
 | `shortcutAction` | `'direct' \| 'select'` | `'direct'` | What an item's `shortcut` does: `'direct'` calls its `onSelect`; `'select'` dispatches `ITEM_SELECT` (frecency, the root `onSelect` and the disabled guard apply). A disabled item's shortcut never fires. 2.0 flips the default to `'select'` |

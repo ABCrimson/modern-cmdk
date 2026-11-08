@@ -45,20 +45,12 @@ By default, frecency data is stored in memory and resets on page reload. For per
 ```tsx
 'use client';
 
-import type { FrecencyStorage } from 'modern-cmdk';
 import { IdbFrecencyStorage } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
 
-// One IndexedDB storage for the page. The machine disposes the storage it is given, and <Command>
-// disposes its machine when it unmounts, and once more before the remount under StrictMode in
-// development, so the palette gets a view that forwards load and save and leaves disposal to
-// this module.
-const idb = new IdbFrecencyStorage();
-const storage: FrecencyStorage = {
-  load: (namespace) => idb.load(namespace),
-  save: (namespace, data) => idb.save(namespace, data),
-  [Symbol.dispose]: () => {},
-};
+// One IndexedDB storage for the page. A storage you pass is yours to dispose, so it belongs to this
+// module and outlives every mount of <Command>.
+const storage = new IdbFrecencyStorage();
 
 function PersistentFrecencyPalette() {
   return (
@@ -84,9 +76,9 @@ function PersistentFrecencyPalette() {
 }
 ```
 
-The machine owns the storage it is given: when the machine is disposed it saves any pending selection and then disposes the storage, and a disposed `IdbFrecencyStorage` loads empty data and ignores saves. React disposes the machine when `<Command>` unmounts, and under StrictMode in development it does so once before the remount that keeps running; a storage handed straight to `<Command>` is then already disposed when the palette is in use (every later `load()` is empty, every `save()` a no-op). So give `<Command>` a view like the one above, which forwards `load` and `save` and ignores the dispose; give a storage straight to `createCommandMachine`, which is created and disposed once, as shown below.
+A storage you pass in `frecency.storage` is yours to dispose; the engine disposes only a storage it created itself (the in-memory one it uses when you pass none). React disposes the machine when `<Command>` unmounts, and under StrictMode in development the double-mount disposes and recreates the machine; your storage survives that, so the palette in use keeps loading and saving. A disposed `IdbFrecencyStorage` loads empty data and ignores saves.
 
-Selections are saved 1000 ms after the last one (a trailing debounce), when the page becomes hidden (`visibilitychange`) or is hidden for good (`pagehide`), and when the machine is disposed. When the stored data has loaded, it is merged into the engine (frequencies add up, the later `lastUsed` wins, selections made while it loaded are kept) and a non-empty search ranks with it. A load that fails is reported once through `console.warn` and the palette keeps working with in-memory data.
+Selections are saved 1000 ms after the last one (a trailing debounce), when the page becomes hidden (`visibilitychange`) or is hidden for good (`pagehide`), and when the machine is disposed. When the stored data has loaded, it is merged into the engine (frequencies add up, the later `lastUsed` wins, selections made while it loaded are kept) and a non-empty search ranks with it. A save waits for the load in flight, so a selection made before the stored history arrives is merged into it, never written over it. A load that fails is reported once through `console.warn`; the palette keeps working with in-memory data, and that engine writes nothing for the rest of its life, so the stored history stays untouched. A load that never settles holds every save, and `await using` with it.
 
 `new IdbFrecencyStorage(dbName?, storeName?)` defaults to the database `'modern-cmdk'` and the store `'frecency'`; a second `storeName` in an existing database works.
 
@@ -111,18 +103,19 @@ async function withFrecencyStorage() {
   // The storage is disposed when the scope exits. It only marks itself disposed: afterwards
   // load() returns empty data and save() and delete() do nothing. It keeps no write queue and
   // no open transaction (each operation opens its own and closes its connection), so there is
-  // nothing to flush; the frecency engine awaits its own save before it disposes the storage.
+  // nothing in it to flush.
 }
 ```
 
-With the core state machine, let the machine own the storage:
+With the core state machine, the storage you pass is yours to dispose, so declare it with `await using` too:
 
 ```typescript
 import { createCommandMachine, IdbFrecencyStorage, itemId } from 'modern-cmdk';
 
 async function createMachineWithFrecency() {
-  const storage = new IdbFrecencyStorage();
-
+  // Declarations dispose in reverse order: the machine first, then the storage. The machine's async
+  // dispose writes the last selection to the storage, so the storage must still be live then.
+  await using storage = new IdbFrecencyStorage();
   await using machine = createCommandMachine({
     items: [{ id: itemId('save'), value: 'Save' }],
     frecency: {
@@ -132,9 +125,9 @@ async function createMachineWithFrecency() {
     },
   });
 
-  // Leaving the scope awaits the pending frecency save, then disposes the machine and, with it,
-  // the storage. A storage with its own `await using` declared before a sync `using machine`
-  // would be marked disposed before the machine's queued save runs, and drop it.
+  // Leaving the scope disposes the machine, which awaits the pending frecency save, and then the
+  // storage. Pair the storage with a sync `using machine` and the storage is disposed before the
+  // save runs, so the last selection is lost: keep `await using` for the machine.
 }
 ```
 
