@@ -23,7 +23,11 @@ export interface VirtualItem {
 export interface VirtualizerReturn {
   readonly virtualItems: readonly VirtualItem[];
   readonly totalSize: number;
-  readonly scrollToIndex: (index: number) => void;
+  /**
+   * Scrolls the element to a row. `align` is `'start'` (the default: the row meets the top edge) or
+   * `'nearest'` (a row in view does not scroll; a row above or below meets the nearest edge).
+   */
+  readonly scrollToIndex: (index: number, align?: 'start' | 'nearest' | undefined) => void;
   readonly measureElement: (element: HTMLElement | null) => void;
 }
 
@@ -110,28 +114,30 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     return items;
   }, [enabled, containerHeight, count, scrollOffset, overscan, estimateSize, getItemSize]);
 
-  // Scroll to a specific index — instant for keyboard nav responsiveness. 'nearest' alignment: a row that
-  // is in view does not scroll the element, a row above or below meets the viewport's top or bottom edge.
+  // Scroll to a specific index — instant for keyboard nav responsiveness. 'start' puts the row at the top;
+  // 'nearest' leaves a row that is in view alone and moves a row above or below just to the viewport's edge.
   const scrollToIndex = useCallback(
-    (index: number): void => {
+    (index: number, align: 'start' | 'nearest' | undefined = 'start'): void => {
       if (!scrollElement || !enabled) return;
 
       const clampedIndex = Math.min(index, count - 1);
-      // The rows start where the first child starts, after the element's padding and border
-      const viewTop = scrollElement.getBoundingClientRect().top + scrollElement.clientTop;
-      const origin =
-        (scrollElement.firstElementChild?.getBoundingClientRect().top ?? viewTop) -
-        viewTop +
-        scrollElement.scrollTop;
-      let top = origin;
+      let top = 0;
       for (let i = 0; i < clampedIndex; i++) top += getItemSize(i);
-      const bottom = top + getItemSize(clampedIndex);
 
-      if (top < scrollElement.scrollTop) {
-        scrollElement.scrollTo({ top, behavior: 'instant' });
-      } else if (bottom > scrollElement.scrollTop + scrollElement.clientHeight) {
-        scrollElement.scrollTo({ top: bottom - scrollElement.clientHeight, behavior: 'instant' });
+      if (align === 'nearest') {
+        // The rows start where the first child starts, after the element's padding and border
+        const viewTop = scrollElement.getBoundingClientRect().top + scrollElement.clientTop;
+        top +=
+          (scrollElement.firstElementChild?.getBoundingClientRect().top ?? viewTop) -
+          viewTop +
+          scrollElement.scrollTop;
+        const bottom = top + getItemSize(clampedIndex);
+        const viewBottom = scrollElement.scrollTop + scrollElement.clientHeight;
+        if (top >= scrollElement.scrollTop && bottom <= viewBottom) return;
+        if (top >= scrollElement.scrollTop) top = bottom - scrollElement.clientHeight;
       }
+
+      scrollElement.scrollTo({ top, behavior: 'instant' });
     },
     [scrollElement, enabled, count, getItemSize],
   );

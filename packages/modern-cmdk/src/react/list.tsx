@@ -124,7 +124,7 @@ export function CommandList({
       if (shouldVirtualize) {
         // Virtual mode: O(1) index lookup via machine's filteredIdIndex Map
         const idx = stable.machine.getFilteredIdIndex().get(stateCtx.state.activeId) ?? -1;
-        if (idx >= 0) virtualizer.scrollToIndex(idx);
+        if (idx >= 0) virtualizer.scrollToIndex(idx, 'nearest');
       } else {
         // DOM mode: scrollIntoView on the active element
         const el = scrollRef.current?.querySelector(
