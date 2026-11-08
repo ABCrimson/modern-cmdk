@@ -365,7 +365,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     }
     switch (event.type) {
       case 'SEARCH_CHANGE': {
-        const start = Date.now();
+        const start = performance.now();
         refilter(event.query);
         telemetry.onSearch(event.query, state.filteredCount, start);
         options.onSearchChange?.(event.query);
