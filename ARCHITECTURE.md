@@ -16,6 +16,7 @@ This document describes the technical architecture of `modern-cmdk` -- a ground-
 - [Search Pipeline](#search-pipeline)
   - [Default Scorer](#default-scorer)
   - [Plug Points: `search` and `filter`](#plug-points-search-and-filter)
+  - [Disabled Items](#disabled-items)
   - [Incremental Filtering](#incremental-filtering)
   - [Frecency Re-Ranking](#frecency-re-ranking)
   - [WASM Search Engine](#wasm-search-engine)
@@ -247,10 +248,10 @@ Node.js / SSR / test environment (no requestAnimationFrame):
 flowchart LR
     A["User types query"] --> B["SEARCH_CHANGE event"]
     B --> Q{"Empty query or<br/>filter === false?"}
-    Q -->|Yes| ALL["All non-disabled items,<br/>registration order"]
-    Q -->|No| C{"Incremental?"}
-    C -->|"Query extends previous"| D["Candidates: previous result set only"]
-    C -->|"New query"| E["Candidates: all items"]
+    Q -->|Yes| ALL["Every registered item,<br/>registration order"]
+    Q -->|No| C{"Default scorer and the lowercased<br/>query extends the previous one?"}
+    C -->|Yes| D["Candidates: previous result set only"]
+    C -->|"No, or a custom scorer<br/>or a filter function"| E["Candidates: all items"]
     D --> F["Score each candidate"]
     E --> F
     F --> G["Sort by score descending"]
@@ -259,9 +260,10 @@ flowchart LR
     I --> J["Re-sort by score + bonus"]
     H -->|No| K["Final result set"]
     J --> K
-    ALL --> L
-    K --> L["Update filteredIds + activeId"]
-    L --> M["Emit stateChange"]
+    ALL --> HD
+    K --> HD["disabledItems: 'hide' drops disabled items;<br/>the default 'show' keeps them (never active)"]
+    HD --> L["Update filteredIds + activeId<br/>(first enabled item)"]
+    L --> M["Emit stateChange<br/>(once per batch)"]
 ```
 
 ### Default Scorer
@@ -284,19 +286,30 @@ Two options on `createCommandMachine()` (and, through `CommandMachineOptions`, o
 | Option | Type | What it does |
 |---|---|---|
 | `search` | `SearchEngine` | **The pluggable engine.** Replaces the whole default engine: `index(items)`, `search(query, items)` returning an iterator of `SearchResult` (with match ranges), `remove(ids)`, `clear()`, `[Symbol.dispose]()`. The WASM engine implements this interface. |
-| `filter` | `(item, query) => number \| false`, or `false` | A **score override** for the default engine. Return a score, or `false` to drop the item. The machine wraps it as the engine's scorer with `matches: []`, so a `filter` cannot supply highlight ranges. `filter: false` skips searching altogether and lists every non-disabled item. |
+| `filter` | `(item, query) => number \| false`, or `false` | A **score override** for the default engine. Return a positive score to keep the item (higher ranks first); `false`, `0` or a negative number drops it. The machine wraps it as the engine's scorer with `matches: []`, so a `filter` cannot supply highlight ranges. `filter: false` skips searching altogether and lists every registered item in registration order (disabled ones too, unless `disabledItems: 'hide'`). |
 
-When `search` is given, it is used as is (`options.search ?? createSearchEngine(...)` in `machine.ts`), and a `filter` function is not consulted. The engine's `ScorerFn` type (`(query, item) => SearchResult | null`) is only the option type of `createSearchEngine({ scorer })`.
+When `search` is given, it is used as is (`options.search ?? createSearchEngine(...)` in `machine.ts`), and a `filter` function is not consulted. The engine's `ScorerFn` type (`(query, item) => SearchResult | null`) is only the option type of `createSearchEngine({ scorer })`. A `filter` function is such a scorer, so it is called for every item on every non-empty query (see [Incremental Filtering](#incremental-filtering)).
+
+### Disabled Items
+
+A disabled item (`disabled: true`) is searched and listed like any other item whenever it matches, and `filteredIds` holds it. What differs is what can reach it:
+
+- It renders with `aria-disabled` and `data-disabled` (`react/item.tsx`).
+- Navigation (`NAVIGATE`), `ITEM_ACTIVATE` and `ITEM_SELECT` skip it; `activeId` is the first enabled item, never a disabled one (`machine.ts`, `refilter`, `navigate`, `handleEvent`).
+- `disabledItems: 'hide'` drops it from `filteredIds` under every query, after the search, so an engine that searches its own index is covered too. The default is `'show'`.
+- Its keyboard shortcut is not bound (CE-09): the key stays free for the page and for other items. `UPDATE_ITEM` re-binds, so enabling an item binds its shortcut.
 
 ### Incremental Filtering
 
 **File:** `packages/modern-cmdk/src/core/search/index.ts`
 
-When the user appends characters to the search query (e.g., "cop" -> "copy"), the default engine only re-scores items that matched the previous query. This is tracked via:
-- `previousQuery: string` -- the last query string
+When the user appends characters to the search query (e.g., "cop" -> "copy"), the **default scorer** only re-scores items that matched the previous query. This is tracked via:
+- `previousQuery: string` -- the last query, lowercased
 - `previousResults: Set<ItemId>` -- the IDs that matched
 
-If the new query starts with the previous (non-empty) query, candidates are narrowed to `previousResults` before scoring. This reduces work from O(n) to O(k) where k << n. `index()` resets the cache, because newly indexed items may match the current query; `remove(ids)` prunes it with the `setDifference` helper.
+If the new query, lowercased, starts with the previous (non-empty) lowercased query, candidates are narrowed to `previousResults` before scoring, so "Cop" after "co" is incremental. This reduces work from O(n) to O(k) where k << n. `index()` resets the cache, because newly indexed items may match the current query; `remove(ids)` prunes it.
+
+The shortcut is for the default scorer only, because a custom scorer need not be monotone (a longer query may match an item a shorter one did not). A custom scorer -- a `filter` function, or `createSearchEngine({ scorer })` -- is called for every item on every non-empty query.
 
 In browser development builds the engine also registers itself with a `FinalizationRegistry` and warns if it is garbage collected without being disposed. This is a diagnostic only; it never affects delivery or pruning.
 
@@ -324,9 +337,17 @@ The bonus uses **bucketed recency weights**: the elapsed time since last use pic
 frecency_bonus = frequency_count * recency_weight
 ```
 
-The weights are the defaults in `DEFAULT_FRECENCY_DECAY` (`types.ts`) and can be overridden per bucket through `decayConfig`. Time elapsed is computed using `(now - lastUsed) / 3_600_000` for hours. `FrecencyEngine.recordSelection()` runs on `ITEM_SELECT`; the bonus is applied only on the non-empty-query path.
+The weights are the defaults in `DEFAULT_FRECENCY_DECAY` (`types.ts`) and can be overridden per bucket through `decayConfig`. Time elapsed is computed using `(now - lastUsed) / 3_600_000` for hours. `FrecencyEngine.recordSelection()` runs on `ITEM_SELECT`. Frecency re-ranks only non-empty queries with filtering on: the empty-query path and `filter: false` list the items in registration order without a bonus (`machine.ts`, `refilter`).
 
-`FrecencyEngine` implements `Disposable` and `AsyncDisposable`. `[Symbol.dispose]()` starts a best-effort `save` and logs a warning if it fails; `await using` (`[Symbol.asyncDispose]()`) awaits the save first.
+**Persistence.** Selections are saved to the storage:
+
+- 1000 ms after the last selection (a trailing debounce: each selection restarts the timer);
+- when the page becomes hidden (`visibilitychange`) and on `pagehide`;
+- on `flush()` and on dispose.
+
+`load()` merges the stored data into the engine instead of replacing it: frequencies add, and the later `lastUsed` wins. The machine loads in the background when frecency is enabled and refilters once the data has merged (only if a non-empty query is active with filtering on). A failed load or save is reported with `console.warn`, never thrown from the timer or the page listeners.
+
+`FrecencyEngine` implements `Disposable` and `AsyncDisposable`. `[Symbol.dispose]()` starts a best-effort `save` and logs a warning if it fails; `await using` (`[Symbol.asyncDispose]()`) awaits the save first. Either way the engine then disposes its storage, so the machine disposes a storage it is given: create the storage for each machine rather than sharing one.
 
 **Storage interface:**
 
@@ -406,7 +427,9 @@ Compares `KeyboardEvent` properties against `ParsedShortcut` fields. All four mo
 
 Global shortcut management:
 
-- `.register(shortcutStr, itemId, handler)` returns a `Disposable` -- enables `using` for automatic deregistration. Bindings are keyed by `normalized`, so registering the same shortcut twice replaces the first binding.
+- `.register(shortcutStr, itemId, handler)` returns a `Disposable` -- enables `using` for automatic deregistration. Each `normalized` key keeps a **stack** of bindings, one per item. The later binding wins the keydown, and disposing it restores the earlier one. The same item registering the same key again replaces its own binding in place; that is not a conflict.
+- `.unregister(shortcutStr)` removes every binding of the key. `.unregisterByItem(itemId, keep?)` removes the item's bindings on all other keys and keeps the one named by `keep` (the machine uses it to re-bind in place).
+- `.getBindings()` returns a snapshot of each key's winner, the later binding.
 - Attaches a single `document.addEventListener('keydown', ...)` listener, in the constructor.
 - Safe in SSR -- checks `typeof document` before attaching.
 - Implements `Disposable` -- removes the global listener and clears all bindings.
@@ -421,7 +444,7 @@ const grouped = mapGroupBy(shortcuts, (s) => s.normalized);
 return new Map(grouped.entries().filter(([, group]) => group.length > 1));
 ```
 
-`KeyboardShortcutRegistry.getConflicts()` feeds it the registered bindings. Since the registry itself is keyed by `normalized`, two bindings of one shortcut cannot coexist there; `detectConflicts` is most useful on a list of shortcuts collected elsewhere.
+`KeyboardShortcutRegistry.getConflicts()` feeds it every registered binding, and lists the keys with two or more bindings (normalized key -> the parsed shortcuts, earliest first). Because the registry keeps a stack per key, two items can bind one shortcut; the later one wins the keydown. A disabled item is never bound, so it never conflicts.
 
 ---
 
