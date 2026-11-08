@@ -194,4 +194,12 @@ describe('ci.yml', () => {
     // The re-run adds under a minute, so the job keeps its 10-minute timeout
     expect(block).toMatch(/^ {4}timeout-minutes: 10$/m);
   });
+
+  it("SEC-73: the Links step keeps lychee's report when lychee fails", () => {
+    const step = /^ {6}- name: Check links\n[\s\S]*?(?=^ {6}- )/m.exec(job('links'))?.[0] ?? '';
+    expect(step).not.toBe('');
+    // GitHub runs the step under bash -e: a bare failing lychee would end the script before the report is printed
+    expect(step).toContain('|| status=$?');
+    expect(step).toContain('cat "$report" >> "$GITHUB_STEP_SUMMARY"');
+  });
 });

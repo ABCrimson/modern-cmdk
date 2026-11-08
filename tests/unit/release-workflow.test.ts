@@ -434,3 +434,32 @@ describe('release.yml first-publish-smoke job (SEC-63)', () => {
     expect(attestJob).toContain("    if: needs.first-publish-tarball.outputs.state == 'first'");
   });
 });
+
+describe('release.yml and ci.yml seed the same syft (SEC-73)', () => {
+  it('SEC-73: the seeded syft version and digest agree across ci.yml and release.yml', () => {
+    const ci = readFileSync(resolve(root, '.github/workflows/ci.yml'), 'utf8');
+    // sbom-action reads syft from the tool cache folder named by its syft-version, so the version it names, the tag the seed step
+    // downloads and the digest the seed checks must be one release; five sbom-action sites name it (one in ci.yml, four here).
+    const versions = [...`${ci}\n${workflow}`.matchAll(/syft-version: (v\d+\.\d+\.\d+)/g)].map(
+      (m) => m[1],
+    );
+    expect(versions).toHaveLength(5);
+    const v = versions[0] ?? '';
+    expect(new Set(versions)).toEqual(new Set([v]));
+    const bare = v.slice(1);
+    const asset = `syft_${bare}_linux_amd64.tar.gz`;
+    const seed = new RegExp(
+      `repo: anchore/syft\\n\\s+tag: ${v}\\n\\s+asset: ${asset.replaceAll('.', '\\.')}\\n\\s+sha256: ([0-9a-f]{64})`,
+    ).exec(ci);
+    expect(seed, 'the ci.yml syft seed step').not.toBeNull();
+    const digest = seed?.[1] ?? '';
+    const checks = [
+      ...workflow.matchAll(/echo "([0-9a-f]{64}) {2}\$tarball" \| sha256sum --check/g),
+    ].map((m) => m[1]);
+    expect(checks).toEqual([digest, digest]);
+    const count = (needle: string): number => workflow.split(needle).length - 1;
+    expect(count(`gh release download ${v} -R anchore/syft -p ${asset}`)).toBe(2);
+    expect(count(`releases/download/${v}/${asset}`)).toBe(2);
+    expect(count(`RUNNER_TOOL_CACHE/syft/${bare}/x64"`)).toBe(2);
+  });
+});

@@ -472,9 +472,10 @@ jobs:
           mkdir sbom-src
           tar -xzf "$TGZ" -C sbom-src
           printf 'select-catalogers:\n  - "+javascript-package-cataloger"\n' > syft.yaml
-      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', '1.57.0'): the folder
-      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and otherwise downloads syft's install.sh and checksums file
-      # with no retry; a GitHub release-host HTTP 504 failed CI's SBOM scan on four of five attempts. This job checks out nothing, so
+      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', 'v1.57.0'), which semver.clean reduces to 1.57.0: the folder
+      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and otherwise downloads syft's install.sh through
+      # @actions/tool-cache (three attempts) and, on a cache miss, install.sh fetches the checksums file and the tarball with one curl
+      # each; a GitHub release-host HTTP 504 failed CI's SBOM scan on four of five attempts. This job checks out nothing, so
       # it cannot use the local install-release-binary action CI uses; it seeds the same folder from syft's release tarball (up to
       # eight attempts, gh release download then curl with retries, and a pinned sha256) and the action finds syft and skips its
       # download. The sha256 is the tarball's GitHub asset digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json
@@ -490,7 +491,7 @@ jobs:
           for attempt in 1 2 3 4 5 6 7 8; do
             rm -f "$tarball"
             gh release download v1.57.0 -R anchore/syft -p syft_1.57.0_linux_amd64.tar.gz -O "$tarball" --clobber && break
-            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 \
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 --connect-timeout 15 --max-time 120 \
               --output "$tarball" \
               https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz && break
             [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.0_linux_amd64.tar.gz from anchore/syft v1.57.0"; exit 1; }
@@ -634,9 +635,10 @@ jobs:
             tar -xzf "pack/$tarball" -C "sbom-src/$key"
             echo "$key=pack/$tarball" >> "$GITHUB_OUTPUT"
           done
-      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', '1.57.0'): the folder
-      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and otherwise downloads syft's install.sh and checksums file
-      # with no retry; a GitHub release-host HTTP 504 failed CI's SBOM scan on four of five attempts. This job checks out nothing, so
+      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', 'v1.57.0'), which semver.clean reduces to 1.57.0: the folder
+      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and otherwise downloads syft's install.sh through
+      # @actions/tool-cache (three attempts) and, on a cache miss, install.sh fetches the checksums file and the tarball with one curl
+      # each; a GitHub release-host HTTP 504 failed CI's SBOM scan on four of five attempts. This job checks out nothing, so
       # it cannot use the local install-release-binary action CI uses; it seeds the same folder from syft's release tarball (up to
       # eight attempts, gh release download then curl with retries, and a pinned sha256) and the action finds syft and skips its
       # download. The sha256 is the tarball's GitHub asset digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json
@@ -653,7 +655,7 @@ jobs:
           for attempt in 1 2 3 4 5 6 7 8; do
             rm -f "$tarball"
             gh release download v1.57.0 -R anchore/syft -p syft_1.57.0_linux_amd64.tar.gz -O "$tarball" --clobber && break
-            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 \
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 --connect-timeout 15 --max-time 120 \
               --output "$tarball" \
               https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz && break
             [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.0_linux_amd64.tar.gz from anchore/syft v1.57.0"; exit 1; }
