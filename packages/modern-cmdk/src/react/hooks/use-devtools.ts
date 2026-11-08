@@ -2,8 +2,8 @@
 // Development-only devtools bridge — gated on NODE_ENV, inert in production builds
 // Isolated declarations: explicit return types on all exports
 
-import { use, useEffect, useRef } from 'react';
-import { CommandStableContext, CommandStateContext } from '../context.js';
+import { use, useEffect } from 'react';
+import { CommandStableContext } from '../context.js';
 import { dev } from '../env.js';
 
 // Module-scoped declaration: no @types/node needed, nothing global leaks.
@@ -38,12 +38,15 @@ type DevtoolsRegistry = Map<string, DevtoolsState>;
  *   useCommandDevtools('main');
  *   return null;
  * }
+ *
+ * <Command label="Actions">
+ *   <DevtoolsBridge />
+ *   <Command.List>...</Command.List>
+ * </Command>
  * ```
  */
 export function useCommandDevtools(label: string = 'default'): void {
   const stable = use(CommandStableContext);
-  const stateCtx = use(CommandStateContext);
-  const stateRef = useRef<DevtoolsState | null>(null);
 
   useEffect(() => {
     // Guard inside effect body — hooks are always called (Rules of Hooks compliant)
@@ -51,10 +54,10 @@ export function useCommandDevtools(label: string = 'default'): void {
     // as production; the inline comparison makes a consumer bundler that defines NODE_ENV as "production" fold the
     // guard to `!dev || true` and drop the registry code below.
     if (!dev || process.env.NODE_ENV === 'production') return;
-    if (!stable || !stateCtx) return;
+    if (!stable) return;
 
     const update = (): void => {
-      const s = stateCtx.state;
+      const s = stable.machine.getState();
       const devState: DevtoolsState = {
         registeredItems: stable.machine.getRegistry().size,
         filteredItems: s.filteredIds.length,
@@ -65,7 +68,6 @@ export function useCommandDevtools(label: string = 'default'): void {
         open: s.open,
         loading: s.loading,
       } satisfies DevtoolsState;
-      stateRef.current = devState;
 
       const globals = globalThis as Record<string, unknown>;
       if (!globals[DEVTOOLS_KEY]) {
@@ -89,5 +91,5 @@ export function useCommandDevtools(label: string = 'default'): void {
         | undefined;
       instances?.delete(label);
     };
-  }, [stable, stateCtx, label]);
+  }, [stable, label]);
 }
