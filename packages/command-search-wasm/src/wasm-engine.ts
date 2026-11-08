@@ -63,21 +63,31 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
         syncIndex();
       },
 
+      /**
+       * Searches the passed `items` only: a result names an id among them, in the crate's order. The crate searches
+       * its whole index and sorts by score before it truncates to the limit, so the limit is the number of indexed
+       * items, not `items.length`: a smaller one would let matches outside `items` use up the slots and starve the
+       * ids that were passed.
+       */
       *search(query: string, items: readonly { id: ItemId }[]): Generator<SearchResult> {
         assertLive();
-        const results = instance.search(query, items.length) as Array<{
+        const candidates = new Set<string>(items.map((item) => item.id));
+        const results = instance.search(query, indexed.size) as Array<{
           id: string;
           score: number;
           matches: Array<[number, number]>;
         }>;
 
-        yield* results.values().map(
-          (result): SearchResult => ({
-            id: result.id as ItemId,
-            score: result.score,
-            matches: result.matches,
-          }),
-        );
+        yield* results
+          .values()
+          .filter((result) => candidates.has(result.id))
+          .map(
+            (result): SearchResult => ({
+              id: result.id as ItemId,
+              score: result.score,
+              matches: result.matches,
+            }),
+          );
       },
 
       /** Deletes only the given ids; every other indexed id stays searchable. */
