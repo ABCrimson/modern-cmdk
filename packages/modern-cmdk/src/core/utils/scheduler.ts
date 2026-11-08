@@ -8,6 +8,7 @@
  * Batched update scheduler that coalesces state updates into a single tick.
  * Uses requestAnimationFrame in browsers, queueMicrotask where requestAnimationFrame is absent (Node.js, SSR).
  * flush() synchronously applies the updates pending when it is called, in the order scheduled; one scheduled during the flush runs on the next frame or microtask.
+ * After dispose, schedule() queues nothing and flush() runs nothing.
  */
 export interface Scheduler extends Disposable {
   schedule(update: () => void): void;
@@ -26,6 +27,7 @@ export function createScheduler(): Scheduler {
   let pending: Array<() => void> = [];
   let rafId: number | null = null;
   let microtaskScheduled = false;
+  let disposed = false;
 
   function executeBatch(): void {
     // Snapshot and clear BEFORE execution — new updates during execution
@@ -51,6 +53,7 @@ export function createScheduler(): Scheduler {
   }
 
   function flush(): void {
+    if (disposed) return;
     // Cancel pending rAF to prevent stale callback from executing after flush
     if (rafId !== null) {
       cancelAnimationFrame(rafId);
@@ -62,6 +65,7 @@ export function createScheduler(): Scheduler {
 
   return {
     schedule(update: () => void): void {
+      if (disposed) return;
       pending.push(update);
 
       if (hasRAF) {
@@ -77,6 +81,7 @@ export function createScheduler(): Scheduler {
     flush,
 
     [Symbol.dispose](): void {
+      disposed = true;
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;

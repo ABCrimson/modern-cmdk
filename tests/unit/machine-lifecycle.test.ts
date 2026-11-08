@@ -2,13 +2,14 @@ import { setImmediate } from 'node:timers/promises';
 import type { CommandItem, FrecencyData, FrecencyStorage, ItemId } from 'modern-cmdk';
 import {
   createCommandMachine,
+  createScheduler,
   createSearchEngine,
   FrecencyEngine,
   itemId,
   KeyboardShortcutRegistry,
   MemoryFrecencyStorage,
 } from 'modern-cmdk';
-import { afterEach, beforeEach, expect, it, type Mock, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 // The scheduler batches on requestAnimationFrame (happy-dom has it). Each test fakes only the frame
 // clock: nextBatch() runs the pending batch synchronously. queueMicrotask and the other timers stay real.
@@ -437,4 +438,71 @@ it('a custom filter is read on every query, so a getter over a new function take
   nextBatch();
   expect(second).toHaveBeenCalled();
   expect(machine.getState().filteredCount).toBe(0);
+});
+
+describe('a disposed machine (CE-78, CE-113, CE-107)', () => {
+  it('CE-78: schedule() after dispose queues nothing', async () => {
+    using raf = vi.spyOn(globalThis, 'requestAnimationFrame');
+    using microtask = vi.spyOn(globalThis, 'queueMicrotask');
+    const scheduler = createScheduler();
+    scheduler[Symbol.dispose]();
+    raf.mockClear();
+    microtask.mockClear();
+    const update = vi.fn();
+
+    scheduler.schedule(update);
+    expect(raf).not.toHaveBeenCalled();
+    expect(microtask).not.toHaveBeenCalled();
+    nextBatch();
+    await Promise.resolve();
+    expect(update).not.toHaveBeenCalled();
+
+    scheduler.flush();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('CE-113: send() after dispose reduces nothing and calls no option callback', () => {
+    const onOpenChange = vi.fn();
+    const onSearchChange = vi.fn();
+    const onSelect = vi.fn();
+    const machine = createCommandMachine({ items: abc, onOpenChange, onSearchChange, onSelect });
+    machine[Symbol.dispose]();
+
+    machine.send({ type: 'OPEN' });
+    machine.send({ type: 'SEARCH_CHANGE', query: 'item' });
+    machine.send({ type: 'ITEM_SELECT', id: itemId('a') });
+    nextBatch();
+
+    expect(machine.getState().open).toBe(false);
+    expect(machine.getState().search).toBe('');
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(onSearchChange).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('CE-107: a listener that disposes the machine inside a batch leaves a machine that refuses later sends', () => {
+    const onOpenChange = vi.fn();
+    const machine = createCommandMachine({
+      items: abc,
+      onOpenChange,
+      onSearchChange: () => machine[Symbol.dispose](),
+    });
+    const stateChange = vi.fn();
+    machine.subscribeState(stateChange);
+
+    // One batch: SEARCH_CHANGE disposes the machine through its callback; OPEN is the rest of that batch.
+    machine.send({ type: 'SEARCH_CHANGE', query: 'item' });
+    machine.send({ type: 'OPEN' });
+    nextBatch();
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(machine.getState().open).toBe(false);
+
+    stateChange.mockClear();
+    machine.send({ type: 'OPEN' });
+    machine.send({ type: 'SEARCH_CHANGE', query: 'other' });
+    nextBatch();
+    expect(machine.getState().open).toBe(false);
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(stateChange).not.toHaveBeenCalled();
+  });
 });

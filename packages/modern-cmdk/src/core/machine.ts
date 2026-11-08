@@ -171,7 +171,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   let inHandler = false;
   let dirty = false;
   let changed = false;
-  let disposed = false; // set by dispose: a frecency load that settles later does nothing
+  let disposed = false; // set by dispose: a disposed machine refuses every event, and a frecency load that settles later does nothing
   let announce = false; // set after the initial filter: a controlled activeId then hears the refilter's candidate
 
   // Register initial items and groups
@@ -441,9 +441,12 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     },
 
     send(event: CommandEvent): void {
+      if (disposed) return; // a disposed machine reduces nothing and calls no option callback
       queued++;
       if (inHandler) nextQueued++;
       scheduler.schedule(() => {
+        // A listener may dispose the machine while a batch runs: the rest of that batch does not run
+        if (disposed) return;
         inHandler = true;
         try {
           handleEvent(event);
@@ -499,7 +502,6 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
 
     [Symbol.dispose](): void {
       disposed = true;
-      queued = nextQueued = 0; // the scheduler drops its pending closures
       scheduler[Symbol.dispose]();
       registry[Symbol.dispose]();
       if (ownsEngine) {
