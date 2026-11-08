@@ -242,11 +242,12 @@ modern-cmdk/
     wasm-search.bench.ts          Excluded from `vitest bench` (browser-target WASM)
     browser/
       run.ts                      The browser bench and its 10K mount tripwire (`node benchmarks/browser/run.ts`, Chromium)
-      stats.ts                    Its pure rules: the median of 7 runs and the gate verdict
+      stats.ts                    Its pure rules: the median of 7 runs, the gate verdict and the threshold (`MOUNT_GATE_THRESHOLD_MS`, 75 ms after D94)
       results/                    Committed results of local runs, one JSON per manifest version and commit
     standalone/
       compare-baseline.ts          The one CI benchmark harness (`pnpm bench:compare`; optional `--baseline <file>` and `--current <file>`)
       compare-rules.ts             Its comparison rules
+      record-baseline.ts           Re-records benchmarks/baseline.json from the benchmark-results artifact of the first green run after each Node pin bump (D93)
       fixtures/                    Baseline and current-run JSON files for the rules' tests
   |
   .changeset/
@@ -278,6 +279,7 @@ modern-cmdk/
 | `pnpm test:e2e` | Run E2E tests (Playwright 1.66 -- Chromium; set E2E_ENGINES=all to add Firefox and WebKit) |
 | `pnpm test:docs` | Playwright render tests for the built docs site (run `pnpm docs:build` first) |
 | `pnpm bench` | Run benchmarks (Vitest bench mode) |
+| `pnpm bench:record <results.json> --source <run url or id> [--out <file>] [--baseline <file>] [--target <category>:<key>=<ms>]` | Re-records `benchmarks/baseline.json` (or `--out`) from the `benchmark-results` artifact of the first green run after each Node pin bump (D93); exit 2 on a usage or input error, and nothing is written then |
 | `pnpm bench:compare` | Standalone benchmark harness: compares medians with `benchmarks/baseline.json` (exit 0 pass, 1 warning, 2 failure or harness error) |
 | `pnpm lint` | Check lint rules (Biome) |
 | `pnpm lint:fix` | Fix lint issues and write changes |
