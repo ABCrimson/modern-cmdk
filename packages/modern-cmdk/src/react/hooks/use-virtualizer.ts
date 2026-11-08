@@ -110,16 +110,28 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     return items;
   }, [enabled, containerHeight, count, scrollOffset, overscan, estimateSize, getItemSize]);
 
-  // Scroll to a specific index — instant for keyboard nav responsiveness
+  // Scroll to a specific index — instant for keyboard nav responsiveness. 'nearest' alignment: a row that
+  // is in view does not scroll the element, a row above or below meets the viewport's top or bottom edge.
   const scrollToIndex = useCallback(
     (index: number): void => {
       if (!scrollElement || !enabled) return;
 
       const clampedIndex = Math.min(index, count - 1);
-      let targetOffset = 0;
-      for (let i = 0; i < clampedIndex; i++) targetOffset += getItemSize(i);
+      // The rows start where the first child starts, after the element's padding and border
+      const viewTop = scrollElement.getBoundingClientRect().top + scrollElement.clientTop;
+      const origin =
+        (scrollElement.firstElementChild?.getBoundingClientRect().top ?? viewTop) -
+        viewTop +
+        scrollElement.scrollTop;
+      let top = origin;
+      for (let i = 0; i < clampedIndex; i++) top += getItemSize(i);
+      const bottom = top + getItemSize(clampedIndex);
 
-      scrollElement.scrollTo({ top: targetOffset, behavior: 'instant' });
+      if (top < scrollElement.scrollTop) {
+        scrollElement.scrollTo({ top, behavior: 'instant' });
+      } else if (bottom > scrollElement.scrollTop + scrollElement.clientHeight) {
+        scrollElement.scrollTo({ top: bottom - scrollElement.clientHeight, behavior: 'instant' });
+      }
     },
     [scrollElement, enabled, count, getItemSize],
   );
