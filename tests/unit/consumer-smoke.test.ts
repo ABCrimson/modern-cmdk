@@ -6,7 +6,14 @@
 // W4-04c: killTree must also end the served app (spawnServer) and a child that is not a group leader.
 
 import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as setTimeout_ } from 'node:timers/promises';
@@ -14,6 +21,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import type { CliOptions } from '../../scripts/consumer-smoke.ts';
 import {
   buildWorkspaceYaml,
+  CORE_COPY_LITERAL,
   compareToBaseline,
   countCoreCopies,
   countHydrationMessages,
@@ -138,6 +146,32 @@ describe('countCoreCopies()', () => {
   it('sums the occurrences of the literal across files', () => {
     expect(countCoreCopies(['xx LIT yy LIT', 'none', 'LIT'], 'LIT')).toBe(3);
     expect(countCoreCopies([], 'LIT')).toBe(0);
+  });
+});
+
+describe('CORE_COPY_LITERAL', () => {
+  // The consumer jobs count core copies in a client bundle by this string. A rename in the core
+  // must fail here, at `pnpm test`, not in CI (TUB-80: the frecency rework renamed the previous
+  // marker and every consumer job reported 0 copies).
+  const occurrences = (dir: string): number =>
+    readdirSync(dir, { recursive: true, withFileTypes: true })
+      .filter(
+        (entry) => entry.isFile() && /\.tsx?$/.test(entry.name) && !entry.name.includes('.test.'),
+      )
+      .reduce(
+        (total, entry) =>
+          total +
+          countCoreCopies(
+            [readFileSync(join(entry.parentPath, entry.name), 'utf8')],
+            CORE_COPY_LITERAL,
+          ),
+        0,
+      );
+
+  it('TUB-80: CORE_COPY_LITERAL occurs exactly once under src/core and never under src/react', () => {
+    const src = resolve(import.meta.dirname, '../../packages/modern-cmdk/src');
+    expect(occurrences(join(src, 'core'))).toBe(1);
+    expect(occurrences(join(src, 'react'))).toBe(0);
   });
 });
 

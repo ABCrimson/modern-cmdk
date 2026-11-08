@@ -33,13 +33,15 @@
 // committed lockfile would be stale on the next pack. Every install resolves fresh under the
 // supply-chain policy of the root pnpm-workspace.yaml.
 //
-// CORE COPY LITERAL: '[modern-cmdk] FrecencyEngine dispose flush failed:' (CORE_COPY_LITERAL).
-// It occurs exactly once in packages/modern-cmdk/src/core and never in src/react, proven with
-//   git grep -c "FrecencyEngine dispose flush failed" -- packages/modern-cmdk/src/core   (1 file, 1 line)
-//   git grep -c "FrecencyEngine dispose flush failed" -- packages/modern-cmdk/src/react  (no match)
-// A string literal survives minification in both bundlers, and createCommandMachine (which both
-// the adapter and the apps call) reaches FrecencyEngine, so each core copy in the client output
-// carries the literal once.
+// CORE COPY LITERAL: '[modern-cmdk] frecency load failed:' (CORE_COPY_LITERAL), the warning
+// createCommandMachine prints when the frecency load rejects (packages/modern-cmdk/src/core/machine.ts).
+// It occurs exactly once in packages/modern-cmdk/src/core and never in src/react; the unit test
+// 'TUB-80: CORE_COPY_LITERAL occurs exactly once under src/core and never under src/react' in
+// tests/unit/consumer-smoke.test.ts pins that, so a rename fails at `pnpm test` instead of in the
+// consumer CI jobs (on 2026-11-08 the previous marker, a FrecencyEngine warning, was renamed by the
+// frecency rework and every consumer job reported 0 copies). A string literal survives minification
+// in both bundlers, and createCommandMachine (which both the adapter and the apps call) is the core's
+// entry point, so each core copy in the client output carries the literal once.
 
 import type { ChildProcess, ChildProcessByStdio } from 'node:child_process';
 import { spawn, spawnSync } from 'node:child_process';
@@ -62,7 +64,7 @@ export const VARIANTS: readonly ['next-turbopack', 'next-webpack', 'vite'] = [
 ];
 export type Variant = (typeof VARIANTS)[number];
 
-export const CORE_COPY_LITERAL = '[modern-cmdk] FrecencyEngine dispose flush failed:';
+export const CORE_COPY_LITERAL = '[modern-cmdk] frecency load failed:';
 
 export interface ConsoleMessage {
   readonly type: string;
