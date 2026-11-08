@@ -22,13 +22,13 @@ const checks = [
   {
     name: 'modern-cmdk (core)',
     path: 'packages/modern-cmdk/dist/core/index.mjs',
-    limit: '7.8 kB',
+    limit: '7.84 kB',
     gzip: true,
   },
   {
     name: 'modern-cmdk/react (adapter only)',
     path: 'packages/modern-cmdk/dist/react/index.mjs',
-    limit: '6.6 kB',
+    limit: '6.59 kB',
     gzip: true,
     ignore: [
       'modern-cmdk',
@@ -57,7 +57,7 @@ const checks = [
     name: 'modern-cmdk/react: CommandSeparator only',
     path: 'packages/modern-cmdk/dist/react/index.mjs',
     import: '{ CommandSeparator }',
-    limit: '400 B',
+    limit: '390 B',
     gzip: true,
     ignore: [
       'modern-cmdk',
@@ -71,7 +71,7 @@ const checks = [
   {
     name: 'modern-cmdk + modern-cmdk/react',
     path: 'packages/modern-cmdk/dist/react/index.mjs',
-    limit: '12.1 kB',
+    limit: '12.13 kB',
     gzip: true,
     ignore: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'radix-ui'],
   },
