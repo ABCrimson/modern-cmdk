@@ -39,6 +39,17 @@ describe('SEC-52: createTelemetryMiddleware', () => {
     expect(onPaletteClose).toHaveBeenCalledExactlyOnceWith(250);
   });
 
+  it('CE-74: a wall-clock step does not change the reported session duration', () => {
+    const onPaletteClose = vi.fn();
+    const telemetry = createTelemetryMiddleware({ onPaletteClose });
+
+    telemetry.onOpen();
+    vi.advanceTimersByTime(250);
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() - 3_600_000); // the clock steps back an hour
+    telemetry.onClose();
+    expect(onPaletteClose).toHaveBeenCalledExactlyOnceWith(250);
+  });
+
   it('SEC-52: onClose without a preceding onOpen reports nothing', () => {
     const onPaletteClose = vi.fn();
     createTelemetryMiddleware({ onPaletteClose }).onClose();
