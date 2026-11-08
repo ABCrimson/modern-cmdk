@@ -13,5 +13,10 @@
       "modern-cmdk-search-wasm": ["../packages/command-search-wasm/src/index.ts"]
     }
   },
-  "include": ["*.bench.ts", "standalone/**/*.ts", "../packages/command-search-wasm/src/pkg.d.ts"]
+  "include": [
+    "*.bench.ts",
+    "browser/**/*.ts",
+    "standalone/**/*.ts",
+    "../packages/command-search-wasm/src/pkg.d.ts"
+  ]
 }
