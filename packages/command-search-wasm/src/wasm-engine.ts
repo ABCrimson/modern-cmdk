@@ -51,8 +51,10 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
     let stale = false;
     const syncIndex = (): void => {
       if (!stale) return;
-      stale = false;
+      // Cleared after the call: a payload the crate rejects (a lone surrogate fails its JSON parse) leaves the
+      // index stale, so the next search throws again instead of serving the previous index.
       instance.index_items(JSON.stringify(Array.from(indexed)));
+      stale = false;
     };
 
     const engine: WasmSearchEngine = {

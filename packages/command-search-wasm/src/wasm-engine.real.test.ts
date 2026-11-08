@@ -102,10 +102,11 @@ it.skipIf(skip)('W05: remove() drops only the given ids', async () => {
     entry('apricot', 'Apricot jam'),
     entry('banana', 'Banana bread'),
   ];
+  const ids = (query: string): string[] => [...engine.search(query, items)].map((r) => r.id);
   engine.index(items);
+  expect(ids('apple')).toEqual(['apple']);
   engine.remove(new Set([itemId('apple')]));
 
-  const ids = (query: string): string[] => [...engine.search(query, items)].map((r) => r.id);
   expect(ids('apple')).toEqual([]);
   expect(ids('apricot')).toEqual(['apricot']);
   expect(ids('banana')).toEqual(['banana']);
