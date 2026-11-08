@@ -10,6 +10,7 @@ import {
   shallowRef,
   watch,
 } from 'vue';
+import { HERO_AUTOPLAY_QUERIES } from '../components/palette/hero-items';
 import { usePageHref } from '../components/palette/href';
 import type { PaletteEntry } from '../components/palette/types';
 
@@ -61,8 +62,7 @@ export interface UsePaletteOptions {
 
 // Autoplay script (design-final.md §3.5): each word is typed at 90 ms a character as real SEARCH_CHANGE
 // events, held 1.2 s, NAVIGATE next, held 1 s, then cleared at 40 ms a character. The three words make
-// one cycle; at most two cycles run, then the palette rests on the empty query.
-const AUTOPLAY_WORDS = ['frec', 'short', 'dark'] as const;
+// one cycle (HERO_AUTOPLAY_QUERIES, palette/hero-items.ts); at most two cycles run, then the palette rests on the empty query.
 const AUTOPLAY_CYCLES = 2;
 const TYPE_MS = 90;
 const HOLD_TYPED_MS = 1200;
@@ -433,7 +433,7 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
   function buildScript(): AutoplayStep[] {
     const steps: AutoplayStep[] = [];
     for (let cycle = 0; cycle < AUTOPLAY_CYCLES; cycle++) {
-      for (const word of AUTOPLAY_WORDS) {
+      for (const word of HERO_AUTOPLAY_QUERIES) {
         for (let length = 1; length <= word.length; length++) {
           steps.push({
             wait: length === 1 ? WORD_GAP_MS : TYPE_MS,
