@@ -1,11 +1,12 @@
 // packages/modern-cmdk/src/react/command.tsx
 // <Command.Root> — compound component root, delegates setup to useCommandSetup
-// Keyboard navigation is attached to document — always active (not dialog-gated)
+// Keyboard navigation is attached to document by the root element's ref callback, and handles only events
+// that originate inside the root. The caller's div props and ref reach the root element.
 // Isolated declarations: explicit return types on all exports
 
 import type { CommandMachineOptions } from 'modern-cmdk';
-import type { ReactNode } from 'react';
-import { useEffect, useRef } from 'react';
+import type { ComponentPropsWithRef, ReactNode } from 'react';
+import { useCallback } from 'react';
 import { CommandActivity } from './activity.js';
 import { CommandAsyncItems } from './async-items.js';
 import { CommandBadge } from './badge.js';
@@ -23,7 +24,14 @@ import { CommandPage } from './page.js';
 import { CommandSeparator } from './separator.js';
 import { CommandShortcut } from './shortcut.js';
 
-export interface CommandRootProps extends CommandMachineOptions {
+/**
+ * The machine options plus every attribute and the `ref` of a `div`, which reach the root element. The
+ * root's own `data-command-root`, `data-command-state`, `role` and `aria-label` come after the caller's
+ * attributes and win; `label` is the accessible name (`aria-label`).
+ */
+export interface CommandRootProps
+  extends CommandMachineOptions,
+    Omit<ComponentPropsWithRef<'div'>, keyof CommandMachineOptions | 'children'> {
   readonly children?: ReactNode;
   readonly className?: string;
   readonly label?: string;
@@ -31,42 +39,84 @@ export interface CommandRootProps extends CommandMachineOptions {
 
 /** Root compound component that provides the command state machine context to all children. */
 function CommandRoot({
+  ref,
   children,
-  className,
   label = 'Command palette',
-  ...machineOptions
+  items,
+  groups,
+  filter,
+  open,
+  frecency,
+  searchEngine,
+  search,
+  onSelect,
+  onActiveChange,
+  activeId,
+  onOpenChange,
+  onSearchChange,
+  loop,
+  disabledItems,
+  shortcutAction,
+  virtualizeThreshold,
+  ...divProps
 }: CommandRootProps): ReactNode {
-  const rootRef = useRef<HTMLDivElement>(null);
+  // Every machine option except `label` (the root's own prop): a key CommandMachineOptions gains makes this
+  // literal fail to compile until it is destructured above, so it cannot fall into the div spread
+  const machineOptions = {
+    items,
+    groups,
+    filter,
+    open,
+    frecency,
+    searchEngine,
+    search,
+    onSelect,
+    onActiveChange,
+    activeId,
+    onOpenChange,
+    onSearchChange,
+    loop,
+    disabledItems,
+    shortcutAction,
+    virtualizeThreshold,
+  } satisfies Record<Exclude<keyof CommandMachineOptions, 'label'>, unknown>;
 
   const { state, handleKeyDown, stableContextValue, stateContextValue } = useCommandSetup(
     machineOptions,
     label,
   );
 
-  // Scoped keyboard listener — only handles events originating within the command root
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const scopedHandler = (e: KeyboardEvent): void => {
-      // Only intercept keys when focus is within the command root element
-      if (root.contains(e.target as Node)) {
-        handleKeyDown(e);
-      }
-    };
-    document.addEventListener('keydown', scopedHandler);
-    return (): void => {
-      document.removeEventListener('keydown', scopedHandler);
-    };
-  }, [handleKeyDown]);
+  // The root element's ref: attaches the scoped keyboard listener (only events originating within the root are
+  // handled) and forwards the element to the caller's `ref`. A ref callback may return a cleanup function
+  // (node_modules/@types/react/index.d.ts, `RefCallback`, line 176); React then skips the `null` call, so the cleanup
+  // detaches the listener and releases the caller's ref: an object ref gets `null`, a function ref runs its own cleanup or,
+  // returning none, is called with `null`.
+  const rootRef = useCallback(
+    (root: HTMLDivElement): (() => void) => {
+      const scopedHandler = (e: KeyboardEvent): void => {
+        if (root.contains(e.target as Node)) handleKeyDown(e);
+      };
+      document.addEventListener('keydown', scopedHandler);
+      const release = typeof ref === 'function' ? ref(root) : undefined;
+      if (ref && typeof ref === 'object') ref.current = root;
+      return (): void => {
+        document.removeEventListener('keydown', scopedHandler);
+        if (typeof release === 'function') release();
+        else if (typeof ref === 'function') ref(null);
+        else if (ref) ref.current = null;
+      };
+    },
+    [handleKeyDown, ref],
+  );
 
   return (
     <CommandStableContext value={stableContextValue}>
       <CommandStateContext value={stateContextValue}>
         <div
+          {...divProps}
           ref={rootRef}
           data-command-root=""
           data-command-state={state.open ? 'open' : 'closed'}
-          className={className}
           role="search"
           aria-label={label}
         >
