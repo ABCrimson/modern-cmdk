@@ -1,6 +1,5 @@
 ---
 "modern-cmdk-codemod": patch
-"modern-cmdk": patch
 ---
 
 `data-attrs` and discovery fixes: attribute names match case-insensitively, Tailwind `group-`, `peer-` and `in-` data variants are reported instead of guessed (on cmdk elements and on any other element of a file that references cmdk), and a submodule nested in a submodule no longer aborts a strict run. The deprecated `modern-cmdk` bin (`dist/codemod`) is built from the same source and carries the three `data-attrs` fixes; SEC-56 does not apply to it, because that program applies no `.gitignore`.
