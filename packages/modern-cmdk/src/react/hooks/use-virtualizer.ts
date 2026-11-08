@@ -126,15 +126,17 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
 
       if (align === 'nearest') {
         // The rows start where the first child starts, after the element's padding and border
-        const viewTop = scrollElement.getBoundingClientRect().top + scrollElement.clientTop;
+        const { scrollTop, clientHeight, clientTop } = scrollElement;
+        const viewTop = scrollElement.getBoundingClientRect().top + clientTop;
         top +=
           (scrollElement.firstElementChild?.getBoundingClientRect().top ?? viewTop) -
           viewTop +
-          scrollElement.scrollTop;
-        const bottom = top + getItemSize(clampedIndex);
-        const viewBottom = scrollElement.scrollTop + scrollElement.clientHeight;
-        if (top >= scrollElement.scrollTop && bottom <= viewBottom) return;
-        if (top >= scrollElement.scrollTop) top = bottom - scrollElement.clientHeight;
+          scrollTop;
+        const bottomAligned = top + getItemSize(clampedIndex) - clientHeight;
+        if (top >= scrollTop) {
+          if (bottomAligned <= scrollTop) return;
+          top = bottomAligned;
+        }
       }
 
       scrollElement.scrollTo({ top, behavior: 'instant' });
