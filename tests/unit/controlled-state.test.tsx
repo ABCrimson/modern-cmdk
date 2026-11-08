@@ -2,7 +2,7 @@
 // Options of <Command> that the caller owns or controls: its search engine, input text, active item and root element.
 
 import { cleanup, fireEvent, render } from '@testing-library/react';
-import type { CommandMachine } from 'modern-cmdk';
+import type { CommandMachine, ItemId } from 'modern-cmdk';
 import { createSearchEngine, itemId } from 'modern-cmdk';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
@@ -132,4 +132,70 @@ it('a controlled Input shows its value prop and reports changes through onValueC
   expect(ignored).toEqual(['typed']);
   expect(fixedInput.value).toBe('fixed');
   expect(ignoredHeld.machine?.getState().search).toBe('fixed');
+});
+
+/** A parent that holds `activeId` in state and applies every candidate (`apply`), or ignores them. */
+function Navigating({
+  held,
+  reported,
+  apply,
+}: {
+  readonly held: Held;
+  readonly reported: (string | null)[];
+  readonly apply: boolean;
+}): ReactNode {
+  const [active, setActive] = useState<ItemId | null>(itemId('a'));
+  return (
+    <Command
+      activeId={active}
+      onActiveChange={(id: ItemId | null): void => {
+        reported.push(id);
+        if (apply) setActive(id);
+      }}
+    >
+      <Probe held={held} />
+      <Command.Input />
+      <Command.List>
+        {['a', 'b', 'c'].map((value) => (
+          <Command.Item key={value} value={value} forceId={value}>
+            {value}
+          </Command.Item>
+        ))}
+      </Command.List>
+    </Command>
+  );
+}
+
+it('a controlled activeId holds while navigation reports the candidate', async () => {
+  const held: Held = {};
+  const reported: (string | null)[] = [];
+  const view = render(<Navigating held={held} reported={reported} apply={false} />);
+  const input = view.getByRole('combobox') as HTMLInputElement;
+  await settle();
+  expect(held.machine?.getState().activeId).toBe('a');
+  expect(input.getAttribute('aria-activedescendant')).toBe('a');
+
+  // A parent that ignores the candidate: the active item stays and the callback hears the candidate once
+  fireEvent.keyDown(input, { key: 'ArrowDown' });
+  await settle();
+  expect(reported).toEqual(['b']);
+  expect(held.machine?.getState().activeId).toBe('a');
+  expect(input.getAttribute('aria-activedescendant')).toBe('a');
+  view.unmount();
+
+  // A parent that applies the candidate moves the active item and hears no echo for its own prop
+  const applied: (string | null)[] = [];
+  const appliedHeld: Held = {};
+  const moving = render(<Navigating held={appliedHeld} reported={applied} apply={true} />);
+  const movingInput = moving.getByRole('combobox') as HTMLInputElement;
+  await settle();
+  fireEvent.keyDown(movingInput, { key: 'ArrowDown' });
+  await settle();
+  expect(applied).toEqual(['b']);
+  expect(appliedHeld.machine?.getState().activeId).toBe('b');
+  expect(movingInput.getAttribute('aria-activedescendant')).toBe('b');
+  fireEvent.keyDown(movingInput, { key: 'ArrowDown' });
+  await settle();
+  expect(applied).toEqual(['b', 'c']);
+  expect(appliedHeld.machine?.getState().activeId).toBe('c');
 });

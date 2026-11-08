@@ -147,13 +147,14 @@ export function useCommandSetup(
   // The first render's props and, in development, the init-only props already warned about
   const [first] = useState(options);
   const [warned] = useState(() => new Set<string>());
+  // The last value each deduped callback forwarded; the machine's options object and the `activeId` effect share it
+  const [fwd] = useState<Forwarded>(() => ({ search: '', activeId: null, open: false }));
 
   // The one render-time ref write: a null-guarded initializer, which react.dev/reference/react/useRef
   // sanctions because the result is always the same and the condition runs only during initialization
   const machineRef = useRef<CommandMachine | null>(null);
   if (machineRef.current === null) {
     // Construction calls no option callback; the memory takes the machine's state once it exists
-    const fwd: Forwarded = { search: '', activeId: null, open: false };
     const machine = createCommandMachine(createLiveOptions(latest, fwd));
     machine.suspend?.();
     Object.assign(fwd, machine.getState());
@@ -214,6 +215,17 @@ export function useCommandSetup(
       if (item) machine.send({ type: 'UPDATE_ITEM', item });
     }
   });
+
+  // A controlled `activeId`: the machine reads the option itself, but only `ITEM_ACTIVATE` of that id moves
+  // `state.activeId` (and it calls no callback for the caller's own value). The id is the last value the caller
+  // saw, so it becomes the memory the `onActiveChange` dedupe compares against. `null` has no event: the
+  // state keeps the previous id. This effect follows the one above, so `latest` already holds the new prop.
+  const { activeId } = options;
+  useLayoutEffect(() => {
+    if (activeId == null) return;
+    fwd.activeId = activeId;
+    machine.send({ type: 'ITEM_ACTIVATE', id: activeId });
+  }, [activeId, machine, fwd]);
 
   // Keyboard handler — useMemo (not useCallback) to memoize the factory result
   const handleKeyDown = useMemo(
