@@ -1,9 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect, open, test } from './fixtures';
 
 // Locator-first assertions throughout
 test.describe('Basic Command Palette', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await open(page, '/');
     // Wait for hydration using locator-first pattern
     await expect(page.locator('[data-command-root]')).toBeVisible();
   });
@@ -188,7 +188,7 @@ test.describe('Basic Command Palette', () => {
   // ---------- Dialog Mode ----------
 
   test('should open and close dialog with animation states', async ({ page }) => {
-    await page.goto('/dialog');
+    await open(page, '/dialog');
 
     // Dialog should initially be closed
     const dialog = page.locator('[data-command-dialog]');
@@ -213,7 +213,7 @@ test.describe('Basic Command Palette', () => {
   });
 
   test('should open dialog with Ctrl+K keyboard shortcut', async ({ page }) => {
-    await page.goto('/dialog');
+    await open(page, '/dialog');
 
     // Press Ctrl+K to open
     await page.keyboard.press('Control+k');
@@ -237,7 +237,7 @@ test.describe('Basic Command Palette', () => {
     expect(initialCount).toBeGreaterThan(0);
 
     // Navigate away and back: the settled page must render the same number of options
-    await page.goto('/');
+    await open(page, '/');
     await expect(page.locator('[data-command-root]')).toBeVisible();
     await expect(page.getByRole('option')).toHaveCount(initialCount);
   });
@@ -298,4 +298,24 @@ test.describe('Basic Command Palette', () => {
 
     expect(errors).toEqual([]);
   });
+});
+
+test('TEB-104: no e2e request leaves the playground origin', async ({
+  page,
+  offOriginRequests,
+}) => {
+  const routes = [
+    '/',
+    '/dialog',
+    '/virtualization?count=2000',
+    '/all-states',
+    '/rtl',
+    '/error-boundary',
+    '/dark-mode',
+    '/high-contrast',
+  ];
+  for (const route of routes) {
+    await open(page, route);
+  }
+  expect(offOriginRequests, 'requests left the playground origin').toEqual([]);
 });
