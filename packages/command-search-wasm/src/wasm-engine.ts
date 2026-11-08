@@ -32,7 +32,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
     const instance = new wasm.WasmSearchEngine();
 
     // wasm-bindgen `free()` must run once per instance: the machine disposes the engine it was given
-    // (ledger DG-35), so a consumer's own dispose (useEffect cleanup, `await using`) comes second.
+    // (ledger DG-35), so a consumer's own dispose (useEffect cleanup, `await using`) also runs, before or after it.
     let disposed = false;
     const assertLive = (): void => {
       if (disposed) throw new Error(DISPOSED_MESSAGE);
