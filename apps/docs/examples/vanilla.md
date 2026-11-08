@@ -35,8 +35,9 @@ async function cutFromActiveField(): Promise<void> {
   field.setRangeText('', start, end, 'end');
 }
 
-// Create machine with Explicit Resource Management
-using machine = createCommandMachine({
+// Create the machine and keep it for as long as the UI lives. A top-level `using machine`
+// would dispose it when this module finishes evaluating, before the first keystroke.
+const machine = createCommandMachine({
   items: [
     { id: itemId('copy'), value: 'Copy', onSelect: () => navigator.clipboard.writeText(getSelection()?.toString() ?? '') },
     { id: itemId('paste'), value: 'Paste', onSelect: () => navigator.clipboard.readText().then((text) => insertIntoActiveField(text)) },
@@ -49,15 +50,39 @@ using machine = createCommandMachine({
 const list = document.querySelector<HTMLDivElement>('#command-list')!;
 const input = document.querySelector<HTMLInputElement>('#command-input')!;
 
-machine.subscribe(() => {
-  const state = machine.getState();
-  list.innerHTML = state.filteredIds
-    .map((id) => {
-      const isActive = id === state.activeId;
-      return `<div role="option" aria-selected="${isActive}" data-command-item>${id}</div>`;
-    })
-    .join('');
-});
+// The markup the React adapter renders for an item: role="option", aria-selected, data-command-item
+function render(): void {
+  const { filteredIds, activeId } = machine.getState();
+  const registry = machine.getRegistry();
+  list.replaceChildren(
+    ...filteredIds.map((id) => {
+      const el = document.createElement('div');
+      el.id = `cmd-${id}`;
+      el.setAttribute('role', 'option');
+      el.setAttribute('aria-selected', String(id === activeId));
+      el.dataset.commandItem = '';
+      el.textContent = registry.getItem(id)?.value ?? id; // text, never markup
+      return el;
+    }),
+  );
+  if (activeId) input.setAttribute('aria-activedescendant', `cmd-${activeId}`);
+  else input.removeAttribute('aria-activedescendant');
+}
+
+// send() is batched: the machine applies events on the next animation frame, then emits one
+// stateChange. Render from the subscription, not from getState() right after send()
+const unsubscribe = machine.subscribe(render);
+render(); // the initial list: subscribe reports later changes only
+
+// Dispose on teardown (here, when the page goes away). Disposing drops events that have not run yet
+addEventListener(
+  'pagehide',
+  () => {
+    unsubscribe();
+    machine[Symbol.dispose]();
+  },
+  { once: true },
+);
 
 // Wire input
 input.addEventListener('input', () => {
@@ -80,7 +105,8 @@ document.addEventListener('keydown', (e) => {
 ```ts
 import { createCommandMachine, itemId } from 'modern-cmdk';
 
-using machine = createCommandMachine();
+// Not `using` at module level: that disposes the machine, and its shortcuts, once the module has run
+const machine = createCommandMachine();
 const keyboard = machine.getKeyboardRegistry();
 
 // Register global shortcuts
@@ -106,7 +132,12 @@ The core machine's `subscribe`/`getState` pattern maps directly to Svelte 5 rune
   let state = $state(machine.getState());
 
   $effect(() => {
-    return machine.subscribe(() => { state = machine.getState(); });
+    const unsubscribe = machine.subscribe(() => { state = machine.getState(); });
+    // The cleanup runs when the component is destroyed
+    return () => {
+      unsubscribe();
+      machine[Symbol.dispose]();
+    };
   });
 </script>
 
