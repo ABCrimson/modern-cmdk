@@ -2,12 +2,12 @@
 "modern-cmdk": minor
 ---
 
-The machine does what its documentation says: disabled items stay listed but can no longer be activated or selected, a custom `filter` that returns 0 or less excludes the item, shortcut conflicts are reported, frecency is saved and restored, and a batch of events commits one refilter and one `stateChange`. Some of these are visible changes at rest; each one is listed under its heading.
+The machine does what its documentation says: disabled items stay listed but can no longer be activated or selected, a custom `filter` that returns 0 or less excludes the item, shortcut conflicts are reported, frecency is saved and restored, and a batch of registry events commits one refilter, and every batch one `stateChange`. Some of these are visible changes at rest; each one is listed under its heading.
 
 **Disabled items**
 
 - Disabled items are rendered with `aria-disabled` and `data-disabled`, and are skipped in navigation, activation and selection under every query, not only for the empty one (D78; CE-05, ARCH-13, U-10). The new core option `disabledItems: 'hide'` drops them from `filteredIds` in every branch, including the ids a self-indexing `search` engine returns; the default `'show'` keeps them listed.
-- Visible differences at rest against 1.5.0, all consequences of listing disabled items: a `Command.Group` that holds only disabled items is shown; `Command.Empty` no longer appears when only disabled items match; `filteredCount`, the results announcement and the virtualization threshold (more than 100 matches on, 50 or fewer off) count disabled items. Use `disabledItems: 'hide'` for the 1.5.0 rendering.
+- Visible differences at rest against 1.5.0, all consequences of listing disabled items: a `Command.Group` that holds only disabled items is shown; `Command.Empty` no longer appears when only disabled items match; `filteredCount`, the results announcement and the virtualization threshold (more than 100 matches on, 50 or fewer off) count disabled items. Use `disabledItems: 'hide'` for the 1.5.0 rendering at the empty query; it also hides disabled items under a typed query, where 1.5.0 listed them.
 
 **Search**
 
@@ -15,7 +15,7 @@ The machine does what its documentation says: disabled items stay listed but can
 - The word-boundary tier scores in the open range (0.65, 0.7), by contiguity (`0.03 * squares / qLen^2`) and coverage (`0.02 * qLen / tLen`) on top of 0.65, where every hit scored a flat 0.7; the cover backtracks, and a separator in the query no longer hangs the scorer (CE-35, P19, CE-36, TUB-34). A query over 512 characters skips the word-boundary tier and falls to the fuzzy tier.
 - Incremental filtering (re-scoring only the previous matches when the lowercased query extends the previous one) runs with the default scorer only, and compares lowercased queries (CE-37, P06, CE-88, TUB-19, TUB-20). A custom scorer, and a `filter` function, rescan every item on every non-empty query. `SearchEngine.remove()` deletes from the incremental cache in place (P40).
 - `SearchResult.matches` are half-open ranges into the original `item.value`, also where lowercasing changes its length (`'İ'`) (P20). A match through `keywords` only reports `matches: []`; when the value matched as well, the value's own ranges stay (D92).
-- The scheduler no longer gates on `navigator.scheduling.isInputPending` or `scheduler.yield()`: a batch always runs whole, and `flush()` applies every pending update (ARCH-44, DAE-76, SPEC-32, CE-34, TUB-13).
+- The scheduler no longer gates on `navigator.scheduling.isInputPending` or `scheduler.yield()`: a batch always runs whole, and the `flush()` of a `createScheduler()` scheduler applies every update pending when it is called (the machine has no `flush()`) (ARCH-44, DAE-76, SPEC-32, CE-34, TUB-13).
 
 **Keyboard shortcuts**
 
@@ -40,7 +40,7 @@ The machine does what its documentation says: disabled items stay listed but can
 
 **Frecency**
 
-- `FrecencyEngine` saves 1000 ms after the last selection (`FLUSH_DELAY_MS`), when the page becomes hidden (`visibilitychange`) and on `pagehide`, besides `flush()` and dispose; before, it saved on dispose only, which a page reload never runs (CE-01, CE-15, DG-62, SEC-02, DG-08). It disposes its storage only after every save settled.
+- `FrecencyEngine` saves 1000 ms after the last selection (a trailing debounce), when the page becomes hidden (`visibilitychange`) and on `pagehide`, besides `flush()` and dispose; before, it saved only on `flush()` and dispose, and a page reload runs neither (CE-01, CE-15, DG-62, SEC-02, DG-08). It disposes its storage only after every save settled.
 - `load()` merges into what the engine holds: frequencies add and the later `lastUsed` wins.
 - The machine handles its frecency load: it re-ranks once the data is hydrated (for a non-empty query with the filter on, the one case frecency re-ranks) and reports a failed load through `console.warn` (CE-14, SEC-27).
 - `createCommandMachine()` returns `CommandMachine & AsyncDisposable`: `await using` or `[Symbol.asyncDispose]()` awaits the pending frecency save, then disposes like `[Symbol.dispose]()`; the `CommandMachine` interface is unchanged (CE-02).
@@ -66,4 +66,4 @@ The machine does what its documentation says: disabled items stay listed but can
 
 **Codemod bin (deprecated)**
 
-- The bundled codemod (`dist/codemod`, the deprecated `modern-cmdk` bin) carries the `data-attrs` fixes of `modern-cmdk-codemod` 1.0.1: attribute names match case-insensitively, with the rewrite writing the lowercase `data-command-*` name (DA-11); Tailwind `group-`, `peer-` and `in-` data variants, with their `-has-` and `not-` forms, are reported and left unchanged instead of rewritten to `group-data-active:`, on cmdk elements (DA-12) and in the class lists of other elements of a file that references cmdk (DA-13). The element's own `data-[selected=true]:` is still rewritten. The submodule discovery fix (SEC-56) does not apply to the bin, because that program applies no `.gitignore`. The bundled codemod is 3153027 B installed (1.5.0: 3150372 B).
+- The bundled codemod (`dist/codemod`, the deprecated `modern-cmdk` bin) carries the `data-attrs` fixes of `modern-cmdk-codemod` 1.0.1: attribute names match case-insensitively, with the rewrite writing the lowercase `data-command-*` name (DA-11); Tailwind `group-`, `peer-` and `in-` data variants, with their `-has-` and `not-` forms, are reported and left unchanged: on cmdk elements, instead of being rewritten to `group-data-active:` (DA-12), and in the class lists of other elements of a file that references cmdk, where they went unreported (DA-13). The element's own `data-[selected=true]:` is still rewritten. The submodule discovery fix (SEC-56) does not apply to the bin, because that program applies no `.gitignore`. The bundled codemod is 3153027 B installed (1.5.0: 3150372 B).
