@@ -245,6 +245,10 @@ html .vp-doc [class*="language-"] > span.lang {
 
 /* The copy button is a key cap; copied, it turns brand-soft with brand-1 text. brand-soft is translucent, so an opaque bg-alt sits under the tint. */
 html .vp-doc [class*="language-"] > button.copy {
+  /* The home install block's copy icon (InstallBlock.vue: two rounded squares, stroke 1.75), in the theme's own grey, so a copy button
+     reads the same everywhere; the theme's clipboard glyph (icons.css:102) is replaced for code blocks. */
+  --vp-icon-copy: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='rgba(128,128,128,1)' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.75'%3E%3Crect width='11' height='11' x='9' y='9' rx='2.5'/%3E%3Cpath d='M5.5 15H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5h8.5A1.5 1.5 0 0 1 15 5v.5'/%3E%3C/g%3E%3C/svg%3E");
+
   border-block-end-width: 2px;
 }
 
