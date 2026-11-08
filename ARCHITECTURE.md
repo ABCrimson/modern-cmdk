@@ -55,7 +55,7 @@ flowchart TB
         SM["State Machine<br/>Pure TS · Disposable<br/>Immutable snapshots"]
         SE["Search Engine<br/>SearchEngine plug point (option: search)<br/>Incremental filtering"]
         FE["Frecency Engine<br/>Bucketed recency weights<br/>Pluggable storage · Disposable"]
-        REG["Command Registry<br/>Items (Map) · Groups (Map) · Order (Array + Set)<br/>Set-operation helpers · Iterator Helpers · Disposable"]
+        REG["Command Registry<br/>Items (Map, insertion order) · Groups (Map) · Id Set<br/>Set-operation helpers · Iterator Helpers · Disposable"]
         KB["Keyboard Shortcut Registry<br/>Parser (split on +) · Matcher<br/>Conflicts (mapGroupBy helper) · Disposable"]
         SCH["Scheduler<br/>rAF batching (browser) · microtask (Node.js)<br/>Synchronous flush() · Disposable"]
         EM["Event Emitter<br/>Strong refs · Set per event<br/>Snapshot on emit · Disposable"]
@@ -100,7 +100,7 @@ Dependencies flow strictly downward. The core never imports from adapters or ext
 
 **File:** `packages/modern-cmdk/src/core/machine.ts`
 
-The state machine is the central coordinator. It implements the `CommandMachine` interface and the `Disposable` protocol.
+The state machine is the central coordinator. `createCommandMachine()` returns `CommandMachine & AsyncDisposable`: the `CommandMachine` interface (which extends `Disposable`) plus `[Symbol.asyncDispose]()`.
 
 ```
 createCommandMachine(options)
@@ -116,11 +116,21 @@ createCommandMachine(options)
 |  getRegistry()   -+-> Access the CommandRegistry
 |  getKeyboard..() -+-> Access the KeyboardShortcutRegistry
 |  getFilteredIdSet / getFilteredIdIndex -+-> O(1) membership / position lookup
-|  [Symbol.dispose] +-> Cleans up all subsystems
+|  [Symbol.dispose] +-> Cleans up all subsystems (drops queued events)
+|  [Symbol.asyncDispose] -> Awaits the pending frecency save, then disposes
 +------------------+
 ```
 
-`send()` never applies an event synchronously: it calls `scheduler.schedule(() => handleEvent(event))`, so state changes on the scheduler's next tick (a `requestAnimationFrame` in browsers, a microtask elsewhere).
+`send()` never applies an event synchronously: it schedules a closure that handles the event, so state changes on the scheduler's next tick (a `requestAnimationFrame` in browsers, a microtask elsewhere). `getState()` right after `send()` returns the previous state, and the machine has no public `flush()`: subscribe with `machine.subscribe`, or wait for the next frame or microtask.
+
+**One batch, one refilter, one `stateChange`.** The closures of one scheduler batch (see [Scheduler](#scheduler)) run in the order sent:
+
+- A registry event (`REGISTER_ITEM`, `UPDATE_ITEM`, `UNREGISTER_ITEM`, `ITEMS_LOADED`, `REGISTER_GROUP`, `UNREGISTER_GROUP`) only marks the results dirty.
+- `SEARCH_CHANGE` refilters when it runs. A `NAVIGATE` or `ITEM_ACTIVATE` that follows a registry event of the batch refilters first, so it reads up-to-date ids.
+- After the last event of the batch, `commit()` refilters once if the results are still dirty, then emits `stateChange` once, and only if the state changed.
+- `setOpen` emits `openChange` and then calls `onOpenChange`; `onSearchChange` runs inside the `SEARCH_CHANGE` handler. All of them therefore come before the batch's single `stateChange`.
+- An event sent from inside a handler runs in the next batch.
+- `[Symbol.dispose]()` drops the queued events, and `using` disposes at the end of its block. `await using` (`[Symbol.asyncDispose]()`) first awaits the pending frecency save, then disposes.
 
 **State shape** (`CommandState`):
 
@@ -129,7 +139,7 @@ createCommandMachine(options)
 | `search` | `string` | Current search query |
 | `activeId` | `ItemId \| null` | Currently highlighted item |
 | `filteredIds` | `readonly ItemId[]` | Ordered list of visible item IDs |
-| `groupedIds` | `ReadonlyMap<GroupId, readonly ItemId[]>` | Items bucketed by group |
+| `groupedIds` | `ReadonlyMap<GroupId, readonly ItemId[]>` | Items bucketed by group; the keys are in group-priority order (lower first), while `filteredIds` and `NAVIGATE` keep the search order |
 | `filteredCount` | `number` | Total visible items |
 | `loading` | `boolean` | Whether async items are loading |
 | `page` | `string` | Current page name |
@@ -142,18 +152,20 @@ createCommandMachine(options)
 | Event | Payload | Effect |
 |---|---|---|
 | `SEARCH_CHANGE` | `query: string` | Re-filters, re-ranks, updates `activeId`, calls `onSearchChange` |
-| `ITEM_SELECT` | `id: ItemId` | Fires the item's `onSelect`, records frecency, emits `select`, calls the machine's `onSelect` |
-| `ITEM_ACTIVATE` | `id: ItemId` | Sets `activeId` if item is in filtered set |
-| `NAVIGATE` | `direction: next \| prev \| first \| last` | Moves `activeId` with optional loop wrapping (`loop` defaults to `true`) |
+| `ITEM_SELECT` | `id: ItemId` | For a registered, enabled item: fires its `onSelect`, records frecency, emits `select`, calls the machine's `onSelect` |
+| `ITEM_ACTIVATE` | `id: ItemId` | Sets `activeId` only if the item is in the filtered set **and** enabled; calls `onActiveChange` |
+| `NAVIGATE` | `direction: next \| prev \| first \| last` | Moves `activeId` through the enabled filtered items (disabled ones are skipped), with optional loop wrapping (`loop` defaults to `true`) |
 | `PAGE_PUSH` | `page: string` | Pushes current page to stack, sets new page |
 | `PAGE_POP` | -- | Pops page stack |
 | `OPEN` / `CLOSE` / `TOGGLE` | -- | Controls dialog visibility |
-| `ITEMS_LOADED` | `items: readonly CommandItem[]` | Registers items from async source and indexes them |
-| `REGISTER_ITEM` | `item: CommandItem` | Registers a single item + its shortcut |
-| `UNREGISTER_ITEM` | `id: ItemId` | Removes item from registry, search index, keyboard registry |
+| `ITEMS_LOADED` | `items: readonly CommandItem[]` | Registers items from an async source, indexes them and binds their shortcuts; marks the results dirty |
+| `LOADING` | `source: string, pending: boolean` | Marks an async source as loading or done; `state.loading` is true while any source is pending |
+| `REGISTER_ITEM` | `item: CommandItem` | Registers a single item, indexes it and binds its shortcut; marks the results dirty |
+| `UPDATE_ITEM` | `item: CommandItem` | Upserts an item in place: its position is kept (an unknown id is appended), the search index is updated and its shortcut re-bound. It runs the same handler as `REGISTER_ITEM` |
+| `UNREGISTER_ITEM` | `id: ItemId` | Removes the item from the registry, the search index and the keyboard registry |
 | `REGISTER_GROUP` / `UNREGISTER_GROUP` | group/id | Manages group lifecycle |
 
-All state transitions produce a new immutable `CommandState` object (`setState` assigns a spread copy, then emits `stateChange`). The machine never mutates state in place.
+All state transitions produce a new immutable `CommandState` object (`setState` assigns a spread copy and marks the state changed; `commit()` emits `stateChange` once per batch). The machine never mutates state in place.
 
 ### Command Registry
 
@@ -166,10 +178,10 @@ CommandRegistry
   |
   +-- #items: Map<ItemId, CommandItem>      -- O(1) lookup
   +-- #groups: Map<GroupId, CommandGroup>    -- O(1) lookup
-  +-- #itemOrder: ItemId[]                  -- insertion order
-  +-- #itemOrderSet: Set<ItemId>            -- O(1) duplicate check
-  |
-  +-- registerItem(item) -> Disposable      -- `using` auto-deregister
+  +-- #itemOrderSet: Set<ItemId>            -- the id Set behind getItemIds() and the set operations
+  |                                         (order = the Map's insertion order; there is no
+  |                                          separate order array)
+  +-- registerItem(item) -> Disposable      -- `using` auto-deregister; an existing id is replaced in place
   +-- registerItems(items) -> Disposable    -- batch registration
   +-- unregisterItem(id) -> void            -- single removal
   +-- unregisterItems(ids: Set) -> void     -- bulk removal (setDifference on the order set)
@@ -187,7 +199,7 @@ CommandRegistry
 
 The set methods above delegate to the helper functions in `utils/set-ops.ts` (`setIntersection`, `setDifference`, `setUnion`, `setSymmetricDifference`, `setIsSubsetOf`, `setIsSupersetOf`, `setIsDisjointFrom`). They are plain loops, not the native `Set.prototype` methods (Set methods are ES2025), so the registry does not depend on a runtime that ships them. Because the registry calls every one of them, none of these helpers is removed by tree-shaking when the registry is in the bundle.
 
-`getItems()` and `getGroups()` memoize their results and invalidate the cache on the next mutation, so repeated reads inside a single filter pass are free. `getGroupedItems()` buckets with the `mapGroupBy` helper from `utils/group-by.ts` (the native `Map.groupBy` is ES2024; the helper is a plain loop) and then re-emits groups in `priority` order, appending an `__ungrouped` bucket last. `utils/group-by.ts` also exports `objectGroupBy`; nothing in `packages/*/src` calls it and the core entry does not export it.
+`getItems()` and `getGroups()` memoize their results and invalidate the cache on the next mutation, so repeated reads inside a single filter pass are free. `getGroupedItems()` buckets with the `mapGroupBy` helper from `utils/group-by.ts` (the native `Map.groupBy` is ES2024; the helper is a plain loop) and then re-emits groups in `priority` order, appending the ungrouped bucket (`UNGROUPED_GROUP_ID`, the string `__ungrouped`) last. `utils/group-by.ts` also exports `objectGroupBy`; nothing in `packages/*/src` calls it and the core entry does not export it.
 
 ### Event Emitter
 
@@ -198,6 +210,7 @@ The set methods above delegate to the helper functions in `utils/set-ops.ts` (`s
 - Storage is `Map<event, Set<listener>>`: one `Set` per event.
 - `.on(event, listener)` adds the listener to that event's `Set` and returns a `Disposable` whose `[Symbol.dispose]()` deletes it, so `using sub = emitter.on(...)` unsubscribes at block exit.
 - `.emit(event, data)` iterates a **snapshot** of the `Set` (`[...set]`), so a listener added or removed during an emit does not change the pass in progress.
+- **Listener isolation.** Each listener runs in a `try`/`catch`: a throwing listener no longer skips the later listeners, and its error is rethrown from a `queueMicrotask`, the way the [Scheduler](#scheduler) reports a failing update. `emit()` itself does not throw (CE-75).
 - `.has(event)` and `.listenerCount(event)` read `Set.size`.
 - `.removeAll()` and `[Symbol.dispose]()` clear every listener.
 - A listener that is never unsubscribed stays reachable from the emitter until the emitter is disposed. There is no pruning of dead listeners: the owner of a subscription is responsible for disposing it. The machine's own emitter is cleared when the machine is disposed.
