@@ -4,12 +4,12 @@
 // (unpack, scaffold, install, tsc, build) is exercised by running it, not here.
 
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as setTimeout_ } from 'node:timers/promises';
-import { describe, expect, it } from 'vitest';
-import { parseWorkspaceYaml } from '../../scripts/consumer-smoke.ts';
+import { afterAll, describe, expect, it, vi } from 'vitest';
+import { parseWorkspaceYaml, pnpmUsage } from '../../scripts/consumer-smoke.ts';
 import {
   buildTempWorkspaceYaml,
   discoverTarballs,
@@ -231,4 +231,67 @@ describe('killTree()', () => {
     if (!gone) child.kill('SIGKILL');
     expect(gone).toBe(true);
   }, 20_000);
+});
+
+// SEC-70: pnpm is spawned without a shell (CodeQL js/shell-command-injection-from-environment).
+// resolvePnpmEntry and spawnTarget (scripts/consumer-smoke.ts) are unit-tested in consumer-smoke.test.ts.
+describe('run() spawning pnpm', () => {
+  const scratch = mkdtempSync(join(tmpdir(), 'template-smoke-pnpm-'));
+  const dump = 'console.log(JSON.stringify(process.argv.slice(1)))';
+
+  afterAll((): void => {
+    rmSync(scratch, { recursive: true, force: true });
+  });
+
+  it('passes the arguments unchanged to an executable npm_execpath', async () => {
+    // A copy of this Node named like pnpm's standalone executable: an executable, not a script.
+    const exe = join(scratch, process.platform === 'win32' ? 'pnpm.exe' : 'pnpm');
+    copyFileSync(process.execPath, exe);
+    vi.stubEnv('npm_execpath', exe);
+    try {
+      const args = ['x y', '&calc', '"q"', 'C:/a b/c'];
+      const result = await run('pnpm', ['-e', dump, ...args], { cwd: scratch, timeoutMs: 20_000 });
+      expect(result.code).toBe(0);
+      expect(JSON.parse(result.output.trim())).toEqual(args);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('runs a .cjs npm_execpath through process.execPath with the entry first', async () => {
+    const entry = join(scratch, 'pnpm.cjs');
+    writeFileSync(entry, 'console.log(JSON.stringify(process.argv.slice(2)))\n');
+    vi.stubEnv('npm_execpath', entry);
+    try {
+      const result = await run('pnpm', ['install', '--x'], { cwd: scratch, timeoutMs: 20_000 });
+      expect(result.code).toBe(0);
+      expect(JSON.parse(result.output.trim())).toEqual(['install', '--x']);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+describe('template-smoke outside pnpm', () => {
+  const script = join(root, 'scripts', 'template-smoke.ts');
+
+  it('exits 2 and names the pnpm script when npm_execpath is absent', () => {
+    // Windows keeps the variable's original casing in a copy of process.env, so filter by lowercase name.
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(([name]) => name.toLowerCase() !== 'npm_execpath'),
+    );
+    const result = spawnSync(process.execPath, [script, '--pack-dir', tmpdir()], {
+      env,
+      encoding: 'utf8',
+    });
+    expect(result.status).toBe(2);
+    expect(result.stderr).toBe(pnpmUsage('template-smoke', 'test:templates'));
+    expect(result.stderr).toContain('pnpm test:templates');
+  });
+
+  it('has no shell spawn left in the source', () => {
+    const source = readFileSync(script, 'utf8');
+    expect(source).not.toMatch(/cmd\.exe/i);
+    expect(source).not.toMatch(/['"]\/d['"]\s*,\s*['"]\/c['"]/);
+  });
 });
