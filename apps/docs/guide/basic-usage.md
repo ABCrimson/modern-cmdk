@@ -86,7 +86,7 @@ export function CopyPalette() {
 
 ## Search Match Highlighting
 
-Use `Command.Highlight` to show where the search query matched. `ranges` takes half-open `[start, end)` tuples; the core's `scoreItem(query, item)` returns them as `matches`. They index the item's `value` unless one of its `keywords` scores higher, in which case they index that keyword; this item has no keywords, so they always index its label:
+Use `Command.Highlight` to show where the search query matched. `ranges` takes half-open `[start, end)` tuples; the core's `scoreItem(query, item)` returns them as `matches`. They always index the item's `value`. When a keyword outscores the value, `matches` keeps the value's own ranges if the value matched and is empty otherwise, because a keyword has no position in the label; this item has no keywords, so they always index its label:
 
 ```tsx
 import { itemId, scoreItem } from 'modern-cmdk';

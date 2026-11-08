@@ -27,8 +27,9 @@ function isWordSeparator(code: number): boolean {
  * which pre-caches lowercase and normalizes query once.
  *
  * `matches` are half-open ranges into `item.value` itself (UTF-16 indices of the original
- * string, even where lowercasing changes its length, as 'İ' → 'i̇' does). A match on a keyword
- * has no range on the value, so it reports `matches: []`.
+ * string, even where lowercasing changes its length, as 'İ' → 'i̇' does). A keyword has no
+ * position in the label: when a keyword outscores the value, `matches` keeps the value's own
+ * ranges if the value matched and is `[]` otherwise.
  */
 export function scoreItem(query: string, item: CommandItem): SearchResult | null {
   if (query === '') {
@@ -46,7 +47,8 @@ export function scoreItem(query: string, item: CommandItem): SearchResult | null
 
 /**
  * Internal fast path: called by search engine with pre-lowered query and targets.
- * Eliminates all toLowerCase() calls on the hot path. `value` is the original text, which the
+ * Eliminates the toLowerCase() calls on the hot path, except per character in toOriginalRanges
+ * when lowering changes the length of the value. `value` is the original text, which the
  * ranges index (see {@link scoreItem}).
  */
 export function scoreItemPreLowered(
@@ -71,7 +73,7 @@ export function scoreItemPreLowered(
       const result = scoreTarget(lowerQuery, lowerKeywords[i] as string);
       if (result !== null && result.score > bestScore) {
         bestScore = result.score;
-        bestMatches = [];
+        bestMatches ??= [];
         if (bestScore >= 1) break;
       }
     }
@@ -81,8 +83,8 @@ export function scoreItemPreLowered(
 }
 
 /**
- * Maps ranges found in `lowerValue` back onto `value`. Lowercasing changes the length of a few
- * characters ('İ' → 'i' + U+0307), which shifts every later index, so when the lengths differ each
+ * Maps ranges found in `lowerValue` back onto `value`. Under toLowerCase() only U+0130
+ * ('İ' → 'i' + U+0307) changes the UTF-16 length of any code point, which shifts every later index, so when the lengths differ each
  * lowered unit is traced to the character it came from: a range starts at the start of the
  * character holding its first unit and ends at the end of the character holding its last.
  * Equal lengths (the common case; the final sigma lowers to 'ς' or 'σ', both one unit) need no map.

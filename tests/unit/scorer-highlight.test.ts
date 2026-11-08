@@ -39,6 +39,25 @@ describe('Highlight ranges index the original value', () => {
     expect(marked(item.value, result?.matches ?? [])).toBe('ΜΕΝ');
   });
 
+  it("P20: a keyword win keeps the value's own ranges when the value matched too", () => {
+    const item = { id: itemId('both'), value: 'Open File', keywords: ['file'] };
+    const result = scoreItem('file', item);
+    expect(result?.score).toBe(1);
+    expect(result?.matches).toEqual([[5, 9]]);
+  });
+
+  it('P20: two length-changing characters before the match offset it twice', () => {
+    const item = { id: itemId('two'), value: 'İzmir İstanbul' };
+    const result = scoreItem('stan', item);
+    expect(result?.matches).toEqual([[7, 11]]);
+  });
+
+  it('P20: a final sigma at the end of the matched span keeps the slice', () => {
+    const item = { id: itemId('sigma2'), value: 'ΟΔΥΣΣΕΥΣ' };
+    const result = scoreItem('ευς', item);
+    expect(marked(item.value, result?.matches ?? [])).toBe('ΕΥΣ');
+  });
+
   it('P20: a keyword-only match has no value ranges', () => {
     const item = { id: itemId('kw'), value: 'Settings', keywords: ['preferences'] };
     const result = scoreItem('pref', item);
