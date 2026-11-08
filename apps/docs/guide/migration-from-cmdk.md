@@ -230,15 +230,15 @@ cmdk infers a missing `value` from the item's text. `Command.Item` requires `val
 
 ### 3. The Root Has No `value` or `onValueChange`
 
-cmdk's root takes a controlled `value` and `onValueChange` for the active item. `Command` takes the options of `CommandMachineOptions` (`packages/modern-cmdk/src/core/types.ts:166-193`) and has neither; observe the active item with `onActiveChange`, which receives the item id or `null`.
+cmdk's root takes a controlled `value` and `onValueChange` for the active item. `Command` takes the options of `CommandMachineOptions` (`packages/modern-cmdk/src/core/types.ts:180-226`) and has neither; observe the active item with `onActiveChange`, which receives the item id or `null`.
 
 ### 4. `vimBindings` and `disablePointerSelection` Are Gone
 
-Neither prop exists on `CommandMachineOptions` (`core/types.ts:166-193`). Remove them.
+Neither prop exists on `CommandMachineOptions` (`core/types.ts:180-226`). Remove them.
 
 ### 5. `filter` Replaces `shouldFilter`, and Its Signature Differs
 
-`shouldFilter={false}` becomes `filter={false}`; `should-filter` does this. `filter` also takes a function, and its signature is not cmdk's `(value, search, keywords) => number`. It is `(item, query) => number | false` (`core/types.ts:172`): it receives the whole `CommandItem`, returns a score (higher is better), and `false` excludes the item. `should-filter` wraps a cmdk filter function in an adapter on cmdk-bound elements; rewrite it by hand if you want it to use the item directly.
+`shouldFilter={false}` becomes `filter={false}`; `should-filter` does this. `filter` also takes a function, and its signature is not cmdk's `(value, search, keywords) => number`. It is `(item, query) => number | false` (`core/types.ts:189`): it receives the whole `CommandItem`, returns a score (higher is better), and `false`, `0` or a negative score excludes the item (`core/machine.ts:73-87`). `should-filter` wraps a cmdk filter function in an adapter on cmdk-bound elements; rewrite it by hand if you want it to use the item directly.
 
 ::: code-group
 ```tsx fragment [Before (cmdk)]
