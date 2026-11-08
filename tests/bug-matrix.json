@@ -1033,10 +1033,5 @@
     "id": "PGX-15",
     "test": "tests/e2e/accessibility.spec.ts::forced-colors: the High Contrast demo shows its disabled item at rest, painted in GrayText",
     "status": "covered"
-  },
-  {
-    "id": "CE-113",
-    "test": null,
-    "status": "pending"
   }
 ]
