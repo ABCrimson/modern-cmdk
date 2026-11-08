@@ -56,8 +56,13 @@ export interface CommandMachine extends Disposable {
  *
  * @example
  * ```ts
- * using machine = createCommandMachine({ items, loop: true });
- * machine.subscribe(() => console.log(machine.getState()));
+ * const machine = createCommandMachine({ items, loop: true });
+ * const unsubscribe = machine.subscribe(() => console.log(machine.getState()));
+ * machine.send({ type: 'SEARCH_CHANGE', query: 'app' }); // handled in the next frame
+ *
+ * // on teardown
+ * unsubscribe();
+ * machine[Symbol.dispose]();
  * ```
  */
 export function createCommandMachine(
