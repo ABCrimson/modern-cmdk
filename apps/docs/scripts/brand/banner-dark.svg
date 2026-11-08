@@ -29,10 +29,12 @@
     <rect x="123.8" y="18.36" width="2" height="27.28" rx="1" fill="#fb7475"/>
     <path d="M0 64H496" stroke="#242a42" stroke-width="1.5"/>
     <text class="s" x="28" y="90" font-size="12" font-weight="600" letter-spacing="1.6" fill="#9297ab">TOPICS</text>
-    <rect x="12" y="105" width="472" height="58" rx="12" fill="#fb7475" fill-opacity="0.14"/>
-    <rect x="12" y="118" width="3" height="32" rx="1.5" fill="#dc2626"/>
-    <text class="s" x="34" y="141.48" font-size="22" font-weight="600" fill="#eaecf5"><tspan fill="#fb7475" style="text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px">Frec</tspan><tspan>ency ranking</tspan></text>
-    <text class="s" x="34" y="205.48" font-size="22" font-weight="500" fill="#eaecf5"><tspan fill="#fb7475">Frec</tspan><tspan>ency example</tspan></text>
+    <rect x="12" y="98" width="472" height="48" rx="12" fill="#fb7475" fill-opacity="0.14"/>
+    <rect x="12" y="106" width="3" height="32" rx="1.5" fill="#dc2626"/>
+    <text class="s" x="34" y="129.48" font-size="22" font-weight="600" fill="#eaecf5"><tspan fill="#fb7475" style="text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px">Frec</tspan><tspan>ency ranking</tspan></text>
+    <text class="s" x="28" y="168" font-size="12" font-weight="600" letter-spacing="1.6" fill="#9297ab">GO TO</text>
+    <text class="s" x="34" y="201.48" font-size="22" font-weight="500" fill="#eaecf5"><tspan>Core API</tspan></text>
+    <text class="s" x="34" y="245.48" font-size="22" font-weight="500" fill="#eaecf5"><tspan>Spotlight recipe</tspan></text>
     <path d="M0 264H496" stroke="#242a42" stroke-width="1.5"/>
     <rect x="28" y="278" width="30" height="28" rx="7" fill="#141935" stroke="#5b627b" stroke-opacity=".6" stroke-width="1.5"/><text class="m" x="43" y="297" font-size="14" text-anchor="middle" fill="#b5bacb">↑</text><rect x="64" y="278" width="30" height="28" rx="7" fill="#141935" stroke="#5b627b" stroke-opacity=".6" stroke-width="1.5"/><text class="m" x="79" y="297" font-size="14" text-anchor="middle" fill="#b5bacb">↓</text><text class="s" x="104" y="297.5" font-size="15" fill="#9297ab">move</text>
     <rect x="168" y="278" width="58" height="28" rx="7" fill="#141935" stroke="#5b627b" stroke-opacity=".6" stroke-width="1.5"/><text class="m" x="197" y="297" font-size="14" text-anchor="middle" fill="#b5bacb">Enter</text><text class="s" x="234" y="297.5" font-size="15" fill="#9297ab">open</text>
