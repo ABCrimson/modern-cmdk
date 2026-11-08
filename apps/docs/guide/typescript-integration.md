@@ -52,6 +52,31 @@ const items: readonly CommandItem[] = [{ id: itemId('copy'), value: 'Copy' }];
 }
 ```
 
+`dispose()` is terminal: afterwards `send()` reduces nothing and calls no callback. `suspend()` and `resume()` are the reversible pause: `suspend()` releases the machine's global holds (the shortcut `keydown` listener, the frecency `pagehide` and `visibilitychange` listeners, scheduled work) and flushes a pending frecency save, and `resume()` takes them back; both are idempotent and do nothing on a disposed machine (`packages/modern-cmdk/src/core/machine.ts:51-78`).
+
+The machine disposes a search engine only when it created it, that is when neither `searchEngine` nor `search` is passed. An engine you create is yours to dispose, and it survives the machine's dispose, suspend and resume:
+
+```ts
+import { createCommandMachine, createSearchEngine, itemId } from 'modern-cmdk';
+import type { CommandItem } from 'modern-cmdk';
+
+const items: readonly CommandItem[] = [{ id: itemId('copy'), value: 'Copy' }];
+
+{
+  using engine = createSearchEngine();
+  using machine = createCommandMachine({ items, searchEngine: engine });
+  // `using` disposes in reverse order: the machine first, then the engine you created
+}
+```
+
+## Optional Props Accept `undefined`
+
+The optional props of the React components and the optional machine options are declared `?: T | undefined`, so a project with `exactOptionalPropertyTypes` can forward a `string | undefined` to them (`packages/modern-cmdk/src/react/item.tsx:25`, `packages/modern-cmdk/src/core/types.ts:183`).
+
+## Deprecated Types
+
+`CommandPageId` is the type `string`. It is deprecated, removed in 2.0: write `string` (`packages/modern-cmdk/src/react/page.tsx:8-13`).
+
 ## Readonly State
 
 All state objects are deeply immutable at the type level:
