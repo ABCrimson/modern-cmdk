@@ -102,6 +102,12 @@
       "ships": false,
       "platforms": ["win32"],
       "reason": "The Windows platform binary of sharp, which bundles libvips (@img/sharp-win32-x64 0.35.5); an optional platform binary of sharp, an optional dependency of next 16.5.0-canary.40, a root devDependency since 2026-11-04 for the docs-samples gate (TEB-84); not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+    },
+    {
+      "package": "@fontsource-variable/*",
+      "license": "OFL-1.1",
+      "ships": false,
+      "reason": "fonts of the private playground app; no published tarball carries them"
     }
   ],
   "licenseFiles": [
