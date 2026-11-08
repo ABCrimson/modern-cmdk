@@ -513,6 +513,13 @@ describe('docs rows of 1.7.0', () => {
   it('DAE-38: api/command-react.md Dialog open row states the controlled contract and a closed uncontrolled start', () => {
     const dialog: string = sectionOf(`${DOCS}api/command-react.md`, /^`<Command\.Dialog>`$/);
     const row: string = tableRow(dialog, /^\| `open` \|/);
+    const changeRow: string = tableRow(dialog, /^\| `onOpenChange` \|/);
+    for (const s of sentences(changeRow).filter((s) => /\buncontrolled\b/i.test(s))) {
+      expect(
+        s,
+        'DAE-38/RA-85: an uncontrolled report in the onOpenChange row is tied to a dialog that dropped its open prop',
+      ).toMatch(/\bdrops?\b[^.]*`open`|`open`[^.]*\b(?:dropped|removed)\b/);
+    }
     expect(row, 'DAE-38: a request calls onOpenChange once and the parent decides').toContain(
       'onOpenChange(requested)',
     );
