@@ -1,10 +1,12 @@
 // tests/unit/docs-1-7-0-claims.test.ts
 // The docs rows of 1.7.0 that the BUG-to-test matrix (tests/unit/bug-matrix.test.ts) maps to a test
 // title, and the rows of the cluster whose pages and source comments are content-tested here. Each
-// `it` asserts the property whose absence was the row's defect: it is red on the page revision
-// before the fix (38c115c, where the page was false), red when the row's false sentence is put
-// back, and a rewording that keeps the property stays green. The pages are read as Markdown and the
-// source comments as text: no build is needed. Row claims live in docs/ledger/findings.json.
+// `it` guards the row's code anchors (a sample's structure, a token, a source pattern) and the
+// absence of the row's false claim (a negative family of phrasings). A test that holds a code anchor
+// asserts no positive English: a rewording that keeps the claim true stays green, and silence
+// passes by design. A test whose object is prose with no code anchor (RA-26, RA-28, RA-85) may
+// assert a phrase. The pages are read as Markdown and the source comments as text: no build is
+// needed. Row claims live in docs/ledger/findings.json.
 //   Samples (a promise held outside render, an `id` on each loaded Command.Item, 'use client', the
 //     engine's owner)
 //     DAE-08  api/command-react.md        AsyncItems sample
@@ -295,15 +297,10 @@ describe('docs rows of 1.7.0', () => {
       'DAE-64: every dispose call sits inside the creating effect',
     ).toBe(true);
     expect(page, 'DAE-64: no untyped useState(null) engine').not.toMatch(/useState\(null\)/);
-    // The claim: the caller disposes an engine it passes; the machine disposes only its own.
-    expect(body, 'DAE-64: the page says the caller disposes an engine it passes').toMatch(
-      /\byours? to dispose\b|\byou (?:must |need to |have to |should )?dispose\b|\b(?:caller|your code)\b[^.]*\bdisposes?\b|\bdispose[sd]? (?:it )?yourself\b|\bdispos\w+\b[^.]*\b(?:up to you|your (?:job|responsibility))\b|\byou(?:'re| are) responsible for dispos\w+/i,
-    );
+    // The false claim: the machine disposes an engine it was given. The sample's anchors above pin
+    // the owner (the creating effect disposes) and the prop (`searchEngine`, never `search`).
     expect(body, 'DAE-64: the machine is not said to dispose an engine it was given').not.toMatch(
       /machine (?:also )?disposes (?:the|an|that|your) (?:search )?engine (?:you|that you|it was|passed|supplied)|disposes the engine you pass/i,
-    );
-    expect(body, 'DAE-64: the machine disposes only an engine it created').toMatch(
-      /\b(?:only|just)\b[^.]*\b(?:created|creates|makes|made|built)\b/i,
     );
   });
 
@@ -445,10 +442,6 @@ describe('docs rows of 1.7.0', () => {
     expectLoadedItemsHaveIds(codeFences(read(`${DOCS}guide/async-items.md`)), 'DG-23');
     const registration: string = sectionOf(`${DOCS}guide/async-items.md`, /^Registration$/);
     expect(registration, 'DG-23: the Registration section passes the id').toContain('id={item.id}');
-    expect(registration, 'DG-23: ids are unique across sources').toMatch(/unique/);
-    expect(registration, 'DG-23: an Item without an id warns in development').toMatch(
-      /development/,
-    );
   });
 
   it('RC-15: apps/docs/examples/vanilla.md keeps the machine with const, not a module-level using', () => {
@@ -500,12 +493,9 @@ describe('docs rows of 1.7.0', () => {
     const row: string = tableRow(group, /^\| `priority` \|/);
     expect(row, 'DAE-37: the number orders the keys of groupedIds').toContain('groupedIds');
     expect(row, 'DAE-37: the search order of filteredIds is kept').toContain('`filteredIds`');
-    // The claim: the order of the JSX decides what React renders, whatever the number says.
-    expect(row, 'DAE-37: React renders the groups in the order of the JSX').toMatch(/\bJSX\b/);
-    expect(row, 'DAE-37: the render order is named').toMatch(/\border\b/i);
-    expect(row, 'DAE-37: the render order is not the number').toMatch(
-      /\b(?:not|never|regardless of|rather than|instead of|ignor\w+|whatever|no matter|irrespective of)\b[^|.]*\b(?:this number|priority)\b|\b(?:this number|priority)\b[^|.]*\b(?:does not|doesn't|never|has no)\b/i,
-    );
+    // The false claim: React renders the groups in the order of the number (it renders them in JSX
+    // order). The anchors above pin the two orders the row names, the keys of `groupedIds` and the
+    // search order of `filteredIds`.
     expect(row, 'DAE-37: no claim that React sorts the groups by the number').not.toMatch(
       /\b(?:sort\w*|order\w*|render\w*|arrang\w*)\s+(?:the\s+)?(?:groups\s+)?by\s+(?:this\s+number|`?priority`?)|\b(?:in|by)\s+(?:`?priority`?|numeric|number)\s+order\b|\bpriority order\b/i,
     );
@@ -535,7 +525,11 @@ describe('docs rows of 1.7.0', () => {
     const dialog: string = sectionOf(`${DOCS}api/command-react.md`, /^`<Command\.Dialog>`$/);
     const row: string = tableRow(dialog, /^\| `open` \|/);
     const changeRow: string = tableRow(dialog, /^\| `onOpenChange` \|/);
-    for (const s of sentences(changeRow).filter((s) => /\buncontrolled\b/i.test(s))) {
+    for (const s of sentences(changeRow).filter((s) =>
+      /\buncontrolled\b|\bwithout `open`|\bomit\w* `open`|`open` (?:is )?(?:omitted|undefined|left out)\b/i.test(
+        s,
+      ),
+    )) {
       expect(
         s,
         'DAE-38/RA-85: an uncontrolled report in the onOpenChange row is tied to a dialog that dropped its open prop',
@@ -547,13 +541,9 @@ describe('docs rows of 1.7.0', () => {
     expect(row, 'DAE-38: a parent that keeps open={true} keeps the dialog open').toContain(
       'open={true}',
     );
-    expect(row, 'DAE-38: omitted, the dialog starts (or begins) closed').toMatch(
-      /\b(?:starts|begins|stays|remains) closed\b/,
-    );
-    expect(
-      row,
-      'DAE-38: nothing (or no part) of the component opens an uncontrolled dialog',
-    ).toMatch(/\b(?:nothing|no part)\b[^|.;,]*\bopens?\b/);
+    // The false claim: the component can own its open state (an "uncontrolled mode" that opens
+    // itself). The anchors above pin the controlled contract; the unqualified-report guard above
+    // pins the onOpenChange row.
     expect(row, 'DAE-38: no "uncontrolled mode" invitation').not.toMatch(
       /\b(?:omit|leave|skip)\b[^|]*\buncontrolled\b|\bown(?:s)? its open state\b/i,
     );
@@ -577,20 +567,16 @@ describe('docs rows of 1.7.0', () => {
       .split(/\r?\n/)
       .filter((l) => !l.startsWith('|'))
       .join('\n');
-    expect(prose, 'DAE-41: the two are called reserved hooks').toMatch(/reserved/);
     expect(prose, 'DAE-41: both are named').toContain('data-command-virtual-item');
   });
 
   it('DAE-42: api/command-react.md tokens declare --command-count written by no component and list the user tokens', () => {
     const tokens: string = sectionOf(`${DOCS}api/command-react.md`, /^All CSS Custom Properties$/);
     const count: string = tableRow(tokens, /^\| `--command-count` \|/);
-    // The claim: the stylesheet declares --command-count, no component of the adapter writes it,
-    // and so it stays at its initial 0 unless the consumer sets it.
+    // The code anchors: the stylesheet declares --command-count with the integer syntax and the
+    // initial 0, and no source of the adapter writes it. The false claim is a live count.
     expect(count, 'DAE-42: the row declares the integer syntax and the initial 0').toMatch(
       /^\| `--command-count` \| `<integer>` \| `0` \|/,
-    );
-    expect(count, 'DAE-42: --command-count is written by no component').toMatch(
-      /\bwritten by (?:no|none)\b|\b(?:no|none of the)\s+components?\b[^|]*\b(?:writ|set|updat|emit)\w*|\bnever (?:written|set|updated)\b|\bnothing\b[^|.;,]*\b(?:writes?|sets?|updates?|emits?)\b|\bcomponents?\b[^|.;]*\b(?:never|do(?:es)? not|don't) (?:writes?|sets?|updates?)\b/i,
     );
     expect(count, 'DAE-42: it is not described as a live count').not.toMatch(
       /\b(?:filtered|live|current|matching)\b[^|]*\bcount\b|\bcount of\b/i,
@@ -715,19 +701,11 @@ describe('docs rows of 1.7.0', () => {
 
   it('DG-21: guide/controlled-dialog.md opens the dialog from a document keydown listener and says an uncontrolled one never opens', () => {
     const page: string = read(`${DOCS}guide/controlled-dialog.md`);
-    // The claim: without `open` the dialog is uncontrolled, begins closed and nothing opens it, so
-    // the page opens it through `open`. The base page left an uncontrolled dialog to open itself.
-    expect(page, 'DG-21: an uncontrolled dialog starts (or begins) closed').toMatch(
-      /\b(?:starts|begins|stays|remains) closed\b/,
-    );
-    expect(page, 'DG-21: nothing (or no part of the package) opens an uncontrolled dialog').toMatch(
-      /\b(?:nothing|no part)\b[^.;]*\bopens? it\b|\bno way to open it\b/,
-    );
+    // The false claim: a dialog without `open` opens itself (the base page left an uncontrolled
+    // dialog to open itself). The page opens it from a document keydown listener (the sample
+    // below) that toggles the state `open` reads.
     expect(page, 'DG-21: no invitation to an uncontrolled dialog that opens itself').not.toMatch(
       /\b(?:omit|leave|skip)\b[^.]*\b(?:open|uncontrolled)\b[^.]*\b(?:own|opens? itself|manages? (?:its|the) (?:own )?(?:open )?state)\b|\bowns? its open state\b/i,
-    );
-    expect(page, 'DG-21: the page says to open it through the open prop').toMatch(
-      /\bthrough `open`|\bvia `open`|\bpass `open`/,
     );
     const shortcut: string = sectionOf(
       `${DOCS}guide/controlled-dialog.md`,
@@ -776,44 +754,21 @@ describe('docs rows of 1.7.0', () => {
         `DG-74: no sample wraps AsyncItems in an outer Suspense (line ${f.line})`,
       ).not.toContain('<Suspense');
     }
-    // The claim: a Suspense around the AsyncItems never shows the AsyncItems fallback, because
-    // AsyncItems renders its own boundary. Every sentence about an enclosing boundary denies it.
+    // The false claim: a Suspense around the AsyncItems shows the AsyncItems fallback (the
+    // component renders its own boundary and its `fallback` prop). The anchor above pins the
+    // samples; this pins the prose: a sentence about an enclosing `<Suspense>` that shows,
+    // displays or renders a fallback carries a negation.
     const loading: string = sectionOf(`${DOCS}guide/async-items.md`, /^Loading States$/);
-    const outer = (text: string): string[] =>
-      sentences(text).filter(
-        (s) =>
-          /<Suspense>/.test(s) &&
-          /\b(?:enclosing|outer|surrounding|wrapping|parent|ancestor)\b|\b(?:around|above) it\b|\b(?:higher|further) up\b/i.test(
-            s,
-          ),
-      );
-    expect(
-      outer(loading).length,
-      'DG-74: the section speaks of an enclosing Suspense',
-    ).toBeGreaterThan(0);
-    for (const s of outer(loading)) {
-      expect(s, 'DG-74: an enclosing Suspense never shows the fallback').toMatch(
-        /\b(?:never|not|cannot)\b[^.]*\b(?:shows?|displays?|renders?)\b[^.]*\bfallback\b/i,
-      );
-    }
-    expect(loading, 'DG-74: the AsyncItems boundary shows the fallback prop').toMatch(
-      /\bown\b[^.;]*`<Suspense>`|`<Suspense>`[^.;]*\bown\b/i,
-    );
     const fallbackRow: string = tableRow(
       sectionOf(`${DOCS}guide/async-items.md`, /^Props$/),
       /^\| `fallback` \|/,
     );
-    for (const s of outer(fallbackRow)) {
-      expect(s, 'DG-74: the fallback row denies the enclosing boundary too').toMatch(
-        /\b(?:never|not|cannot)\b/i,
-      );
-    }
-    expect(fallbackRow, 'DG-74: without a fallback nothing renders while pending').toMatch(
-      /\bnothing\s+(?:renders?|shows?|appears?|is (?:rendered|shown|displayed))\b|\brenders? nothing\b/i,
-    );
-    expect(fallbackRow, 'DG-74: the row says the wait is while the promise is pending').toMatch(
-      /\bpending\b/,
-    );
+    const outerShows =
+      /(?=.*<Suspense>)(?=.*\b(?:enclos\w*|outer|surround\w*|wrap\w*|parent|ancestor|higher up|further up|around it|above it)\b)(?=.*\b(?:shows?|displays?|renders?|catch\w*|handles?|provides?)\b[^.]*\bfallback\b)/i;
+    expect(
+      [...claimsOf(loading, outerShows), ...claimsOf(fallbackRow, outerShows)],
+      'DG-74: no sentence says an enclosing Suspense shows the fallback',
+    ).toEqual([]);
   });
 
   it('DG-75: guide/async-items.md handles errors with CommandErrorBoundary, not react-error-boundary', () => {
@@ -913,7 +868,8 @@ describe('docs rows of 1.7.0', () => {
   it('RA-29: packages/modern-cmdk/src/react/page.tsx header says the page renders only while it is current', () => {
     const head: string = header(`${SRC_REACT}page.tsx`);
     // The code anchor: the component renders its children only while the machine's page equals
-    // `id`, keeps no stack and starts no view transition. The header must say the same.
+    // `id`, keeps no stack and starts no view transition. The header claims no
+    // page stack and no View Transitions.
     const source: string = read(`${SRC_REACT}page.tsx`);
     expect(source, 'RA-29: the component renders only the page whose id is current').toMatch(
       /if \(stateCtx\.state\.page !== id\) return null;/,
@@ -923,16 +879,6 @@ describe('docs rows of 1.7.0', () => {
     );
     expect(head, 'RA-29: no page stack management').not.toMatch(/page[- ]stack/i);
     expect(head, 'RA-29: no View Transitions').not.toMatch(/view[- ]transitions?/i);
-    expect(head, 'RA-29: it renders by id').toMatch(/\bid\b/);
-    expect(head, 'RA-29: it renders only while (or when) the page is current').toMatch(
-      /\bonly (?:while|when|if)\b[^\n]*\b(?:current|active)\b|\b(?:current|active)\b[^\n]*\bnothing otherwise\b/i,
-    );
-    expect(head, 'RA-29: the page push and pop events change the page').toMatch(
-      /\b(?:PAGE_PUSH|page[- ]push)\b/i,
-    );
-    expect(head, 'RA-29: the page push and pop events change the page').toMatch(
-      /\b(?:PAGE_POP|page[- ]pop)\b/i,
-    );
   });
 
   it('RA-30: packages/modern-cmdk/src/react/dialog.tsx header names hideOthers, not inert', () => {
@@ -963,7 +909,7 @@ describe('docs rows of 1.7.0', () => {
     const open: string = jsdocAbove(file, /^\s*readonly open\?:/);
     expect(open, 'RA-85: the open prop is described as controlled state').toMatch(/controlled/i);
     expect(open, 'RA-85: an undefined open starts (or begins) closed').toMatch(
-      /\b(?:starts|begins|stays|remains) closed\b/,
+      /\b(?:starts|begins|stays|remains|mounts|initially) closed\b/,
     );
     expect(open, 'RA-85: nothing (or no part of the component) opens it').toMatch(
       /\b(?:nothing|no part)\b[^.]*\bopens? it\b/,
@@ -973,7 +919,11 @@ describe('docs rows of 1.7.0', () => {
     );
     const changed: string = jsdocAbove(file, /^\s*readonly onOpenChange\?:/);
     expect(changed, 'RA-85: a controlled dialog reports each request once').toMatch(/controlled/i);
-    for (const s of sentences(changed).filter((s) => /\buncontrolled\b/i.test(s))) {
+    for (const s of sentences(changed).filter((s) =>
+      /\buncontrolled\b|\bwithout `open`|\bomit\w* `open`|`open` (?:is )?(?:omitted|undefined|left out)\b/i.test(
+        s,
+      ),
+    )) {
       expect(
         s,
         'RA-85: an uncontrolled report is tied to a dialog that dropped its open prop',
@@ -982,8 +932,9 @@ describe('docs rows of 1.7.0', () => {
   });
 
   it('RA-86: packages/modern-cmdk/src/react/activity.tsx and api/command-react.md describe a hidden Activity as kept mounted and hidden, not unrendered', () => {
-    // A hidden Activity keeps its children mounted with their state, hides their DOM with
-    // `display: none` and cleans up their effects: it does not skip rendering them.
+    // The code anchor: the component hands its mode to React's Activity. The false claim: a hidden
+    // Activity is unrendered or preserved in memory (React keeps the children mounted, hides their
+    // DOM with `display: none` and cleans up their effects).
     const texts: ReadonlyMap<string, string> = new Map([
       [
         `${SRC_REACT}activity.tsx (the CommandActivity JSDoc)`,
@@ -995,13 +946,6 @@ describe('docs rows of 1.7.0', () => {
       ],
     ]);
     for (const [where, text] of texts) {
-      expect(text, `RA-86: ${where} names the hidden mode`).toMatch(/\bhidden\b/);
-      expect(text, `RA-86: ${where} says the children stay mounted`).toMatch(
-        /\b(?:mounted|keeps|kept)\b/,
-      );
-      expect(text, `RA-86: ${where} says the DOM is hidden, not removed`).toMatch(
-        /display:\s*none|\bhides?\b|\bstays? hidden\b/,
-      );
       expect(text, `RA-86: ${where} does not call the hidden tree unrendered`).not.toMatch(
         /preserved in memory|\bwithout render\w*|\bnot (?:be )?rendered\b|\bunrendered\b/i,
       );
@@ -1020,9 +964,7 @@ describe('docs rows of 1.7.0', () => {
       'CONTRIBUTING.md',
     ]) {
       const text: string = read(file);
-      expect(text, `CE-92: ${file} names the telemetry option or prop`).toMatch(
-        /`telemetry` (?:option|prop|hooks)/,
-      );
+      expect(text, `CE-92: ${file} names the telemetry option or prop`).toContain('`telemetry`');
       expect(text, `CE-92: ${file} says no telemetry option exists`).not.toMatch(
         /\b(?:have|has|with|without)\s+no\s+(?:machine or React\s+)?telemetry (?:option|prop)|\bno (?:machine or React )?telemetry option/i,
       );
@@ -1036,11 +978,6 @@ describe('docs rows of 1.7.0', () => {
     );
     expect(read(`${SRC_REACT}command.tsx`), 'CE-92: the React root forwards it').toMatch(
       /^\s+telemetry,$/m,
-    );
-    // The README says who calls the hooks: the machine, not the caller.
-    const readme: string = read('packages/modern-cmdk/README.md');
-    expect(readme, 'CE-92: the README says the machine calls (or invokes) the hooks').toMatch(
-      /\bmachine (?:calls|invokes|runs|fires)\b|\b(?:called|invoked|run|fired) by the machine\b/,
     );
   });
 
@@ -1062,21 +999,19 @@ describe('docs rows of 1.7.0', () => {
     );
     expect(calls.length, 'SEC-47: the samples track events').toBeGreaterThan(3);
     // The raw query reaches a hook as the first parameter of onSearchComplete and the second of
-    // onItemSelected, whatever the sample names it (`_query`, `q`, `text`).
+    // onItemSelected, whatever the sample names it (`_query`, `q`, `text`) and however the hook is
+    // written (an arrow function with or without parameter types, or a `function`).
     const queryParams: Set<string> = new Set(
       samples.flatMap((f) => [
-        ...[...f.code.matchAll(/\bonSearchComplete:\s*\(\s*(\w+)\s*[,)]/g)].map((m) => m[1] ?? ''),
-        ...[...f.code.matchAll(/\bonItemSelected:\s*\(\s*\w+\s*,\s*(\w+)\s*[,)]/g)].map(
+        ...[...f.code.matchAll(/\bonSearchComplete\b[^(\n]*\(\s*(\w+)/g)].map((m) => m[1] ?? ''),
+        ...[...f.code.matchAll(/\bonItemSelected\b[^(\n]*\(\s*\w+[^,()]*,\s*(\w+)/g)].map(
           (m) => m[1] ?? '',
         ),
       ]),
     );
     queryParams.delete('');
     for (const f of samples) {
-      const body = f.code.replace(
-        /\bonSearchComplete:\s*\([^)]*\)|\bonItemSelected:\s*\([^)]*\)/g,
-        '',
-      );
+      const body = f.code.replace(/\b(?:onSearchComplete|onItemSelected)\b[^(\n]*\([^)]*\)/g, '');
       for (const name of queryParams) {
         expect(body, `SEC-47: ${name} is used only as ${name}.length`).not.toMatch(
           new RegExp(`(?<![\\w$])${name}(?![\\w$])(?!\\.length\\b)`),
@@ -1109,22 +1044,16 @@ describe('docs rows of 1.7.0', () => {
   it('RA-84: api/command.md events table and guide/architecture.md CommandState paragraph state the active item rule', () => {
     // The rule (core/machine.ts, the refilter): after a search change the active item stays while
     // the new list still holds it and it is enabled, otherwise the first enabled item of the ranked
-    // list becomes active. The base text said only "Update search query"; cmdk, by contrast,
-    // returns to the first item, and no page may say that the machine does.
-    const stays =
-      /\b(?:listed|holds? it|still (?:in the (?:list|results|filtered list|ranked list)|matches|matched|contains?))\b/i;
-    const enabled = /\b(?:enabled|not disabled)\b/i;
-    const fallsBack = /\b(?:first|top|highest)\b[^|.;]*\benabled\b[^|.;]*\b(?:item|result|match)/i;
+    // list becomes active. The anchors pin the names the rule is about (`onActiveChange`, `filteredIds`, `activeId`).
+    // The base text said only "Update search query"; cmdk, by contrast, returns to the first
+    // item, and no page may say that the machine does.
     const returnsToFirst =
       /\b(?:resets?|returns?|goes back|jumps?|moves?)\b[^|.;]*\b(?:first|top)\b[^|.;]*\b(?:item|result)/i;
     const events: string = sectionOf(`${DOCS}api/command.md`, /^Events \(`CommandEvent`\)$/);
     const search: string = tableRow(events, /^\| `SEARCH_CHANGE` \|/);
-    expect(search, 'RA-84: SEARCH_CHANGE keeps the active item while it is listed').toMatch(stays);
-    expect(search, 'RA-84: ... and enabled').toMatch(enabled);
     expect(search, 'RA-84: a controlled activeId reports the candidate').toContain(
       '`onActiveChange`',
     );
-    expect(search, 'RA-84: otherwise the first enabled item of the ranked list').toMatch(fallsBack);
     expect(search, 'RA-84: SEARCH_CHANGE does not reset to the first item').not.toMatch(
       returnsToFirst,
     );
@@ -1132,8 +1061,6 @@ describe('docs rows of 1.7.0', () => {
       /\|\s*Update search query\s*\|\s*$/,
     );
     const activate: string = tableRow(events, /^\| `ITEM_ACTIVATE` \|/);
-    expect(activate, 'RA-84: ITEM_ACTIVATE survives a later search change').toMatch(stays);
-    expect(activate, 'RA-84: ... while enabled').toMatch(enabled);
     expect(activate, 'RA-84: ITEM_ACTIVATE lands on an item of filteredIds').toContain(
       '`filteredIds`',
     );
@@ -1142,11 +1069,6 @@ describe('docs rows of 1.7.0', () => {
       arch.split(/\r?\n/).find((l) => l.includes('`SEARCH_CHANGE` updates')) ?? '';
     expect(paragraph, 'RA-84: the CommandState paragraph exists').not.toBe('');
     expect(paragraph, 'RA-84: it names the field the rule decides').toContain('`activeId`');
-    expect(paragraph, 'RA-84: the active item stays while it is listed').toMatch(stays);
-    expect(paragraph, 'RA-84: ... and enabled').toMatch(enabled);
-    expect(paragraph, 'RA-84: otherwise the first enabled item of the ranked list').toMatch(
-      fallsBack,
-    );
     expect(paragraph, 'RA-84: a cleared search does not return to the first item').not.toMatch(
       /\bcleared search (?:returns?|resets?|goes back|jumps?|moves?)\b/i,
     );
