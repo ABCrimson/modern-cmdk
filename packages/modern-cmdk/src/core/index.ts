@@ -37,6 +37,7 @@ export {
   DEFAULT_MACHINE_OPTIONS,
   groupId,
   itemId,
+  UNGROUPED_GROUP_ID,
 } from './types.js';
 export { TypedEmitter } from './utils/event-emitter.js';
 export type { Scheduler } from './utils/scheduler.js';
