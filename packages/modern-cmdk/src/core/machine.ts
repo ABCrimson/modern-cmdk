@@ -140,16 +140,12 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
   function refilter(query: string): void {
     dirty = false;
-    const items =
-      options.disabledItems === 'hide'
-        ? registry.getItems().filter((i) => !i.disabled)
-        : registry.getItems();
+    const items = registry.getItems();
     const disableFilter = options.filter === false;
 
     let filteredIds: ItemId[];
 
     if (disableFilter || query === '') {
-      // Iterator Helper pipeline — no manual for...push
       filteredIds = items.map((i) => i.id);
     } else {
       let results: readonly SearchResult[] = searchEngine.search(query, items).toArray();
@@ -166,6 +162,9 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
       filteredIds = results.map((r) => r.id);
     }
+
+    // After the search too: an engine that searches its own index ignores the items it is handed
+    if (options.disabledItems === 'hide') filteredIds = filteredIds.filter(isEnabled);
 
     // Update the O(1) membership set and index map
     filteredIdSet = new Set(filteredIds);

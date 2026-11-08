@@ -3,7 +3,7 @@
 // x {filteredIds, first active, NAVIGATE, ITEM_ACTIVATE, ITEM_SELECT}. The React half (aria-disabled, data-disabled,
 // DOM rendering) lives in command.test.tsx and cmdk-comparison.test.tsx.
 
-import type { CommandItem, CommandMachineOptions, ItemId } from 'modern-cmdk';
+import type { CommandItem, CommandMachineOptions, ItemId, SearchEngine } from 'modern-cmdk';
 import { createCommandMachine, itemId } from 'modern-cmdk';
 import { describe, expect, it, type Mock, vi } from 'vitest';
 
@@ -45,7 +45,7 @@ function setup(): Setup {
     onSelect: vi.fn<(id: ItemId) => void>(),
     onActiveChange: vi.fn<(id: ItemId | null) => void>(),
     items: [
-      mk('d0', 'Apple Disabled First'),
+      mk('d0', 'Apple'),
       mk('e1', 'Apple Pie'),
       mk('d2', 'Apple Tart'),
       mk('e3', 'Apple Crumble'),
@@ -132,6 +132,9 @@ describe('disabledItems matrix', () => {
         const { machine } = await make();
         using _m = machine;
         const { filteredIds, activeId } = machine.getState();
+        // Precondition: under show a disabled item is listed first ("Apple" outranks the rest under the query), so
+        // activating filteredIds[0] (the old behaviour) would make a disabled item active
+        expect(DISABLED.has(filteredIds[0] as ItemId)).toBe(option !== 'hide');
         expect(activeId).toBe(enabledOf(filteredIds)[0]);
         expect(DISABLED.has(activeId as ItemId)).toBe(false);
       });
@@ -215,6 +218,42 @@ describe('disabledItems matrix', () => {
     });
   });
 
+  describe('a search engine that searches its own index and ignores the items it is handed', () => {
+    function ownIndexEngine(): SearchEngine {
+      let indexed: readonly CommandItem[] = [];
+      return {
+        index: (items: readonly CommandItem[]): void => {
+          indexed = [...indexed, ...items];
+        },
+        // Searches `indexed` only: the `items` argument (the machine's candidates) is ignored
+        search: (query: string) =>
+          indexed
+            .values()
+            .filter((i) => i.value.toLowerCase().includes(query))
+            .map((i) => ({ id: i.id, score: 1, matches: [] })),
+        remove: () => undefined,
+        clear: () => undefined,
+        [Symbol.dispose]: () => undefined,
+      };
+    }
+
+    it.each([
+      ['show', [IDS.d0, IDS.e1, IDS.d2, IDS.e3, IDS.d4]],
+      ['hide', [IDS.e1, IDS.e3]],
+    ] as const)('disabledItems %s under a query lists %j', async (option, expected) => {
+      const s = setup();
+      using machine = createCommandMachine({
+        items: s.items,
+        search: ownIndexEngine(),
+        disabledItems: option,
+      });
+      machine.send({ type: 'SEARCH_CHANGE', query: 'apple' });
+      await flush();
+      expect(machine.getState().filteredIds).toEqual(expected);
+      expect(machine.getState().activeId).toBe(IDS.e1);
+    });
+  });
+
   describe('edges', () => {
     it('all items disabled: activeId is null, NAVIGATE and ITEM_ACTIVATE do nothing (show), nothing is listed (hide)', async () => {
       const items: CommandItem[] = [
@@ -281,8 +320,9 @@ describe('disabledItems matrix', () => {
       expect(machine.getState().filteredIds).toContain(IDS.e3);
       expect(machine.getState().activeId).toBe(IDS.e1);
 
-      // And an item that becomes enabled while nothing else is: the list has an active item again.
-      machine.send({ type: 'REGISTER_ITEM', item: { id: IDS.d0, value: 'Apple Disabled First' } });
+      // Re-registering d0 as enabled puts an enabled item first in the list, but the active item e1 is still
+      // listed and enabled: it is kept, not replaced by the first item.
+      machine.send({ type: 'REGISTER_ITEM', item: { id: IDS.d0, value: 'Apple' } });
       await flush();
       expect(machine.getState().activeId).toBe(IDS.e1);
     });
