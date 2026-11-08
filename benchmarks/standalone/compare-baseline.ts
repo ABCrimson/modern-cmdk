@@ -8,15 +8,29 @@
 // other median is compared with the baseline.
 // Exit codes: 0 = pass, 1 = warning (>5% regression), 2 = failure (>15% regression, or above target_ms)
 // or harness error (missing dist or tinybench, task that did not complete, measured key with no baseline
-// entry, a below-floor baseline entry without a target_ms).
+// entry, baseline entry with no measurement (--current only), a below-floor baseline entry without a
+// target_ms, an unknown flag, an unreadable or malformed --baseline or --current file).
 // When the baseline's CPU or Node differs from this machine, one line says so before the table and the
 // results JSON carries `comparedTo`; the exit codes do not change.
 // Runs under Node's native type stripping, no loader: `node benchmarks/standalone/compare-baseline.ts`.
+//
+// Flags (the default invocation, no flags, is what CI runs: it measures live):
+//   --baseline <file>  the baseline to compare with (default benchmarks/baseline.json)
+//   --current <file>   skip the measurement and compare the medians in <file> instead: a JSON object
+//                      `{ "tasks": { "<category>:<key>": { "median_ms": <number> } } }`, which is what
+//                      benchmarks/results/bench-<sha>.json already holds. Every baseline entry needs a
+//                      task in the file and every task a baseline entry, or it is a harness error (never a
+//                      silent pass). Nothing is written to benchmarks/results/ in this mode.
+// tests/unit/bench-compare-rules.test.ts (P33) runs the harness on the fixtures in
+// benchmarks/standalone/fixtures/ to prove the verdicts and exit codes end to end.
 // Requires: tinybench 6.2.3, built packages (pnpm build), Node >=26.4.0 (package.json engines)
 
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import { generateItems } from '../fixtures.ts';
 import { type Classification, classify, type Thresholds } from './compare-rules.ts';
 
@@ -79,29 +93,23 @@ function git(...args: string[]): string {
   return execFileSync('git', args, { encoding: 'utf-8' }).trim();
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────────
-
-async function main(): Promise<number> {
-  // 1. Read baseline
-  const baselinePath = new URL('../../benchmarks/baseline.json', import.meta.url);
-  const baseline: BaselineFile = JSON.parse(await readFile(baselinePath, 'utf-8'));
-  const { regressionThresholds } = baseline;
-
-  // 2. Import built core package — a missing dist is a harness error (exit 2), not a pass
+/** Runs the named operations RUNS times on the built core and averages the run statistics per task; undefined when a task did not complete. */
+async function measureLive(): Promise<Map<string, TaskStats> | undefined> {
+  // Import built core package — a missing dist is a harness error (exit 2), not a pass
   const { Bench } = await import('tinybench');
   const { createSearchEngine, createCommandMachine, itemId }: Core = await import(
     '../../packages/modern-cmdk/dist/core/index.mjs'
   );
 
-  // 3. Prepare test data: the 'basic' variant, the dataset benchmarks/baseline.json was recorded on
-  //    (pinned by tests/unit/bench-compare-rules.test.ts). The core comes from dist, so its itemId is
-  //    passed to the generator.
+  // Prepare test data: the 'basic' variant, the dataset benchmarks/baseline.json was recorded on
+  // (pinned by tests/unit/bench-compare-rules.test.ts). The core comes from dist, so its itemId is
+  // passed to the generator.
   const items10K = generateItems(10_000, 'basic', itemId);
   const items1K = items10K.slice(0, 1_000);
   const items100 = items10K.slice(0, 100);
 
-  // 4. Task definitions. Each fixture is created in beforeEach and disposed in afterEach, so
-  //    only the named call sits inside the timed window.
+  // Task definitions. Each fixture is created in beforeEach and disposed in afterEach, so
+  // only the named call sits inside the timed window.
   let engine: ReturnType<Core['createSearchEngine']> | undefined;
   let machine: ReturnType<Core['createCommandMachine']> | undefined;
   let subscription: Disposable | undefined;
@@ -159,7 +167,7 @@ async function main(): Promise<number> {
     machineTask('searchChange', items1K, { type: 'SEARCH_CHANGE', query: 'apple' }),
   ];
 
-  // 5. Run the benchmarks RUNS times and collect per-task statistics
+  // Run the benchmarks RUNS times and collect per-task statistics
   const perTask = new Map<
     string,
     { p50: number[]; p99: number[]; samples: number[]; rme: number[] }
@@ -201,10 +209,10 @@ async function main(): Promise<number> {
 
   if (failures.length > 0) {
     for (const failure of failures) console.error(`TASK FAILED: ${failure}`);
-    return 2;
+    return undefined;
   }
 
-  // 6. Average the run statistics per task
+  // Average the run statistics per task
   const measured = new Map<string, TaskStats>();
   for (const [name, acc] of perTask) {
     measured.set(name, {
@@ -215,17 +223,120 @@ async function main(): Promise<number> {
     });
   }
 
+  return measured;
+}
+
+const USAGE =
+  'usage: node benchmarks/standalone/compare-baseline.ts [--baseline <file>] [--current <file>]';
+
+/** A bad flag or an unreadable or malformed input file: the harness error that also prints the usage line. */
+class UsageError extends Error {}
+
+interface CliArgs {
+  readonly baseline: string | undefined;
+  readonly current: string | undefined;
+}
+
+/** Parses the flags; throws on an unknown flag, a flag without a value or a positional argument. */
+function parseCli(argv: readonly string[]): CliArgs {
+  try {
+    const { values } = parseArgs({
+      args: [...argv],
+      options: { baseline: { type: 'string' }, current: { type: 'string' } },
+      strict: true,
+      allowPositionals: false,
+    });
+    return { baseline: values.baseline, current: values.current };
+  } catch (err: unknown) {
+    throw new UsageError(err instanceof Error ? err.message : String(err), { cause: err });
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Reads and parses a JSON file; the error names the path. */
+async function readJson(path: string): Promise<unknown> {
+  try {
+    return JSON.parse(await readFile(path, 'utf-8'));
+  } catch (err: unknown) {
+    throw new UsageError(
+      `cannot read ${path}: ${err instanceof Error ? err.message : String(err)}`,
+      {
+        cause: err,
+      },
+    );
+  }
+}
+
+/** The medians of a results-shaped file (`{ tasks: { "<category>:<key>": { median_ms } } }`), in file order. */
+async function readCurrent(path: string): Promise<Map<string, TaskStats>> {
+  const file = await readJson(path);
+  if (!isRecord(file) || !isRecord(file.tasks)) {
+    throw new UsageError(`${path}: expected an object with a "tasks" object`);
+  }
+  const measured = new Map<string, TaskStats>();
+  for (const [name, task] of Object.entries(file.tasks)) {
+    if (!isRecord(task) || typeof task.median_ms !== 'number' || !Number.isFinite(task.median_ms)) {
+      throw new UsageError(`${path}: task "${name}" has no finite median_ms`);
+    }
+    measured.set(name, {
+      median_ms: task.median_ms,
+      p99_ms: Number.NaN,
+      samples: 0,
+      rme: Number.NaN,
+    });
+  }
+  return measured;
+}
+
+/** Every `<category>:<key>` row of the baseline, in file order. */
+function listBaselineKeys(baseline: BaselineFile): string[] {
+  return Object.entries(baseline.benchmarks).flatMap(([category, entries]) =>
+    isRecord(entries)
+      ? Object.entries(entries)
+          .filter(([, entry]) => isBaselineBenchmark(entry))
+          .map(([key]) => `${category}:${key}`)
+      : [],
+  );
+}
+
+// ── Main ───────────────────────────────────────────────────────────────────────
+
+async function main(args: CliArgs): Promise<number> {
+  // 1. Read baseline
+  const baselinePath =
+    args.baseline === undefined
+      ? fileURLToPath(new URL('../../benchmarks/baseline.json', import.meta.url))
+      : resolve(args.baseline);
+  const baselineJson = await readJson(baselinePath);
+  if (
+    !isRecord(baselineJson) ||
+    !isRecord(baselineJson.regressionThresholds) ||
+    !isRecord(baselineJson.benchmarks)
+  ) {
+    throw new UsageError(
+      `${baselinePath}: expected "regressionThresholds" and "benchmarks" objects`,
+    );
+  }
+  const baseline = baselineJson as unknown as BaselineFile;
+  const { regressionThresholds } = baseline;
+  const currentPath = args.current === undefined ? undefined : resolve(args.current);
+
+  // 2-6. Measure live, or take the medians from --current
+  const measured = currentPath === undefined ? await measureLive() : await readCurrent(currentPath);
+  if (measured === undefined) return 2;
+
   // 7. Compare against baseline. A measured key without a baseline entry is a failure.
   let missing = false;
   const rows: ComparisonRow[] = [];
-  for (const spec of specs) {
-    const name = `${spec.category}:${spec.key}`;
-    const stats = measured.get(name);
-    if (!stats) throw new Error(`${name}: no statistics collected`);
-    const category = baseline.benchmarks[spec.category] as Record<string, unknown> | undefined;
-    const entry = category?.[spec.key];
+  for (const [name, stats] of measured) {
+    const [category = '', key = ''] = name.split(/:(.*)/s);
+    const entries = baseline.benchmarks[category];
+    const entry = isRecord(entries) ? entries[key] : undefined;
     if (!isBaselineBenchmark(entry)) {
-      console.error(`NO BASELINE ENTRY for measured key "${name}" in benchmarks/baseline.json`);
+      console.error(`NO BASELINE ENTRY for measured key "${name}" in ${baselinePath}`);
       missing = true;
       continue;
     }
@@ -243,54 +354,69 @@ async function main(): Promise<number> {
     });
   }
 
-  // 8. Write benchmarks/results/bench-<shortsha>.json (after the comparison: it records each verdict)
+  // With --current every baseline entry needs a measurement: a missing one is a failure, never a skip
+  // (live, the entries this harness does not measure are listed after the table instead).
+  const unmeasured = listBaselineKeys(baseline).filter((name) => !measured.has(name));
+  if (currentPath !== undefined) {
+    for (const name of unmeasured) {
+      console.error(`NO MEASUREMENT for baseline key "${name}" in ${currentPath}`);
+      missing = true;
+    }
+  }
+
+  // 8. Write benchmarks/results/bench-<shortsha>.json (after the comparison: it records each verdict).
+  //    Not with --current: those medians are not a measurement of this commit.
   const thisCpu = os.cpus()[0]?.model ?? null;
   const baseCpu = baseline.environment?.cpu ?? null;
   const baseNode = baseline.environment?.node ?? null;
   const sameMachine = baseCpu === thisCpu && baseNode === process.version;
-  const commit = process.env.GITHUB_SHA ?? git('rev-parse', 'HEAD');
-  const resultsDir = new URL('../../benchmarks/results/', import.meta.url);
-  await mkdir(resultsDir, { recursive: true });
-  const resultsUrl = new URL(`bench-${commit.slice(0, 7)}.json`, resultsDir);
-  await writeFile(
-    resultsUrl,
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        commit,
-        date: new Date().toISOString(),
-        environment: {
-          os: `${os.platform()} ${os.release()}`,
-          runner: process.env.ImageOS ?? process.env.RUNNER_OS ?? null,
-          runnerImageVersion: process.env.ImageVersion ?? null,
-          node: process.version,
-          cpu: thisCpu,
-          cpuCount: os.availableParallelism(),
+  if (currentPath === undefined) {
+    const commit = process.env.GITHUB_SHA ?? git('rev-parse', 'HEAD');
+    const resultsDir = new URL('../../benchmarks/results/', import.meta.url);
+    await mkdir(resultsDir, { recursive: true });
+    const resultsUrl = new URL(`bench-${commit.slice(0, 7)}.json`, resultsDir);
+    await writeFile(
+      resultsUrl,
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          commit,
+          date: new Date().toISOString(),
+          environment: {
+            os: `${os.platform()} ${os.release()}`,
+            runner: process.env.ImageOS ?? process.env.RUNNER_OS ?? null,
+            runnerImageVersion: process.env.ImageVersion ?? null,
+            node: process.version,
+            cpu: thisCpu,
+            cpuCount: os.availableParallelism(),
+          },
+          comparedTo: { cpu: baseCpu, node: baseNode, sameMachine },
+          runs: RUNS,
+          thresholds: regressionThresholds,
+          tasks: Object.fromEntries(measured),
+          comparisons: Object.fromEntries(
+            rows.map((r) => [
+              r.name,
+              {
+                baseline_ms: r.baseline_ms,
+                delta_pct: r.delta_pct,
+                status: r.status,
+                reason: r.reason,
+              },
+            ]),
+          ),
         },
-        comparedTo: { cpu: baseCpu, node: baseNode, sameMachine },
-        runs: RUNS,
-        thresholds: regressionThresholds,
-        tasks: Object.fromEntries(measured),
-        comparisons: Object.fromEntries(
-          rows.map((r) => [
-            r.name,
-            {
-              baseline_ms: r.baseline_ms,
-              delta_pct: r.delta_pct,
-              status: r.status,
-              reason: r.reason,
-            },
-          ]),
-        ),
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  console.log(`Results written to ${resultsUrl.pathname.replace(/^\/(?=[A-Za-z]:)/, '')}\n`);
+        null,
+        2,
+      )}\n`,
+    );
+    console.log(`Results written to ${resultsUrl.pathname.replace(/^\/(?=[A-Za-z]:)/, '')}\n`);
+  }
 
   // 9. Print formatted table
-  if (!sameMachine) {
+  if (currentPath !== undefined) {
+    console.log(`baseline: ${baselinePath}\ncurrent: ${currentPath}\n`);
+  } else if (!sameMachine) {
     console.log(
       `baseline: ${baseCpu ?? 'unknown CPU'}, Node ${baseNode ?? 'unknown'}; this machine: ${thisCpu ?? 'unknown CPU'}, Node ${process.version}: cross-machine numbers, the thresholds below are a tripwire, not a verdict
 `,
@@ -324,14 +450,8 @@ async function main(): Promise<number> {
   console.log(separator);
 
   // Baseline entries this harness does not measure are reported, never silently compared
-  const measuredNames = new Set(specs.map((s) => `${s.category}:${s.key}`));
-  for (const [category, entries] of Object.entries(baseline.benchmarks)) {
-    if (typeof entries !== 'object' || entries === null) continue;
-    for (const [key, entry] of Object.entries(entries)) {
-      if (isBaselineBenchmark(entry) && !measuredNames.has(`${category}:${key}`)) {
-        console.log(`not measured: ${category}:${key}`);
-      }
-    }
+  if (currentPath === undefined) {
+    for (const name of unmeasured) console.log(`not measured: ${name}`);
   }
 
   // 10. Exit code
@@ -348,8 +468,9 @@ process.on('uncaughtException', (err: unknown) => {
 });
 
 try {
-  process.exitCode = await main();
+  process.exitCode = await main(parseCli(process.argv.slice(2)));
 } catch (err: unknown) {
   console.error('bench harness error:', err);
+  if (err instanceof UsageError) console.error(USAGE);
   process.exitCode = 2;
 }

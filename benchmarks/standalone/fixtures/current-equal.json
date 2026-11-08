@@ -1,0 +1,8 @@
+{
+  "proves": "Medians equal to the baseline: every row PASS, exit 0.",
+  "tasks": {
+    "search:ts-scorer-10k": { "median_ms": 15.5 },
+    "stateUpdate:navigate": { "median_ms": 0.00075 },
+    "stateUpdate:searchChange": { "median_ms": 0.4 }
+  }
+}

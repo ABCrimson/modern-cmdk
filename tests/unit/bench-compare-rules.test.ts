@@ -3,6 +3,8 @@
 // run-to-run noise, while the published target_ms stays an absolute contract.
 // TEB-33: the 'basic' 10K dataset behind benchmarks/baseline.json is pinned by hash.
 // R5: the browser bench's pure stats and 10K mount gate rules.
+// P33: the bench:compare harness proves its own verdicts end to end on fixed fixtures.
+// P33: the bench:compare harness proves its own verdicts end to end on fixed fixtures.
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -254,5 +256,92 @@ describe('R5: the browser bench harness refuses a diagnostic run without --out',
     expect(run.stderr).toContain('--modern-cmdk needs --out');
     expect(run.stderr).toContain('never take this tree');
     expect(run.stdout).not.toContain('building the playground');
+  });
+});
+
+// P33: pnpm bench:compare is the CI bench gate, so its pipeline after the measurement (baseline,
+// comparison, table, exit code) is run end to end on fixed medians: `--baseline <file> --current <file>`
+// skips the live measurement. The fixtures live in benchmarks/standalone/fixtures/; each carries a
+// `proves` field saying what it is for.
+describe('P33: bench:compare proves its own verdicts on fixed fixtures', () => {
+  const fixtures = resolve(import.meta.dirname, '../../benchmarks/standalone/fixtures');
+  const harness = resolve(import.meta.dirname, '../../benchmarks/standalone/compare-baseline.ts');
+
+  /** Runs the real harness (no shell, Node's type stripping) on fixture files, never on a live measurement. */
+  function compare(args: readonly string[]): {
+    status: number | null;
+    stdout: string;
+    stderr: string;
+  } {
+    const run = spawnSync(process.execPath, [harness, ...args], {
+      encoding: 'utf-8',
+      timeout: 30_000,
+    });
+    return { status: run.status, stdout: run.stdout, stderr: run.stderr };
+  }
+  const withFixtures = (current: string, baseline = 'baseline.json'): string[] => [
+    '--baseline',
+    resolve(fixtures, baseline),
+    '--current',
+    resolve(fixtures, current),
+  ];
+
+  it('P33: a current equal to the baseline exits 0 with every row PASS', () => {
+    const run = compare(withFixtures('current-equal.json'));
+    expect(run.status).toBe(0);
+    expect(run.stdout).toMatch(/stateUpdate:searchChange\s+\|.*\|\s+PASS \| compared/);
+    expect(run.stdout).not.toMatch(/WARN|FAIL/);
+  });
+
+  it('P33: a +25 % regression on one key exits 2 with that row FAIL', () => {
+    const run = compare(withFixtures('current-regressed.json'));
+    expect(run.status).toBe(2);
+    expect(run.stdout).toMatch(/stateUpdate:searchChange\s+\|.*\+25\.0%\s+\|\s+FAIL \| compared/);
+    expect(run.stdout).toMatch(/search:ts-scorer-10k\s+\|.*\|\s+PASS/);
+  });
+
+  it('P33: a +10 % move exits 1 with that row WARN', () => {
+    const run = compare(withFixtures('current-warning.json'));
+    expect(run.status).toBe(1);
+    expect(run.stdout).toMatch(/stateUpdate:searchChange\s+\|.*\+10\.0%\s+\|\s+WARN \| compared/);
+  });
+
+  it('P33: a current above its target_ms exits 2 although the comparison alone passes', () => {
+    const run = compare(withFixtures('current-above-target.json'));
+    expect(run.status).toBe(2);
+    expect(run.stdout).toMatch(/search:ts-scorer-10k\s+\|.*\+4\.5%\s+\|\s+FAIL \| above target/);
+  });
+
+  it('P33: a below-floor baseline row without a target_ms is a harness error, exit 2', () => {
+    const run = compare(withFixtures('current-equal.json', 'baseline-floor-no-target.json'));
+    expect(run.status).toBe(2);
+    expect(run.stderr).toContain('stateUpdate:navigate');
+    expect(run.stderr).toContain('no target_ms');
+  });
+
+  it('P33: a baseline row with no measurement in the current file is a harness error, exit 2', () => {
+    const run = compare(withFixtures('current-missing-key.json'));
+    expect(run.status).toBe(2);
+    expect(run.stderr).toContain('NO MEASUREMENT for baseline key "stateUpdate:searchChange"');
+    expect(run.stdout).not.toMatch(/stateUpdate:searchChange\s+\|.*PASS/);
+  });
+
+  it('P33: a current key with no baseline entry is a harness error, exit 2', () => {
+    const run = compare(withFixtures('current-extra-key.json'));
+    expect(run.status).toBe(2);
+    expect(run.stderr).toContain('NO BASELINE ENTRY for measured key "stateUpdate:extra"');
+  });
+
+  it('P33: an unknown flag is a harness error, exit 2, with a usage line', () => {
+    const run = compare(['--nope']);
+    expect(run.status).toBe(2);
+    expect(run.stderr).toContain('usage: node benchmarks/standalone/compare-baseline.ts');
+  });
+
+  it('P33: an unreadable --current file is a harness error, exit 2, with a usage line', () => {
+    const run = compare(['--current', resolve(fixtures, 'does-not-exist.json')]);
+    expect(run.status).toBe(2);
+    expect(run.stderr).toContain('does-not-exist.json');
+    expect(run.stderr).toContain('usage: node benchmarks/standalone/compare-baseline.ts');
   });
 });
