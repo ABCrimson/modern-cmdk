@@ -118,21 +118,24 @@ test.describe('Basic Command Palette', () => {
 
   // ---------- Item Selection ----------
 
-  test('should select item on click and trigger callback', async ({ page }) => {
-    // Listen for console messages to verify selection callback fired
-    const consoleMessages: string[] = [];
-    page.on('console', (msg) => {
-      if (msg.type() === 'log') {
-        consoleMessages.push(msg.text());
-      }
-    });
+  test('TEB-28: click and Enter write the selected value into the last-selected output', async ({
+    page,
+  }) => {
+    const output = page.getByTestId('last-selected');
 
-    const firstOption = page.getByRole('option').first();
-    await firstOption.click();
+    await page.getByRole('option').first().click();
+    await expect(output).toHaveText('apple');
 
-    // The click handler should fire — verify the item was selected
-    // (The exact behavior depends on the playground setup; at minimum the click should work)
-    await expect(firstOption).toBeVisible();
+    // Move the active item away from "apple", then select it with Enter
+    const input = page.getByRole('combobox');
+    await input.focus();
+    const activeItem = page.locator('[data-command-item][data-active]');
+    await input.press('ArrowDown');
+    await expect(activeItem).not.toHaveAttribute('data-value', 'apple');
+    const activeValue = await activeItem.getAttribute('data-value');
+    expect(activeValue).toBeTruthy();
+    await input.press('Enter');
+    await expect(output).toHaveText(activeValue as string);
   });
 
   test('should activate item on hover (pointer move)', async ({ page }) => {
@@ -151,13 +154,15 @@ test.describe('Basic Command Palette', () => {
     const input = page.getByRole('combobox');
     await input.focus();
 
-    // Navigate to first item and press Enter
+    // Select the default active item with Enter
     const activeItem = page.locator('[data-command-item][data-active]');
     await expect(activeItem).toHaveCount(1);
+    const activeValue = await activeItem.getAttribute('data-value');
+    expect(activeValue).toBeTruthy();
 
     await input.press('Enter');
 
-    // Enter should trigger selection (behavior depends on playground — verify no crash)
+    await expect(page.getByTestId('last-selected')).toHaveText(activeValue as string);
   });
 
   // ---------- Groups ----------

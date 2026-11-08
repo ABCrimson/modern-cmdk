@@ -199,7 +199,7 @@ test.describe('Keyboard Navigation', () => {
     // Press Enter to select
     await input.press('Enter');
 
-    // Selection should have occurred (no crash, item callback fired)
+    await expect(page.getByTestId('last-selected')).toHaveText(activeValue as string);
   });
 
   test('should select a specific item after navigating to it', async ({ page }) => {
@@ -217,7 +217,10 @@ test.describe('Keyboard Navigation', () => {
     await expect(thirdItem).toHaveAttribute('data-active', '');
 
     // Select it
+    const thirdValue = await thirdItem.getAttribute('data-value');
+    expect(thirdValue).toBeTruthy();
     await input.press('Enter');
+    await expect(page.getByTestId('last-selected')).toHaveText(thirdValue as string);
   });
 
   // ---------- Escape to Close ----------
@@ -341,10 +344,16 @@ test.describe('Keyboard Navigation', () => {
     await expect(dialog).toBeHidden({ timeout: 5_000 });
   });
 
-  test('should handle item keyboard shortcuts (aria-keyshortcuts)', async ({ page }) => {
-    // The basic demo defines shortcuts on some items (e.g. Mod+N)
-    const itemsWithShortcuts = page.locator('[data-command-item][aria-keyshortcuts]');
-    await expect(itemsWithShortcuts.first()).toHaveAttribute('aria-keyshortcuts', /\S/);
+  test('TEB-76: Mod+N in the focused input selects the New File item', async ({ page }) => {
+    // The basic demo binds shortcut="Mod+N" on the "create new file" item
+    const newFile = page.locator('[data-command-item][data-value="create new file"]');
+    await expect(newFile).toHaveAttribute('aria-keyshortcuts', /\S/);
+
+    const input = page.getByRole('combobox');
+    await input.focus();
+    await input.press('ControlOrMeta+n');
+
+    await expect(page.getByTestId('last-selected')).toHaveText('create new file');
   });
 
   // ---------- Disabled Item Behavior ----------
@@ -400,7 +409,10 @@ test.describe('Keyboard Navigation', () => {
     await expect(activeItem).toHaveCount(1);
 
     // Select with Enter
+    const activeValue = await activeItem.getAttribute('data-value');
+    expect(activeValue).toBeTruthy();
     await input.press('Enter');
+    await expect(page.getByTestId('last-selected')).toHaveText(activeValue as string);
   });
 
   test('should handle clear search then navigate', async ({ page }) => {
