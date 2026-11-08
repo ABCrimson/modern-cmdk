@@ -5,8 +5,8 @@ import { cleanup, fireEvent, render } from '@testing-library/react';
 import type { CommandMachine, ItemId } from 'modern-cmdk';
 import { createSearchEngine, itemId } from 'modern-cmdk';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
-import type { ReactNode } from 'react';
-import { act, use, useState } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
+import { act, createRef, use, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
 
@@ -198,4 +198,84 @@ it('a controlled activeId holds while navigation reports the candidate', async (
   await settle();
   expect(applied).toEqual(['b', 'c']);
   expect(appliedHeld.machine?.getState().activeId).toBe('c');
+});
+
+it('the root forwards div props and its ref', async () => {
+  const held: Held = {};
+  const keyDowns: string[] = [];
+  const selected: string[] = [];
+  const objectRef = createRef<HTMLDivElement>();
+  const callbackNodes: (HTMLDivElement | null)[] = [];
+  const view = render(
+    <Command
+      id="root-id"
+      style={{ color: 'red' }}
+      data-x="1"
+      className="palette"
+      role="presentation"
+      ref={objectRef}
+      onKeyDown={(event: KeyboardEvent<HTMLDivElement>): void => {
+        keyDowns.push(event.key);
+      }}
+      onSelect={(id: ItemId): void => {
+        selected.push(id);
+      }}
+    >
+      <Probe held={held} />
+      <Command.Input />
+      <Command.List>
+        {['a', 'b'].map((value) => (
+          <Command.Item key={value} value={value} forceId={value}>
+            {value}
+          </Command.Item>
+        ))}
+      </Command.List>
+    </Command>,
+  );
+  const root = view.container.querySelector<HTMLDivElement>('[data-command-root]');
+  if (!root) throw new Error('no root rendered');
+  expect(root.id).toBe('root-id');
+  expect(root.style.color).toBe('red');
+  expect(root.getAttribute('data-x')).toBe('1');
+  expect(root.className).toBe('palette');
+  // The root's own role wins over the caller's
+  expect(root.getAttribute('role')).toBe('search');
+  expect(objectRef.current).toBe(root);
+  // Machine options stay off the div
+  expect(root.hasAttribute('onselect')).toBe(false);
+
+  const input = view.getByRole('combobox') as HTMLInputElement;
+  fireEvent.keyDown(input, { key: 'ArrowDown' });
+  await settle();
+  expect(keyDowns).toEqual(['ArrowDown']);
+  expect(held.machine?.getState().activeId).toBe('b');
+
+  fireEvent.click(view.getByText('b'));
+  await settle();
+  expect(selected).toEqual(['b']);
+
+  view.rerender(
+    <Command ref={(node: HTMLDivElement | null): void => void callbackNodes.push(node)}>
+      <Command.Input />
+    </Command>,
+  );
+  expect(objectRef.current).toBeNull();
+  expect(callbackNodes).toHaveLength(1);
+  expect(callbackNodes[0]).toBeInstanceOf(HTMLDivElement);
+
+  // A function ref that returns a cleanup gets no `null` call: the cleanup runs on detach
+  const cleanup = vi.fn();
+  const withCleanup = vi.fn((): (() => void) => cleanup);
+  view.rerender(
+    <Command ref={withCleanup}>
+      <Command.Input />
+    </Command>,
+  );
+  expect(callbackNodes).toHaveLength(2);
+  expect(callbackNodes[1]).toBeNull();
+  expect(withCleanup).toHaveBeenCalledTimes(1);
+  expect(cleanup).not.toHaveBeenCalled();
+  view.unmount();
+  expect(cleanup).toHaveBeenCalledTimes(1);
+  expect(withCleanup).toHaveBeenCalledTimes(1);
 });
