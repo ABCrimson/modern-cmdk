@@ -20,17 +20,25 @@ export interface ParsedShortcut {
 /** Platform detection regex — matches Apple device platform strings */
 const MAC_PLATFORM_RE: RegExp = /Mac|iPod|iPhone|iPad/;
 
-// Prefer navigator.userAgentData (modern) over deprecated navigator.platform
-const isMac: boolean =
-  typeof navigator !== 'undefined' &&
-  ((navigator as { userAgentData?: { platform?: string } }).userAgentData?.platform === 'macOS' ||
-    MAC_PLATFORM_RE.test(navigator.platform));
+/** Platform a shortcut is resolved and displayed for: Apple devices or everything else. */
+export type ShortcutPlatform = 'mac' | 'other';
 
-/** Modifier aliases — cross-platform Mod resolution */
+/**
+ * Reads the platform from `navigator` at call time, preferring `navigator.userAgentData` over the
+ * deprecated `navigator.platform`. Without `navigator` the platform is `'other'`.
+ */
+function detectPlatform(): ShortcutPlatform {
+  return typeof navigator !== 'undefined' &&
+    ((navigator as { userAgentData?: { platform?: string } }).userAgentData?.platform === 'macOS' ||
+      MAC_PLATFORM_RE.test(navigator.platform))
+    ? 'mac'
+    : 'other';
+}
+
+/** Modifier aliases; `mod` is resolved per platform in `parseShortcut` */
 const MODIFIER_MAP: Readonly<
   Record<string, keyof Pick<ParsedShortcut, 'meta' | 'ctrl' | 'shift' | 'alt'>>
 > = {
-  mod: isMac ? 'meta' : 'ctrl',
   meta: 'meta',
   cmd: 'meta',
   command: 'meta',
@@ -45,8 +53,11 @@ const MODIFIER_MAP: Readonly<
 /**
  * Parse a shortcut string like "Mod+Shift+K" into a structured ParsedShortcut.
  * Ensures valid Unicode input via ensureWellFormed helper.
+ *
+ * `Mod` resolves to Meta on `'mac'` and to Ctrl on `'other'`. Without `platform`, the platform is
+ * detected from `navigator` when the function is called.
  */
-export function parseShortcut(shortcut: string): ParsedShortcut {
+export function parseShortcut(shortcut: string, platform?: ShortcutPlatform): ParsedShortcut {
   // Ensure valid Unicode before processing
   const safeShortcut = ensureWellFormed(shortcut);
 
@@ -59,7 +70,12 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
   let key = '';
 
   for (const part of parts) {
-    const modifier = MODIFIER_MAP[part];
+    const modifier =
+      part === 'mod'
+        ? (platform ?? detectPlatform()) === 'mac'
+          ? 'meta'
+          : 'ctrl'
+        : MODIFIER_MAP[part];
     if (modifier) {
       switch (modifier) {
         case 'meta':
@@ -101,9 +117,12 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
 
 /**
  * Formats a ParsedShortcut for display using platform-appropriate symbols.
- * On macOS: renders glyphs (⌘, ⇧, ⌥, ⌃). On other platforms: text labels joined by "+".
+ * On `'mac'`: renders glyphs (⌘, ⇧, ⌥, ⌃). On `'other'`: text labels joined by "+".
+ * Without `platform`, the platform is detected from `navigator` when the function is called;
+ * pass `'other'` to render the same text on a server and in the hydration pass.
  */
-export function formatShortcut(parsed: ParsedShortcut): string {
+export function formatShortcut(parsed: ParsedShortcut, platform?: ShortcutPlatform): string {
+  const isMac = (platform ?? detectPlatform()) === 'mac';
   const parts: string[] = [];
 
   if (parsed.meta) parts.push(isMac ? '\u2318' : 'Ctrl');
