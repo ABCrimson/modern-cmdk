@@ -3,6 +3,8 @@
 Build slash commands for an AI chat interface (like ChatGPT or Claude).
 
 ```tsx
+'use client';
+
 import { Command } from 'modern-cmdk/react';
 
 const COMMANDS = [
@@ -15,7 +17,7 @@ const COMMANDS = [
 
 function SlashCommands({ onCommand }: { onCommand: (cmd: string) => void }) {
   return (
-    <Command filter={false} label="Slash commands">
+    <Command label="Slash commands">
       <Command.Input placeholder="Type a command..." />
       <Command.List>
         {COMMANDS.map(cmd => (
