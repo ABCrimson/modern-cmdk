@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 // Locator-first assertions, toBeInViewport()
 // 2000 items: well above the 100-item virtualization threshold,
@@ -481,77 +481,95 @@ test.describe('Virtualization — Large Item Set', () => {
   });
 });
 
+// The CE-119 hover case: scroll the list, then aim the pointer at every row with a visible pixel.
+// Returns the number of rows hovered.
+async function hoverEveryVisibleRow(page: Page): Promise<number> {
+  const list = page.locator('[data-command-list]');
+  await list.evaluate((el) => {
+    el.scrollTop = 1_003;
+  });
+  await expect(page.locator('[data-command-item]').first()).toBeVisible();
+  const scrollTop = await list.evaluate((el) => el.scrollTop);
+  expect(scrollTop).toBeGreaterThan(900);
+
+  // Rows with at least one visible pixel, as the viewport sees them: the first and last may be
+  // partial. The list re-renders its rows after the scroll event, so wait until two reads agree.
+  const read = (): Promise<
+    { id: string; top: number; bottom: number; x: number; y: number; partial: boolean }[]
+  > =>
+    list.evaluate((el) => {
+      const view = el.getBoundingClientRect();
+      return [...el.querySelectorAll<HTMLElement>('[data-command-item]')]
+        .map((row) => {
+          const box = row.getBoundingClientRect();
+          return { id: row.id, top: box.top, bottom: box.bottom, x: box.left + box.width / 2 };
+        })
+        .filter((row) => row.bottom > view.top && row.top < view.bottom)
+        .map((row) => ({
+          ...row,
+          // A point of the row that lies inside the viewport
+          y: (Math.max(row.top, view.top) + Math.min(row.bottom, view.bottom)) / 2,
+          partial: row.top < view.top || row.bottom > view.bottom,
+        }));
+    });
+
+  let visible = await read();
+  await expect
+    .poll(async () => {
+      const next = await read();
+      const settled = JSON.stringify(next) === JSON.stringify(visible);
+      visible = next;
+      return settled && next.length > 3;
+    })
+    .toBe(true);
+  // The viewport's offset into the rows is not a multiple of the row height: an edge row is partial
+  expect(visible.some((row) => row.partial)).toBe(true);
+
+  for (const { id } of visible) {
+    // Read the row again: the page can still shift a few pixels after the first reads agree
+    const row = (await read()).find((candidate) => candidate.id === id);
+    if (!row) throw new Error(`row ${id} left the viewport`);
+    await page.mouse.move(row.x, row.y);
+    await expect(page.locator(`[data-command-item][data-active][id="${id}"]`)).toHaveCount(1);
+    expect(await list.evaluate((el) => el.scrollTop)).toBe(scrollTop);
+  }
+  return visible.length;
+}
+
+// Navigates to the virtualized demo once the test has registered its routes, and waits for a row.
+async function openVirtualizedDemo(page: Page): Promise<void> {
+  await page.goto(virtualizationUrl);
+  await expect(page.locator('[data-command-item]').first()).toBeVisible();
+}
+
 test.describe('Virtualization — scroll to the active row (CE-119)', () => {
   // The whole list (its bottom edge sits near y = 1000 in the playground) fits the page viewport, so the mouse can reach every row
   test.use({ viewport: { width: 1280, height: 1100 } });
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto(virtualizationUrl);
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
-    // RA-82: the playground's web fonts swap in after the first paint and the demo's description gains a
-    // line, which moves the whole list down by about 24 px; a pointer aimed at a row read before the swap
-    // lands on the row above it (on the search input for the first row), so the aimed row never activates.
-    // Every position below is read after the swap.
-    await page.evaluate(() => document.fonts.ready);
-  });
-
   test('CE-119: hovering a row already in view does not scroll the virtual list', async ({
     page,
   }) => {
-    const list = page.locator('[data-command-list]');
-    await list.evaluate((el) => {
-      el.scrollTop = 1_003;
+    await openVirtualizedDemo(page);
+    expect(await hoverEveryVisibleRow(page)).toBeGreaterThan(3);
+  });
+
+  // A late font swap moves the rows between the position read and the pointer move. The fonts load
+  // before the first render, so holding every font response cannot move a row.
+  test('TEB-104: the CE-119 hover case passes without a per-describe fonts wait', async ({
+    page,
+  }) => {
+    await page.route('**/*.woff2', async (route) => {
+      await new Promise((r) => setTimeout(r, 300));
+      await route.continue();
     });
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
-    const scrollTop = await list.evaluate((el) => el.scrollTop);
-    expect(scrollTop).toBeGreaterThan(900);
-
-    // Rows with at least one visible pixel, as the viewport sees them: the first and last may be partial.
-    // The list re-renders its rows after the scroll event, so wait until two reads agree.
-    const read = (): Promise<
-      { id: string; top: number; bottom: number; x: number; y: number; partial: boolean }[]
-    > =>
-      list.evaluate((el) => {
-        const view = el.getBoundingClientRect();
-        return [...el.querySelectorAll<HTMLElement>('[data-command-item]')]
-          .map((row) => {
-            const box = row.getBoundingClientRect();
-            return { id: row.id, top: box.top, bottom: box.bottom, x: box.left + box.width / 2 };
-          })
-          .filter((row) => row.bottom > view.top && row.top < view.bottom)
-          .map((row) => ({
-            ...row,
-            // A point of the row that lies inside the viewport
-            y: (Math.max(row.top, view.top) + Math.min(row.bottom, view.bottom)) / 2,
-            partial: row.top < view.top || row.bottom > view.bottom,
-          }));
-      });
-
-    let visible = await read();
-    await expect
-      .poll(async () => {
-        const next = await read();
-        const settled = JSON.stringify(next) === JSON.stringify(visible);
-        visible = next;
-        return settled && next.length > 3;
-      })
-      .toBe(true);
-    // The viewport's offset into the rows is not a multiple of the row height: an edge row is partial
-    expect(visible.some((row) => row.partial)).toBe(true);
-
-    for (const { id } of visible) {
-      // Read the row again: the page can still shift a few pixels after the first reads agree
-      const row = (await read()).find((candidate) => candidate.id === id);
-      if (!row) throw new Error(`row ${id} left the viewport`);
-      await page.mouse.move(row.x, row.y);
-      await expect(page.locator(`[data-command-item][data-active][id="${id}"]`)).toHaveCount(1);
-      expect(await list.evaluate((el) => el.scrollTop)).toBe(scrollTop);
-    }
+    await openVirtualizedDemo(page);
+    expect(await hoverEveryVisibleRow(page)).toBeGreaterThan(3);
   });
 
   test('CE-119: keyboard navigation to a row below the viewport scrolls it just into view', async ({
     page,
   }) => {
+    await openVirtualizedDemo(page);
     const input = page.getByRole('combobox');
     await input.focus();
     const list = page.locator('[data-command-list]');
