@@ -488,9 +488,10 @@ test.describe('Virtualization — scroll to the active row (CE-119)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(virtualizationUrl);
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
-    // RA-82: the playground's web fonts swap in a few hundred milliseconds after the first paint and reflow the
-    // page header, which moves the whole list by about 20 px; a pointer aimed at a row read before the swap then
-    // lands on the search input and no row activates. Every position below is read after the swap.
+    // RA-82: the playground's web fonts swap in after the first paint and the demo's description gains a
+    // line, which moves the whole list down by about 24 px; a pointer aimed at a row read before the swap
+    // lands on the row above it (on the search input for the first row), so the aimed row never activates.
+    // Every position below is read after the swap.
     await page.evaluate(() => document.fonts.ready);
   });
 
