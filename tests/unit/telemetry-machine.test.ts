@@ -450,3 +450,38 @@ it('D117: a telemetry option that throws at the open report leaves the session u
   // The open was never reported, so the close has no open to measure from
   expect(onPaletteClose).not.toHaveBeenCalled();
 });
+
+it("D112: a hook that throws does not swallow the refilter's error in the same commit", () => {
+  const errors: unknown[] = [];
+  // Both errors leave through queueMicrotask: collect them, do not fail the run
+  vi.stubGlobal('queueMicrotask', (run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      errors.push(error);
+    }
+  });
+  const filterFailure = new Error('filter down');
+  const hookFailure = new Error('hook down');
+  using machine = createCommandMachine({
+    items,
+    filter: (item: CommandItem, query: string) => {
+      if (item.value === 'Applet') throw filterFailure;
+      return item.value.toLowerCase().includes(query.toLowerCase()) ? 1 : false;
+    },
+    telemetry: {
+      onPaletteOpen: () => {
+        throw hookFailure;
+      },
+    },
+  });
+  nextBatch();
+
+  machine.send({ type: 'OPEN' });
+  // Registered in the batch: the commit's refilter runs over it and throws
+  machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('applet'), value: 'Applet' } });
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  nextBatch();
+
+  expect(errors).toEqual([hookFailure, filterFailure]);
+});
