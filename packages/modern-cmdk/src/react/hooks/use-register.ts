@@ -75,7 +75,7 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
   const onSelectRef = useRef(options?.onSelect);
   onSelectRef.current = options?.onSelect;
 
-  // Stabilize data via ref — inline objects won't cause re-registration
+  // Stabilize data via ref — inline objects won't cause re-registration, and the item reads the latest one
   const dataRef = useRef(options?.data);
   dataRef.current = options?.data;
 
@@ -105,7 +105,10 @@ export function useRegisterItem(value: string, options?: RegisterItemOptions): I
       shortcut: options?.shortcut,
       disabled: options?.disabled,
       onSelect: (): void => onSelectRef.current?.(),
-      data: dataRef.current,
+      // A getter over the ref: a custom filter reads the latest data object without a re-registration
+      get data(): Readonly<Record<string, unknown>> | undefined {
+        return dataRef.current;
+      },
     };
 
     stable.machine.send({ type: registeredRef.current ? 'UPDATE_ITEM' : 'REGISTER_ITEM', item });
