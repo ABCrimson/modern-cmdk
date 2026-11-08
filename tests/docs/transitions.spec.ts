@@ -24,6 +24,9 @@ it.afterEach(() => {
 
 async function recordViewTransitions(page: Page): Promise<void> {
   await page.addInitScript(() => {
+    // A per-document marker: a full document load (a click handled before the router existed) gets a new one, so a test can tell
+    // a hard navigation from a client navigation that skipped its transition.
+    Reflect.set(window, '__docMarker', Math.random());
     const log: { h1: string; skipped: boolean }[] = [];
     Reflect.set(window, '__vtLog', log);
     const original = document.startViewTransition?.bind(document);
@@ -51,6 +54,16 @@ async function recordViewTransitions(page: Page): Promise<void> {
       return transition;
     }) as typeof document.startViewTransition;
   });
+}
+
+const docMarker = (page: Page): Promise<number> =>
+  page.evaluate(() => Reflect.get(window, '__docMarker') as number);
+
+/** Opens `path` and waits for Vue to render into #app (the renderer stores the root vnode on the container as `_vnode`; the
+ *  static HTML has none), so the first click is handled by the router and not by the browser as a full-document link. */
+async function open(page: Page, path: string): Promise<void> {
+  await page.goto(path);
+  await page.waitForFunction(() => Reflect.has(document.querySelector('#app') ?? {}, '_vnode'));
 }
 
 const log = (page: Page): Promise<Entry[]> =>
@@ -83,7 +96,8 @@ it.describe('route view transitions', () => {
       for (const resume of held.splice(0)) void resume();
     });
     await recordViewTransitions(page);
-    await page.goto('guide/frecency.html');
+    await open(page, 'guide/frecency.html');
+    const marker = await docMarker(page);
     await visitThen(page, 'getting-started');
     await visitThen(page, 'frecency');
     await visitThen(page, 'getting-started');
@@ -102,6 +116,9 @@ it.describe('route view transitions', () => {
     await expect(page.locator('h1')).toContainText(/frecency/i);
     await notMarked(page);
 
+    expect(await docMarker(page), 'no full document reload: the router handled every click').toBe(
+      marker,
+    );
     const entries = (await log(page)).slice(before);
     expect(entries.length, 'a transition ran').toBeGreaterThan(0);
     const last = entries.at(-1);
@@ -118,7 +135,7 @@ it.describe('route view transitions', () => {
     // transition (VitePress drops overtaken loads, router.js:42). The mechanism is tested, not the scroll: history
     // traversals get a hard cut, and a traversal must not leave a flag behind that swallows the next click.
     await recordViewTransitions(page);
-    await page.goto('guide/getting-started.html');
+    await open(page, 'guide/getting-started.html');
     await visitThen(page, 'installation');
     await notMarked(page);
     const before = (await log(page)).length;
@@ -139,7 +156,7 @@ it.describe('route view transitions', () => {
 
   it('a page-to-page click starts a transition and releases the marker', async ({ page }) => {
     await recordViewTransitions(page);
-    await page.goto('guide/getting-started.html');
+    await open(page, 'guide/getting-started.html');
     await visitThen(page, 'installation');
     await expect.poll(async () => (await log(page)).length).toBe(1);
     await notMarked(page);
@@ -150,7 +167,7 @@ it.describe('route view transitions', () => {
   }) => {
     // router.js:205 returns before loadPage for a same-path hash change, so view-transitions.ts is not reached.
     await recordViewTransitions(page);
-    await page.goto('guide/installation.html');
+    await open(page, 'guide/installation.html');
     await page.locator('.VPDocAsideOutline a[href="#peer-dependencies"]').first().click();
     await expect(page).toHaveURL(/#peer-dependencies/);
     expect(await log(page)).toEqual([]);
@@ -159,7 +176,7 @@ it.describe('route view transitions', () => {
   it('prefers-reduced-motion starts no transition', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await recordViewTransitions(page);
-    await page.goto('guide/getting-started.html');
+    await open(page, 'guide/getting-started.html');
     await visitThen(page, 'installation');
     expect(await log(page)).toEqual([]);
   });
