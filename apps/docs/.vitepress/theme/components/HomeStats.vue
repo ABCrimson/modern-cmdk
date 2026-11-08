@@ -97,7 +97,7 @@ const hasSizeTiles = computed(() => tiles.value.some((tile) => tile.mark === '¹
     </ul>
     <ol class="notes" data-mc="footnotes" aria-label="Footnotes">
       <li v-if="hasSizeTiles && data.sizes">
-        <span class="mark" aria-hidden="true">&#x00B9;</span> Sizes: gzip, measured with size-limit {{ data.sizes.sizeLimit }} at
+        <span class="mark" aria-hidden="true">&#x00B9;</span> Sizes: gzip, the record for v{{ data.sizes.version }}, measured with size-limit {{ data.sizes.sizeLimit }} at
         {{ data.sizes.sha }} on {{ data.sizes.date }}; <code>{{ sizesPath }}</code>.
       </li>
       <li v-if="data.search">

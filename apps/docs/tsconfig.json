@@ -3,6 +3,7 @@
   "compilerOptions": {
     "types": ["vitepress/client", "node"],
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "declaration": false,
     "isolatedDeclarations": false,
     "paths": {
