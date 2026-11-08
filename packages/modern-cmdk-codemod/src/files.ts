@@ -290,17 +290,34 @@ async function relativeToRoot(
 const key = (path: string): string => (process.platform === 'win32' ? path.toLowerCase() : path);
 
 /**
- * Root-relative paths of the gitlinks (mode 160000: submodules) in the repository at `root`. One
- * level is enough: a submodule nested inside a submodule is not looked for.
+ * Root-relative paths (forward slashes) of the gitlinks (mode 160000: submodules) in the
+ * repository at `root`, and of the gitlinks inside each submodule that holds one of `rels` (the
+ * root-relative files being checked), at any depth: a submodule nested in a submodule is its own
+ * repository, and git refuses a path that lies inside it.
  */
-async function gitlinksOf(root: string, boundary: string): Promise<string[]> {
+async function gitlinksOf(
+  root: string,
+  boundary: string,
+  rels: readonly string[],
+): Promise<string[]> {
   const { code, stdout, stderr } = await runGit(['ls-files', '-s', '-z'], root, boundary);
   if (code !== 0) throw new Error(`git ls-files failed (exit ${code}): ${stderr.trim()}`);
   // Entries are `<mode> <object> <stage>\t<path>`.
-  return stdout
+  const links = stdout
     .split('\0')
     .filter((entry) => entry.startsWith('160000 '))
     .map((entry) => entry.slice(entry.indexOf('\t') + 1));
+  const found = [...links];
+  for (const link of links) {
+    const below = rels
+      .filter((rel) => key(rel).startsWith(`${key(link)}/`))
+      .map((rel) => rel.slice(link.length + 1));
+    if (below.length === 0) continue;
+    for (const nested of await gitlinksOf(join(root, link), boundary, below)) {
+      found.push(`${link}/${nested}`);
+    }
+  }
+  return found;
 }
 
 /** The paths of `rels` that `git check-ignore` run in `owner` reports as ignored. */
@@ -339,7 +356,13 @@ async function dropGitIgnored(
   if (!rels.some((rel) => rel !== undefined)) return files;
   // git refuses a path inside a submodule (exit 128), so each file is checked by the repository
   // that owns it: the deepest gitlink above it, else the parent. Paths go in relative to the owner.
-  const gitlinks = (await gitlinksOf(repo.root, boundary)).map(key);
+  const gitlinks = (
+    await gitlinksOf(
+      repo.root,
+      boundary,
+      rels.filter((rel) => rel !== undefined),
+    )
+  ).map(key);
   const groups = new Map<string, { root: string; indexes: number[]; paths: string[] }>();
   rels.forEach((rel, index) => {
     if (rel === undefined) return;

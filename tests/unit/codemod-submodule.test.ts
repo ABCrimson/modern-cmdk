@@ -122,6 +122,47 @@ describe('codemod CLI: git submodules', () => {
   });
 });
 
+describe('codemod CLI: git submodules nested in a submodule', () => {
+  // The submodule `inner` of the superproject holds a submodule `leaf` of its own, with a
+  // .gitignore that ignores skip.tsx.
+  let leaf: string;
+
+  beforeEach(async () => {
+    leaf = await mkdtemp(join(tmpdir(), 'modern-cmdk-sub-leaf-'));
+    scratch.push(leaf);
+    await git(leaf, ['init', '-q']);
+    await writeFile(join(leaf, 'f.tsx'), SOURCE);
+    await writeFile(join(leaf, '.gitignore'), 'skip.tsx\n');
+    await git(leaf, ['add', '.']);
+    await git(leaf, ['commit', '-q', '-m', 'leaf']);
+    const allowFile = ['-c', 'protocol.file.allow=always'];
+    await git(join(dir, 'inner'), [...allowFile, 'submodule', 'add', '-q', leaf, 'leaf']);
+    await git(join(dir, 'inner'), ['commit', '-q', '-m', 'leaf']);
+    await git(dir, ['add', 'inner']);
+    await git(dir, ['commit', '-q', '-m', 'inner with leaf']);
+    await writeFile(join(dir, 'inner', 'leaf', 'skip.tsx'), SOURCE);
+  });
+
+  it('SEC-56: strict discovery over a file in a submodule nested in a submodule runs check-ignore in the innermost repository, applies its .gitignore and migrates', async () => {
+    const c = capture();
+    expect(await run(['import-rewrite', 'inner'], c.io, codemodDeps)).toBe(0);
+    expect(c.err()).not.toContain('check-ignore');
+    const migrated = /^import \{ Command \} from ['"]modern-cmdk\/react['"];\r?\n$/;
+    expect(await readFile(join(dir, 'inner', 'leaf', 'f.tsx'), 'utf-8')).toMatch(migrated);
+    expect(await readFile(inner, 'utf-8')).toMatch(migrated);
+    expect(await readFile(join(dir, 'inner', 'leaf', 'skip.tsx'), 'utf-8')).toBe(SOURCE);
+  });
+
+  it('SEC-56: a dirty file in the nested submodule refuses with exit 2 and is listed', async () => {
+    const f = join(dir, 'inner', 'leaf', 'f.tsx');
+    await writeFile(f, `${SOURCE}// edited\n`);
+    const c = capture();
+    expect(await run(['import-rewrite', 'inner'], c.io, codemodDeps)).toBe(2);
+    expect(c.err()).toContain('  inner/leaf/f.tsx');
+    expect(await readFile(f, 'utf-8')).toBe(`${SOURCE}// edited\n`);
+  });
+});
+
 /** A planted git: a copy of this process's executable named as the platform's git, in `where`. */
 async function plantGit(where: string): Promise<void> {
   await mkdir(where, { recursive: true });
