@@ -5,13 +5,14 @@
 // with <Command.Item> children the root re-renders during mount and hides a lifecycle defect.
 // Helpers (`mount`, `Spy`, `settle`, `typeInto`) are shared by the tests of this file.
 
-import type { CommandItem, CommandMachine } from 'modern-cmdk';
-import { itemId } from 'modern-cmdk';
+import { setImmediate } from 'node:timers/promises';
+import type { CommandItem, CommandMachine, FrecencyStorage } from 'modern-cmdk';
+import { createSearchEngine, itemId } from 'modern-cmdk';
 import { Command, CommandStableContext, useCommandState } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
 import { Activity, act, StrictMode, use } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;
@@ -89,6 +90,36 @@ class Spy {
   };
 }
 
+/** The most major collections one `collectGarbage` call runs while its predicate stays false. */
+const MAX_COLLECTIONS = 20;
+
+/**
+ * Runs async major GCs until `settled()` is true, at most MAX_COLLECTIONS of them: the TUB-81 settle loop
+ * of memory-leak.test.ts (see its `collectGarbage` for why each pass is async and followed by a `setImmediate` turn).
+ */
+async function collectGarbage(settled: () => boolean): Promise<void> {
+  const gc = globalThis.gc;
+  if (typeof gc !== 'function')
+    throw new Error('gc() is missing: the unit project runs with --expose-gc');
+  for (let pass = 0; pass < MAX_COLLECTIONS; pass++) {
+    await gc({ type: 'major', execution: 'async', flavor: 'last-resort' });
+    await setImmediate();
+    if (settled()) return;
+  }
+}
+
+/** Like `Spy`, but keeps only a WeakRef to the first machine it sees, so the probe itself never pins it. */
+class WeakSpy {
+  ref: WeakRef<CommandMachine> | undefined;
+
+  /** Probe child: place it inside `<Command>`. */
+  readonly Probe = (): null => {
+    const stable = use(CommandStableContext);
+    if (stable && this.ref === undefined) this.ref = new WeakRef(stable.machine);
+    return null;
+  };
+}
+
 const apple: CommandItem = { id: itemId('apple'), value: 'apple' };
 const banana: CommandItem = { id: itemId('banana'), value: 'banana' };
 
@@ -99,8 +130,8 @@ const inputOf = (host: HTMLElement): HTMLInputElement => {
 };
 
 describe('React lifecycle (C1)', () => {
-  // The three tests are red until the C1 lifecycle fix; the fixing commit turns them into `it`.
-  it.fails('query survives StrictMode remount', async () => {
+  // `onSelect prop change fires the new callback` is red until the commit that makes root callbacks live; that commit turns it into `it`.
+  it('query survives StrictMode remount', async () => {
     const spy = new Spy();
     const host = await mount(
       <StrictMode>
@@ -121,7 +152,7 @@ describe('React lifecycle (C1)', () => {
     expect(spy.searches.at(-1)).toBe('ap');
   });
 
-  it.fails('registrations survive Activity hide/show', async () => {
+  it('registrations survive Activity hide/show', async () => {
     const spy = new Spy();
     const tree = (mode: 'visible' | 'hidden'): ReactNode => (
       <Activity mode={mode}>
@@ -202,5 +233,131 @@ describe('React lifecycle (C1)', () => {
     await settle();
 
     expect(calls).toEqual([`second:${registered.id}`]);
+  });
+
+  it('StrictMode: an item shortcut still fires after the double mount', async () => {
+    const onSelect = vi.fn();
+    await mount(
+      <StrictMode>
+        <Command items={[{ ...apple, shortcut: 'Ctrl+K', onSelect }]}>
+          <Command.Input />
+        </Command>
+      </StrictMode>,
+    );
+    await settle();
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
+      );
+    });
+    await settle();
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('StrictMode: a query typed before any re-render reaches the live machine', async () => {
+    const spy = new Spy();
+    const host = await mount(
+      <StrictMode>
+        <Command items={[apple, banana]}>
+          <spy.Probe />
+          <Command.Input />
+        </Command>
+      </StrictMode>,
+    );
+
+    // No settle: the query arrives before the root has re-rendered.
+    await typeInto(inputOf(host), 'ap');
+
+    expect(spy.machine.getState().search).toBe('ap');
+    expect(spy.machine.getState().filteredIds).toEqual([itemId('apple')]);
+    expect(inputOf(host).value).toBe('ap');
+  });
+
+  it('D102: StrictMode builds one machine per mount', async () => {
+    // Construction loads the frecency storage once per machine, so the load count is the machine count.
+    const load = vi.fn<FrecencyStorage['load']>(() => ({ records: new Map() }));
+    const storage: FrecencyStorage = { load, save: async () => {}, [Symbol.dispose]: () => {} };
+    await mount(
+      <StrictMode>
+        <Command items={[apple]} frecency={{ enabled: true, storage }}>
+          <Command.Input />
+        </Command>
+      </StrictMode>,
+    );
+    await settle();
+
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it("D102: an unmounted Command's machine is collectable", async () => {
+    using warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const weak = new WeakSpy();
+    // A shortcut item gives the machine a global keydown listener, which a machine left resumed would keep reachable.
+    await mount(
+      <Command items={[{ ...apple, shortcut: 'Ctrl+K' }, banana]}>
+        <weak.Probe />
+        <Command.Input />
+        <Command.List>
+          <Command.Item value="cherry">Cherry</Command.Item>
+        </Command.List>
+      </Command>,
+    );
+    await settle();
+    expect(weak.ref?.deref()).toBeDefined();
+
+    const mounted = root;
+    root = undefined;
+    await act(async () => {
+      mounted?.unmount();
+    });
+    // The children's UNREGISTER sends run on the next scheduler frame.
+    await settle();
+    await settle();
+
+    await collectGarbage(() => weak.ref?.deref() === undefined);
+    expect(weak.ref?.deref()).toBeUndefined();
+
+    // The engine the machine created is disposed through the registry, never reported as undisposed.
+    await collectGarbage(() => false);
+    expect(warn.mock.calls.flat().join('\n')).not.toContain(
+      'garbage collected without being disposed',
+    );
+  });
+
+  it("D103: a caller's searchEngine is not disposed by the machine and keeps working after an Activity hide/show", async () => {
+    const engine = createSearchEngine();
+    using disposed = vi.spyOn(engine, Symbol.dispose);
+    const search = vi.spyOn(engine, 'search');
+    const spy = new Spy();
+    const tree = (mode: 'visible' | 'hidden'): ReactNode => (
+      <Activity mode={mode}>
+        <Command searchEngine={engine}>
+          <spy.Probe />
+          <Command.Input />
+          <Command.List>
+            <Command.Item value="apple">Apple</Command.Item>
+            <Command.Item value="banana">Banana</Command.Item>
+          </Command.List>
+        </Command>
+      </Activity>
+    );
+    await mount(tree('visible'));
+    await settle();
+    await update(tree('hidden'));
+    await settle();
+    await update(tree('visible'));
+    await settle();
+
+    expect(disposed).not.toHaveBeenCalled();
+    search.mockClear();
+    await act(async () => {
+      spy.machine.send({ type: 'SEARCH_CHANGE', query: 'ban' });
+    });
+    await settle();
+
+    expect(search).toHaveBeenCalled();
+    expect(spy.machine.getState().filteredIds.length).toBe(1);
   });
 });
