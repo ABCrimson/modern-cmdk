@@ -1,8 +1,10 @@
 // packages/modern-cmdk/src/react/input.tsx
-// <Command.Input> — urgent local input value, stable callbacks, ARIA combobox role
+// <Command.Input> — urgent local input value (or the caller's controlled value), stable callbacks, ARIA combobox role
 // The machine applies SEARCH_CHANGE on its scheduler tick (rAF in browsers), so machine state lags
 // the DOM. The controlled value therefore lives in local state set inside the change event (an urgent
 // discrete-event update); machine state only overwrites it for changes that did not originate here (reconciled on every machine tick).
+// A caller that passes `value` owns the text instead: the input shows it, a change only reports through onValueChange,
+// and a layout effect queues the prop on the machine.
 // React 19: use() for context, ref as prop (no forwardRef)
 // Isolated declarations: explicit return types on all exports
 
@@ -11,7 +13,17 @@ import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } 
 import { useStableContext, useStateContext } from './context.js';
 
 export interface CommandInputProps
-  extends Omit<ComponentPropsWithRef<'input'>, 'value' | 'onChange' | 'type' | 'role'> {
+  extends Omit<ComponentPropsWithRef<'input'>, 'onChange' | 'type' | 'role'> {
+  /**
+   * The search text, controlled by the caller. When defined the input shows it, a change calls `onValueChange`
+   * and sends nothing to the machine, and a layout effect sends the prop to the machine as the search query
+   * whenever it changes. Leave it `undefined` for the input to keep its own text and send each change itself.
+   */
+  readonly value?: string | undefined;
+  /**
+   * Called with the new text on every change. Controlled (`value` defined): the caller applies it by passing the
+   * next `value`; a caller that ignores it keeps the input at its `value`.
+   */
   readonly onValueChange?: (value: string) => void;
 }
 
@@ -19,6 +31,7 @@ export interface CommandInputProps
 export function CommandInput({
   ref,
   placeholder = 'Search...',
+  value,
   onValueChange,
   ...props
 }: CommandInputProps): ReactNode {
@@ -51,15 +64,22 @@ export function CommandInput({
     }
   }, [machineState]);
 
+  // Controlled: the prop is the search text, queued on the machine whenever it changes
+  useLayoutEffect(() => {
+    if (value !== undefined) stable.updateSearch(value);
+  }, [value, stable.updateSearch]);
+
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>): void => {
-      const { value } = event.target;
-      inFlight.current.push(value);
-      setDraft(value);
-      stable.updateSearch(value);
-      onValueChange?.(value);
+      const next = event.target.value;
+      if (value === undefined) {
+        inFlight.current.push(next);
+        setDraft(next);
+        stable.updateSearch(next);
+      }
+      onValueChange?.(next);
     },
-    [stable.updateSearch, onValueChange],
+    [value, stable.updateSearch, onValueChange],
   );
 
   return (
@@ -78,7 +98,7 @@ export function CommandInput({
       autoCorrect="off"
       spellCheck={false}
       placeholder={placeholder}
-      value={draft}
+      value={value ?? draft}
       onChange={handleChange}
       {...props}
     />
