@@ -891,8 +891,8 @@
   },
   {
     "id": "RC-15",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::RC-15: apps/docs/examples/vanilla.md keeps the machine with const, not a module-level using",
+    "status": "covered"
   },
   {
     "id": "PG-04",
@@ -1051,53 +1051,53 @@
   },
   {
     "id": "DAE-08",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DAE-08: api/command-react.md AsyncItems sample holds its promise outside render and passes each Command.Item its id",
+    "status": "covered"
   },
   {
     "id": "DAE-13",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DAE-13: examples/async-search.md gives each loaded Command.Item its id",
+    "status": "covered"
   },
   {
     "id": "DAE-58",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DAE-58: examples/async-search.md Multiple Async Sources passes ids and holds both promises outside render",
+    "status": "covered"
   },
   {
     "id": "DAE-60",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DAE-60: examples/frecency.md keys persisted frecency by stable item ids",
+    "status": "covered"
   },
   {
     "id": "DAE-64",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DAE-64: examples/virtualized.md disposes the engine once, as its owner",
+    "status": "covered"
   },
   {
     "id": "DAE-65",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DAE-65: recipes/ai-chat-commands.md filters its slash commands",
+    "status": "covered"
   },
   {
     "id": "DAE-66",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DAE-66: recipes/emoji-picker.md creates its engine per mount",
+    "status": "covered"
   },
   {
     "id": "DAE-67",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DAE-67: recipes/file-picker.md gives each file one stable id",
+    "status": "covered"
   },
   {
     "id": "DAE-68",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DAE-68: recipes/nested-commands.md renders root links inside the root page and pages inside the list",
+    "status": "covered"
   },
   {
     "id": "DAE-69",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DAE-69: recipes/spotlight-search.md holds its promise outside render and passes ids",
+    "status": "covered"
   },
   {
     "id": "DG-20",
@@ -1106,13 +1106,13 @@
   },
   {
     "id": "DG-22",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DG-22: guide/async-items.md creates no AsyncItems promise during render",
+    "status": "covered"
   },
   {
     "id": "DG-23",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-7-0-claims.test.ts::DG-23: guide/async-items.md gives each loaded Command.Item its id",
+    "status": "covered"
   },
   {
     "id": "ARCH-03",
