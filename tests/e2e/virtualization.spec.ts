@@ -488,6 +488,10 @@ test.describe('Virtualization — scroll to the active row (CE-119)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(virtualizationUrl);
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
+    // RA-82: the playground's web fonts swap in a few hundred milliseconds after the first paint and reflow the
+    // page header, which moves the whole list by about 20 px; a pointer aimed at a row read before the swap then
+    // lands on the search input and no row activates. Every position below is read after the swap.
+    await page.evaluate(() => document.fonts.ready);
   });
 
   test('CE-119: hovering a row already in view does not scroll the virtual list', async ({
