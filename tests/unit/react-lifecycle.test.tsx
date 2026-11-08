@@ -506,4 +506,24 @@ describe('React lifecycle (C1)', () => {
     expect(counter.renders).toBe(afterUpdates);
     expect(afterUpdates).toBeLessThan(30);
   });
+
+  it('a shortcutAction prop change after mount warns once that the option is read at mount', async () => {
+    using warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const tree = (shortcutAction: 'direct' | 'select'): ReactNode => (
+      <Command items={[apple]} shortcutAction={shortcutAction}>
+        <Command.List />
+      </Command>
+    );
+    await mount(tree('direct'));
+    await settle();
+    expect(warn).not.toHaveBeenCalled();
+
+    await update(tree('select'));
+    await update(tree('direct'));
+    await settle();
+
+    const warnings = warn.mock.calls.map((call) => String(call[0]));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('shortcutAction');
+  });
 });

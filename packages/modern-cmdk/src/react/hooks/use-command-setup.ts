@@ -5,10 +5,34 @@
 
 import type { CommandMachine, CommandMachineOptions, CommandState, ItemId } from 'modern-cmdk';
 import { createCommandMachine } from 'modern-cmdk';
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CommandStableContextValue, CommandStateContextValue } from '../context.js';
 import { useCommand } from './use-command.js';
 import { createKeydownHandler } from './use-keyboard.js';
+
+// Module-scoped declaration: no @types/node needed, nothing global leaks.
+declare const process: { readonly env: { readonly NODE_ENV?: string } };
+
+// Same semantics as use-devtools.ts: true unless NODE_ENV is 'production'; an unbundled browser module
+// (no `process`) counts as production.
+const isDev: boolean = (() => {
+  try {
+    return process.env.NODE_ENV !== 'production';
+  } catch {
+    return false;
+  }
+})();
+
+/** The props the machine reads once, at construction, as values to compare; `INIT_ONLY` names them in order. */
+const initOnlyValues = (o: CommandMachineOptions): unknown[] => [
+  o.shortcutAction,
+  o.frecency?.enabled,
+  o.frecency?.storage,
+  o.search,
+  o.searchEngine,
+  typeof o.filter === 'function',
+];
+const INIT_ONLY = ['shortcutAction', 'frecency', 'frecency', 'search', 'searchEngine', 'filter'];
 
 export interface UseCommandSetupReturn {
   readonly machine: CommandMachine;
@@ -120,6 +144,9 @@ export function useCommandSetup(
   label: string,
 ): UseCommandSetupReturn {
   const latest = useRef(options);
+  // The first render's props and, in development, the init-only props already warned about
+  const [first] = useState(options);
+  const [warned] = useState(() => new Set<string>());
 
   // The one render-time ref write: a null-guarded initializer, which react.dev/reference/react/useRef
   // sanctions because the result is always the same and the condition runs only during initialization
@@ -150,11 +177,24 @@ export function useCommandSetup(
     };
   }, [machine]);
 
-  // Every commit: publish the props to the options object, then register what changed. `UPDATE_ITEM` upserts, so it
+  // Every commit: in development, warn about a changed init-only prop; publish the props to the options object, then
+  // register what changed. `UPDATE_ITEM` upserts, so it
   // serves a new item and a changed one. StrictMode's replay and a re-render from the machine's own state pass the
   // same arrays, so the diff sends nothing. A `disabledItems` change refilters (the machine reads it in its refilter;
   // upserting an unchanged item triggers one).
   useLayoutEffect(() => {
+    if (isDev) {
+      const was = initOnlyValues(first);
+      const now = initOnlyValues(options);
+      INIT_ONLY.forEach((name, i) => {
+        if (was[i] === now[i] || warned.has(name)) return;
+        warned.add(name);
+        // biome-ignore lint/suspicious/noConsole: development-only misuse diagnostic, gated on NODE_ENV
+        console.warn(
+          `[modern-cmdk] The "${name}" prop is read once, when the component mounts; a later change has no effect. Give the component a new key to apply it.`,
+        );
+      });
+    }
     const previous = latest.current;
     latest.current = options;
     diffById(
