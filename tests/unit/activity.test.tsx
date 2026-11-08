@@ -1,3 +1,4 @@
+// tests/unit/activity.test.tsx
 // Pins CommandActivity (packages/modern-cmdk/src/react/activity.tsx).
 // ACT-1: a visible child's text is read with a hard polling assertion, so a late arrival is retried
 //        and a missing or wrong text fails the test.
@@ -51,9 +52,12 @@ function Counter(): React.ReactNode {
   );
 }
 
-/** Writes the text after the commit through a DOM mutation, which is not a React state update. */
-function writeTextLater(el: HTMLElement | null): void {
-  if (el) setTimeout(() => (el.textContent = 'Hello'), 30);
+/** Writes the text after the commit through a DOM mutation, which is not a React state update; an
+ * unmount cancels a pending write. */
+function writeTextLater(el: HTMLElement | null): (() => void) | undefined {
+  if (el === null) return undefined;
+  const timer = setTimeout(() => (el.textContent = 'Hello'), 30);
+  return () => clearTimeout(timer);
 }
 
 const counter = (): HTMLElement | null => container.querySelector('[data-testid="counter"]');
