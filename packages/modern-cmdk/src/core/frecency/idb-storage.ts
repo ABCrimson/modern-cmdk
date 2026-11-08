@@ -1,7 +1,9 @@
 // packages/modern-cmdk/src/core/frecency/idb-storage.ts
 // IndexedDB-backed frecency persistence — idb-keyval get/set/del (lazy-loaded), own per-operation store opener
+// (openStore); the reader validates every row and accepts the v1 and v2 payloads
 // Implements both Disposable and AsyncDisposable for await using support
-// ES2025: Iterator Helpers; ESNext: Explicit Resource Management (using/await using, TS lib esnext.disposable)
+// ES2025: Iterator Helpers (serializeData, deserializeData); ESNext: Explicit Resource Management
+// (using/await using, TS lib esnext.disposable), with the registered-symbol shim below
 
 import type { UseStore } from 'idb-keyval';
 import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';
