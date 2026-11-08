@@ -3,6 +3,8 @@
 Build a high-performance emoji picker with 5000+ items using virtualization.
 
 ```tsx
+'use client';
+
 import { Command } from 'modern-cmdk/react';
 
 interface EmojiEntry {
@@ -43,17 +45,38 @@ Virtualization activates automatically when more than 100 items match (a fixed t
 
 ## With WASM Search
 
-The WASM engine does not work yet (see [WASM Search](/guide/wasm-search)), so this sample shows the intended API, not today's behaviour:
+The WASM engine does not work yet (see [WASM Search](/guide/wasm-search)), so this sample shows the intended API, not today's behaviour.
+
+A `Command` without a `searchEngine` creates its engine and disposes it with its machine. An engine you pass is yours to dispose: the machine never disposes it, and it survives the machine's dispose, suspend and resume. So the component creates the engine per mount, as its owner disposes it, and renders the palette once the engine exists (the palette reads `searchEngine` once, when it mounts):
 
 ```tsx
+'use client';
+
+import type { SearchEngine } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
 import { createWasmSearchEngine } from 'modern-cmdk-search-wasm';
-
-const wasmEngine = await createWasmSearchEngine();
+import { useEffect, useState } from 'react';
 
 export function WasmEmojiPicker() {
+  const [engine, setEngine] = useState<SearchEngine | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    const pending = createWasmSearchEngine();
+    void pending.then((created) => {
+      if (current) setEngine(created);
+    });
+    return () => {
+      current = false;
+      setEngine(null);
+      void pending.then((created) => created[Symbol.dispose]());
+    };
+  }, []);
+
+  if (engine === null) return null;
+
   return (
-    <Command label="Emoji picker" search={wasmEngine}>
+    <Command label="Emoji picker" searchEngine={engine}>
       {/* Command.Input and Command.List as above */}
     </Command>
   );
