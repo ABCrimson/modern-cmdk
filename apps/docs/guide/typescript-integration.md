@@ -69,7 +69,7 @@ state.filteredIds.push(itemId('x'));
 
 ## isolatedDeclarations
 
-`modern-cmdk` is built with `isolatedDeclarations: true` (`tsconfig.base.json`; the codemod and scaffolder packages set it to `false`), ensuring `.d.ts` files are generated without full type inference — faster builds and compatible with any bundler.
+`modern-cmdk` and `modern-cmdk-search-wasm` are built with `isolatedDeclarations: true` (`tsconfig.base.json`; the codemod and scaffolder packages set it to `false`), ensuring `.d.ts` files are generated without full type inference — faster builds and compatible with any bundler.
 
 ## erasableSyntaxOnly
 

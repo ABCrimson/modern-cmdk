@@ -230,11 +230,11 @@ cmdk infers a missing `value` from the item's text. `Command.Item` requires `val
 
 ### 3. The Root Has No `value` or `onValueChange`
 
-cmdk's root takes a controlled `value` and `onValueChange` for the active item. `Command` takes the options of `CommandMachineOptions` (`packages/modern-cmdk/src/core/types.ts:180-226`) and has neither; observe the active item with `onActiveChange`, which receives the item id or `null`.
+cmdk's root takes a controlled `value` and `onValueChange` for the active item. `Command` takes the options of `CommandMachineOptions` (`packages/modern-cmdk/src/core/types.ts:180-223`) and has neither; observe the active item with `onActiveChange`, which receives the item id or `null`.
 
 ### 4. `vimBindings` and `disablePointerSelection` Are Gone
 
-Neither prop exists on `CommandMachineOptions` (`core/types.ts:180-226`). Remove them.
+Neither prop exists on `CommandMachineOptions` (`core/types.ts:180-223`). Remove them.
 
 ### 5. `filter` Replaces `shouldFilter`, and Its Signature Differs
 
