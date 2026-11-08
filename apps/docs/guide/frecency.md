@@ -64,10 +64,10 @@ function PersistentFrecencyPalette() {
       <Command.Input placeholder="Search..." />
       <Command.List>
         <Command.Empty>No results.</Command.Empty>
-        <Command.Item value="settings" onSelect={() => console.log('settings')}>
+        <Command.Item id="settings" value="settings" onSelect={() => console.log('settings')}>
           Settings
         </Command.Item>
-        <Command.Item value="profile" onSelect={() => console.log('profile')}>
+        <Command.Item id="profile" value="profile" onSelect={() => console.log('profile')}>
           Profile
         </Command.Item>
       </Command.List>
@@ -76,9 +76,11 @@ function PersistentFrecencyPalette() {
 }
 ```
 
-A storage you pass in `frecency.storage` is yours to dispose; the engine disposes only a storage it created itself (the in-memory one it uses when you pass none). React disposes the machine when `<Command>` unmounts, and under StrictMode in development the double-mount disposes and recreates the machine; your storage survives that, so the palette in use keeps loading and saving. A disposed `IdbFrecencyStorage` loads empty data and ignores saves.
+The stored history is keyed by item id. An `<Command.Item>` without `id` registers under a generated `useId` id, which follows the item's place in the React tree and not the item, so give every item whose history you persist a stable `id` (for a fetched item, `id={item.id}`).
 
-Selections are saved 1000 ms after the last one (a trailing debounce), when the page becomes hidden (`visibilitychange`) or is hidden for good (`pagehide`), and when the machine is disposed. When the stored data has loaded, it is merged into the engine (frequencies add up, the later `lastUsed` wins, selections made while it loaded are kept) and a non-empty search ranks with it. A save waits for the load in flight, so a selection made before the stored history arrives is merged into it, never written over it. A load that fails is reported once through `console.warn`; the palette keeps working with in-memory data, and that engine writes nothing for the rest of its life, so the stored history stays untouched. A load that never settles holds every save, and `await using` with it.
+A storage you pass in `frecency.storage` is yours to dispose; the engine disposes only a storage it created itself (the in-memory one it uses when you pass none). The React root keeps one machine per mount and never disposes it: when `<Command>` unmounts, StrictMode replays its effects in development, or an `<Activity>` hides it, the root suspends the machine, which starts the save of any pending selections and detaches the page-exit listeners, and it resumes the machine when the component is set up again. Your storage is untouched by that, so the palette in use keeps loading and saving. A disposed `IdbFrecencyStorage` loads empty data and ignores saves.
+
+Selections are saved 1000 ms after the last one (a trailing debounce), when the page becomes hidden (`visibilitychange`) or is hidden for good (`pagehide`), when the machine is suspended (the React root does so on unmount and when an `<Activity>` hides it), and when the machine is disposed. When the stored data has loaded, it is merged into the engine (frequencies add up, the later `lastUsed` wins, selections made while it loaded are kept) and a non-empty search ranks with it. A save waits for the load in flight, so a selection made before the stored history arrives is merged into it, never written over it. A load that fails is reported once through `console.warn`; the palette keeps working with in-memory data, and that engine writes nothing for the rest of its life, so the stored history stays untouched. A load that never settles holds every save, and `await using` with it.
 
 `new IdbFrecencyStorage(dbName?, storeName?)` defaults to the database `'modern-cmdk'` and the store `'frecency'`; a second `storeName` in an existing database works.
 
