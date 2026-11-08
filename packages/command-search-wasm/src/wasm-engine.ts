@@ -44,9 +44,14 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
     };
 
     // The crate rebuilds its trigram index from every `index_items` call, so it cannot add to what it holds.
-    // The adapter keeps the indexed values by id and hands the crate the whole map on each change.
+    // The adapter keeps the indexed values by id; after a change, the whole map goes to the crate before the next
+    // search, once however many index() and remove() calls came in between (one call per registered item would
+    // rebuild the crate index each time).
     const indexed = new Map<ItemId, string>();
+    let stale = false;
     const syncIndex = (): void => {
+      if (!stale) return;
+      stale = false;
       instance.index_items(JSON.stringify(Array.from(indexed)));
     };
 
@@ -60,7 +65,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
       index(items: readonly { id: ItemId; value: string }[]): void {
         assertLive();
         for (const item of items) indexed.set(item.id, item.value);
-        syncIndex();
+        stale = true;
       },
 
       /**
@@ -71,6 +76,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
        */
       *search(query: string, items: readonly { id: ItemId }[]): Generator<SearchResult> {
         assertLive();
+        syncIndex();
         const candidates = new Set<string>(items.map((item) => item.id));
         const results = instance.search(query, indexed.size) as Array<{
           id: string;
@@ -94,7 +100,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
       remove(ids: ReadonlySet<ItemId>): void {
         assertLive();
         for (const id of ids) indexed.delete(id);
-        syncIndex();
+        stale = true;
       },
 
       /** Empties the kept map and the crate's index. */
@@ -102,6 +108,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
         assertLive();
         indexed.clear();
         instance.clear();
+        stale = false;
       },
 
       [Symbol.dispose]: dispose,

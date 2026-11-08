@@ -94,7 +94,7 @@ it.skipIf(skip)(
   },
 );
 
-it.skipIf(skip)('CE-116: remove() drops only the given ids', async () => {
+it.skipIf(skip)('W05: remove() drops only the given ids', async () => {
   const engine = await realEngine();
   using _engine = engine;
   const items = [
@@ -114,17 +114,10 @@ it.skipIf(skip)('CE-116: remove() drops only the given ids', async () => {
 it.skipIf(skip)('W44: search() returns only ids among the passed items', async () => {
   const engine = await realEngine();
   using _engine = engine;
-  const items = [
-    entry('apple', 'Apple pie'),
-    entry('apricot', 'Apple tart'),
-    entry('applesauce', 'Apple sauce'),
-  ];
+  // For 'apple', x scores 1.0 and a and b 2/3: under a crate limit of items.length (2), x takes a slot and b is lost
+  const items = [entry('x', 'apple'), entry('a', 'appl'), entry('b', 'pple')];
   engine.index(items);
 
-  const passed = items.slice(0, 2);
-  const ids = [...engine.search('apple', passed)].map((r) => r.id);
-  expect(ids).toHaveLength(2);
-  expect(ids).toContain(itemId('apple'));
-  expect(ids).toContain(itemId('apricot'));
-  expect(ids).not.toContain(itemId('applesauce'));
+  const ids = [...engine.search('apple', items.slice(1))].map((r) => r.id);
+  expect(ids.toSorted()).toEqual([itemId('a'), itemId('b')]);
 });
