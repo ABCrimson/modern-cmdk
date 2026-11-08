@@ -576,3 +576,112 @@ describe('CommandMachine custom filter scores (ARCH-14)', () => {
     expect([...machine.getState().filteredIds].sort()).toEqual(['big', 'tiny']);
   });
 });
+
+describe('CommandMachine UPDATE_ITEM (ARCH-20, CE-49)', () => {
+  const item = (id: string, value: string, extra?: Partial<CommandItem>): CommandItem => ({
+    id: itemId(id),
+    value,
+    ...extra,
+  });
+  /** Events run in order: once OPEN has been handled, everything sent before it has been too */
+  async function settle(machine: CommandMachine): Promise<void> {
+    machine.send({ type: 'OPEN' });
+    await vi.waitFor(() => {
+      expect(machine.getState().open).toBe(true);
+    });
+  }
+  const press = (key: string): void => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, cancelable: true }));
+  };
+
+  it('UPDATE_ITEM keeps the registry and filteredIds position and replaces the item', async () => {
+    using machine = createCommandMachine({
+      items: [item('a', 'Apple'), item('b', 'Banana'), item('c', 'Cherry')],
+    });
+    machine.send({ type: 'UPDATE_ITEM', item: item('b', 'Banana', { disabled: true }) });
+    await settle(machine);
+    expect(
+      machine
+        .getRegistry()
+        .getItems()
+        .map((i) => i.id),
+    ).toEqual(['a', 'b', 'c']);
+    expect(machine.getState().filteredIds).toEqual(['a', 'b', 'c']);
+    expect(machine.getRegistry().getItem(itemId('b'))?.disabled).toBe(true);
+  });
+
+  it('UPDATE_ITEM updates the searchable value', async () => {
+    using machine = createCommandMachine({ items: [item('a', 'Apple'), item('b', 'Banana')] });
+    machine.send({ type: 'UPDATE_ITEM', item: item('b', 'Zebra') });
+    machine.send({ type: 'SEARCH_CHANGE', query: 'zeb' });
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredIds).toEqual(['b']);
+    });
+    machine.send({ type: 'SEARCH_CHANGE', query: 'ban' });
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredIds).toEqual([]);
+    });
+  });
+
+  it('UPDATE_ITEM of an unknown id inserts the item', async () => {
+    using machine = createCommandMachine({ items: [item('a', 'Apple')] });
+    machine.send({ type: 'UPDATE_ITEM', item: item('z', 'Zebra') });
+    await settle(machine);
+    expect(machine.getState().filteredIds).toEqual(['a', 'z']);
+  });
+
+  it('UPDATE_ITEM re-binds the shortcut: the old key stops firing, the new one fires', async () => {
+    const onSelect = vi.fn();
+    using machine = createCommandMachine({
+      items: [item('a', 'Apple', { shortcut: 'Ctrl+K', onSelect })],
+    });
+    machine.send({
+      type: 'UPDATE_ITEM',
+      item: item('a', 'Apple', { shortcut: 'Ctrl+J', onSelect }),
+    });
+    await settle(machine);
+    press('k');
+    expect(onSelect).not.toHaveBeenCalled();
+    press('j');
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('UPDATE_ITEM without a shortcut drops the old binding', async () => {
+    const onSelect = vi.fn();
+    using machine = createCommandMachine({
+      items: [item('a', 'Apple', { shortcut: 'Ctrl+K', onSelect })],
+    });
+    machine.send({ type: 'UPDATE_ITEM', item: item('a', 'Apple', { onSelect }) });
+    await settle(machine);
+    press('k');
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(machine.getKeyboardRegistry().getBindings().size).toBe(0);
+  });
+
+  it('CE-49: REGISTER_ITEM again for the same id with a changed shortcut leaves no old binding', async () => {
+    const onSelect = vi.fn();
+    using machine = createCommandMachine({
+      items: [item('a', 'Apple', { shortcut: 'Ctrl+K', onSelect })],
+    });
+    machine.send({
+      type: 'REGISTER_ITEM',
+      item: item('a', 'Apple', { shortcut: 'Ctrl+J', onSelect }),
+    });
+    await settle(machine);
+    press('k');
+    expect(onSelect).not.toHaveBeenCalled();
+    press('j');
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('CE-49: REGISTER_ITEM again for the same id with the shortcut removed leaves no binding', async () => {
+    const onSelect = vi.fn();
+    using machine = createCommandMachine({
+      items: [item('a', 'Apple', { shortcut: 'Ctrl+K', onSelect })],
+    });
+    machine.send({ type: 'REGISTER_ITEM', item: item('a', 'Apple', { onSelect }) });
+    await settle(machine);
+    press('k');
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+});

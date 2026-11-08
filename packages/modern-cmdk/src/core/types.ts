@@ -113,6 +113,8 @@ export type CommandEvent =
   /** An async source started (pending true) or finished (pending false) loading; `state.loading` is true while any source is pending */
   | { readonly type: 'LOADING'; readonly source: string; readonly pending: boolean }
   | { readonly type: 'REGISTER_ITEM'; readonly item: CommandItem }
+  /** Upsert an item in place: its position is kept (an unknown id is appended), the search index is updated and its shortcut re-bound */
+  | { readonly type: 'UPDATE_ITEM'; readonly item: CommandItem }
   | { readonly type: 'UNREGISTER_ITEM'; readonly id: ItemId }
   | { readonly type: 'REGISTER_GROUP'; readonly group: CommandGroup }
   | { readonly type: 'UNREGISTER_GROUP'; readonly id: GroupId };

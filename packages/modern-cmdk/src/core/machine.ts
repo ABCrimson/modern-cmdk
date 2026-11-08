@@ -306,8 +306,11 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       }
 
       case 'REGISTER_ITEM':
+      case 'UPDATE_ITEM':
         registry.registerItem(event.item);
         searchEngine.index([event.item]);
+        // A re-registered id drops its old binding first, then binds the current shortcut
+        keyboardRegistry.unregisterByItem(event.item.id);
         if (event.item.shortcut && event.item.onSelect) {
           keyboardRegistry.register(event.item.shortcut, event.item.id, event.item.onSelect);
         }
