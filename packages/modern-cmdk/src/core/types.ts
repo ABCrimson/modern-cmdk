@@ -89,7 +89,12 @@ export interface CommandState {
   readonly activeId: ItemId | null;
   /** Ordered list of item IDs that pass the current filter */
   readonly filteredIds: readonly ItemId[];
-  /** Map of group IDs to their visible item IDs */
+  /**
+   * Map of group IDs to their visible item IDs. The keys are in group priority order (lower first; ungrouped
+   * items and unregistered group ids count as 0, in first-appearance order), while `filteredIds` and
+   * `NAVIGATE` keep the search order: a renderer that draws by `groupedIds` shows the groups in this order,
+   * so arrow-key order and display order can differ when group priorities differ.
+   */
   readonly groupedIds: ReadonlyMap<GroupId, readonly ItemId[]>;
   /** Count of visible items (shortcut for `filteredIds.length`) */
   readonly filteredCount: number;
@@ -177,7 +182,10 @@ export interface CommandMachineOptions {
   readonly items?: readonly CommandItem[] | undefined;
   /** Pre-registered groups for item categorization */
   readonly groups?: readonly CommandGroup[] | undefined;
-  /** Custom filter function, or `false` to disable filtering entirely */
+  /**
+   * Custom filter function, or `false` to disable filtering entirely. It returns a score: above 0 keeps the item
+   * (higher ranks first); 0, a negative score or `false` excludes it.
+   */
   readonly filter?: ((item: CommandItem, query: string) => number | false) | false | undefined;
   /** Accessible label for the command palette */
   readonly label?: string | undefined;

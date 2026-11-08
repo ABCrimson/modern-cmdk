@@ -42,7 +42,9 @@ export class CommandRegistry implements Disposable {
 
   /** Register multiple items at once — single Disposable for batch cleanup. for...of for hot path. */
   registerItems(items: readonly CommandItem[]): Disposable {
-    for (const item of items) {
+    // The handle owns the items it was given, not the caller's array, which may change before the handle is disposed
+    const owned = [...items];
+    for (const item of owned) {
       this.#items.set(item.id, item);
       this.#itemOrderSet.add(item.id);
     }
@@ -51,7 +53,7 @@ export class CommandRegistry implements Disposable {
     return {
       // A stale handle must not delete a newer item registered under the same id
       [Symbol.dispose]: (): void => {
-        for (const item of items) {
+        for (const item of owned) {
           if (this.#items.get(item.id) === item) this.unregisterItem(item.id);
         }
       },
