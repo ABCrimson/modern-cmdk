@@ -549,8 +549,8 @@ describe('check-licenses real policy', () => {
   const policyPath = join(import.meta.dirname, '..', 'package', 'license-policy.json');
   const real = JSON.parse(readFileSync(policyPath, 'utf8')) as LicensePolicyInput;
 
-  it('keeps its 15 exceptions and declares khroma 2.1.0 by file hash', () => {
-    expect(real.exceptions).toHaveLength(15);
+  it('keeps its 16 exceptions and declares khroma 2.1.0 by file hash', () => {
+    expect(real.exceptions).toHaveLength(16);
     expect(real.licenseFiles).toHaveLength(1);
     const [entry] = real.licenseFiles ?? [];
     expect(entry).toMatchObject({
