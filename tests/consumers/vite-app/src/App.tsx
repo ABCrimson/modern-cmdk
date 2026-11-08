@@ -36,6 +36,7 @@ export function App(): ReactNode {
   return (
     <main>
       <section data-palette="client">
+        <Command.Shortcut shortcut="Mod+K" data-shortcut="standalone" />
         <Command label="Consumer palette">
           <Command.Input placeholder="Search commands" />
           <Command.List>
@@ -43,6 +44,9 @@ export function App(): ReactNode {
               (item: PaletteItem): ReactNode => (
                 <Command.Item key={item.id} value={item.label}>
                   {item.label}
+                  {item.id === items[0]?.id ? (
+                    <Command.Shortcut shortcut="Mod+K" data-shortcut="item" />
+                  ) : null}
                 </Command.Item>
               ),
             )}

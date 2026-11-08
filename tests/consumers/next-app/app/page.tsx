@@ -4,7 +4,13 @@
 // never read here, because a property read on a client reference fails in RSC.
 
 import { itemId } from 'modern-cmdk';
-import { Command, CommandInput, CommandItem, CommandList } from 'modern-cmdk/react';
+import {
+  Command,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
 import type { PaletteItem } from './palette';
 import { Palette } from './palette';
@@ -27,7 +33,9 @@ export default function Page(): ReactNode {
         <Command label="server">
           <CommandInput />
           <CommandList>
-            <CommandItem value="a">A</CommandItem>
+            <CommandItem value="a">
+              A<CommandShortcut shortcut="Mod+K" data-shortcut="item" />
+            </CommandItem>
           </CommandList>
         </Command>
       </section>

@@ -23,7 +23,8 @@
 //   5. core copies, counted in client JS only (.next/static/**/*.js; vite: dist/client/assets/**/*.js);
 //   6. serve (next start on a free port; vite: a node:http server in this process that renders
 //      dist/server/entry-server.js into dist/client/index.html) and fetch the HTML;
-//   7. chromium (root @playwright/test): hydrate, type 'zz' for the empty state, clear, click the
+//   7. chromium (root @playwright/test), emulating macOS through CDP (navigator.platform 'MacIntel', asserted in
+//      the page; every Command.Shortcut must show the Command glyph text after hydration): hydrate, type 'zz' for the empty state, clear, click the
 //      'Open palette' button (the CommandDialog from modern-cmdk/react/dialog), expect
 //      [data-command-dialog] visible, press Escape, expect it gone (visibility only: the dialog
 //      animation waits for DT-19, 1.8.0), collect the console errors and warnings, compare the
@@ -56,6 +57,7 @@ import { extname, join, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import type { Page } from '@playwright/test';
 
 export const VARIANTS: readonly ['next-turbopack', 'next-webpack', 'vite'] = [
   'next-turbopack',
@@ -356,7 +358,7 @@ export function resolvePnpmEntry(
   env: Readonly<Record<string, string | undefined>>,
   nodePath: string = process.execPath,
 ): PnpmEntry | undefined {
-  const entry = env['npm_execpath'];
+  const entry = env.npm_execpath;
   if (entry === undefined || entry === '') return undefined;
   const name = entry.split(/[\\/]/).at(-1) ?? '';
   if (!/^pnpm(?:[-.].*)?$/i.test(name)) return undefined;
@@ -676,11 +678,32 @@ async function prepareApp(variant: Variant, tarball: string, tempDirs: string[])
   return dir;
 }
 
+const MACOS_PLATFORM = 'MacIntel';
+const MACOS_SHORTCUT_TEXT = '⌘K';
+
+/** Makes the page report macOS: navigator.userAgent, navigator.platform and navigator.userAgentData.platform (Chrome DevTools Protocol, before navigation). */
+async function emulateMacOs(page: Page): Promise<void> {
+  const session = await page.context().newCDPSession(page);
+  await session.send('Emulation.setUserAgentOverride', {
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+    platform: MACOS_PLATFORM,
+    userAgentMetadata: {
+      platform: 'macOS',
+      platformVersion: '15.0.0',
+      architecture: 'arm',
+      model: '',
+      mobile: false,
+    },
+  });
+}
+
 async function checkPage(result: VariantResult, url: string): Promise<void> {
   const { chromium } = await import('@playwright/test');
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
+    await emulateMacOs(page);
     const pageErrors: string[] = [];
     page.on('console', (message): void => {
       const type = message.type();
@@ -694,6 +717,13 @@ async function checkPage(result: VariantResult, url: string): Promise<void> {
     await page.goto(url, { waitUntil: 'load', timeout: 30_000 });
     await page.waitForSelector('body[data-hydrated="true"]', { timeout: 30_000 });
 
+    // The emulation must have taken effect before the hydration messages are counted: a host-platform
+    // page would make the Shortcut check below vacuous.
+    const platform = await page.evaluate((): string => navigator.platform);
+    if (platform !== MACOS_PLATFORM) {
+      result.failures.push(`navigator.platform is '${platform}', expected '${MACOS_PLATFORM}'`);
+    }
+
     const palette = page.locator('[data-palette="client"]');
     const input = palette.locator('[data-command-input]');
     await input.fill('zz');
@@ -703,6 +733,16 @@ async function checkPage(result: VariantResult, url: string): Promise<void> {
       .locator('[data-command-item]')
       .first()
       .waitFor({ state: 'visible', timeout: 10_000 });
+    // Command.Shortcut shows the macOS glyph text once the client has hydrated.
+    await page.locator('[data-shortcut]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    for (const shortcut of await page.locator('[data-shortcut]').all()) {
+      const text = await shortcut.textContent();
+      if (text !== MACOS_SHORTCUT_TEXT) {
+        result.failures.push(
+          `a Command.Shortcut shows '${text}' under the macOS emulation, expected '${MACOS_SHORTCUT_TEXT}'`,
+        );
+      }
+    }
     // Hydration reports surface asynchronously after the first render; let the page settle.
     await page.waitForLoadState('networkidle', { timeout: 10_000 });
 
