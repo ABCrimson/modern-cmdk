@@ -148,6 +148,10 @@ const inputOf = (host: HTMLElement): HTMLInputElement => {
   return input;
 };
 
+// React 19.0, the peer floor, exports no Activity; the tests that render <Activity> exercise the
+// experimental build. A named import of the missing export is undefined at run time.
+const itWithActivity = it.skipIf(Activity === undefined);
+
 describe('React lifecycle (C1)', () => {
   it('query survives StrictMode remount', async () => {
     const spy = new Spy();
@@ -170,7 +174,7 @@ describe('React lifecycle (C1)', () => {
     expect(spy.searches.at(-1)).toBe('ap');
   });
 
-  it('registrations survive Activity hide/show', async () => {
+  itWithActivity('registrations survive Activity hide/show', async () => {
     const spy = new Spy();
     const tree = (mode: 'visible' | 'hidden'): ReactNode => (
       <Activity mode={mode}>
@@ -369,7 +373,7 @@ describe('React lifecycle (C1)', () => {
     </Activity>
   );
 
-  it('Activity hide/show keeps the active item', async () => {
+  itWithActivity('Activity hide/show keeps the active item', async () => {
     const onActiveChange = vi.fn();
     const spy = new Spy();
     const tree = (mode: 'visible' | 'hidden'): ReactNode =>
@@ -395,48 +399,54 @@ describe('React lifecycle (C1)', () => {
     expect(onActiveChange).not.toHaveBeenCalled();
   });
 
-  it('an item the machine chose on its own is still reported when it is activated after an Activity hide/show', async () => {
-    const onActiveChange = vi.fn();
-    const spy = new Spy();
-    const tree = (mode: 'visible' | 'hidden'): ReactNode =>
-      activityTree(mode, spy, { onActiveChange });
-    await mount(tree('visible'));
-    await settle();
-    expect(spy.machine.getState().activeId).toBe('fixed-a');
-    onActiveChange.mockClear();
+  itWithActivity(
+    'an item the machine chose on its own is still reported when it is activated after an Activity hide/show',
+    async () => {
+      const onActiveChange = vi.fn();
+      const spy = new Spy();
+      const tree = (mode: 'visible' | 'hidden'): ReactNode =>
+        activityTree(mode, spy, { onActiveChange });
+      await mount(tree('visible'));
+      await settle();
+      expect(spy.machine.getState().activeId).toBe('fixed-a');
+      onActiveChange.mockClear();
 
-    await update(tree('hidden'));
-    await settle();
-    await update(tree('visible'));
-    await settle();
-    expect(spy.machine.getState().activeId).toBe('fixed-a');
-    expect(onActiveChange).not.toHaveBeenCalled();
+      await update(tree('hidden'));
+      await settle();
+      await update(tree('visible'));
+      await settle();
+      expect(spy.machine.getState().activeId).toBe('fixed-a');
+      expect(onActiveChange).not.toHaveBeenCalled();
 
-    await act(async () => {
-      spy.machine.send({ type: 'ITEM_ACTIVATE', id: itemId('fixed-a') });
-    });
-    await settle();
+      await act(async () => {
+        spy.machine.send({ type: 'ITEM_ACTIVATE', id: itemId('fixed-a') });
+      });
+      await settle();
 
-    expect(onActiveChange.mock.calls).toEqual([['fixed-a']]);
-  });
+      expect(onActiveChange.mock.calls).toEqual([['fixed-a']]);
+    },
+  );
 
-  it('an item the machine chose on its own is still reported when it is activated under StrictMode', async () => {
-    const onActiveChange = vi.fn();
-    const spy = new Spy();
-    await mount(<StrictMode>{activityTree('visible', spy, { onActiveChange })}</StrictMode>);
-    await settle();
-    expect(spy.machine.getState().activeId).toBe('fixed-a');
-    expect(onActiveChange).not.toHaveBeenCalled();
+  itWithActivity(
+    'an item the machine chose on its own is still reported when it is activated under StrictMode',
+    async () => {
+      const onActiveChange = vi.fn();
+      const spy = new Spy();
+      await mount(<StrictMode>{activityTree('visible', spy, { onActiveChange })}</StrictMode>);
+      await settle();
+      expect(spy.machine.getState().activeId).toBe('fixed-a');
+      expect(onActiveChange).not.toHaveBeenCalled();
 
-    await act(async () => {
-      spy.machine.send({ type: 'ITEM_ACTIVATE', id: itemId('fixed-a') });
-    });
-    await settle();
+      await act(async () => {
+        spy.machine.send({ type: 'ITEM_ACTIVATE', id: itemId('fixed-a') });
+      });
+      await settle();
 
-    expect(onActiveChange.mock.calls).toEqual([['fixed-a']]);
-  });
+      expect(onActiveChange.mock.calls).toEqual([['fixed-a']]);
+    },
+  );
 
-  it('a controlled activeId survives Activity hide/show without a report', async () => {
+  itWithActivity('a controlled activeId survives Activity hide/show without a report', async () => {
     const onActiveChange = vi.fn();
     const spy = new Spy();
     const tree = (mode: 'visible' | 'hidden'): ReactNode =>
@@ -522,40 +532,43 @@ describe('React lifecycle (C1)', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it("D103: a caller's searchEngine is not disposed by the machine and keeps working after an Activity hide/show", async () => {
-    const engine = createSearchEngine();
-    using disposed = vi.spyOn(engine, Symbol.dispose);
-    const search = vi.spyOn(engine, 'search');
-    const spy = new Spy();
-    const tree = (mode: 'visible' | 'hidden'): ReactNode => (
-      <Activity mode={mode}>
-        <Command searchEngine={engine}>
-          <spy.Probe />
-          <Command.Input />
-          <Command.List>
-            <Command.Item value="apple">Apple</Command.Item>
-            <Command.Item value="banana">Banana</Command.Item>
-          </Command.List>
-        </Command>
-      </Activity>
-    );
-    await mount(tree('visible'));
-    await settle();
-    await update(tree('hidden'));
-    await settle();
-    await update(tree('visible'));
-    await settle();
+  itWithActivity(
+    "D103: a caller's searchEngine is not disposed by the machine and keeps working after an Activity hide/show",
+    async () => {
+      const engine = createSearchEngine();
+      using disposed = vi.spyOn(engine, Symbol.dispose);
+      const search = vi.spyOn(engine, 'search');
+      const spy = new Spy();
+      const tree = (mode: 'visible' | 'hidden'): ReactNode => (
+        <Activity mode={mode}>
+          <Command searchEngine={engine}>
+            <spy.Probe />
+            <Command.Input />
+            <Command.List>
+              <Command.Item value="apple">Apple</Command.Item>
+              <Command.Item value="banana">Banana</Command.Item>
+            </Command.List>
+          </Command>
+        </Activity>
+      );
+      await mount(tree('visible'));
+      await settle();
+      await update(tree('hidden'));
+      await settle();
+      await update(tree('visible'));
+      await settle();
 
-    expect(disposed).not.toHaveBeenCalled();
-    search.mockClear();
-    await act(async () => {
-      spy.machine.send({ type: 'SEARCH_CHANGE', query: 'ban' });
-    });
-    await settle();
+      expect(disposed).not.toHaveBeenCalled();
+      search.mockClear();
+      await act(async () => {
+        spy.machine.send({ type: 'SEARCH_CHANGE', query: 'ban' });
+      });
+      await settle();
 
-    expect(search).toHaveBeenCalled();
-    expect(spy.machine.getState().filteredIds.length).toBe(1);
-  });
+      expect(search).toHaveBeenCalled();
+      expect(spy.machine.getState().filteredIds.length).toBe(1);
+    },
+  );
 
   it('an items prop change registers added items and unregisters removed ones', async () => {
     const spy = new Spy();
