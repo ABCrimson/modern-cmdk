@@ -190,6 +190,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   let dirty = false;
   let changed = false;
   // Telemetry bookkeeping of the batch in progress: report() derives the reports from the committed state
+  let reportedOpen = false; // the open state telemetry last reported; starts closed
   let reportedSearch = ''; // the query of the last commit
   let searchStart = -1; // performance.now() at the batch's first SEARCH_CHANGE, -1 when none
   let selected: ItemId[] = []; // the enabled items selected in this batch, in order
@@ -224,8 +225,6 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     setState({ open });
     emitter.emit('openChange', open);
     options.onOpenChange?.(open);
-    if (open) telemetry.onOpen();
-    else telemetry.onClose();
   }
 
   /** Recomputes the lists and the active item for `query`; `report` lets a controlled `activeId` hear the candidate it does not take. */
@@ -356,15 +355,19 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
    */
   function report(): void {
     if (disposed) return;
-    const { search } = state;
+    const { open, search } = state;
+    const turned = open !== reportedOpen;
     const searched = search !== reportedSearch;
     const start = searchStart;
     const ids = selected;
+    reportedOpen = open;
     reportedSearch = search;
     searchStart = -1;
     selected = [];
+    if (turned && open) telemetry.onOpen();
     if (searched) telemetry.onSearch(search, state.filteredCount, start);
     for (const id of ids) telemetry.onSelect(id, search, filteredIdIndex.get(id) ?? -1);
+    if (turned && !open) telemetry.onClose();
   }
 
   /** Ends a batch: one refilter if a registry event ran, then one stateChange even if the refilter throws. */

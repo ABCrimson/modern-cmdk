@@ -2,9 +2,10 @@
 // CE-18: <Command> and <Command.Dialog> forward the latest `telemetry` prop to the machine's option.
 
 import { fireEvent } from '@testing-library/react';
+import type { CommandTelemetryHooks } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
-import { Activity, act, StrictMode } from 'react';
+import { Activity, act, StrictMode, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -133,5 +134,32 @@ describe('telemetry reports of controlled inputs (CE-18)', () => {
       await settle();
     }
     expect(onSearchComplete).toHaveBeenCalledTimes(1);
+  });
+});
+
+/** A dialog rendered open while `show` holds, as a parent that mounts it on demand renders it */
+function OpenDialog({ telemetry }: { readonly telemetry: CommandTelemetryHooks }): ReactNode {
+  const [show, setShow] = useState(true);
+  return (
+    show && (
+      <Command.Dialog open onOpenChange={setShow} telemetry={telemetry}>
+        <Command.Input />
+        <Command.List>
+          <Command.Item value="Apple">Apple</Command.Item>
+        </Command.List>
+      </Command.Dialog>
+    )
+  );
+}
+
+describe('telemetry reports of a Command.Dialog mounted open (D113)', () => {
+  it('D113: a Command.Dialog mounted open reports onPaletteOpen', async () => {
+    const onPaletteOpen = vi.fn();
+    const onPaletteClose = vi.fn();
+    await render(<OpenDialog telemetry={{ onPaletteOpen, onPaletteClose }} />);
+    await settle();
+
+    expect(onPaletteOpen).toHaveBeenCalledTimes(1);
+    expect(onPaletteClose).not.toHaveBeenCalled();
   });
 });
