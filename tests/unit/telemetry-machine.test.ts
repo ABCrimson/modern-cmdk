@@ -83,3 +83,18 @@ it('CE-18: onItemSelected reports the query and the filtered position', () => {
   nextBatch();
   expect(onItemSelected).toHaveBeenLastCalledWith(itemId('cherry'), 'app', -1);
 });
+
+it('CE-74: a wall-clock step yields no negative duration', () => {
+  const onPaletteClose = vi.fn();
+  using machine = createCommandMachine({ telemetry: { onPaletteClose } });
+
+  machine.send({ type: 'OPEN' });
+  nextBatch();
+  const now = Date.now();
+  vi.spyOn(Date, 'now').mockReturnValue(now - 3_600_000); // the clock steps back an hour
+  machine.send({ type: 'CLOSE' });
+  nextBatch();
+
+  expect(onPaletteClose).toHaveBeenCalledTimes(1);
+  expect(onPaletteClose.mock.calls[0]?.[0]).toBeGreaterThanOrEqual(0);
+});

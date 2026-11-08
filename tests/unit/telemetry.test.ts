@@ -78,6 +78,30 @@ describe('SEC-52: createTelemetryMiddleware', () => {
     const onSearchComplete = vi.fn();
     const telemetry = createTelemetryMiddleware({ onSearchComplete });
 
+    const startTime = performance.now();
+    vi.advanceTimersByTime(12);
+    telemetry.onSearch('app', 7, startTime);
+    expect(onSearchComplete).toHaveBeenCalledExactlyOnceWith('app', 7, 12);
+  });
+
+  it('CE-74: onSearch measures a performance.now() startTime on the same clock', () => {
+    const onSearchComplete = vi.fn();
+    const telemetry = createTelemetryMiddleware({ onSearchComplete });
+
+    const startTime = performance.now();
+    vi.advanceTimersByTime(20);
+    // A wall-clock step does not reach the duration
+    vi.setSystemTime(Date.now() - 3_600_000);
+    telemetry.onSearch('app', 1, startTime);
+    expect(onSearchComplete).toHaveBeenCalledExactlyOnceWith('app', 1, 20);
+  });
+
+  it('CE-74: an onSearch startTime from Date.now() still reports the elapsed time', () => {
+    const onSearchComplete = vi.fn();
+    const telemetry = createTelemetryMiddleware({ onSearchComplete });
+
+    // An epoch reading (above 1e12) is measured against Date.now(), as the published docs describe
+    vi.setSystemTime(1_700_000_000_000);
     const startTime = Date.now();
     vi.advanceTimersByTime(12);
     telemetry.onSearch('app', 7, startTime);
@@ -97,7 +121,7 @@ describe('SEC-52: createTelemetryMiddleware', () => {
     const telemetry = createTelemetryMiddleware({});
     expect(() => {
       telemetry.onOpen();
-      telemetry.onSearch('q', 0, Date.now());
+      telemetry.onSearch('q', 0, performance.now());
       telemetry.onSelect(itemId('x'), 'q', 0);
       telemetry.onClose();
     }).not.toThrow();
@@ -112,7 +136,7 @@ describe('SEC-52: createTelemetryMiddleware', () => {
     };
     const telemetry = createTelemetryMiddleware(hooks);
 
-    telemetry.onSearch('a', 1, Date.now());
+    telemetry.onSearch('a', 1, performance.now());
     expect(hooks.onSearchComplete).toHaveBeenCalledTimes(1);
     expect(hooks.onPaletteOpen).not.toHaveBeenCalled();
     expect(hooks.onPaletteClose).not.toHaveBeenCalled();
