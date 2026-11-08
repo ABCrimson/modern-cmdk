@@ -56,11 +56,12 @@ async function search(query: string): Promise<void> {
   await settle();
 }
 
+/** The data-case of every separator, in document order. */
+const cases = (host: ParentNode): (string | null)[] =>
+  [...host.querySelectorAll('[data-command-separator]')].map((el) => el.getAttribute('data-case'));
+
 const separators = (host: ParentNode): number =>
   host.querySelectorAll('[data-command-separator]').length;
-
-// A spread keeps the file type-checking before `alwaysRender` exists (a lone unknown key is a weak-type error, so `role` rides along)
-const hideWhileSearching = { alwaysRender: false, role: 'none' } as const;
 
 describe('Command.Separator alwaysRender (C2)', () => {
   it('RA-45: alwaysRender false hides the separator while the search is non-empty', async () => {
@@ -72,21 +73,22 @@ describe('Command.Separator alwaysRender (C2)', () => {
           <Command.Item value="apple" forceId="apple">
             Apple
           </Command.Item>
-          <Command.Separator {...hideWhileSearching} />
+          <Command.Separator alwaysRender={false} data-case="hides" />
           <Command.Item value="banana" forceId="banana">
             Banana
           </Command.Item>
+          <Command.Separator data-case="stays" />
         </Command.List>
       </Command>,
     );
     await settle();
-    expect(separators(host)).toBe(1);
+    expect(cases(host)).toEqual(['hides', 'stays']);
 
     await search('app');
-    expect(separators(host)).toBe(0);
+    expect(cases(host)).toEqual(['stays']);
 
     await search('');
-    expect(separators(host)).toBe(1);
+    expect(cases(host)).toEqual(['hides', 'stays']);
   });
 
   it('RA-45: the default keeps rendering the separator during a search', async () => {
@@ -111,7 +113,7 @@ describe('Command.Separator alwaysRender (C2)', () => {
     const host = await mount(
       <>
         <Command.Separator />
-        <Command.Separator {...hideWhileSearching} />
+        <Command.Separator alwaysRender={false} />
       </>,
     );
     expect(separators(host)).toBe(2);
