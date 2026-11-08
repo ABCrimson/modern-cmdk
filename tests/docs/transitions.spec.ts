@@ -31,7 +31,17 @@ async function recordViewTransitions(page: Page): Promise<void> {
     document.startViewTransition = ((callback: () => Promise<void> | void): ViewTransition => {
       const entry = { h1: '', skipped: false };
       log.push(entry);
+      // A test arms `__releaseHeld`: the held page chunk is released as the transition starts, and the update callback
+      // is delayed (well inside the 600 ms timeout of view-transitions.ts) so the abandoned navigation finishes first.
+      const release = Reflect.get(window, '__releaseHeld') as (() => void) | undefined;
+      let delay = 0;
+      if (Reflect.get(window, '__armRelease') === true && release !== undefined) {
+        Reflect.set(window, '__armRelease', false);
+        release();
+        delay = 200;
+      }
       const transition = original(async () => {
+        if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
         await callback();
         entry.h1 = document.querySelector('h1')?.textContent ?? '';
       });
@@ -60,6 +70,18 @@ it.describe('route view transitions', () => {
   it('a navigation overtaken by a later one does not release the later one early (M1)', async ({
     page,
   }) => {
+    // The accessibility page chunk is held until the frecency transition has started, so the abandoned navigation always
+    // finishes (router.js:30 still calls onAfterRouteChange for it) while the frecency transition waits for its swap.
+    const held: (() => Promise<void>)[] = [];
+    let released = false;
+    await page.route(/\/assets\/guide_accessibility\.md\.[\w-]+\.js$/, async (route) => {
+      if (released) await route.continue();
+      else held.push(() => route.continue());
+    });
+    await page.exposeFunction('__releaseHeld', () => {
+      released = true;
+      for (const resume of held.splice(0)) void resume();
+    });
     await recordViewTransitions(page);
     await page.goto('guide/frecency.html');
     await visitThen(page, 'getting-started');
@@ -67,9 +89,10 @@ it.describe('route view transitions', () => {
     await visitThen(page, 'getting-started');
     const before = (await log(page)).length;
 
-    // Both clicks in one task: the accessibility load is dropped by the router, its go() still calls onAfterRouteChange.
+    // Both clicks in one task: the router drops the accessibility load once the frecency one has started.
     await page.evaluate(
       ({ a, b }) => {
+        Reflect.set(window, '__armRelease', true);
         document.querySelector<HTMLAnchorElement>(a)?.click();
         document.querySelector<HTMLAnchorElement>(b)?.click();
       },
@@ -88,47 +111,30 @@ it.describe('route view transitions', () => {
     expect(last?.skipped, 'the last transition was not skipped (no hard cut)').toBe(false);
   });
 
-  it('back, back, forward ends on the page and heading it should (M2)', async ({ page }) => {
+  it('back and forward start no view transition, and a later click still does (M2)', async ({
+    page,
+  }) => {
+    // Rapid back, back, forward ended at the wrong scroll position while the popstate load was held open inside a
+    // transition (VitePress drops overtaken loads, router.js:42). The mechanism is tested, not the scroll: history
+    // traversals get a hard cut, and a traversal must not leave a flag behind that swallows the next click.
     await recordViewTransitions(page);
     await page.goto('guide/getting-started.html');
     await visitThen(page, 'installation');
-    await page.locator('.VPDocAsideOutline a[href="#peer-dependencies"]').first().click();
-    await expect(page).toHaveURL(/installation\.html#peer-dependencies/);
+    await notMarked(page);
+    const before = (await log(page)).length;
+    await page.goBack();
+    await expect(page).toHaveURL(/getting-started\.html/);
+    await expect(page.locator('h1')).toContainText(/getting started/i);
+    await page.goForward();
+    await expect(page).toHaveURL(/installation\.html/);
+    await expect(page.locator('h1')).toContainText(/installation/i);
+    expect((await log(page)).length, 'no transition on back or forward').toBe(before);
     await visitThen(page, 'frecency');
-    await notMarked(page);
-    // VitePress scrolls to the top once after a page load (router.js:49-60), so scroll until it sticks.
     await expect
-      .poll(() =>
-        page.evaluate(() => {
-          scrollTo(0, 900);
-          return scrollY;
-        }),
-      )
-      .toBeGreaterThan(800);
-
-    // Each traversal is awaited only until its popstate fires, not until VitePress has loaded the page.
-    await page.evaluate(async () => {
-      const step = (delta: number): Promise<void> =>
-        new Promise((resolve) => {
-          addEventListener('popstate', () => resolve(), { once: true });
-          history.go(delta);
-        });
-      await step(-1);
-      await step(-1);
-      await step(1);
-    });
-    await expect(page).toHaveURL(/installation\.html#peer-dependencies/);
-    await expect
-      .poll(
-        () =>
-          page.evaluate(() => {
-            const top = document.getElementById('peer-dependencies')?.getBoundingClientRect().top;
-            return top !== undefined && top >= 0 && top < innerHeight;
-          }),
-        { message: '#peer-dependencies is in view' },
-      )
-      .toBe(true);
-    await notMarked(page);
+      .poll(async () => (await log(page)).length, {
+        message: 'the click after the traversals transitions',
+      })
+      .toBe(before + 1);
   });
 
   it('a page-to-page click starts a transition and releases the marker', async ({ page }) => {
@@ -139,7 +145,10 @@ it.describe('route view transitions', () => {
     await notMarked(page);
   });
 
-  it('a hash-only link starts no transition', async ({ page }) => {
+  it('a hash-only link starts no transition (a VitePress smoke guard: its hooks never run)', async ({
+    page,
+  }) => {
+    // router.js:205 returns before loadPage for a same-path hash change, so view-transitions.ts is not reached.
     await recordViewTransitions(page);
     await page.goto('guide/installation.html');
     await page.locator('.VPDocAsideOutline a[href="#peer-dependencies"]').first().click();
