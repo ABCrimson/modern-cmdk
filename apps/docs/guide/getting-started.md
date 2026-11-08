@@ -7,7 +7,7 @@
 A ground-up reimagination of `cmdk` (pacocoursey/cmdk) built for 2026:
 
 - **Framework-agnostic core** — Pure TypeScript state machine. No React. No hard DOM dependency; DOM APIs are feature-detected and SSR-safe
-- **React 19 adapter** — Leverages `useTransition`, `useOptimistic`, `use()`, and the Activity API
+- **React 19 adapter** — Leverages `useSyncExternalStore`, `use()`, `ref` as a prop and the Activity API
 - **Modern JavaScript** — Iterator Helpers (ES2025) in the search and registry code, and `Symbol.dispose`/`Symbol.asyncDispose` (ESNext explicit resource management) so the machine works with `using`. The browser floor is Chrome and Edge 122, Firefox 131, Safari 18.4 (see [Installation](/guide/installation#requirements))
 - **Modern CSS animations** — `@starting-style`, spring `linear()` easing, `scroll-timeline` (the list fade edges, only where `animation-timeline` is supported: Chrome and Edge 115, Firefox 159, Safari 26; the edges stay hidden below that); the dialog, overlay, page-enter, loading-pulse and list-edge animations change only opacity, scale and translate, while the overlay tint (`--command-overlay-opacity` in its `background`), the list height (`height`) and the item highlight (`background-color`) are not compositor-only, and until 1.8.0 the dialog and overlay ones run only once you set their tokens (see [Theming](/guide/theming#dialog-animations))
 - **Full WAI-ARIA** — Combobox pattern, live regions, `forced-colors`, `prefers-contrast`
