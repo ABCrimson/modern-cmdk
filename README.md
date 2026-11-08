@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="apps/docs/public/brand/banner-dark.png">
-    <img src="apps/docs/public/brand/banner-light.png" alt="modern-cmdk: one headless engine, any framework" width="880">
+    <img src="apps/docs/public/brand/banner-light.png" alt="modern-cmdk banner: a command palette filtering for 'frec'" width="880">
   </picture>
 </p>
 
