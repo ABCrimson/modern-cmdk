@@ -419,4 +419,30 @@ describe('createSearchEngine', () => {
     const results = engine.search('World', items).toArray();
     expect(results[0]?.score).toBe(42);
   });
+
+  it('CE-106: indexing an id again replaces the item', () => {
+    using engine = createSearchEngine();
+    const id = itemId('fruit');
+    const first: CommandItem = { id, value: 'Apple', keywords: ['pome'] };
+    const updated: CommandItem = { id, value: 'Zebra' };
+    const other = makeItem('Banana');
+    engine.index([first, other]);
+    engine.index([updated]);
+
+    const items = [updated, other];
+    expect(
+      engine
+        .search('zeb', items)
+        .toArray()
+        .map((r) => r.id),
+    ).toEqual([id]);
+    expect(engine.search('app', items).toArray()).toEqual([]);
+    expect(engine.search('pome', items).toArray()).toEqual([]);
+    expect(
+      engine
+        .search('ban', items)
+        .toArray()
+        .map((r) => r.id),
+    ).toEqual([other.id]);
+  });
 });
