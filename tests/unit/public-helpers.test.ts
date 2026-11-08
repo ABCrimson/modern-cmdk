@@ -1,3 +1,4 @@
+// tests/unit/public-helpers.test.ts
 // CE-79: pins the public helpers the row names that no other file covers (scoreItemAsync and
 // batchScoreItems), and maps every helper of the row to the tests that pin it.
 //
@@ -13,8 +14,15 @@
 // symmetricDifferenceWith (tests/unit/registry.test.ts)
 //   "symmetricDifferenceWith returns the ids that are in exactly one of the two sets"
 //   "CE-79: differenceFrom and symmetricDifferenceWith differ on the same inputs"
+// differenceFrom (tests/unit/registry.test.ts)
+//   "CE-79: differenceFrom returns the registered ids absent from the given set and none of the
+//   given set's own ids"
+//   "CE-79: differenceFrom and symmetricDifferenceWith differ on the same inputs"
 // scoreItemAsync, batchScoreItems
 //   this file
+//
+// D33: differenceFrom and symmetricDifferenceWith are pinned here; CE-121 (1.12.0) decides
+// whether differenceFrom stays.
 
 import type { CommandItem } from 'modern-cmdk';
 import { batchScoreItems, itemId, scoreItem, scoreItemAsync } from 'modern-cmdk';
