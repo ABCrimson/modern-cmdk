@@ -48,7 +48,7 @@ Pure TypeScript state machine with no hard DOM dependency (DOM APIs are feature-
 - **Navigation** -- Active item tracking, page stack, loop/no-loop
 - **State snapshots** -- Immutable `CommandState` objects for efficient change detection
 
-The core's side effects are the ones you switch on: notifying subscribers, the keyboard registry's document-level `keydown` listener (attached when a document exists), and, when frecency is enabled, the engine's debounced save to its storage with its `pagehide` and `visibilitychange` listeners. It can be used with any UI framework or no framework at all.
+Beyond notifying subscribers, the core has these side effects: every machine's keyboard registry attaches a document-level `keydown` listener when a document exists (removed on dispose); when frecency is enabled, the engine loads from its storage, saves to it on a debounce, and listens for `pagehide` and `visibilitychange`; and importing the core defines `Symbol.dispose` and `Symbol.asyncDispose` as `Symbol.for('Symbol.dispose')` and `Symbol.for('Symbol.asyncDispose')` where the runtime lacks them. It can be used with any UI framework or no framework at all.
 
 ### Layer 2: React Adapter (`modern-cmdk/react`)
 
@@ -96,7 +96,7 @@ stateDiagram-v2
 
 1. External code calls `machine.send(event)`. It returns at once: the event is queued on the machine's scheduler, not handled.
 2. The scheduler runs everything queued, in the order sent, as one batch on the next `requestAnimationFrame` in browsers, or in a microtask (`queueMicrotask`) where `requestAnimationFrame` is absent (Node, SSR). An event sent from inside a handler runs in the next batch.
-3. Each handler updates the immutable `CommandState` snapshot. A registry event (`REGISTER_ITEM`, `UPDATE_ITEM`, `UNREGISTER_ITEM`, `ITEMS_LOADED`, group registration) only marks the results stale; the last event of the batch refilters once for all of them, and `SEARCH_CHANGE` filters when it runs.
+3. Each handler replaces the immutable `CommandState` snapshot. A registry event (`REGISTER_ITEM`, `UPDATE_ITEM`, `UNREGISTER_ITEM`, `ITEMS_LOADED`, `REGISTER_GROUP`, `UNREGISTER_GROUP`) updates the registry, the search index and the shortcut bindings, and marks the results stale without refiltering. Stale results are refiltered once: by a later `SEARCH_CHANGE` of the batch (which filters when it runs), by a `NAVIGATE` or `ITEM_ACTIVATE` that needs them current, or else when the batch ends.
 4. Handler-time notifications fire as their event runs, so they come before the batch's `stateChange`: the `openChange` emitter event and then the `onOpenChange` option, the `onSearchChange` and `onActiveChange` options, and for a selection the item's own `onSelect`, the `select` emitter event and the `onSelect` option.
 5. After the last event, the machine emits one `stateChange` for the batch (if anything changed), and subscribers are notified with the new state.
 6. React `useSyncExternalStore` triggers a re-render with the new snapshot.
@@ -126,8 +126,8 @@ flowchart LR
 2. **Query** -- User types in the input, triggering `SEARCH_CHANGE`
 3. **Scoring** -- The search engine (TypeScript or WASM) scores each item against the query
 4. **Frecency boost** -- If enabled, frecency bonuses are added to search scores of a non-empty query (an empty query lists registration order)
-5. **Filtering** -- With the default engine, items that do not match are dropped. A custom `filter` function returning `false`, `0` or a negative number excludes the item, and a positive number keeps it as its score. Results from a pluggable `search` engine are used as returned, so such an engine returns only the items it matches
-6. **Sorting** -- Results are sorted by final score (descending)
+5. **Filtering** -- With the default engine, items that do not match are dropped. A custom `filter` function returning `false`, `0` or a negative number excludes the item, and a positive number keeps it as its score. Results from a pluggable `search` engine are kept as returned, except that frecency re-ranks them and `disabledItems: 'hide'` drops disabled ones, so such an engine returns only the items it matches
+6. **Sorting** -- The default engine returns results by score (descending); with frecency enabled the machine re-sorts them by score plus bonus. Otherwise a pluggable engine's order is kept
 7. **Grouping** -- Results are partitioned into groups based on `groupId`
 8. **Rendering** -- React adapter renders visible items, virtualizing if needed
 
@@ -289,9 +289,9 @@ class RedisFrecencyStorage implements FrecencyStorage {
 | Feature | Edition | Where Used | Native/Helper |
 |---|---|---|---|
 | Iterator Helpers (`.map`, `.filter`, `.toArray`) | ES2025 | Search pipelines, registry operations | Native |
-| `Symbol.dispose` / `Symbol.asyncDispose` (`using` / `await using`) | ESNext (TS `lib` `esnext.disposable`) | Machine, engine and storage lifecycle implement the protocol, so consumers can write `using` | Native |
+| `Symbol.dispose` / `Symbol.asyncDispose` (`using` / `await using`) | ESNext (TS `lib` `esnext.disposable`) | Machine, engine and storage lifecycle implement the protocol, so consumers can write `using` | Native, with a `Symbol.for` fallback where absent (`core/frecency/idb-storage.ts`) |
 | `Promise.withResolvers()` | ES2024 | Worker request tracking in the unpublished `modern-cmdk-search-wasm` package | Native |
-| `RegExp.escape` | ES2025 | Not used | -- |
+| `RegExp.escape` | ES2026 | Not used | -- |
 | `Map.groupBy` / `Object.groupBy` | ES2024 | Shortcut conflict detection, item grouping | Helper functions |
 | `Date.now()` | ES5 | Frecency timestamps, state `lastUpdated` | Native (replaces Temporal) |
 | Set methods (`setIntersection`, etc. are the helpers) | ES2025 | Registry bulk operations | Helper functions |
