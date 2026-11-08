@@ -28,9 +28,9 @@ pre-push:
           - name: test
             run: pnpm exec vitest run --reporter=dot
           - name: size
-            # Size runs when a push touches a package source file, a tsdown config or the root package.json (the budgets live
-            # there); a docs-only push skips it (the build above always runs). `packages/*/src/**`, not `src/**/*.{ts,tsx}`:
+            # Size runs when a push touches a package source file, a tsdown config or the root .size-limit.mjs or package.json (the budgets live
+            # in .size-limit.mjs); a docs-only push skips it (the build above always runs). `packages/*/src/**`, not `src/**/*.{ts,tsx}`:
             # lefthook's glob needs a directory between `src/` and `**/`, so files directly under src (cli.ts, files.ts) never
             # matched and the pushes of 2b36297 and cdc05f2 skipped the check (CI run 41998415732 caught the budget; 2026-11-05).
-            glob: "{packages/*/src/**,packages/*/tsdown.config.ts,package.json}"
+            glob: "{packages/*/src/**,packages/*/tsdown.config.ts,.size-limit.mjs,package.json}"
             run: pnpm exec size-limit

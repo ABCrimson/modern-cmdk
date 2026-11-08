@@ -285,7 +285,7 @@ describe('CONTRIBUTING.md: the size-limit paragraph', () => {
   const text = read('CONTRIBUTING.md');
   const paragraph = line(
     text,
-    'These limits are defined in the root `package.json` under `size-limit`',
+    'These limits are defined in the root `.size-limit.mjs`, which measures with `process.env.NODE_ENV` defined as `"production"`',
   );
 
   it('cites the record, the measured sha, the date and size-limit', () => {

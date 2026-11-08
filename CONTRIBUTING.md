@@ -117,7 +117,6 @@ modern-cmdk/
             set-ops.ts            Set operation helpers
             group-by.ts           Object/Map groupBy helpers
             string-wellformed.ts  ensureWellFormed()
-            env.ts                isDev: core's NODE_ENV check (react/hooks/use-devtools.ts keeps its own copy, so dist/react carries no core region)
         react/                    React 19 adapter -- exported as "modern-cmdk/react"
           index.ts                Public exports
           command.tsx             <Command> root
@@ -164,7 +163,7 @@ modern-cmdk/
         wasm-engine.ts            Main-thread WASM engine wrapper
         worker-engine.ts          Web Worker engine wrapper
         worker.ts                 Worker entry
-        env.ts                    isDev flag (same NODE_ENV pattern as core/utils/env.ts)
+        env.ts                    isDev flag (inline NODE_ENV comparison behind `typeof process`, the pattern of the guards in core/search/index.ts and react/hooks/use-devtools.ts)
         pkg.d.ts                  Ambient stub of the wasm-pack output, so tsc runs without pkg/
         raw.d.ts                  Types for Vite `?raw` imports (worker-engine.test.ts)
         pkg-stub.test.ts          Drift guard: pkg.d.ts stays a subset of the generated pkg/ types
@@ -618,7 +617,7 @@ Benchmark targets are the `target_ms` values in the records of `benchmarks/basel
 | Codemod shim | 1000 B | `dist/codemod/bin.mjs` alone, installed size |
 | `modern-cmdk-codemod` own files | 100000 B | `packages/modern-cmdk-codemod/dist/*.mjs` plus `dist/transforms/*.mjs`, installed size; `jscodeshift` excluded |
 
-These limits are defined in the root `package.json` under `size-limit` and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.5.0.json` (d5ce6ff, measured 2026-11-07 with size-limit 14.3.0): the bundled codemod bin is 3150372 B (3325793 B in 1.4), the shim 897 B and the `modern-cmdk-codemod` own files 98030 B. Pack it with `npm pack --dry-run --json` to see the tarball sizes the record also holds.
+These limits are defined in the root `.size-limit.mjs`, which measures with `process.env.NODE_ENV` defined as `"production"`, and enforced by the `size` CI job. The measured figures are committed in `benchmarks/size-history/1.5.0.json` (d5ce6ff, measured 2026-11-07 with size-limit 14.3.0): the bundled codemod bin is 3150372 B (3325793 B in 1.4), the shim 897 B and the `modern-cmdk-codemod` own files 98030 B. Pack it with `npm pack --dry-run --json` to see the tarball sizes the record also holds.
 
 ### Performance rules
 
@@ -687,7 +686,7 @@ chore: bump Biome to 2.6.6
 
 4. **Pre-push hooks** -- Lefthook runs them in order and stops at the first failure:
    - `pnpm --filter './packages/*' run build` -- always
-   - then, in parallel: `vitest run --reporter=dot` (all unit tests) and `size-limit` (the budgets), the latter only when the push touches `packages/*/src/**`, a `packages/*/tsdown.config.ts` or the root `package.json`
+   - then, in parallel: `vitest run --reporter=dot` (all unit tests) and `size-limit` (the budgets), the latter only when the push touches `packages/*/src/**`, a `packages/*/tsdown.config.ts` or the root `.size-limit.mjs` or `package.json`
 
 5. **CI checks** -- The CI pipeline runs:
    - Lint and type-check (`pnpm lint`, `pnpm typecheck`)

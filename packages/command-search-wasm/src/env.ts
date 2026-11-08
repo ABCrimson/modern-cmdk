@@ -1,5 +1,5 @@
 // packages/command-search-wasm/src/env.ts
-// Development-mode flag for this package — the same pattern as modern-cmdk's core/utils/env.ts.
+// Development-mode flag for this package: `process.env.NODE_ENV !== 'production'`, with a try/catch for an unbundled browser import.
 // Isolated declarations: explicit type annotation on the export
 
 // Module-scoped declaration: no @types/node needed, and nothing global leaks.

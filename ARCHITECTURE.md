@@ -807,7 +807,6 @@ packages/modern-cmdk/src/core/
     matcher.ts           -- KeyboardEvent matcher, detectConflicts
     index.ts             -- KeyboardShortcutRegistry (Disposable)
   utils/
-    env.ts               -- isDev flag (NODE_ENV)
     event-emitter.ts     -- TypedEmitter (strong refs, Set per event)
     scheduler.ts         -- rAF/microtask batching, synchronous flush() of the pending updates
     set-ops.ts           -- Plain-loop Set operation helpers
