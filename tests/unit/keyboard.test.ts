@@ -1,6 +1,14 @@
 import type { ParsedShortcut } from 'modern-cmdk';
-import { detectConflicts, formatShortcut, matchesShortcut, parseShortcut } from 'modern-cmdk';
-import { describe, expect, it } from 'vitest';
+import {
+  createCommandMachine,
+  detectConflicts,
+  formatShortcut,
+  itemId,
+  KeyboardShortcutRegistry,
+  matchesShortcut,
+  parseShortcut,
+} from 'modern-cmdk';
+import { describe, expect, it, vi } from 'vitest';
 
 type ParseCase = {
   readonly shortcut: string;
@@ -145,6 +153,106 @@ describe('detectConflicts', () => {
 
     const conflicts = detectConflicts(shortcuts);
     expect(conflicts.size).toBe(0);
+  });
+});
+
+describe('KeyboardShortcutRegistry conflicts (CE-08, DAE-32)', () => {
+  const press = (key: string): void => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, cancelable: true }));
+  };
+  const a = itemId('a');
+  const b = itemId('b');
+
+  it('CE-08: a second item under the same normalized shortcut is reported by getConflicts()', () => {
+    using registry = new KeyboardShortcutRegistry();
+    registry.register('Ctrl+K', a, () => {});
+    registry.register('ctrl+k', b, () => {});
+    const conflicts = registry.getConflicts();
+    expect([...conflicts.keys()]).toEqual([parseShortcut('Ctrl+K').normalized]);
+    expect(conflicts.get(parseShortcut('Ctrl+K').normalized)).toHaveLength(2);
+  });
+
+  it('CE-08: the later binding wins the keydown', () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    using registry = new KeyboardShortcutRegistry();
+    registry.register('Ctrl+K', a, first);
+    registry.register('Ctrl+K', b, second);
+    press('k');
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(first).not.toHaveBeenCalled();
+    expect(registry.getBindings().get(parseShortcut('Ctrl+K').normalized)?.itemId).toBe(b);
+  });
+
+  it('CE-08: disposing the later binding restores the earlier one and clears the conflict', () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    using registry = new KeyboardShortcutRegistry();
+    registry.register('Ctrl+K', a, first);
+    const later = registry.register('Ctrl+K', b, second);
+    later[Symbol.dispose]();
+    expect(registry.getConflicts().size).toBe(0);
+    press('k');
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).not.toHaveBeenCalled();
+  });
+
+  it('CE-08: unregisterByItem of the later item restores the earlier binding', () => {
+    const first = vi.fn();
+    using registry = new KeyboardShortcutRegistry();
+    registry.register('Ctrl+K', a, first);
+    registry.register('Ctrl+K', b, () => {});
+    registry.unregisterByItem(b);
+    expect(registry.getConflicts().size).toBe(0);
+    press('k');
+    expect(first).toHaveBeenCalledTimes(1);
+  });
+
+  it('CE-08: disposing the earlier binding leaves the later one bound', () => {
+    const second = vi.fn();
+    using registry = new KeyboardShortcutRegistry();
+    const earlier = registry.register('Ctrl+K', a, () => {});
+    registry.register('Ctrl+K', b, second);
+    earlier[Symbol.dispose]();
+    expect(registry.getConflicts().size).toBe(0);
+    press('k');
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it('CE-08: the same item registered again under the same shortcut replaces its own binding and is no conflict', () => {
+    const old = vi.fn();
+    const current = vi.fn();
+    using registry = new KeyboardShortcutRegistry();
+    registry.register('Ctrl+K', a, old);
+    registry.register('Ctrl+K', a, current);
+    expect(registry.getConflicts().size).toBe(0);
+    expect(registry.getBindings().size).toBe(1);
+    press('k');
+    expect(current).toHaveBeenCalledTimes(1);
+    expect(old).not.toHaveBeenCalled();
+  });
+
+  it('CE-08: unregister(shortcut) removes every binding of that key', () => {
+    const handler = vi.fn();
+    using registry = new KeyboardShortcutRegistry();
+    registry.register('Ctrl+K', a, handler);
+    registry.register('Ctrl+K', b, handler);
+    registry.unregister('ctrl+k');
+    expect(registry.getBindings().size).toBe(0);
+    expect(registry.getConflicts().size).toBe(0);
+    press('k');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('DAE-32: two Command items with the same shortcut are reported by the machine keyboard registry', () => {
+    using machine = createCommandMachine({
+      items: [
+        { id: a, value: 'A', shortcut: 'Ctrl+K', onSelect: () => {} },
+        { id: b, value: 'B', shortcut: 'Ctrl+K', onSelect: () => {} },
+      ],
+    });
+    const conflicts = machine.getKeyboardRegistry().getConflicts();
+    expect(conflicts.get(parseShortcut('Ctrl+K').normalized)?.length).toBe(2);
   });
 });
 
