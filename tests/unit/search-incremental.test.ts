@@ -1,6 +1,24 @@
-import type { CommandItem } from 'modern-cmdk';
+import type { CommandItem, ScorerFn } from 'modern-cmdk';
 import { createSearchEngine, itemId } from 'modern-cmdk';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { scoreItemPreLowered } from '../../packages/modern-cmdk/src/core/search/default-scorer.js';
+
+// Spy on the default scorer's per-item entry point, passing through to the real implementation:
+// the number of calls is the number of items the engine scored, which tells the incremental path
+// (previous matches only) from a full rescan (every item).
+vi.mock(
+  import('../../packages/modern-cmdk/src/core/search/default-scorer.js'),
+  async (importOriginal) => {
+    const actual = await importOriginal();
+    return { ...actual, scoreItemPreLowered: vi.fn(actual.scoreItemPreLowered) };
+  },
+);
+
+const scoreSpy = vi.mocked(scoreItemPreLowered);
+
+beforeEach(() => {
+  scoreSpy.mockClear();
+});
 
 function makeItem(id: string, value: string, keywords?: string[]): CommandItem {
   return { id: itemId(id), value, keywords };
@@ -94,13 +112,14 @@ describe('Incremental Filtering', () => {
     // First search
     engine.search('a', items).toArray();
 
-    // Remove apple from index
+    // Remove apple from the engine, but keep handing it the FULL items array: only the engine's
+    // own pruning can drop apple now (its previous-results cache would otherwise still hold it)
     engine.remove(new Set([itemId('apple')]));
 
-    // Incremental search — should not include removed item
-    const remaining = items.filter((i) => i.id !== itemId('apple'));
-    const results = engine.search('ap', remaining).toArray();
-    expect(results.every((r) => r.id !== itemId('apple'))).toBe(true);
+    const results = engine.search('ap', items).toArray();
+    const ids = results.map((r) => r.id);
+    expect(ids).not.toContain(itemId('apple'));
+    expect(ids).toContain(itemId('application'));
   });
 
   it('should maintain correct sort order during incremental filtering', () => {
@@ -155,5 +174,115 @@ describe('Incremental Filtering', () => {
     // Should do full rescan after clear
     const results = engine.search('ap', items).toArray();
     expect(results.length).toBe(1);
+  });
+
+  describe('which items are scored (default scorer)', () => {
+    const items = [
+      makeItem('apple', 'Apple'),
+      makeItem('application', 'Application'),
+      makeItem('banana', 'Banana'),
+      makeItem('apricot', 'Apricot'),
+      makeItem('abacus', 'Abacus'),
+      makeItem('cherry', 'Cherry'),
+    ];
+
+    it('should score every item on the first query (the spy is wired)', () => {
+      using engine = createSearchEngine();
+      engine.index(items);
+
+      engine.search('ap', items).toArray();
+
+      expect(scoreSpy).toHaveBeenCalledTimes(items.length);
+    });
+
+    it('should score only the previous matches when the query is extended', () => {
+      using engine = createSearchEngine();
+      engine.index(items);
+
+      const previous = engine.search('ap', items).toArray();
+      expect(scoreSpy).toHaveBeenCalled();
+      expect(previous.length).toBeLessThan(items.length);
+      scoreSpy.mockClear();
+
+      engine.search('app', items).toArray();
+
+      expect(scoreSpy).toHaveBeenCalledTimes(previous.length);
+    });
+
+    it('should score every item when the query does not extend the previous one', () => {
+      using engine = createSearchEngine();
+      engine.index(items);
+
+      engine.search('app', items).toArray();
+      expect(scoreSpy).toHaveBeenCalled();
+      scoreSpy.mockClear();
+
+      engine.search('ban', items).toArray();
+
+      expect(scoreSpy).toHaveBeenCalledTimes(items.length);
+    });
+
+    it.each([
+      ['ab', 'Ab'],
+      ['ap', 'App'],
+      ['AP', 'apple'],
+    ])(
+      'should score only the previous matches when %s becomes %s (case-only change)',
+      (first, second) => {
+        using engine = createSearchEngine();
+        engine.index(items);
+
+        const previous = engine.search(first, items).toArray();
+        expect(scoreSpy).toHaveBeenCalled();
+        expect(previous.length).toBeGreaterThan(0);
+        expect(previous.length).toBeLessThan(items.length);
+        scoreSpy.mockClear();
+
+        engine.search(second, items).toArray();
+
+        expect(scoreSpy).toHaveBeenCalledTimes(previous.length);
+      },
+    );
+  });
+
+  describe('custom scorers are never pruned', () => {
+    const items = [makeItem('apple', 'Apple'), makeItem('banana', 'Banana')];
+
+    // Non-monotone: the query 'a' matches nothing, the longer query 'ab' matches every item
+    const minLength: ScorerFn = (query: string, item: CommandItem) =>
+      query.length >= 2 ? { id: item.id, score: 1, matches: [] } : null;
+
+    it('should find items for a longer query after a shorter one matched nothing (min-length scorer)', () => {
+      using engine = createSearchEngine({ scorer: minLength });
+      engine.index(items);
+
+      expect(engine.search('a', items).toArray()).toEqual([]);
+
+      const ids = engine
+        .search('ab', items)
+        .toArray()
+        .map((r) => r.id);
+      expect(ids).toEqual([itemId('apple'), itemId('banana')]);
+    });
+
+    it('should call a custom scorer once per item on a query extension (full rescan)', () => {
+      const scorer = vi.fn<ScorerFn>((query: string, item: CommandItem) =>
+        item.value.toLowerCase().startsWith(query.toLowerCase())
+          ? { id: item.id, score: 1, matches: [] }
+          : null,
+      );
+      using engine = createSearchEngine({ scorer });
+      engine.index(items);
+
+      const previous = engine.search('a', items).toArray();
+      expect(previous.length).toBe(1);
+      expect(scorer).toHaveBeenCalledTimes(items.length);
+      scorer.mockClear();
+
+      engine.search('ap', items).toArray();
+
+      expect(scorer).toHaveBeenCalledTimes(items.length);
+      expect(scoreSpy).not.toHaveBeenCalled();
+    });
   });
 });
