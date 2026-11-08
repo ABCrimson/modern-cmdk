@@ -1,0 +1,501 @@
+// @vitest-environment node
+// tests/unit/browser-floor.test.ts
+// CE-29 / R4: the JavaScript browser floor of modern-cmdk, guarded by web-features' data.
+//
+// tests/unit/browser-floor.json lists the web-features ids the built core and react entries rely on, the AST patterns that prove
+// each is still used, the published floor and a deny list of newer APIs. This file builds those entries with the package's own
+// packages/modern-cmdk/tsdown.config.ts into a temporary directory (the CI `test` job runs the unit suite without `pnpm build`,
+// and packages/modern-cmdk/dist belongs to the suites that read it), parses the output with Vite's parseAst (an ESTree: JSDoc
+// comments that mention `await using` or `Map.groupBy` are not code) and checks the list, the deny list and the computed floor
+// against the installed web-features.
+
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { build, type UserConfig } from 'tsdown';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { parseAst } from 'vitest/node';
+import { features } from 'web-features';
+import tsdownConfigs from '../../packages/modern-cmdk/tsdown.config.ts';
+import floorConfig from './browser-floor.json' with { type: 'json' };
+
+/** One AST pattern of browser-floor.json; `kind` selects the fields it reads (see the file's $comment). */
+interface Pattern {
+  readonly kind: string;
+  readonly method?: string;
+  readonly receiverCall?: readonly string[];
+  readonly object?: string;
+  readonly property?: string;
+  readonly name?: string;
+  readonly seed?: string;
+}
+
+interface AstNode {
+  readonly type: string;
+  readonly [key: string]: unknown;
+}
+
+type Floor = Readonly<Record<string, string>>;
+
+const PACKAGE_DIR: string = join(import.meta.dirname, '..', '..', 'packages', 'modern-cmdk');
+const BROWSERS: readonly string[] = floorConfig.browsers;
+const PUBLISHED_FLOOR: Floor = floorConfig.floor;
+const LISTED_IDS: readonly string[] = floorConfig.features.map((feature) => feature.id);
+
+// ---------------------------------------------------------------------------------------------------------------------
+// web-features
+// ---------------------------------------------------------------------------------------------------------------------
+
+type FeatureEntry = NonNullable<(typeof features)[string]>;
+
+function featureOf(id: string): FeatureEntry {
+  const entry = features[id];
+  if (entry === undefined) {
+    throw new Error(`web-features has no id "${id}"`);
+  }
+  return entry;
+}
+
+/** The status of a plain feature; a moved or split id (kind other than 'feature') has none and throws. */
+function statusOf(id: string): Extract<FeatureEntry, { kind: 'feature' }>['status'] {
+  const entry = featureOf(id);
+  if (entry.kind !== 'feature') {
+    throw new Error(`web-features id "${id}" has kind "${entry.kind}", not "feature"`);
+  }
+  return entry.status;
+}
+
+// status.support values in web-features 3.45: "N", "N.N", "≤N" and "≤N.N" (the "≤" marks an upper bound: the first
+// release is at or before it). The floor takes the bound as the version, the conservative reading.
+const VERSION_FORM: RegExp = /^≤?(\d+(?:\.\d+)?)$/u;
+
+/** The numeric segments of a status.support value; any other form throws. */
+function versionParts(version: string): number[] {
+  const match = VERSION_FORM.exec(version);
+  if (match?.[1] === undefined) {
+    throw new Error(`unrecognised web-features support value "${version}"`);
+  }
+  return match[1].split('.').map(Number);
+}
+
+/** Negative when a < b, zero when equal, positive when a > b. */
+function compareVersions(a: string, b: string): number {
+  const left = versionParts(a);
+  const right = versionParts(b);
+  for (let i = 0; i < Math.max(left.length, right.length); i++) {
+    const diff = (left[i] ?? 0) - (right[i] ?? 0);
+    if (diff !== 0) {
+      return diff;
+    }
+  }
+  return 0;
+}
+
+/** A support value without its "≤". */
+function plainVersion(version: string): string {
+  return versionParts(version).join('.');
+}
+
+/** Per browser, the highest status.support version over the ids; an id without an entry for a browser throws. */
+function floorOf(ids: readonly string[]): Floor {
+  const floor: Record<string, string> = {};
+  for (const browser of BROWSERS) {
+    let highest: string | undefined;
+    for (const id of ids) {
+      const version = statusOf(id).support[browser as keyof ReturnType<typeof statusOf>['support']];
+      if (version === undefined) {
+        throw new Error(`web-features "${id}" has no ${browser} entry in status.support`);
+      }
+      if (highest === undefined || compareVersions(version, highest) > 0) {
+        highest = plainVersion(version);
+      }
+    }
+    if (highest !== undefined) {
+      floor[browser] = highest;
+    }
+  }
+  return floor;
+}
+
+/** One line per id that is not a Baseline (low or high) plain feature. */
+function baselineProblems(ids: readonly string[]): string[] {
+  const problems: string[] = [];
+  for (const id of ids) {
+    const entry = features[id];
+    if (entry === undefined || entry.kind !== 'feature') {
+      problems.push(`${id}: not a web-features feature`);
+    } else if (entry.status.baseline !== 'low' && entry.status.baseline !== 'high') {
+      problems.push(`${id}: Baseline is ${String(entry.status.baseline)}`);
+    }
+  }
+  return problems;
+}
+
+/** A deny entry is justified while some browser's support is newer than the floor, or the feature is not Baseline. */
+function exceedsFloor(id: string, floor: Floor): boolean {
+  const status = statusOf(id);
+  if (status.baseline === false) {
+    return true;
+  }
+  return BROWSERS.some((browser) => {
+    const version = status.support[browser as keyof typeof status.support];
+    const bound = floor[browser];
+    return version === undefined || (bound !== undefined && compareVersions(version, bound) > 0);
+  });
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// AST patterns
+// ---------------------------------------------------------------------------------------------------------------------
+
+function isNode(value: unknown): value is AstNode {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { type?: unknown }).type === 'string'
+  );
+}
+
+function visit(node: unknown, callback: (node: AstNode) => void): void {
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      visit(child, callback);
+    }
+    return;
+  }
+  if (!isNode(node)) {
+    return;
+  }
+  callback(node);
+  for (const [key, child] of Object.entries(node)) {
+    if (key !== 'type') {
+      visit(child, callback);
+    }
+  }
+}
+
+/** The static name of a member access: `a.b` and `a['b']`. */
+function memberName(node: unknown): string | undefined {
+  if (!isNode(node) || node.type !== 'MemberExpression' || !isNode(node.property)) {
+    return undefined;
+  }
+  if (node.computed !== true && node.property.type === 'Identifier') {
+    return node.property.name as string;
+  }
+  if (
+    node.computed === true &&
+    node.property.type === 'Literal' &&
+    typeof node.property.value === 'string'
+  ) {
+    return node.property.value;
+  }
+  return undefined;
+}
+
+function required(pattern: Pattern, field: 'method' | 'object' | 'property' | 'name'): string {
+  const value = pattern[field];
+  if (value === undefined) {
+    throw new Error(`pattern ${JSON.stringify(pattern)} needs "${field}"`);
+  }
+  return value;
+}
+
+function matches(node: AstNode, pattern: Pattern): boolean {
+  switch (pattern.kind) {
+    case 'call': {
+      if (
+        node.type !== 'CallExpression' ||
+        memberName(node.callee) !== required(pattern, 'method')
+      ) {
+        return false;
+      }
+      if (pattern.receiverCall === undefined) {
+        return true;
+      }
+      const receiver = (node.callee as AstNode).object;
+      const call =
+        isNode(receiver) && receiver.type === 'ChainExpression' ? receiver.expression : receiver;
+      if (!isNode(call) || call.type !== 'CallExpression') {
+        return false;
+      }
+      const name = memberName(call.callee);
+      return name !== undefined && pattern.receiverCall.includes(name);
+    }
+    case 'member': {
+      if (memberName(node) !== required(pattern, 'property')) {
+        return false;
+      }
+      if (pattern.object === undefined) {
+        return true;
+      }
+      const target = (node as AstNode).object;
+      // `Promise.try` and `globalThis.Promise.try`
+      return (
+        (isNode(target) && target.type === 'Identifier' && target.name === pattern.object) ||
+        memberName(target) === pattern.object
+      );
+    }
+    case 'identifier':
+      return node.type === 'Identifier' && node.name === required(pattern, 'name');
+    case 'using':
+      return (
+        node.type === 'VariableDeclaration' &&
+        (node.kind === 'using' || node.kind === 'await using')
+      );
+    default:
+      throw new Error(`unknown pattern kind "${pattern.kind}"`);
+  }
+}
+
+/** The indices of the patterns that match at least once in any of the sources (file name -> text). */
+function matchedPatterns(
+  sources: ReadonlyMap<string, string>,
+  patterns: readonly Pattern[],
+): Set<number> {
+  const found = new Set<number>();
+  for (const [file, text] of sources) {
+    visit(parseAst(text, null, file), (node) => {
+      patterns.forEach((pattern, index) => {
+        if (!found.has(index) && matches(node, pattern)) {
+          found.add(index);
+        }
+      });
+    });
+  }
+  return found;
+}
+
+const FEATURE_PATTERNS: readonly { readonly id: string; readonly pattern: Pattern }[] =
+  floorConfig.features.flatMap((feature) =>
+    feature.patterns.map((pattern) => ({ id: feature.id, pattern })),
+  );
+
+const DENY_PATTERNS: readonly { readonly id: string; readonly pattern: Pattern }[] =
+  floorConfig.deny.flatMap((entry) => entry.patterns.map((pattern) => ({ id: entry.id, pattern })));
+
+/** Listed patterns that match nowhere in the sources, as `id: {pattern}`. */
+function staleFeaturePatterns(sources: ReadonlyMap<string, string>): string[] {
+  const found = matchedPatterns(
+    sources,
+    FEATURE_PATTERNS.map((entry) => entry.pattern),
+  );
+  return FEATURE_PATTERNS.filter((_, index) => !found.has(index)).map(
+    (entry) => `${entry.id}: ${JSON.stringify(entry.pattern)}`,
+  );
+}
+
+/** The ids of the deny entries that have a pattern matching in the sources. */
+function denyViolations(sources: ReadonlyMap<string, string>): string[] {
+  const found = matchedPatterns(
+    sources,
+    DENY_PATTERNS.map((entry) => entry.pattern),
+  );
+  return [
+    ...new Set(DENY_PATTERNS.filter((_, index) => found.has(index)).map((entry) => entry.id)),
+  ];
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The scanned build
+// ---------------------------------------------------------------------------------------------------------------------
+
+function entryKeys(config: UserConfig): string[] {
+  const entry = config.entry;
+  return entry !== undefined && typeof entry === 'object' && !Array.isArray(entry)
+    ? Object.keys(entry)
+    : [];
+}
+
+let outDir = '';
+let buildMs = 0;
+let builtFiles: string[] = [];
+const sources = new Map<string, string>();
+
+beforeAll(async () => {
+  // The core config (entry core/index) and the react config (react/index and react/dialog); the codemod config is not scanned.
+  const configs = tsdownConfigs.filter((config) =>
+    entryKeys(config).some((key) => key === 'core/index' || key.startsWith('react/')),
+  );
+  expect(configs.map(entryKeys)).toEqual([['core/index'], ['react/index', 'react/dialog']]);
+
+  outDir = await mkdtemp(join(tmpdir(), 'modern-cmdk-floor-'));
+  const started = performance.now();
+  for (const config of configs) {
+    // A fresh outDir (clean: false, so the second config does not delete the first one's output), no declaration files and
+    // no `copy` (the react config copies src/react/styles.css into dist/react, relative to cwd).
+    const handle = await build({
+      ...config,
+      config: false,
+      cwd: PACKAGE_DIR,
+      outDir,
+      clean: false,
+      dts: false,
+      copy: [],
+      report: false,
+      logLevel: 'error',
+    });
+    for (const bundle of handle.bundles) {
+      await bundle[Symbol.asyncDispose]();
+    }
+  }
+  buildMs = performance.now() - started;
+
+  const react = await readdir(join(outDir, 'react'));
+  builtFiles = ['core/index.mjs', ...react.map((name) => `react/${name}`)].sort();
+  for (const file of builtFiles.filter((name) => name.endsWith('.mjs'))) {
+    sources.set(file, await readFile(join(outDir, file), 'utf8'));
+  }
+});
+
+afterAll(async () => {
+  if (outDir !== '') {
+    await rm(outDir, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Assertions
+// ---------------------------------------------------------------------------------------------------------------------
+
+describe('browser floor: web-features data (CE-29, R4)', () => {
+  it('CE-29: every status.support form in the installed web-features is one versionParts reads', () => {
+    const versions = Object.values(features).flatMap((entry) =>
+      entry.kind === 'feature' ? Object.values(entry.status.support) : [],
+    );
+    expect(versions.length).toBeGreaterThan(1000);
+    expect(versions.map((version) => versionParts(version).length)).not.toContain(0);
+  });
+
+  it.each([
+    ['2', '10', -1],
+    ['18.4', '18.10', -1],
+    ['18.4', '18.4', 0],
+    ['18', '18.0', 0],
+    ['26', '18.4', 1],
+    ['≤122', '122', 0],
+    ['≤18.4', '18.3', 1],
+    ['≤9.1', '9.2', -1],
+  ])('CE-29: compareVersions(%s, %s) has the sign of %i', (a, b, sign) => {
+    expect(Math.sign(compareVersions(a, b))).toBe(sign);
+  });
+
+  it.each(['', 'N/A', '1.2.3', '>=5', '≤', '≤≤5', '18.'])(
+    'CE-29: versionParts rejects the unknown form "%s"',
+    (value) => {
+      expect(() => versionParts(value)).toThrow('unrecognised web-features support value');
+    },
+  );
+
+  it('CE-29: web-features is installed at the version browser-floor.json names (a bump forces a re-read)', async () => {
+    const entry = createRequire(import.meta.url).resolve('web-features');
+    const manifest = JSON.parse(await readFile(join(dirname(entry), 'package.json'), 'utf8')) as {
+      version: string;
+    };
+    expect(floorConfig.webFeaturesVersion).toBe(manifest.version);
+  });
+
+  it('CE-29: every listed feature exists, has kind "feature" and is Baseline low or high', () => {
+    expect(LISTED_IDS.length).toBeGreaterThan(0);
+    expect(baselineProblems(LISTED_IDS)).toEqual([]);
+  });
+
+  it('CE-29: the floor computed from the listed features equals the published floor', () => {
+    expect(floorOf(LISTED_IDS)).toEqual(PUBLISHED_FLOOR);
+    expect(Object.keys(PUBLISHED_FLOOR)).toEqual(BROWSERS);
+  });
+
+  it("CE-29: a browser missing from a feature's support fails the floor (explicit-resource-management has no safari entry)", () => {
+    expect(() => floorOf([...LISTED_IDS, 'explicit-resource-management'])).toThrow(
+      'web-features "explicit-resource-management" has no safari entry in status.support',
+    );
+  });
+
+  it.each(floorConfig.deny.map((entry) => entry.id))(
+    'R4: the deny entry %s is still newer than the floor, or not Baseline',
+    (id) => {
+      expect(exceedsFloor(id, PUBLISHED_FLOOR)).toBe(true);
+    },
+  );
+
+  it('R4: Array.fromAsync is not denied because web-features gives it Baseline high under the floor', () => {
+    const id = 'array-fromasync';
+    const entry = featureOf(id);
+    expect(entry.kind === 'feature' ? entry.compat_features : undefined).toContain(
+      'javascript.builtins.Array.fromAsync',
+    );
+    expect(floorConfig.deny.map((denied) => denied.id)).not.toContain(id);
+    expect(statusOf(id).baseline).toBe('high');
+    expect(exceedsFloor(id, PUBLISHED_FLOOR)).toBe(false);
+  });
+});
+
+describe('browser floor: the built core and react entries (CE-29, R4)', () => {
+  it('R4: the scanned build is the core entry, the react entries and their shared chunks, and no stylesheet was copied', () => {
+    expect(builtFiles).toContain('core/index.mjs');
+    expect(builtFiles).toContain('react/index.mjs');
+    expect(builtFiles).toContain('react/dialog.mjs');
+    expect(builtFiles.some((file) => /^react\/chunk-.+\.mjs$/.test(file))).toBe(true);
+    expect(builtFiles).not.toContain('react/styles.css');
+    expect([...sources.keys()].sort()).toEqual(builtFiles);
+  });
+
+  it("CE-29: every listed feature's patterns match the built code (the list cannot go stale)", () => {
+    expect(staleFeaturePatterns(sources)).toEqual([]);
+  });
+
+  it('CE-29: no deny-listed API appears in the built code', () => {
+    expect(denyViolations(sources)).toEqual([]);
+  });
+
+  it('R4: comments and strings that mention a denied API are not code', () => {
+    const text = [
+      '/** Promise.try, Math.sumPrecise, RegExp.escape, Iterator.concat, `await using`, DisposableStack. */',
+      "const note = 'Promise.try(f) and using x = y';",
+      'export { note };',
+    ].join('\n');
+    expect(denyViolations(new Map([['note.mjs', text]]))).toEqual([]);
+  });
+
+  it('R4: the build reports its wall time', () => {
+    expect(buildMs).toBeGreaterThan(0);
+    process.stdout.write(
+      `browser-floor beforeAll: tsdown build of ${builtFiles.length} files in ${buildMs.toFixed(0)} ms\n`,
+    );
+  });
+});
+
+describe('browser floor: the exit gate, a newer API turns the test red (CE-29, R4)', () => {
+  const SEEDS: readonly { readonly id: string; readonly seed: string }[] = floorConfig.deny.flatMap(
+    (entry) => entry.patterns.map((pattern) => ({ id: entry.id, seed: pattern.seed })),
+  );
+
+  it('R4: the unseeded dist/core/index.mjs reports no violation', () => {
+    expect(
+      denyViolations(new Map([['core/index.mjs', sources.get('core/index.mjs') ?? '']])),
+    ).toEqual([]);
+  });
+
+  it.each(SEEDS)(
+    'R4: seeding "$seed" into dist/core/index.mjs reports exactly $id',
+    ({ id, seed }) => {
+      const core = sources.get('core/index.mjs');
+      expect(core).toBeDefined();
+      expect(denyViolations(new Map([['core/index.mjs', `${core}\n${seed}\n`]]))).toEqual([id]);
+    },
+  );
+
+  it.each(['promise-try', 'math-sum-precise', 'regexp-escape'])(
+    'CE-29: adding %s (support above the floor) to the feature list changes the computed floor',
+    (id) => {
+      expect(floorOf([...LISTED_IDS, id])).not.toEqual(PUBLISHED_FLOOR);
+      expect(exceedsFloor(id, PUBLISHED_FLOOR)).toBe(true);
+    },
+  );
+
+  it('CE-29: adding explicit-resource-management (Baseline false) to the feature list fails the Baseline check', () => {
+    expect(baselineProblems([...LISTED_IDS, 'explicit-resource-management'])).toEqual([
+      'explicit-resource-management: Baseline is false',
+    ]);
+  });
+});

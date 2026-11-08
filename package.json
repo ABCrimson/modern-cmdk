@@ -67,7 +67,8 @@
     "tinybench": "6.2.3",
     "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vitest": "5.1.0"
+    "vitest": "5.1.0",
+    "web-features": "3.45.0-dev-20261103105955-64427e2"
   },
   "size-limit": [
     {
