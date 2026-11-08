@@ -264,8 +264,10 @@ for (const result of results) {
 | Field | Type | Description |
 |---|---|---|
 | `id` | `ItemId` | Matched item ID |
-| `score` | `number` | Match quality (higher = better; the default scorer returns 0–1) |
-| `matches` | `ReadonlyArray<readonly [number, number]>` | Half-open `[start, end)` character ranges for highlighting. With the default scorer they index the original `item.value`, not its lowercased copy. A match on `keywords` only reports `matches: []`: there is nothing in the value to highlight |
+| `score` | `number` | Match quality (0–1, higher = better) |
+| `matches` | `ReadonlyArray<readonly [number, number]>` | Character ranges for highlighting |
+
+`matches` ranges are half-open `[start, end)`. With the default scorer they index the original `item.value`, not its lowercased copy, and a match on `keywords` only reports `matches: []`: there is nothing in the value to highlight. A custom scorer or search engine may return scores outside 0–1.
 
 ### `ScorerFn`
 
