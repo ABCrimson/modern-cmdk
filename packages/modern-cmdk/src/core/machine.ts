@@ -192,7 +192,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   let reportedSearch = ''; // the query of the last commit
   let searchStart = -1; // performance.now() at the batch's first SEARCH_CHANGE, -1 when none
   let selected: ItemId[] = []; // the enabled items selected in this batch, in order
-  let openedAt = -1; // performance.now() at the reported open, -1 when closed
+  let openedAt = 0; // performance.now() at the last reported open
   let disposed = false; // set by dispose: the scheduler queues nothing for a disposed machine, a batch stops at the next event and skips its commit, and a frecency load that settles later does nothing
   let announce = false; // set after the initial filter: a controlled activeId then hears the refilter's candidate
 
@@ -370,11 +370,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     }
     if (searched) hooks?.onSearchComplete?.(search, state.filteredCount, performance.now() - start);
     for (const id of ids) hooks?.onItemSelected?.(id, search, filteredIdIndex.get(id) ?? -1);
-    if (turned && !open && openedAt >= 0) {
-      const durationMs = performance.now() - openedAt;
-      openedAt = -1;
-      hooks?.onPaletteClose?.(durationMs);
-    }
+    // A close turns the open state that an earlier report turned open, so openedAt is set
+    if (turned && !open) hooks?.onPaletteClose?.(performance.now() - openedAt);
   }
 
   /**
