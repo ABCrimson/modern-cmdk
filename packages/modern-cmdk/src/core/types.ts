@@ -206,22 +206,29 @@ export interface CommandMachineOptions {
    * @deprecated Use `searchEngine`; it wins when both are set. `search` is removed in 2.0.
    */
   readonly search?: import('./search/types.js').SearchEngine | undefined;
-  /** Callback fired when an item is selected */
+  /** Called for every select of an enabled item. `<Command>` and `Command.Dialog` forward every call. */
   readonly onSelect?: ((id: ItemId) => void) | undefined;
-  /** Callback fired when the active (highlighted) item changes */
+  /**
+   * Called when navigation or `ITEM_ACTIVATE` makes an item active (an `ITEM_ACTIVATE` of the active id included); with a
+   * controlled `activeId`, also for the candidate of every refilter. `<Command>` and `Command.Dialog` forward one call
+   * per distinct value (a repeat of the last forwarded value is dropped); with a controlled `activeId`, they forward
+   * every candidate, repeats included.
+   */
   readonly onActiveChange?: ((id: ItemId | null) => void) | undefined;
   /**
-   * The active (highlighted) item, controlled by the caller. When defined (`null` is a value: no active item),
-   * the machine reads it on every use and never changes `state.activeId` by itself. A different candidate
-   * (navigation, `ITEM_ACTIVATE` of another id, the fallback after the list changes) is reported through
-   * `onActiveChange(candidate)`, and the caller decides. `ITEM_ACTIVATE` of this option's own id applies it to
-   * the state without calling `onActiveChange`: the caller already knows it. Construction calls no callback;
-   * the initial state takes this value. Leave it `undefined` for the machine to own the active item.
+   * The active (highlighted) item, controlled by the caller. When defined, `state.activeId` mirrors it while that id is
+   * listed and enabled, and is `null` otherwise; `null` is a value that means no active item. The machine never
+   * chooses the active item itself. Every candidate it would choose (navigation, `ITEM_ACTIVATE` of another id,
+   * the refilter's fallback after the list or the query changes) is reported through `onActiveChange(candidate)` on
+   * every attempt, repeats included, as a controlled input's `onChange` reports every keystroke the parent refuses;
+   * the caller decides. `ITEM_ACTIVATE` of this option's own id applies it to the state without a call, since the
+   * caller already knows it. Construction calls no callback. The machine reads the option on every refilter, and
+   * `refresh()` applies a changed value without a report. Leave it `undefined` for the machine to own the active item.
    */
   readonly activeId?: ItemId | null | undefined;
-  /** Callback fired when the dialog open state changes */
+  /** Called when the open state changes (`OPEN` while open and `CLOSE` while closed call nothing). `<Command>` and `Command.Dialog` forward one call per distinct value (a repeat of the last forwarded value is dropped). */
   readonly onOpenChange?: ((open: boolean) => void) | undefined;
-  /** Callback fired when the search query changes */
+  /** Called for every `SEARCH_CHANGE`, the same query again included. `<Command>` and `Command.Dialog` forward one call per distinct value (a repeat of the last forwarded value is dropped). */
   readonly onSearchChange?: ((query: string) => void) | undefined;
   /** Whether keyboard navigation loops from last to first item (default: true) */
   readonly loop?: boolean | undefined;

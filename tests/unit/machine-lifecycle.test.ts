@@ -366,11 +366,85 @@ it('ARCH-29: controlled activeId: navigation reports the candidate and the state
   expect(onActiveChange).toHaveBeenLastCalledWith(c);
   expect(machine.getState().activeId).toBe(a);
 
-  // The refilter's fallback is a candidate too: the controlled item left the list
+  // The refilter's fallback is a candidate too: the controlled item left the list, so no item is active
   machine.send({ type: 'SEARCH_CHANGE', query: 'Item b' });
   nextBatch();
   expect(onActiveChange).toHaveBeenLastCalledWith(b);
+  expect(machine.getState().activeId).toBeNull();
+});
+
+it('a controlled id the search filters out leaves no active item and reports the candidate on every refilter', () => {
+  const onActiveChange = vi.fn();
+  using machine = createCommandMachine({ items: abc, activeId: a, onActiveChange });
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'Item b' });
+  nextBatch();
+  expect(machine.getState().activeId).toBeNull();
+  expect(onActiveChange.mock.calls).toEqual([[b]]);
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'Item b' }); // the same candidate again
+  nextBatch();
+  expect(machine.getState().activeId).toBeNull();
+  expect(onActiveChange.mock.calls).toEqual([[b], [b]]);
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'Item c' }); // another query, another candidate
+  nextBatch();
+  expect(machine.getState().activeId).toBeNull();
+  expect(onActiveChange.mock.calls).toEqual([[b], [b], [c]]);
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'Item' }); // the controlled id is listed again
+  nextBatch();
   expect(machine.getState().activeId).toBe(a);
+  expect(onActiveChange.mock.calls).toEqual([[b], [b], [c]]);
+});
+
+it('D106: a controlled activeId of null leaves no active item, and refresh() applies a changed controlled value without a report', () => {
+  const onActiveChange = vi.fn();
+  let controlled: ItemId | null = a;
+  using machine = createCommandMachine({
+    items: abc,
+    get activeId(): ItemId | null {
+      return controlled;
+    },
+    onActiveChange,
+  });
+  expect(machine.getState().activeId).toBe(a);
+
+  controlled = null;
+  machine.refresh();
+  nextBatch();
+  expect(machine.getState().activeId).toBeNull();
+  expect(onActiveChange).not.toHaveBeenCalled();
+
+  controlled = b;
+  machine.refresh();
+  nextBatch();
+  expect(machine.getState().activeId).toBe(b);
+  expect(onActiveChange).not.toHaveBeenCalled();
+});
+
+it('D106: refresh() refilters a disabledItems change and registers nothing', () => {
+  let mode: 'show' | 'hide' = 'show';
+  const items = abc.map((item) => (item.id === b ? { ...item, disabled: true } : item));
+  using machine = createCommandMachine({
+    items,
+    get disabledItems(): 'show' | 'hide' {
+      return mode;
+    },
+  });
+  const registry = machine.getRegistry();
+  using registerItem = vi.spyOn(registry, 'registerItem');
+  using registerItems = vi.spyOn(registry, 'registerItems');
+  const order = registry.getItems().map((item) => item.id);
+  expect(machine.getState().filteredIds).toEqual([a, b, c]);
+
+  mode = 'hide';
+  machine.refresh();
+  nextBatch();
+  expect(machine.getState().filteredIds).toEqual([a, c]);
+  expect(registry.getItems().map((item) => item.id)).toEqual(order);
+  expect(registerItem).not.toHaveBeenCalled();
+  expect(registerItems).not.toHaveBeenCalled();
 });
 
 it("ARCH-29: controlled activeId: activating the option's own id applies it without a callback", () => {
@@ -412,7 +486,7 @@ it('ARCH-29: controlled activeId: construction calls no callback, whatever the o
   using named = createCommandMachine({ items: abc, activeId: missing, onActiveChange });
   using none = createCommandMachine({ items: abc, activeId: null, onActiveChange });
   expect(onActiveChange).not.toHaveBeenCalled();
-  expect(named.getState().activeId).toBe(missing);
+  expect(named.getState().activeId).toBeNull(); // the named id is not listed: no active item
   expect(none.getState().activeId).toBeNull();
 });
 
