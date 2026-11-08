@@ -4,7 +4,6 @@
 // Isolated declarations: explicit return types on all exports
 
 import type { CommandMachineOptions } from 'modern-cmdk';
-import { createCommandMachine } from 'modern-cmdk';
 import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import { CommandActivity } from './activity.js';
@@ -40,7 +39,7 @@ function CommandRoot({
   const rootRef = useRef<HTMLDivElement>(null);
 
   const { state, handleKeyDown, stableContextValue, stateContextValue } = useCommandSetup(
-    () => createCommandMachine(machineOptions),
+    machineOptions,
     label,
   );
 
