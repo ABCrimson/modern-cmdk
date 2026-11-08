@@ -1,8 +1,11 @@
 // packages/modern-cmdk/src/react/hooks/use-devtools.ts
-// Development-only devtools bridge: the hook and its effect ship in every build, and the effect returns at once in
-// production, that is where process.env.NODE_ENV is 'production' and where no process global exists (an unbundled
-// browser import). A bundle that defines NODE_ENV as "production" folds the guard and drops the registry code. In development the page-global registry and the CustomEvents carry the search query
-// raw (unless redactQuery is set), readable by any script on the page.
+// Development-only devtools bridge. The hook and its effect ship in every build. The effect returns
+// at once where process.env.NODE_ENV is 'production', and where no bundler replaced
+// process.env.NODE_ENV and no process global exists (an unbundled browser import). Vite's dev
+// server defines NODE_ENV without a process global and is development (react/env.ts). A bundle
+// that defines NODE_ENV as "production" folds the guard and drops the registry code. In
+// development the page-global registry and the CustomEvents carry the search query raw (unless
+// redactQuery is set), readable by any script on the page.
 // Isolated declarations: explicit return types on all exports
 
 import { use, useEffect } from 'react';
@@ -34,8 +37,10 @@ const DEPRECATED_DEVTOOLS_KEY = '__CRIMSON_COMMAND_DEVTOOLS__' as const;
 type DevtoolsRegistry = Map<string, DevtoolsState>;
 
 /**
- * The registry on `globalThis`, created on first use. An existing Map under either name is reused (another copy of
- * the library may have created the deprecated one), and both names end up holding the same Map.
+ * The registry on `globalThis`, created on first use. An existing Map under either name is reused
+ * (another copy of the library may have created the deprecated one), and both names end up holding
+ * the same Map. With two different Maps already under the two names, the deprecated name's entries
+ * leave it until that copy's next update.
  */
 function registry(): DevtoolsRegistry {
   const globals = globalThis as Record<string, unknown>;
@@ -50,18 +55,21 @@ function registry(): DevtoolsRegistry {
 
 /**
  * Exposes command palette internals to browser devtools.
- * Development only: the hook and its effect ship in every build, and the effect returns at once in production,
- * that is where `process.env.NODE_ENV` is `'production'` and where no `process` global exists (an unbundled browser
- * import); a bundle that defines NODE_ENV as `"production"` folds the guard and the registry code leaves the bundle. Call it from a component rendered inside
+ * Development only: the hook and its effect ship in every build. The effect returns at once where
+ * `process.env.NODE_ENV` is `'production'`, and where no bundler replaced `process.env.NODE_ENV`
+ * and no `process` global exists (an unbundled browser import). Vite's dev server defines NODE_ENV
+ * without a `process` global and is development. A bundle that defines NODE_ENV as `"production"`
+ * folds the guard and the registry code leaves the bundle. Call it from a component rendered inside
  * `<Command>`: outside one there is no machine to inspect and the hook does nothing.
  *
- * In development the state is published on `globalThis.__MODERN_CMDK_DEVTOOLS__` (a Map keyed by label) and in a
- * `modern-cmdk-devtools` CustomEvent on `globalThis` (`detail`: `{ label, state }`), so any script on the page can
- * read it, the search query included. `options.redactQuery: true` publishes the query's length (a number) in place
- * of the query, in the Map and in both events. The default is `false` in 1.x and `true` in 2.0.
+ * In development the state is published on `globalThis.__MODERN_CMDK_DEVTOOLS__` (a Map keyed by
+ * label) and in a `modern-cmdk-devtools` CustomEvent on `globalThis` (`detail`:
+ * `{ label, state }`), so any script on the page can read it, the search query included.
+ * `options.redactQuery: true` publishes the query's length (a number) in place of the query, in
+ * the Map and in both events. The default is `false` in 1.x and `true` in 2.0.
  *
- * `globalThis.__CRIMSON_COMMAND_DEVTOOLS__` (the same Map) and the `crimson-command-devtools` event (the same
- * `detail`) are deprecated aliases of the two names above and are removed in 2.0.
+ * `globalThis.__CRIMSON_COMMAND_DEVTOOLS__` (the same Map) and the `crimson-command-devtools`
+ * event (the same `detail`) are deprecated aliases of the two names above and are removed in 2.0.
  *
  * @param label - The registry key of this palette
  * @param options - `redactQuery`: publish the query's length instead of the query
@@ -87,10 +95,11 @@ export function useCommandDevtools(
   const redactQuery = options?.redactQuery ?? false;
 
   useEffect(() => {
-    // Guard inside effect body — hooks are always called (Rules of Hooks compliant)
-    // `dev` (env.ts) is false where `process` does not exist, so an unbundled browser import does not throw and counts
-    // as production; the inline comparison makes a consumer bundler that defines NODE_ENV as "production" fold the
-    // guard to `!dev || true` and drop the registry code below.
+    // Guard inside effect body: hooks are always called (Rules of Hooks compliant).
+    // `dev` (env.ts) is false where `process` does not exist, so an unbundled browser import does
+    // not throw and counts as production; the inline comparison makes a consumer bundler that
+    // defines NODE_ENV as "production" fold the guard to `!dev || true` and drop the registry code
+    // below.
     if (!dev || process.env.NODE_ENV === 'production') return;
     if (!stable) return;
 

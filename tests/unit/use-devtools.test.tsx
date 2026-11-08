@@ -111,7 +111,8 @@ describe('useCommandDevtools', () => {
     expect(registry?.has('unit-alias')).toBe(true);
     expect(Reflect.get(globalThis, DEPRECATED_KEY)).toBe(registry);
 
-    // Another copy of the library may have created the old Map first: the hook reuses it under both names.
+    // Another copy of the library may have created the old Map first: the hook reuses it under
+    // both names.
     await cleanup();
     cleanup = undefined;
     clearRegistries();
@@ -124,7 +125,8 @@ describe('useCommandDevtools', () => {
 
   it('RA-48: one state change dispatches one event per name with the new state', async () => {
     vi.stubEnv('NODE_ENV', 'development');
-    // The scheduler batches on requestAnimationFrame: fake only the frame clock, as machine-lifecycle.test.ts does.
+    // The scheduler batches on requestAnimationFrame: fake only the frame clock, as
+    // machine-lifecycle.test.ts does.
     vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
     const mounted = await mountDevtools('unit-events');
     cleanup = mounted.cleanup;
@@ -157,7 +159,7 @@ describe('useCommandDevtools', () => {
     );
   });
 
-  /** Mounts with the option, sends one search change and returns the registry entry and the event detail. */
+  /** Mounts with the option, sends one search change, returns the registry entry and detail. */
   async function searchWith(
     label: string,
     options?: DevtoolsOptions,
@@ -198,7 +200,8 @@ describe('useCommandDevtools', () => {
 
   it('ARCH-30: useCommandDevtools accepts redactQuery: undefined', async () => {
     type Options = Parameters<typeof ReactEntry.useCommandDevtools>[1];
-    // exactOptionalPropertyTypes is on: only `| undefined` on the property admits an explicit undefined.
+    // exactOptionalPropertyTypes is on: only `| undefined` on the property admits an explicit
+    // undefined.
     expectTypeOf<{ readonly redactQuery: undefined }>().toExtend<NonNullable<Options>>();
     expectTypeOf<{ readonly redactQuery: boolean | undefined }>().toExtend<NonNullable<Options>>();
 

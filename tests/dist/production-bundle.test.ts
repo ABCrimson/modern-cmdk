@@ -63,7 +63,10 @@ interface RolldownBuild {
   }>;
 }
 
-/** Every development-only string a production bundle must not carry; one entry per guarded string (the devtools branch carries four: the key, its alias and the two event names). */
+/**
+ * Every development-only string a production bundle must not carry; one entry per guarded string
+ * (the devtools branch carries four: the key, its alias and the two event names).
+ */
 const DEV_ONLY_STRINGS: readonly string[] = [
   // core/search/index.ts: the FinalizationRegistry leak warning
   'was garbage collected without being disposed',
@@ -189,7 +192,8 @@ describe.skipIf(!distBuilt)('built package: production bundle', () => {
     expect(warnings.join(' '), 'core: the leak registry exists').toContain(DEV_ONLY_STRINGS[0]);
 
     // react: useCommandDevtools publishes its state on the global registry from inside an effect. A stub react runs
-    // the effect at once, and `use` returns one value that serves as the stable context; its machine reports the state.
+    // the effect at once, and `use` returns one value that serves as the stable context; its machine
+    // reports the state.
     const state = {
       filteredIds: [],
       search: '',
