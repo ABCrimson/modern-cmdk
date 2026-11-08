@@ -29,7 +29,7 @@ import { createCommandMachine, itemId } from 'modern-cmdk';
 
 ### `createCommandMachine(options?)`
 
-Creates a headless command palette state machine with search, frecency, and keyboard shortcut support. It returns `CommandMachine & AsyncDisposable`: `using` disposes it, and `await using` (or `[Symbol.asyncDispose]()`) first awaits the pending frecency save, then disposes. At the top level of a module, `using` disposes at the end of module evaluation; events still pending then are dropped (see [Scheduling](#scheduling)).
+Creates a headless command palette state machine with search, frecency, and keyboard shortcut support. It returns `CommandMachine & AsyncDisposable` with `suspend`, `resume` and `refresh` present (they are optional on the `CommandMachine` interface): `using` disposes it, and `await using` (or `[Symbol.asyncDispose]()`) first awaits the pending frecency save, then disposes. At the top level of a module, `using` disposes at the end of module evaluation; events still pending then are dropped (see [Scheduling](#scheduling)).
 
 ```ts
 import { createCommandMachine, itemId } from 'modern-cmdk';
@@ -69,8 +69,9 @@ export function teardown(): void {
 |---|---|---|---|
 | `items` | `CommandItem[]` | `[]` | Pre-registered items to populate on creation |
 | `groups` | `CommandGroup[]` | `[]` | Pre-registered groups for item categorization |
-| `filter` | `((item, query) => number \| false) \| false` | built-in | Custom filter function, or `false` to disable filtering (every item is listed in registration order). The function returns a score: above 0 keeps the item (higher ranks first); `false`, `0` or a negative number excludes it. It is called for every item on every non-empty query. When `search` is given, a filter function is not consulted (`false` still disables filtering) |
-| `search` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM engine), called only for a non-empty query with filtering on. Its order is kept, except that frecency (when enabled) re-ranks it and `disabledItems: 'hide'` drops disabled items |
+| `filter` | `((item, query) => number \| false) \| false` | built-in | Custom filter function, or `false` to disable filtering (every item is listed in registration order). The function returns a score: above 0 keeps the item (higher ranks first); `false`, `0` or a negative number excludes it. It is called for every item on every non-empty query. When `searchEngine` (or `search`) is given, a filter function is not consulted (`false` still disables filtering) |
+| `searchEngine` | `SearchEngine` | built-in | Pluggable search engine (e.g., WASM engine), called only for a non-empty query with filtering on. Its order is kept, except that frecency (when enabled) re-ranks it and `disabledItems: 'hide'` drops disabled items. The machine disposes only an engine it created: an engine you pass is yours to dispose, and it survives the machine's dispose, `suspend()` and `resume()` |
+| `search` | `SearchEngine` | built-in | Deprecated name of `searchEngine`, which wins when both are set; removed in 2.0. The same ownership rule holds: an engine you pass is yours to dispose |
 | `label` | `string` | -- | Accepted in the type, but `createCommandMachine` never reads it. The React components read it as their `aria-label` and default it to `'Command palette'` |
 | `open` | `boolean` | `false` | Initial open state |
 | `frecency` | `FrecencyOptions` | `undefined` | Frecency ranking configuration; ranking applies only with `enabled: true` |
@@ -79,9 +80,11 @@ export function teardown(): void {
 | `shortcutAction` | `'direct' \| 'select'` | `'direct'` | What an item's shortcut does. `'direct'` calls the item's `onSelect` and binds only items that have one. `'select'` dispatches `ITEM_SELECT` for the item (so the disabled guard, frecency, `options.onSelect` and the `select` event apply) and binds every enabled item that has a shortcut. A disabled item is never bound. 2.0 flips the default to `'select'` |
 | `virtualizeThreshold` | `number` | `100` | Accepted but not read yet; `Command.List` virtualizes above a fixed 100 matches (off again at 50 or fewer) |
 | `onSelect` | `(id: ItemId) => void` | -- | Callback when an item is selected |
-| `onActiveChange` | `(id: ItemId \| null) => void` | -- | Callback when the active item changes |
+| `onActiveChange` | `(id: ItemId \| null) => void` | -- | Called when navigation or `ITEM_ACTIVATE` makes an item active (an `ITEM_ACTIVATE` of the active id included); with a controlled `activeId`, also for the candidate of every refilter. A search change that moves the active item reports nothing when `activeId` is not controlled |
+| `activeId` | `ItemId \| null` | `undefined` | The active item, controlled by the caller. When defined, `state.activeId` mirrors it while that id is listed and enabled and is `null` otherwise; `null` means no active item. The machine never chooses the active item itself: every candidate it would choose (navigation, `ITEM_ACTIVATE` of another id, the refilter's fallback after the list or the query changes) is reported through `onActiveChange(candidate)` on every attempt, repeats included, and the caller decides. `ITEM_ACTIVATE` of this option's own id applies it to the state without a call. Construction calls no callback; `refresh()` applies a changed value without a report. Leave it `undefined` for the machine to own the active item |
 | `onOpenChange` | `(open: boolean) => void` | -- | Callback when open state changes |
-| `onSearchChange` | `(query: string) => void` | -- | Callback when the search query changes |
+| `onSearchChange` | `(query: string) => void` | -- | Called for every `SEARCH_CHANGE`, the same query again included |
+| `telemetry` | `CommandTelemetryHooks` | -- | Hooks the machine calls once per batch, at the batch's end, after its state reports. The machine reads the option at the end of each batch, so a changed value needs no remount. See [The `telemetry` option](#the-telemetry-option) |
 
 Order within a batch: `onOpenChange`, `onSearchChange` and the `openChange` event run while their event is handled, before the batch's single `stateChange` that `subscribe` and `subscribeState` listeners receive.
 
@@ -97,7 +100,10 @@ Order within a batch: `onOpenChange`, `onSearchChange` and the `openChange` even
 | `getKeyboardRegistry()` | `KeyboardShortcutRegistry` | Access the keyboard shortcut registry |
 | `getFilteredIdSet()` | `ReadonlySet<ItemId>` | Current filtered IDs — O(1) membership checks |
 | `getFilteredIdIndex()` | `ReadonlyMap<ItemId, number>` | Positional index — O(1) positional lookup |
-| `[Symbol.dispose]()` | `void` | Clean up all resources (search engine, frecency, listeners); scheduled events that have not run are dropped |
+| `suspend()` | `void` | Releases every global hold the machine owns, reversibly: the shortcut `keydown` listener on `document`, the frecency page-exit listeners (`pagehide`, `visibilitychange`), the frecency debounce timer and the scheduled frame. The pending batch runs at once and a pending frecency save starts first (a failed save is reported with a warning, never thrown). State, registered items, shortcut bindings, the search engine and the frecency storage stay. An event sent while suspended is scheduled as usual. Idempotent; does nothing after dispose |
+| `resume()` | `void` | Takes back the holds `suspend()` released (the `keydown` listener, the page-exit listeners). Idempotent; does nothing after dispose |
+| `refresh()` | `void` | Schedules one batch slot that runs the filter again over the registered items, with the options as they read now, and recomputes the active item. It reports no candidate to `onActiveChange` (the caller changed its own options). It is not a `CommandEvent`: it passes through no `send()`. Call it after an options object's getters return a new `activeId`, `disabledItems` or `filter`. Does nothing after dispose |
+| `[Symbol.dispose]()` | `void` | The terminal teardown: afterwards `send()` reduces nothing, calls no option callback and queues nothing, and a batch that is running stops (the rest of it and its commit do not run). It clears the registry and the listeners and disposes frecency. It disposes the search engine only if the machine created it: a `searchEngine` or `search` you passed is yours to dispose. A created engine is also disposed when a machine that was never disposed is garbage-collected. Scheduled events that have not run are dropped; `suspend()` and `resume()` are the reversible pause |
 | `[Symbol.asyncDispose]()` | `Promise<void>` | On the returned `CommandMachine & AsyncDisposable`: awaits the pending frecency save, then disposes as above |
 
 ### Scheduling
@@ -146,9 +152,9 @@ Immutable state snapshot. Each mutation produces a new object reference for effi
 
 | Event Type | Payload | Description |
 |---|---|---|
-| `SEARCH_CHANGE` | `{ query: string }` | Update search query |
+| `SEARCH_CHANGE` | `{ query: string }` | Update the search query and refilter. The active item stays while it is still listed and enabled; otherwise the first enabled item of the ranked list becomes active (`null` when none is). With a controlled `activeId`, that choice is a candidate reported through `onActiveChange` |
 | `ITEM_SELECT` | `{ id: ItemId }` | Select an item: runs its `onSelect`, records frecency, emits `select` and calls `options.onSelect`. Does nothing for a disabled or unknown id |
-| `ITEM_ACTIVATE` | `{ id: ItemId }` | Highlight an item. Lands only on an enabled item in `filteredIds`; otherwise ignored |
+| `ITEM_ACTIVATE` | `{ id: ItemId }` | Highlight an item. Lands only on an enabled item in `filteredIds`; otherwise ignored. A later search change keeps it active while it is still listed and enabled |
 | `NAVIGATE` | `{ direction: 'next' \| 'prev' \| 'first' \| 'last' }` | Navigate items; disabled items are skipped |
 | `PAGE_PUSH` | `{ page: string }` | Push a new page |
 | `PAGE_POP` | -- | Pop to previous page |
@@ -479,9 +485,39 @@ Example: `"Mod+Shift+K"` → macOS: `⌘⇧K`, Windows: `Ctrl+Shift+K`
 
 ## Telemetry
 
+### The `telemetry` option
+
+`createCommandMachine({ telemetry })` takes `CommandTelemetryHooks`; `<Command>` and `<Command.Dialog>` take the same `telemetry` prop and forward its latest value. The machine calls the hooks once per batch, at the batch's end, after its state reports (`onSearchChange`, `onActiveChange`, `onOpenChange` and the `stateChange` subscribers), in the order open, search, selects, close. Durations are differences of `performance.now()` readings. With no `telemetry` option the machine calls no hook. Telemetry follows the machine, not the React root's visibility. A hook that throws loses only the later telemetry calls of that batch, never a state report, and its error is rethrown on its own microtask.
+
+```ts
+import { createCommandMachine, itemId } from 'modern-cmdk';
+
+// Your analytics client (app-owned).
+declare const analytics: { track(event: string, properties?: Record<string, unknown>): void };
+
+export const machine = createCommandMachine({
+  items: [{ id: itemId('home'), value: 'Home' }],
+  telemetry: {
+    onPaletteOpen: () => analytics.track('palette_opened'),
+    onPaletteClose: (durationMs) => analytics.track('palette_closed', { durationMs }),
+    // The raw query can hold personal data: report the count, not the text
+    onSearchComplete: (_query, resultCount, durationMs) =>
+      analytics.track('search', { resultCount, durationMs }),
+    onItemSelected: (id, _query, position) => analytics.track('item_selected', { id, position }),
+  },
+});
+```
+
 ### `createTelemetryMiddleware(hooks)`
 
-Creates opt-in telemetry middleware for enterprise observability. It returns a `TelemetryMiddleware` object (`onOpen()`, `onClose()`, `onSearch(query, resultCount, startTime)`, `onSelect(itemId, query, position)`) that forwards to your hooks. Nothing calls it automatically: the machine and the React components have no telemetry option, so call these methods yourself, for example from `onOpenChange` and `onSelect`.
+A standalone helper for callers that drive the hooks themselves. The machine takes the `telemetry` option directly and does not use it. It returns a `TelemetryMiddleware` object that forwards to your hooks:
+
+| Method | Description |
+|---|---|
+| `onOpen()` | Starts the session clock and calls `onPaletteOpen` |
+| `onClose()` | Calls `onPaletteClose` with the time since the last `onOpen()`; reports nothing without one |
+| `onSearch(query, resultCount, startTime)` | Calls `onSearchComplete` with the time since `startTime`, a `performance.now()` reading. Through 1.x a `startTime` above 1e12 (an epoch reading from `Date.now()`) is measured against `Date.now()`; the branch is removed in 2.0 |
+| `onSelect(itemId, query, position)` | Calls `onItemSelected` with its arguments unchanged |
 
 ```ts
 import { createTelemetryMiddleware } from 'modern-cmdk';
@@ -492,21 +528,28 @@ declare const analytics: { track(event: string, properties?: Record<string, unkn
 const telemetry = createTelemetryMiddleware({
   onPaletteOpen: () => analytics.track('palette_opened'),
   onPaletteClose: (durationMs) => analytics.track('palette_closed', { durationMs }),
-  onSearchComplete: (query, count, durationMs) =>
-    analytics.track('search', { query, resultCount: count, durationMs }),
-  onItemSelected: (id, query, position) =>
-    analytics.track('item_selected', { id, query, position }),
+  // The raw query can hold personal data: report the count, not the text
+  onSearchComplete: (_query, resultCount, durationMs) =>
+    analytics.track('search', { resultCount, durationMs }),
+  onItemSelected: (id, _query, position) => analytics.track('item_selected', { id, position }),
 });
+
+export const onOpenChange = (open: boolean): void =>
+  open ? telemetry.onOpen() : telemetry.onClose();
+
+export function reportSearch(query: string, resultCount: number, start: number): void {
+  telemetry.onSearch(query, resultCount, start); // `start` is a performance.now() reading
+}
 ```
 
 ### `CommandTelemetryHooks`
 
 | Hook | Signature | Description |
 |---|---|---|
-| `onPaletteOpen` | `() => void` | Called by `middleware.onOpen()` |
-| `onPaletteClose` | `(durationMs: number) => void` | Called by `middleware.onClose()`, with the time since `onOpen()` (not called if `onOpen()` did not run first) |
-| `onSearchComplete` | `(query, resultCount, durationMs) => void` | Called by `middleware.onSearch(query, resultCount, startTime)`, with `Date.now() - startTime` |
-| `onItemSelected` | `(itemId, searchQuery, position) => void` | Called by `middleware.onSelect(itemId, query, position)` |
+| `onPaletteOpen` | `() => void` | Called when a batch ends with the committed open state turned open since the last report, which starts closed (`OPEN`, or `TOGGLE` of a closed palette). A machine created with `open: true` reports one `onPaletteOpen` at its first commit. A batch that opens and closes again reports nothing |
+| `onPaletteClose` | `(durationMs: number) => void` | Called when a batch ends with the committed open state turned closed after a reported open, with the milliseconds since that open. `OPEN` while open and `CLOSE` while closed report nothing. A palette unmounted while open reports no close: `{show && <Command.Dialog open>}` reports an open at each mount and no close |
+| `onSearchComplete` | `(query, resultCount, durationMs) => void` | Called once per batch in which a `SEARCH_CHANGE` changed the committed query, after the batch's last refilter, with the query, the filtered count the batch ends with, and the milliseconds from the batch's first `SEARCH_CHANGE` to the end of the batch. A `SEARCH_CHANGE` that repeats the committed query reports nothing |
+| `onItemSelected` | `(itemId, searchQuery, position) => void` | Called for each select of an enabled item in the batch, with its id, the query the batch ends with, and the item's index in the filtered list the batch ends with, or -1 when it is not listed (a shortcut can select a filtered-out item) |
 
 ---
 
