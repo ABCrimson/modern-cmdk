@@ -817,9 +817,13 @@ export function useCommandDevtools(label = 'default'): void {
 Document using `createCommandMachine` directly without React:
 
 ```ts
-import { createCommandMachine, itemId } from '@crimson_dev/command';
+import { createCommandMachine, itemId } from 'modern-cmdk';
 
-using machine = createCommandMachine({
+// Keep the machine for as long as the UI lives: a module-top-level `using machine` would dispose
+// it when evaluation ends, before the first keystroke (RC-15; amended per G-60, 2026-11-08: the
+// shipped example apps/docs/examples/vanilla.md owns the machine with `const` and disposes on
+// teardown).
+const machine = createCommandMachine({
   items: [
     { id: itemId('copy'), value: 'Copy', onSelect: () => navigator.clipboard.writeText(selection) },
     { id: itemId('paste'), value: 'Paste', onSelect: () => document.execCommand('paste') },
