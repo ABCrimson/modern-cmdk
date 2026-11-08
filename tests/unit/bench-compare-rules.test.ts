@@ -4,7 +4,6 @@
 // TEB-33: the 'basic' 10K dataset behind benchmarks/baseline.json is pinned by hash.
 // R5: the browser bench's pure stats and 10K mount gate rules.
 // P33: the bench:compare harness proves its own verdicts end to end on fixed fixtures.
-// P33: the bench:compare harness proves its own verdicts end to end on fixed fixtures.
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
