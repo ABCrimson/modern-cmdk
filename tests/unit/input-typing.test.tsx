@@ -242,4 +242,29 @@ describe('Command.Input rapid typing', () => {
     observer.disconnect();
     expect(appeared).toBe(false);
   });
+
+  it('ARCH-03: an edit in the middle of the text keeps the value and the caret', async () => {
+    const { input, machine } = renderPalette();
+    const user = userEvent.setup({ delay: 0 });
+    await user.click(input);
+    await user.type(input, 'apple');
+    await settle();
+
+    // Insert "x" at index 2 the way a browser does: the value changes, then the caret sits after the new character
+    input.setSelectionRange(2, 2);
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+    await act(async () => {
+      setValue?.call(input, 'apxple');
+      input.setSelectionRange(3, 3);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(input.value).toBe('apxple');
+    expect(input.selectionStart).toBe(3);
+
+    await settle();
+    expect(machine().getState().search).toBe('apxple');
+    expect(input.value).toBe('apxple');
+    expect(input.selectionStart).toBe(3);
+    expect(input.selectionEnd).toBe(3);
+  });
 });
