@@ -1,31 +1,39 @@
 // benchmarks/standalone/record-baseline.ts
 // The baseline recorder (`pnpm bench:record`, D93): rewrites benchmarks/baseline.json from the
-// `benchmark-results` artifact of a CI run (benchmarks/results/bench-<sha>.json, which
-// compare-baseline.ts writes). D93 re-records the baseline from the first green run after each Node pin
-// bump; this is that step as a tool, so the file is never edited by hand.
+// `benchmark-results` artifact of a CI run, committed as benchmarks/history/<YYYY-MM-DD>-<sha7>.json (a
+// copy of benchmarks/results/bench-<sha>.json, which compare-baseline.ts writes). D93 re-records the
+// baseline from the first green run after each Node pin bump; this is that step as a tool, so the file
+// is never edited by hand.
 //
-// Usage: node benchmarks/standalone/record-baseline.ts <results.json> --source <run url or id>
-//                                                      [--out <file>] [--baseline <file>]
-//                                                      [--target <category>:<key>=<ms>]...
-//   <results.json>  the artifact. Every task's `median_ms` becomes the row's median_ms and its `p99_ms`
-//                   the row's p99_ms (both are the medians of the harness's 5 runs, D93).
-//   --source        the run the artifact came from (its URL or id): written to `source`, named in `note`.
-//   --out           the file to write (default benchmarks/baseline.json).
-//   --baseline      the existing baseline the rows' target_ms, the thresholds (warning, failure,
-//                   floor_ms) and `version` are carried over from (default benchmarks/baseline.json).
-//   --target        the target_ms of a task that has no row in the existing baseline, or a new target for
-//                   one that has (repeatable).
-// `commit`, `date` (its calendar day) and `environment` come from the results file. Row order follows the
-// existing baseline, new rows come last in the results file's order.
-// Exit codes: 0 = written, 2 = usage or harness error (an unknown flag, a missing <results.json> or
-// --source, an unreadable or malformed input, a task with no existing row and no --target, a --target
-// that names no task, an existing row that the results file has no task for). Nothing is written then.
+// Usage: node benchmarks/standalone/record-baseline.ts <history-file> [--out <file>] [--baseline <file>]
+//                                                      [--target <category>:<key>=<ms>]... [--repo <dir>]
+//   <history-file>  the committed copy of the artifact, directly under benchmarks/history/. Its name's
+//                   date (the UTC day of the file's own `date`) and sha7 (the first 7 characters of its
+//                   own `commit`) must match the file, and its `runs` must be 5 (D93). Every task's
+//                   `median_ms` becomes the row's median_ms and its `p99_ms` the row's p99_ms. D27:
+//                   `source` is this file's repo-relative path (forward slashes), never a run id; the
+//                   note names it too.
+//   --out           the file to write (default <repo>/benchmarks/baseline.json).
+//   --baseline      the existing baseline the rows' target_ms and the thresholds (warning, failure,
+//                   floor_ms) are carried over from (default <repo>/benchmarks/baseline.json).
+//   --target        the target_ms (finite, > 0) of a task that has no row in the existing baseline, or a
+//                   new target for one that has (repeatable).
+//   --repo          the repository root: where benchmarks/history/ is and where git resolves the commit
+//                   (default: this checkout). The tests point it at a throwaway repository.
+// `commit`, `date` (its UTC calendar day) and `environment` come from the history file; `version` is the
+// version of packages/modern-cmdk/package.json at that commit (`git show <commit>:...`). Row order
+// follows the existing baseline, new rows come last in the file's order.
+// Exit codes: 0 = written, 2 = usage or harness error (an unknown flag, a missing, misplaced or
+// misnamed <history-file>, `runs` other than 5, an unreadable or malformed input, a commit git cannot
+// resolve, a task with no existing row and no --target, a --target that is not a positive finite
+// number or names no task, an existing row that the file has no task for). Nothing is written then.
 // Runs under Node's native type stripping, no loader.
 // tests/unit/bench-record.test.ts proves the output against compare-baseline.ts on the fixtures in
-// benchmarks/standalone/fixtures/ (record-*.json).
+// benchmarks/standalone/fixtures/ (record-artifact*.json).
 
+import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
@@ -50,17 +58,17 @@ interface Task {
 }
 
 interface CliArgs {
-  readonly results: string;
-  readonly source: string;
+  readonly history: string;
+  readonly repo: string;
   readonly out: string;
   readonly baseline: string;
   readonly targets: ReadonlyMap<string, number>;
 }
 
 const USAGE =
-  'usage: node benchmarks/standalone/record-baseline.ts <results.json> --source <run url or id> [--out <file>] [--baseline <file>] [--target <category>:<key>=<ms>]...';
+  'usage: node benchmarks/standalone/record-baseline.ts <history-file> [--out <file>] [--baseline <file>] [--target <category>:<key>=<ms>]... [--repo <dir>]';
 
-const DEFAULT_BASELINE = fileURLToPath(new URL('../baseline.json', import.meta.url));
+const DEFAULT_REPO = fileURLToPath(new URL('../..', import.meta.url));
 
 /** A bad flag, a missing argument or an unreadable, malformed or inconsistent input: exit 2 with the usage line. */
 class UsageError extends Error {}
@@ -75,7 +83,7 @@ const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
 const OPTIONS = {
-  source: { type: 'string' },
+  repo: { type: 'string' },
   out: { type: 'string' },
   baseline: { type: 'string' },
   target: { type: 'string', multiple: true },
@@ -89,27 +97,27 @@ function parseCli(argv: readonly string[]): CliArgs {
       throw new UsageError(err instanceof Error ? err.message : String(err), { cause: err });
     }
   })();
-  const [results, ...extra] = positionals;
-  if (results === undefined) throw new UsageError('missing <results.json>');
+  const [history, ...extra] = positionals;
+  if (history === undefined) throw new UsageError('missing <history-file>');
   if (extra.length > 0) throw new UsageError(`unexpected argument ${extra[0]}`);
-  if (values.source === undefined || values.source.trim() === '') {
-    throw new UsageError('missing --source <run url or id>');
-  }
+  const repo = resolve(values.repo ?? DEFAULT_REPO);
+  const defaultBaseline = resolve(repo, 'benchmarks/baseline.json');
   const targets = new Map<string, number>();
   for (const spec of values.target ?? []) {
     const at = spec.lastIndexOf('=');
     const key = spec.slice(0, at);
     const ms = Number(spec.slice(at + 1));
-    if (at < 1 || !key.includes(':') || spec.slice(at + 1).trim() === '' || !(ms > 0)) {
-      throw new UsageError(`--target ${spec}: expected <category>:<key>=<ms> with ms > 0`);
+    const valid = at >= 1 && key.includes(':') && spec.slice(at + 1).trim() !== '';
+    if (!(valid && Number.isFinite(ms) && ms > 0)) {
+      throw new UsageError(`--target ${spec}: expected <category>:<key>=<ms> with a finite ms > 0`);
     }
     targets.set(key, ms);
   }
   return {
-    results: resolve(results),
-    source: values.source.trim(),
-    out: resolve(values.out ?? DEFAULT_BASELINE),
-    baseline: resolve(values.baseline ?? DEFAULT_BASELINE),
+    history: resolve(history),
+    repo,
+    out: resolve(values.out ?? defaultBaseline),
+    baseline: resolve(values.baseline ?? defaultBaseline),
     targets,
   };
 }
@@ -195,30 +203,76 @@ function buildNote(args: {
   return [
     `The medians are the median of the harness's 5 runs' p50 (D93), recorded from ${source} on ${runner} (${text('cpu')}, ${text('cpuCount')} cores) with Node ${text('node')}.`,
     `The compare warns above ${percent(thresholds.warning)} and fails above ${percent(thresholds.failure)} of regression, with ${floor}; a median above target_ms fails.`,
-    'Runner noise is a coarse tripwire, not a verdict, until the 1.9 CodSpeed gate. This note is rewritten at each re-record by benchmarks/standalone/record-baseline.ts.',
+    'Runner noise (+/-20-40 %) makes the 5 %/15 % compare a coarse tripwire, not a verdict, until the 1.9 CodSpeed gate. This note is rewritten at each re-record by benchmarks/standalone/record-baseline.ts.',
   ].join(' ');
+}
+
+/** The version in packages/modern-cmdk/package.json at `commit`, from git; exit 2 when git cannot resolve it. */
+function manifestVersion(repo: string, commit: string): string {
+  // GIT_* scrubbed: a hook's GIT_DIR (a pre-push from a linked worktree sets it) would redirect the lookup
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')),
+  );
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(
+      execFileSync('git', ['-C', repo, 'show', `${commit}:packages/modern-cmdk/package.json`], {
+        encoding: 'utf-8',
+        env,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }),
+    );
+  } catch (err: unknown) {
+    throw new UsageError(
+      `git cannot read packages/modern-cmdk/package.json at commit ${commit} in ${repo}: ${err instanceof Error ? err.message : String(err)}`,
+      { cause: err },
+    );
+  }
+  if (!isRecord(manifest) || typeof manifest.version !== 'string') {
+    throw new UsageError(`packages/modern-cmdk/package.json at ${commit} has no string "version"`);
+  }
+  return manifest.version;
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
   const args = parseCli(argv);
-  const resultsFile = await readJson(args.results);
+  const resultsFile = await readJson(args.history);
   const baselineFile = await readJson(args.baseline);
-  const tasks = readTasks(args.results, resultsFile);
+  const historyDir = resolve(args.repo, 'benchmarks/history');
+  const inHistory = relative(historyDir, args.history);
+  if (inHistory === '' || inHistory.startsWith('..') || inHistory.includes(sep)) {
+    throw new UsageError(`${args.history} is not a file directly under ${historyDir}`);
+  }
+  const source = `benchmarks/history/${inHistory}`;
+  const tasks = readTasks(args.history, resultsFile);
   const thresholds = readThresholds(args.baseline, baselineFile);
   const existing = readExistingTargets(args.baseline, baselineFile);
 
   if (typeof resultsFile.commit !== 'string' || typeof resultsFile.date !== 'string') {
-    throw new UsageError(`${args.results}: expected string "commit" and "date"`);
+    throw new UsageError(`${args.history}: expected string "commit" and "date"`);
   }
-  const day = /^\d{4}-\d{2}-\d{2}/.exec(resultsFile.date)?.[0];
-  if (day === undefined) {
-    throw new UsageError(`${args.results}: "date" is not an ISO date: ${resultsFile.date}`);
+  const stamp = new Date(resultsFile.date);
+  if (Number.isNaN(stamp.getTime())) {
+    throw new UsageError(`${args.history}: "date" is not an ISO date: ${resultsFile.date}`);
+  }
+  const day = stamp.toISOString().slice(0, 10);
+  const expectedName = `${day}-${resultsFile.commit.slice(0, 7)}.json`;
+  if (inHistory !== expectedName) {
+    throw new UsageError(
+      `${inHistory}: the name must be <UTC day of "date">-<first 7 of "commit">.json, which is ${expectedName} for this file`,
+    );
+  }
+  if (resultsFile.runs !== 5) {
+    throw new UsageError(
+      `${args.history}: "runs" is ${JSON.stringify(resultsFile.runs)}, not 5; D93 records the median of 5 runs' p50`,
+    );
   }
   if (!isRecord(resultsFile.environment)) {
-    throw new UsageError(`${args.results}: expected an "environment" object`);
+    throw new UsageError(`${args.history}: expected an "environment" object`);
   }
+  const version = manifestVersion(args.repo, resultsFile.commit);
 
   const names = new Set(tasks.map((task) => task.name));
   for (const key of args.targets.keys()) {
@@ -227,7 +281,7 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
   const unmeasured = [...existing.keys()].filter((key) => !names.has(key));
   if (unmeasured.length > 0) {
     throw new UsageError(
-      `${args.results} has no task for the existing row(s) ${unmeasured.join(', ')}: a re-record never drops a row silently`,
+      `${args.history} has no task for the existing row(s) ${unmeasured.join(', ')}: a re-record never drops a row silently`,
     );
   }
   const untargeted = tasks.filter((t) => !existing.has(t.name) && !args.targets.has(t.name));
@@ -254,18 +308,18 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
   }
 
   const document = {
-    ...(typeof baselineFile.version === 'string' ? { version: baselineFile.version } : {}),
+    version,
     date: day,
     commit: resultsFile.commit,
-    source: args.source,
-    note: buildNote({ source: args.source, environment: resultsFile.environment, thresholds }),
+    source,
+    note: buildNote({ source, environment: resultsFile.environment, thresholds }),
     environment: resultsFile.environment,
     regressionThresholds: thresholds,
     benchmarks,
   };
   await writeFile(args.out, `${JSON.stringify(document, null, 2)}\n`);
   console.log(
-    `recorded ${tasks.length} rows from ${args.results} (commit ${resultsFile.commit.slice(0, 7)}, ${day}) into ${args.out}`,
+    `recorded ${tasks.length} rows from ${source} (commit ${resultsFile.commit.slice(0, 7)}, ${day}) into ${args.out}`,
   );
   return 0;
 }
