@@ -1,5 +1,6 @@
 // benchmarks/fixtures.ts
-// The shared item generator of every bench (TEB-33): the vitest benches and the standalone
+// The shared item generator of every bench except search.bench.ts (TEB-33; it keeps its own copy until
+// cluster SEARCH switches it to generateItems(n, 'search', itemId)): the vitest benches and the standalone
 // `pnpm bench:compare` harness build their items here, from the one table in
 // apps/playground/src/bench/dataset.ts (which the playground's browser bench page also uses).
 //
