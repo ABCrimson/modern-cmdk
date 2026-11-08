@@ -1,37 +1,59 @@
 // tests/unit/cmdk-comparison.test.tsx
 // ============================================================================
-// EXTENSIVE COMPARISON TEST: modern-cmdk vs cmdk (pacocoursey/cmdk)
+// DIFFERENTIAL COMPARISON: cmdk 1.1.1 against modern-cmdk
 // ============================================================================
 //
-// This test suite methodically compares every aspect of modern-cmdk/react
-// against the original cmdk library, verifying feature parity AND documenting
-// the improvements. Each section maps 1:1 to an original cmdk feature.
+// Every parity case renders cmdk 1.1.1 (node_modules/cmdk) and modern-cmdk
+// (packages/modern-cmdk/src/react) from one fixture, observes the same facts in both, and checks
+// each observation against its row of the delta table, tests/unit/cmdk-parity-delta.json.
 //
-// cmdk API reference:     https://github.com/pacocoursey/cmdk
-// modern-cmdk:           packages/modern-cmdk (src/core + src/react)
+// Adapters (tests/unit/cmdk-parity-adapters.tsx). A fixture is data: a root, an input, a list and
+// a tree of items, groups, separators, Empty and Loading, optionally inside a Dialog. One adapter
+// per library turns it into that library's components and props, and holds the library's
+// attribute names. A prop is translated only where the library documents one for the intent
+// (`filter: 'off'` is cmdk's `shouldFilter={false}` and modern-cmdk's `filter={false}`); an
+// intent with no counterpart renders nothing in the other library, and the case records it.
 //
-// Test categories:
-//   1. Compound component API parity
-//   2. Data attributes (renamed: [cmdk-*] → [data-command-*])
-//   3. CSS custom properties
-//   4. ARIA / accessibility
-//   5. Filtering & sorting
-//   6. Keyboard navigation
-//   7. Controlled state (value, search)
-//   8. Dialog variant
-//   9. useCommandState hook
-//  10. Disabled items
-//  11. Loading / Empty states
-//  12. Groups & separators
-//  13. Keywords filtering
-//  14. Custom filter function
-//  15. Loop navigation
-//  16. onSelect callback
-//  17. NEW features not in cmdk (superset)
-//  18. API surface comparison summary
+// Observations are plain JSON: the item values in DOM order, the active value, the arguments of
+// onSelect, Empty visibility, ARIA attributes (an id reference is a token such as `list`, never a
+// generated id) and each library's own data attributes.
+//
+// Delta table. One row per case id: `{ status, cmdk, modernCmdk, reason, ref }`. The observation
+// of each library must equal its recorded value, so drift on either side is a failure. A 'same'
+// row holds two equal values and a 'differs' row two unequal ones, so a status that disagrees
+// with the values fails too. `reason` is a sentence for a migrating cmdk user and `ref` names the
+// ruling or ledger row. The last differential test requires the table's keys to equal the case
+// ids, in case order.
+//
+// What the installed type declarations say (cmdk: node_modules/cmdk/dist/index.d.ts; modern-cmdk:
+// packages/modern-cmdk/dist/react/index.d.mts, with src/react/*.tsx):
+//   - cmdk's Command takes `label`, `shouldFilter`, `filter(value, search, keywords)` returning a
+//     number where 0 hides the item, `value`, `defaultValue` and `onValueChange` for the active
+//     item, `loop` (opt-in), `disablePointerSelection`, and `vimBindings` (default true). Its Item
+//     and Group take `forceMount`; its Item calls `onSelect(value)`; its Separator takes
+//     `alwaysRender`; its Input takes `value` and `onValueChange`; its List takes `label`.
+//   - modern-cmdk's Command takes `label` (the aria-label), `filter(item, query)` or `false`,
+//     `activeId` and `onActiveChange` for the active item, `onSearchChange`, `searchEngine`, and
+//     `loop`, which defaults to true. It has no `vimBindings`, `forceMount`, `defaultValue` or
+//     `disablePointerSelection`. Its Item takes `id` (`forceId` is a deprecated alias) and calls
+//     `onSelect()` with no argument in 1.x (D66); its Separator's `alwaysRender` defaults to true
+//     in 1.x; its Group takes `id`; its Loading takes `loading`; its List virtualizes above 100
+//     matches and writes `--command-list-height`; cmdk's List writes `--cmdk-list-height`.
+//
+// Sections of this file:
+//   1. Delta table: the row type and the parser of the JSON.
+//   2. Fixture shorthands: the helpers the cases build fixtures with.
+//   3. Cases, in table order: structure, ARIA, groups and separators, filtering, keyboard and
+//      selection, controlled state, dialog, server-rendered HTML.
+//   4. The differential harness: describe.for over the two adapters, the ResizeObserver stub
+//      (happy-dom 21.0.4's does nothing), and the gate test, "the delta table has exactly one row
+//      per parity case".
+//   5. modern-cmdk superset: behaviour that has no cmdk counterpart (the framework-agnostic core,
+//      the search engine, the shortcut registry, frecency, branded ids, and the components cmdk
+//      lacks), asserted on modern-cmdk alone.
 // ============================================================================
 
-import { Command as CmdkCommand } from 'cmdk';
+import { isDeepStrictEqual } from 'node:util';
 import {
   type CommandItem as CoreCommandItem,
   computeFrecencyBonus,
@@ -46,1538 +68,909 @@ import {
   parseShortcut,
   scoreItem,
 } from 'modern-cmdk';
-import {
-  Command,
-  CommandActivity,
-  CommandAsyncItems,
-  CommandBadge,
-  CommandDialog,
-  CommandEmpty,
-  CommandErrorBoundary,
-  CommandGroup,
-  CommandHighlight,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandLoading,
-  CommandPage,
-  CommandSeparator,
-  CommandShortcut,
-  useCommand,
-  useCommandDevtools,
-  useCommandState,
-  useRegisterGroup,
-  useRegisterItem,
-  useVirtualizer,
-} from 'modern-cmdk/react';
+import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  type AriaObservation,
+  adapters,
+  type ItemNode,
+  type Json,
+  ListHeightResizeObserver,
+  mountParity,
+  type ParityAdapter,
+  type ParityFixture,
+  type ParityNode,
+  type ParitySession,
+  renderServer,
+  type SelectHandler,
+  unmountParity,
+} from './cmdk-parity-adapters.tsx';
+import deltaJson from './cmdk-parity-delta.json' with { type: 'json' };
 
 // ---------------------------------------------------------------------------
-// Test infrastructure
+// Delta table
 // ---------------------------------------------------------------------------
 
-let container: HTMLDivElement;
-let root: Root;
+interface DeltaRow {
+  readonly status: 'same' | 'differs';
+  readonly cmdk: Json;
+  readonly modernCmdk: Json;
+  readonly reason: string;
+  readonly ref: string;
+}
+
+function parseDelta(raw: unknown): Readonly<Record<string, DeltaRow>> {
+  if (typeof raw !== 'object' || raw === null) throw new Error('the delta table is not an object');
+  const rows: Record<string, DeltaRow> = {};
+  for (const [id, row] of Object.entries(raw)) {
+    const { status, cmdk, modernCmdk, reason, ref } = row as Record<string, unknown>;
+    if (status !== 'same' && status !== 'differs') {
+      throw new Error(`${id}: status "${String(status)}"`);
+    }
+    if (typeof reason !== 'string' || reason === '') throw new Error(`${id}: reason is empty`);
+    if (typeof ref !== 'string' || ref === '') throw new Error(`${id}: ref is empty`);
+    rows[id] = { status, cmdk: cmdk as Json, modernCmdk: modernCmdk as Json, reason, ref };
+  }
+  return rows;
+}
+
+const delta = parseDelta(deltaJson);
+
+// ---------------------------------------------------------------------------
+// Fixture shorthands
+// ---------------------------------------------------------------------------
+
+type ItemOptions = Omit<ItemNode, 'kind' | 'value'>;
+
+const item = (value: string, more: ItemOptions = {}): ItemNode => ({
+  kind: 'item',
+  value,
+  ...more,
+});
+
+const group = (heading: string, children: readonly ParityNode[]): ParityNode => ({
+  kind: 'group',
+  heading,
+  children,
+});
+
+const separator = (alwaysRender?: boolean): ParityNode =>
+  alwaysRender === undefined ? { kind: 'separator' } : { kind: 'separator', alwaysRender };
+
+const empty = (text = 'Nothing found'): ParityNode => ({ kind: 'empty', text });
+
+const plain = (...values: string[]): ParityNode[] => values.map((value) => item(value));
+
+/** Items whose onSelect appends their own value to `log`. */
+const selecting = (values: readonly string[], log: string[]): ParityNode[] =>
+  values.map((value) => item(value, { onSelect: () => void log.push(value) }));
+
+const FRUITS = ['banana', 'pineapple', 'apple', 'cherry'] as const;
+
+/** Contains the search, and the shorter the value the higher the score (1/length is in (0, 1)). */
+const scoreByLength = (value: string, search: string): number =>
+  value.includes(search) ? 1 / value.length : 0;
+
+/** The listed attributes of an ARIA observation (null for an absent part, null per absent key). */
+function pick(aria: AriaObservation | null, keys: readonly string[]): Json {
+  if (aria === null) return null;
+  return Object.fromEntries(keys.map((key) => [key, aria[key] ?? null]));
+}
+
+const calls = (spy: { readonly mock: { readonly calls: readonly unknown[][] } }): Json =>
+  spy.mock.calls.map((call) => [...call] as Json);
+
+const numberedItems = (count: number): ParityNode[] =>
+  plain(...Array.from({ length: count }, (_, i) => `item-${String(i).padStart(3, '0')}`));
+
+const ALL_PARTS = [
+  'root',
+  'input',
+  'list',
+  'item',
+  'group',
+  'groupHeading',
+  'groupItems',
+  'separator',
+  'empty',
+  'loading',
+] as const;
+
+type KeyStep = readonly [key: string, init?: KeyboardEventInit];
+
+/** The active value at the start and after each key press. */
+async function activeAfter(session: ParitySession, steps: readonly KeyStep[]): Promise<Json> {
+  const seen: Json[] = [session.activeValue()];
+  for (const [key, init] of steps) {
+    await session.press(key, init);
+    seen.push(session.activeValue());
+  }
+  return seen;
+}
+
+// ---------------------------------------------------------------------------
+// Cases
+// ---------------------------------------------------------------------------
+
+interface ParityCase {
+  readonly id: string;
+  readonly title: string;
+  readonly run: (adapter: ParityAdapter) => Promise<Json>;
+}
+
+/** The separator is shown before and during a search, for one `alwaysRender` setting. */
+const separatorDuringSearch =
+  (alwaysRender: boolean | undefined) =>
+  async (adapter: ParityAdapter): Promise<Json> => {
+    const session = await mountParity(adapter, {
+      children: [item('apple'), separator(alwaysRender), item('banana')],
+    });
+    const atMount = session.separatorShown();
+    await session.type('a');
+    return { atMount, duringSearch: session.separatorShown() };
+  };
+
+/** The active value after wrapping past the last and the first item, for one `loop` setting. */
+const loopAtTheEnds =
+  (loop: boolean | undefined) =>
+  async (adapter: ParityAdapter): Promise<Json> => {
+    const session = await mountParity(adapter, {
+      root: loop === undefined ? {} : { loop },
+      children: plain('apple', 'banana', 'cherry'),
+    });
+    const downFromLast = await activeAfter(session, [['End'], ['ArrowDown']]);
+    const upFromFirst = await activeAfter(session, [['Home'], ['ArrowUp']]);
+    return { downFromLast, upFromFirst };
+  };
+
+const cases: readonly ParityCase[] = [
+  // -- Structure ------------------------------------------------------------------------------
+  {
+    id: 'component-names',
+    title: 'the Command namespace has the same component names and each one renders',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const names = ['Input', 'List', 'Item', 'Group', 'Separator', 'Empty', 'Loading', 'Dialog'];
+      const session = await mountParity(adapter, {
+        children: [group('Fruits', plain('apple')), separator(), { kind: 'loading', text: 'Wait' }],
+      });
+      return {
+        namespace: Object.fromEntries(names.map((name) => [name, name in adapter.namespace])),
+        rendered: session.partsPresent(ALL_PARTS.filter((part) => part !== 'empty')),
+      };
+    },
+  },
+  {
+    id: 'basic-tree-structure',
+    title: 'the canonical tree renders its items in order with the input placeholder',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        input: { placeholder: 'Search...' },
+        children: [
+          empty('No results found.'),
+          ...plain('apple', 'banana'),
+          separator(),
+          item('cherry'),
+        ],
+      });
+      return {
+        shown: session.shownValues(),
+        placeholder: session.attribute('input', 'placeholder'),
+        separatorShown: session.separatorShown(),
+        emptyShown: session.emptyShown(),
+      };
+    },
+  },
+  {
+    id: 'parts-present',
+    title: 'every part renders under its own library name',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [
+          group('Fruits', plain('apple')),
+          separator(),
+          empty(),
+          { kind: 'loading', text: 'Loading' },
+        ],
+      });
+      return session.partsPresent(ALL_PARTS);
+    },
+  },
+  {
+    id: 'state-attributes',
+    title: 'the active and disabled markers are each library’s own attributes',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [item('apple', { disabled: true }), ...plain('banana', 'cherry')],
+      });
+      return {
+        active: session.dataAttributes(session.item('banana')),
+        disabled: session.dataAttributes(session.item('apple')),
+        plain: session.dataAttributes(session.item('cherry')),
+      };
+    },
+  },
+  {
+    id: 'large-list-rendered-count',
+    title: 'a 150-item list renders every item in cmdk and a window of them in modern-cmdk',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: numberedItems(150) });
+      return { rendered: session.shownValues().length };
+    },
+  },
+  {
+    id: 'large-list-height-property',
+    title: 'a 150-item list keeps its list-height property at the measured height',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: numberedItems(150) });
+      return { height: session.listHeight() };
+    },
+  },
+  {
+    id: 'list-height-property',
+    title: 'T41: Command.List writes --command-list-height from its measured height',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana') });
+      return { height: session.listHeight() };
+    },
+  },
+
+  // -- ARIA -----------------------------------------------------------------------------------
+  {
+    id: 'input-aria',
+    title: 'the input is a combobox that controls the list',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana') });
+      return pick(session.aria('input'), [
+        'role',
+        'aria-expanded',
+        'aria-autocomplete',
+        'aria-controls',
+      ]);
+    },
+  },
+  {
+    id: 'activedescendant-timing',
+    title: 'the input points at the active item from the first render or after the first arrow key',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana') });
+      const atMount = pick(session.aria('input'), ['aria-activedescendant']);
+      await session.press('ArrowDown');
+      return { atMount, afterArrowDown: pick(session.aria('input'), ['aria-activedescendant']) };
+    },
+  },
+  {
+    id: 'root-label',
+    title: 'the root label names the palette: a hidden label element or an aria-label',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        root: { label: 'Menu' },
+        children: plain('apple'),
+      });
+      return {
+        root: pick(session.aria('root'), ['role', 'aria-label']),
+        labelElement: session.part('label')?.textContent ?? null,
+        input: pick(session.aria('input'), ['aria-label', 'aria-labelledby']),
+      };
+    },
+  },
+  {
+    id: 'list-role',
+    title: 'the list is a listbox of option items',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple') });
+      return {
+        list: pick(session.aria('list'), ['role']),
+        item: pick(session.aria(session.item('apple')), ['role']),
+      };
+    },
+  },
+  {
+    id: 'list-default-label',
+    title: 'the list has a default accessible name',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple') });
+      return pick(session.aria('list'), ['aria-label']);
+    },
+  },
+  {
+    id: 'list-label-prop',
+    title: 'a list label becomes the list aria-label',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        list: { label: 'Fruits' },
+        children: plain('apple'),
+      });
+      return pick(session.aria('list'), ['aria-label']);
+    },
+  },
+  {
+    id: 'aria-selected-follows-active',
+    title: 'aria-selected is true on the active item only and follows the arrow keys',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana', 'cherry') });
+      const selected = (): Json =>
+        session.parts('item').map((el) => el.getAttribute('aria-selected'));
+      const atMount = selected();
+      await session.press('ArrowDown');
+      return { atMount, afterArrowDown: selected() };
+    },
+  },
+  {
+    id: 'empty-visibility',
+    title: 'Empty shows only while no item matches',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [...plain('apple', 'banana'), empty()],
+      });
+      const atMount = session.emptyShown();
+      await session.type('zzz');
+      const noMatch = session.emptyShown();
+      await session.type('app');
+      return { atMount, noMatch, matchAgain: session.emptyShown() };
+    },
+  },
+  {
+    id: 'empty-aria',
+    title: 'Empty announces itself with its own role',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: [...plain('apple'), empty('None')] });
+      await session.type('zzz');
+      return { text: session.part('empty')?.textContent ?? null, aria: session.aria('empty') };
+    },
+  },
+  {
+    id: 'loading-aria',
+    title: 'Loading announces itself with its own role and ARIA',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [...plain('apple'), { kind: 'loading', text: 'Searching' }],
+      });
+      return { present: session.part('loading') !== null, aria: session.aria('loading') };
+    },
+  },
+
+  // -- Groups and separators ------------------------------------------------------------------
+  {
+    id: 'group-aria',
+    title: 'a group is labelled by its heading',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [group('Fruits', plain('apple', 'banana'))],
+      });
+      return {
+        group: session.aria('group'),
+        heading: {
+          text: session.part('groupHeading')?.textContent ?? null,
+          aria: session.aria('groupHeading'),
+        },
+        items: session.aria('groupItems'),
+      };
+    },
+  },
+  {
+    id: 'group-hidden-no-match',
+    title: 'a group with no matching item hides itself',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [group('Fruits', plain('apple', 'banana')), group('Vegetables', plain('carrot'))],
+      });
+      await session.type('carrot');
+      return { shown: session.shownValues(), groups: session.groupStates() };
+    },
+  },
+  {
+    id: 'separator-aria',
+    title: 'a separator has its own role',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: [...plain('apple'), separator()] });
+      return session.aria('separator');
+    },
+  },
+  {
+    id: 'separator-default-search',
+    title: 'a separator with the default alwaysRender stays or hides during a search',
+    run: separatorDuringSearch(undefined),
+  },
+  {
+    id: 'separator-always-render-true',
+    title: 'a separator with alwaysRender true stays during a search',
+    run: separatorDuringSearch(true),
+  },
+  {
+    id: 'separator-always-render-false',
+    title: 'a separator with alwaysRender false hides during a search',
+    run: separatorDuringSearch(false),
+  },
+
+  // -- Filtering ------------------------------------------------------------------------------
+  {
+    id: 'filter-by-query',
+    title: 'typing filters the items to the matches',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana', 'cherry') });
+      await session.type('ban');
+      return { shown: session.shownValues(), active: session.activeValue() };
+    },
+  },
+  {
+    id: 'filter-cleared',
+    title: 'clearing the search restores every item in source order',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana', 'cherry') });
+      await session.type('ban');
+      await session.type('');
+      return { shown: session.shownValues(), active: session.activeValue() };
+    },
+  },
+  {
+    id: 'filter-ranking-order',
+    title: 'the default filter ranks the best match first',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: plain('applesauce', 'pineapple', 'apple'),
+      });
+      await session.type('apple');
+      return { shown: session.shownValues(), active: session.activeValue() };
+    },
+  },
+  {
+    id: 'first-match-active',
+    title: 'the first match becomes the active item after a search',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana', 'cherry') });
+      await session.type('che');
+      return session.activeValue();
+    },
+  },
+  {
+    id: 'keywords',
+    title: 'an item matches its keywords as well as its value',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [
+          item('apple', { keywords: ['fruit', 'red'] }),
+          item('banana', { keywords: ['fruit', 'yellow'] }),
+          item('carrot'),
+        ],
+      });
+      await session.type('yellow');
+      const byKeyword = session.shownValues();
+      await session.type('fruit');
+      const sharedKeyword = session.shownValues();
+      await session.type('carrot');
+      return { byKeyword, sharedKeyword, byValue: session.shownValues() };
+    },
+  },
+  {
+    id: 'custom-filter-ranking',
+    title: 'a custom filter keeps the matches and ranks them by score',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        root: { filter: scoreByLength },
+        children: plain(...FRUITS),
+      });
+      await session.type('e');
+      const shown = session.shownValues();
+      const active = session.activeValue();
+      await session.press('ArrowDown');
+      const afterArrowDown = session.activeValue();
+      await session.press('ArrowDown');
+      return { shown, active, afterArrowDown, afterSecondArrowDown: session.activeValue() };
+    },
+  },
+  {
+    id: 'custom-filter-exclusion',
+    title: 'a custom filter that scores 0 excludes the item',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const filter = (value: string): number =>
+        value === 'banana' || value === 'pineapple' ? 0 : 0.5;
+      const session = await mountParity(adapter, { root: { filter }, children: plain(...FRUITS) });
+      await session.type('x');
+      return session.shownValues();
+    },
+  },
+  {
+    id: 'custom-filter-arguments',
+    title: 'a custom filter receives the value, the search and the keywords',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const received: Json[] = [];
+      const filter = (value: string, search: string, keywords?: readonly string[]): number => {
+        if (value === 'cherry') received.push([value, search, keywords ? [...keywords] : 'none']);
+        return 1;
+      };
+      const session = await mountParity(adapter, {
+        root: { filter },
+        children: [item('apple'), item('cherry', { keywords: ['red'] })],
+      });
+      await session.type('x');
+      return { lastCall: received.at(-1) ?? null };
+    },
+  },
+  {
+    id: 'filtering-off',
+    title: 'with filtering off every item stays shown whatever is typed',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        root: { filter: 'off' },
+        children: [...plain('apple', 'banana'), empty()],
+      });
+      await session.type('zzz');
+      return { shown: session.shownValues(), emptyShown: session.emptyShown() };
+    },
+  },
+  {
+    id: 'force-mount',
+    title: 'forceMount keeps an item shown through a search that does not match it',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [...plain('apple', 'banana'), item('pinned', { forceMount: true })],
+      });
+      await session.type('app');
+      return session.shownValues();
+    },
+  },
+
+  // -- Keyboard and selection -----------------------------------------------------------------
+  {
+    id: 'arrow-navigation',
+    title: 'the arrow keys move the active item down and up',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana', 'cherry') });
+      return activeAfter(session, [['ArrowDown'], ['ArrowDown'], ['ArrowUp']]);
+    },
+  },
+  {
+    id: 'home-end',
+    title: 'Home and End jump to the first and last item',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana', 'cherry') });
+      return activeAfter(session, [['End'], ['Home']]);
+    },
+  },
+  {
+    id: 'loop-default',
+    title: 'without a loop prop the arrow keys stop at the ends or wrap around',
+    run: loopAtTheEnds(undefined),
+  },
+  {
+    id: 'loop-true',
+    title: 'with loop true the arrow keys wrap around',
+    run: loopAtTheEnds(true),
+  },
+  {
+    id: 'loop-false',
+    title: 'with loop false the arrow keys stop at the ends',
+    run: loopAtTheEnds(false),
+  },
+  {
+    id: 'vim-bindings',
+    title: 'Ctrl+N, J, P and K move the active item',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana', 'cherry') });
+      const ctrl = { ctrlKey: true };
+      return activeAfter(session, [
+        ['n', ctrl],
+        ['j', ctrl],
+        ['p', ctrl],
+        ['k', ctrl],
+      ]);
+    },
+  },
+  {
+    id: 'modifier-arrows',
+    title: 'Alt and Meta with the arrow keys jump between groups and to the ends',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [
+          group('A', plain('a1', 'a2')),
+          group('B', plain('b1', 'b2')),
+          group('C', plain('c1')),
+        ],
+      });
+      return activeAfter(session, [
+        ['ArrowDown', { altKey: true }],
+        ['ArrowDown', { altKey: true }],
+        ['ArrowUp', { altKey: true }],
+        ['ArrowDown', { metaKey: true }],
+        ['ArrowUp', { metaKey: true }],
+      ]);
+    },
+  },
+  {
+    id: 'selection-targets',
+    title: 'a click selects its item, and Enter selects the active item',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const log: string[] = [];
+      const session = await mountParity(adapter, {
+        children: selecting(['apple', 'banana', 'cherry'], log),
+      });
+      await session.click('banana');
+      const click = [...log];
+      const activeAfterClick = session.activeValue();
+      await session.press('ArrowDown');
+      await session.press('Enter');
+      return { click, activeAfterClick, afterEnter: [...log] };
+    },
+  },
+  {
+    id: 'select-callback-arguments',
+    title:
+      "T06: onSelect receives cmdk's value and no argument in modern-cmdk 1.x, as the delta table records",
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const onSelect = vi.fn<SelectHandler>();
+      const session = await mountParity(adapter, {
+        children: [item('apple', { onSelect }), item('banana')],
+      });
+      await session.click('apple');
+      const click = calls(onSelect);
+      onSelect.mockClear();
+      // The first item is active, so Enter selects it
+      await session.press('Enter');
+      return { click, enter: calls(onSelect) };
+    },
+  },
+  {
+    id: 'disabled-items',
+    title: 'a disabled item neither selects nor takes the active marker',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const log: string[] = [];
+      const session = await mountParity(adapter, {
+        children: [
+          ...selecting(['apple'], log),
+          item('banana', { disabled: true, onSelect: () => void log.push('banana') }),
+          ...selecting(['cherry'], log),
+        ],
+      });
+      await session.click('banana');
+      const clicked = [...log];
+      const active = await activeAfter(session, [['ArrowDown']]);
+      await session.press('Enter');
+      return { clicked, active, afterEnter: [...log] };
+    },
+  },
+  {
+    id: 'pointer-move-activates',
+    title: 'moving the pointer over an item makes it active',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, { children: plain('apple', 'banana', 'cherry') });
+      await session.hover('cherry');
+      return session.activeValue();
+    },
+  },
+  {
+    id: 'item-id-prop',
+    title: "an item's id prop becomes its DOM id or is overwritten by a generated one",
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [item('apple', { id: 'custom-apple' }), item('banana')],
+      });
+      return { idIsKept: session.attribute(session.item('apple'), 'id') === 'custom-apple' };
+    },
+  },
+  {
+    id: 'group-id-prop',
+    title: "a group's id prop becomes its DOM id",
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        children: [
+          { kind: 'group', heading: 'Fruits', id: 'custom-group', children: plain('apple') },
+        ],
+      });
+      return { idIsKept: session.attribute('group', 'id') === 'custom-group' };
+    },
+  },
+
+  // -- Controlled state -----------------------------------------------------------------------
+  {
+    id: 'input-change-callback',
+    title: 'typing calls onValueChange and shows the text',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const onValueChange = vi.fn<(value: string) => void>();
+      const session = await mountParity(adapter, {
+        input: { onValueChange },
+        children: plain('apple', 'banana'),
+      });
+      await session.type('app');
+      return { calls: calls(onValueChange), inputValue: session.inputValue() };
+    },
+  },
+  {
+    id: 'input-controlled-value',
+    title: 'a controlled input value drives the search and holds against typing the parent ignores',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const onValueChange = vi.fn<(value: string) => void>();
+      const tree = (value: string): ParityFixture => ({
+        input: { value, onValueChange },
+        children: plain('apple', 'banana', 'cherry'),
+      });
+      const session = await mountParity(adapter, tree('ban'));
+      const atMount = { inputValue: session.inputValue(), shown: session.shownValues() };
+      await session.type('x');
+      const afterTyping = {
+        calls: calls(onValueChange),
+        inputValue: session.inputValue(),
+        shown: session.shownValues(),
+      };
+      await session.rerender(tree(''));
+      return { atMount, afterTyping, afterReset: session.shownValues() };
+    },
+  },
+  {
+    id: 'root-controlled-active-value',
+    title: 'a controlled root active value gets the next item and then follows it or holds',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const onChange = vi.fn<(key: string) => void>();
+      const session = await mountParity(adapter, {
+        root: { active: { value: 'banana', onChange } },
+        children: ['apple', 'banana', 'cherry'].map((value) => item(value, { id: value })),
+      });
+      const atMount = session.activeValue();
+      await session.press('ArrowDown');
+      return { atMount, calls: calls(onChange), afterArrowDown: session.activeValue() };
+    },
+  },
+
+  // -- Dialog ---------------------------------------------------------------------------------
+  {
+    id: 'dialog-open-structure',
+    title: 'an open Dialog renders its overlay and content with the palette inside',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        dialog: { open: true, label: 'Menu' },
+        children: plain('apple'),
+      });
+      const dialog = session.part('dialog');
+      const root = session.part('root');
+      return {
+        present: session.partsPresent(['dialog', 'overlay', 'root', 'input', 'list', 'item']),
+        rootInsideDialog: Boolean(dialog && root && dialog.contains(root)),
+        shown: session.shownValues(),
+      };
+    },
+  },
+  {
+    id: 'dialog-aria',
+    title: 'the Dialog and its root carry their own roles and names',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        dialog: { open: true, label: 'Menu' },
+        children: plain('apple'),
+      });
+      return { dialog: session.aria('dialog'), root: session.aria('root') };
+    },
+  },
+  {
+    id: 'dialog-closed',
+    title: 'a closed Dialog renders nothing',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        dialog: { open: false },
+        children: plain('apple'),
+      });
+      return session.partsPresent(['dialog', 'overlay', 'root', 'input', 'item']);
+    },
+  },
+  {
+    id: 'dialog-overlay-dismiss',
+    title: 'a click on the overlay asks to close the Dialog',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const onOpenChange = vi.fn<(open: boolean) => void>();
+      const session = await mountParity(adapter, {
+        dialog: { open: true, onOpenChange },
+        children: plain('apple'),
+      });
+      await session.clickPart('overlay');
+      return calls(onOpenChange);
+    },
+  },
+  {
+    id: 'dialog-escape-reports',
+    title: 'Escape asks to close the controlled Dialog',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const onOpenChange = vi.fn<(open: boolean) => void>();
+      const session = await mountParity(adapter, {
+        dialog: { open: true, onOpenChange },
+        children: plain('apple'),
+      });
+      await session.pressEscapeOnDocument();
+      return calls(onOpenChange);
+    },
+  },
+
+  // -- Server-rendered HTML -------------------------------------------------------------------
+  {
+    id: 'server-items',
+    title: 'the server-rendered HTML lists every item',
+    run: (adapter: ParityAdapter): Promise<Json> => {
+      const session = renderServer(adapter, {
+        children: [group('Fruits', plain('apple', 'banana')), item('cherry')],
+      });
+      return Promise.resolve(session.shownTexts());
+    },
+  },
+  {
+    id: 'server-empty-text',
+    title: 'the server-rendered HTML carries the Empty text or leaves it out',
+    run: (adapter: ParityAdapter): Promise<Json> => {
+      const session = renderServer(adapter, { children: [...plain('apple'), empty()] });
+      return Promise.resolve({
+        emptyShown: session.emptyShown(),
+        containsEmptyText: session.scope.textContent?.includes('Nothing found') ?? false,
+      });
+    },
+  },
+];
+
+// ---------------------------------------------------------------------------
+// The differential harness
+// ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  container = document.createElement('div');
-  document.body.appendChild(container);
-  root = createRoot(container);
+  vi.stubGlobal('ResizeObserver', ListHeightResizeObserver);
 });
 
-// react-dom-client commitRoot schedules a passive-effects task that reads `window.event`;
-// unmounting inside act() flushes it before Vitest tears the happy-dom window down.
+// Unmounting inside act() flushes React's passive-effects task before Vitest tears the window down
 afterEach(async () => {
-  await act(async () => {
-    root.unmount();
-  });
-  container.remove();
+  await unmountParity();
+  vi.unstubAllGlobals();
 });
 
-/**
- * Resolves after the next animation frame. The machine's scheduler batches its events with
- * requestAnimationFrame (happy-dom's is setImmediate-backed and FIFO), so a frame queued after
- * a machine.send() runs after the machine's batch has been applied.
- */
-const nextFrame = (): Promise<void> => new Promise<void>((r) => requestAnimationFrame(() => r()));
-
-/**
- * nextFrame inside act(): the machine's rAF batch commits its stateChange, which React renders.
- * Measured: act()'s own exit already yields a macrotask that drains the setImmediate-backed frame
- * (with nextFrame replaced by an immediate resolve every React test here still passes; only the
- * two machine-only tests in 17a, which have no act(), fail), so this wait states the dependency
- * on the batch instead of relying on act()'s internals. cmdk is not rAF-batched: it renders
- * inside act() itself, so the extra frame is harmless for it.
- */
-const flushFrame = (): Promise<void> => act(async () => await nextFrame());
-
-async function render(ui: ReactNode): Promise<void> {
-  await act(async () => {
-    root.render(ui);
-  });
-  await flushFrame();
-}
-
-async function typeInInput(input: HTMLInputElement, value: string): Promise<void> {
-  await act(async () => {
-    const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
-      ?.set as (v: string) => void;
-    nativeSet.call(input, value);
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  await flushFrame();
-}
-
-async function pressKey(key: string, opts?: KeyboardEventInit): Promise<void> {
-  await act(async () => {
-    const target = document.querySelector('[data-command-root]') ?? document;
-    target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...opts }));
-  });
-  await flushFrame();
-}
-
-function getItems(): NodeListOf<Element> {
-  return container.querySelectorAll('[data-command-item]');
-}
-
-function getActiveItem(): Element | null {
-  return container.querySelector('[data-command-item][data-active]');
-}
-
-// ============================================================================
-// 1. COMPOUND COMPONENT API PARITY
-// ============================================================================
-// cmdk exports: Command, Command.Input, Command.List, Command.Item,
-//   Command.Group, Command.Separator, Command.Empty, Command.Loading,
-//   Command.Dialog
-// modern-cmdk/react exports ALL of the above PLUS:
-//   Command.Page, Command.Badge, Command.Shortcut, Command.Highlight,
-//   Command.Activity, Command.AsyncItems, Command.ErrorBoundary
-// ============================================================================
-
-describe('1. Compound Component API Parity', () => {
-  it('should expose all cmdk compound components on the Command namespace', () => {
-    // cmdk components (must exist)
-    expect(Command).toBeDefined();
-    expect(Command.Input).toBeDefined();
-    expect(Command.List).toBeDefined();
-    expect(Command.Item).toBeDefined();
-    expect(Command.Group).toBeDefined();
-    expect(Command.Separator).toBeDefined();
-    expect(Command.Empty).toBeDefined();
-    expect(Command.Loading).toBeDefined();
-    expect(Command.Dialog).toBeDefined();
-
-    // NEW components on namespace (superset)
-    expect(Command.Page).toBeDefined();
-    expect(Command.Badge).toBeDefined();
-    expect(Command.Shortcut).toBeDefined();
-    expect(Command.Highlight).toBeDefined();
-    expect(Command.Activity).toBeDefined();
-    expect(Command.AsyncItems).toBeDefined();
-    // ErrorBoundary is a standalone export only (class component)
-    expect(CommandErrorBoundary).toBeDefined();
-  });
-
-  it('should also export components as standalone named exports', () => {
-    // Verify both namespace and named exports work
-    expect(CommandInput).toBe(Command.Input);
-    expect(CommandList).toBe(Command.List);
-    expect(CommandItem).toBe(Command.Item);
-    expect(CommandGroup).toBe(Command.Group);
-    expect(CommandSeparator).toBe(Command.Separator);
-    expect(CommandEmpty).toBe(Command.Empty);
-    expect(CommandLoading).toBe(Command.Loading);
-    expect(CommandDialog).toBe(Command.Dialog);
-    expect(CommandPage).toBe(Command.Page);
-    expect(CommandBadge).toBe(Command.Badge);
-    expect(CommandShortcut).toBe(Command.Shortcut);
-    expect(CommandHighlight).toBe(Command.Highlight);
-    expect(CommandActivity).toBe(Command.Activity);
-    expect(CommandAsyncItems).toBe(Command.AsyncItems);
-    // ErrorBoundary is a standalone export (class component, not on namespace)
-    expect(CommandErrorBoundary).toBeDefined();
-  });
-
-  it('should export all hooks that cmdk exports plus extras', () => {
-    // cmdk exports: useCommandState
-    expect(useCommandState).toBeDefined();
-    expect(typeof useCommandState).toBe('function');
-
-    // NEW hooks not in cmdk
-    expect(useCommand).toBeDefined();
-    expect(useRegisterItem).toBeDefined();
-    expect(useRegisterGroup).toBeDefined();
-    expect(useVirtualizer).toBeDefined();
-    expect(useCommandDevtools).toBeDefined();
-  });
-
-  it('should render the basic cmdk component tree structure', async () => {
-    // This is the canonical cmdk usage pattern — must work identically
-    await render(
-      <Command label="Command Menu">
-        <Command.Input placeholder="Search..." />
-        <Command.List>
-          <Command.Empty>No results found.</Command.Empty>
-          <Command.Item value="apple">Apple</Command.Item>
-          <Command.Item value="banana">Banana</Command.Item>
-          <Command.Separator />
-          <Command.Item value="cherry">Cherry</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    // Root renders
-    const rootEl = container.querySelector('[data-command-root]');
-    expect(rootEl).not.toBeNull();
-
-    // Input renders
-    const input = container.querySelector('input');
-    expect(input).not.toBeNull();
-    expect(input?.placeholder).toBe('Search...');
-
-    // List renders
-    const list = container.querySelector('[data-command-list]');
-    expect(list).not.toBeNull();
-
-    // Items render
-    const items = getItems();
-    expect(items.length).toBe(3);
-
-    // Separator renders
-    const sep = container.querySelector('[data-command-separator]');
-    expect(sep).not.toBeNull();
-  });
+describe.for(adapters)('$name', (adapter) => {
+  for (const parityCase of cases) {
+    it(parityCase.title, async () => {
+      // The JSON round trip is what a table row stores: it drops undefined as JSON does
+      const observation = JSON.parse(JSON.stringify(await parityCase.run(adapter))) as Json;
+      const row = delta[parityCase.id];
+      if (!row) throw new Error(`the delta table has no row for "${parityCase.id}"`);
+      expect(observation).toEqual(row[adapter.key]);
+      // A 'same' row holds two equal observations and a 'differs' row two unequal ones
+      expect(isDeepStrictEqual(row.modernCmdk, row.cmdk)).toBe(row.status === 'same');
+    });
+  }
 });
 
-// ============================================================================
-// 2. DATA ATTRIBUTES — [cmdk-*] → [data-command-*]
-// ============================================================================
-// cmdk uses: [cmdk-root], [cmdk-input], [cmdk-item], [cmdk-list],
-//   [cmdk-group], [cmdk-group-heading], [cmdk-separator], [cmdk-empty],
-//   [cmdk-loading], [cmdk-overlay], [cmdk-dialog]
-// modern-cmdk uses: [data-command-*] equivalents
-// ============================================================================
-
-describe('2. Data Attributes (renamed from [cmdk-*])', () => {
-  it('should use [data-command-root] instead of [cmdk-root]', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    expect(container.querySelector('[data-command-root]')).not.toBeNull();
-    // OLD cmdk attribute should NOT exist
-    expect(container.querySelector('[cmdk-root]')).toBeNull();
-  });
-
-  it('should use [data-command-input] instead of [cmdk-input]', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    expect(container.querySelector('[data-command-input]')).not.toBeNull();
-    expect(container.querySelector('[cmdk-input]')).toBeNull();
-  });
-
-  it('should use [data-command-item] instead of [cmdk-item]', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="test-item">Test</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    expect(container.querySelector('[data-command-item]')).not.toBeNull();
-    expect(container.querySelector('[cmdk-item]')).toBeNull();
-  });
-
-  it('should use [data-command-list] instead of [cmdk-list]', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    expect(container.querySelector('[data-command-list]')).not.toBeNull();
-    expect(container.querySelector('[cmdk-list]')).toBeNull();
-  });
-
-  it('should use [data-command-separator] instead of [cmdk-separator]', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Separator />
-        </Command.List>
-      </Command>,
-    );
-
-    expect(container.querySelector('[data-command-separator]')).not.toBeNull();
-    expect(container.querySelector('[cmdk-separator]')).toBeNull();
-  });
-
-  it('should use [data-command-empty] instead of [cmdk-empty]', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Empty>Nothing</Command.Empty>
-        </Command.List>
-      </Command>,
-    );
-
-    // Type something that won't match to trigger empty
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'zzzzzzzz');
-
-    await vi.waitFor(() => {
-      expect(container.querySelector('[data-command-empty]')).not.toBeNull();
-      expect(container.querySelector('[cmdk-empty]')).toBeNull();
-    });
-  });
-
-  it('should use [data-command-loading] instead of [cmdk-loading]', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Loading loading>Loading...</Command.Loading>
-        </Command.List>
-      </Command>,
-    );
-
-    expect(container.querySelector('[data-command-loading]')).not.toBeNull();
-    expect(container.querySelector('[cmdk-loading]')).toBeNull();
-  });
-
-  it('should use [data-active] instead of [data-selected="true"] for active item', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="first" forceId="first">
-            First
-          </Command.Item>
-          <Command.Item value="second" forceId="second">
-            Second
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const first = container.querySelector('#first') as Element;
-    // NEW: presence-based [data-active] instead of cmdk's [data-selected="true"]
-    expect(first.hasAttribute('data-active')).toBe(true);
-    expect(first.hasAttribute('data-selected')).toBe(false);
-  });
-
-  it('should set data-value on items (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="my-value">My Item</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const item = container.querySelector('[data-command-item]') as Element;
-    expect(item.getAttribute('data-value')).toBe('my-value');
-  });
+it('the delta table has exactly one row per parity case', () => {
+  const ids = cases.map((parityCase) => parityCase.id);
+  expect(new Set(ids).size).toBe(ids.length);
+  // Ordered: the table lists its rows in case order
+  expect(Object.keys(delta)).toEqual(ids);
 });
 
-// ============================================================================
-// 3. CSS CUSTOM PROPERTIES
-// ============================================================================
-// cmdk: --cmdk-list-height → modern-cmdk: --command-list-height
-// ============================================================================
-
-describe('3. CSS Custom Properties', () => {
-  it('should expose --command-list-height on the list element', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="one">One</Command.Item>
-          <Command.Item value="two">Two</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const list = container.querySelector('[data-command-list]') as HTMLElement;
-    expect(list).not.toBeNull();
-    // The CSS variable is set via inline style by the list component
-    // It may or may not be set in happy-dom (no real layout), but the element should exist
-    expect(list.getAttribute('data-command-list')).toBe('');
-  });
-});
-
-// ============================================================================
-// 4. ARIA / ACCESSIBILITY
-// ============================================================================
-// Both cmdk and modern-cmdk follow the combobox + listbox ARIA pattern.
-// modern-cmdk adds: aria-label on root, role="status" on empty/loading,
-//   aria-busy on loading. (aria-labelledby on groups is NOT an addition: cmdk has it too.)
-// ============================================================================
-
-describe('4. ARIA / Accessibility', () => {
-  it('should render input with combobox ARIA role (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    expect.soft(input.getAttribute('role')).toBe('combobox');
-    expect.soft(input.getAttribute('aria-expanded')).toBe('true');
-    expect.soft(input.getAttribute('aria-autocomplete')).toBe('list');
-    expect.soft(input.getAttribute('autocomplete')).toBe('off');
-    expect.soft(input.getAttribute('spellcheck')).toBe('false');
-  });
-
-  it('should render list with listbox role (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const list = container.querySelector('[data-command-list]') as Element;
-    expect(list.getAttribute('role')).toBe('listbox');
-  });
-
-  it('should render items with option role (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const item = container.querySelector('[data-command-item]') as Element;
-    expect(item.getAttribute('role')).toBe('option');
-  });
-
-  it('should set aria-activedescendant on input (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="alpha" forceId="alpha">
-            Alpha
-          </Command.Item>
-          <Command.Item value="beta" forceId="beta">
-            Beta
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    // First item auto-selected
-    expect(input.getAttribute('aria-activedescendant')).toBe('alpha');
-  });
-
-  it('should set aria-selected on the active item (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="alpha" forceId="alpha">
-            Alpha
-          </Command.Item>
-          <Command.Item value="beta" forceId="beta">
-            Beta
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const alpha = container.querySelector('#alpha') as Element;
-    const beta = container.querySelector('#beta') as Element;
-    expect(alpha.getAttribute('aria-selected')).toBe('true');
-    expect(beta.getAttribute('aria-selected')).toBe('false');
-  });
-
-  it('should set aria-controls on input pointing to list id (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    const list = container.querySelector('[data-command-list]') as Element;
-    expect(input.getAttribute('aria-controls')).toBe(list.id);
-  });
-
-  it('[NEW] should set aria-label on root element', async () => {
-    await render(
-      <Command label="My Palette">
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const rootEl = container.querySelector('[data-command-root]') as Element;
-    expect(rootEl.getAttribute('aria-label')).toBe('My Palette');
-  });
-
-  it('[NEW] should set role="status" on Empty component', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Empty>No results</Command.Empty>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'zzzzzz');
-
-    await vi.waitFor(() => {
-      const empty = container.querySelector('[data-command-empty]') as Element;
-      expect(empty.getAttribute('role')).toBe('status');
-    });
-  });
-
-  it('[NEW] should set role="status" and aria-busy on Loading component', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Loading loading>Loading...</Command.Loading>
-        </Command.List>
-      </Command>,
-    );
-
-    const loading = container.querySelector('[data-command-loading]') as Element;
-    expect.soft(loading.getAttribute('role')).toBe('status');
-    expect.soft(loading.hasAttribute('aria-busy')).toBe(true);
-  });
-});
-
-// ============================================================================
-// 5. FILTERING & SORTING
-// ============================================================================
-// cmdk: built-in fuzzy filter scoring, shouldFilter={false} to disable
-// modern-cmdk: pluggable search engine, filter={false} to disable
-// ============================================================================
-
-describe('5. Filtering & Sorting', () => {
-  it('should filter items by search query (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="apple">Apple</Command.Item>
-          <Command.Item value="banana">Banana</Command.Item>
-          <Command.Item value="cherry">Cherry</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    expect(getItems().length).toBe(3);
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'ban');
-
-    await vi.waitFor(() => {
-      const items = getItems();
-      expect(items.length).toBe(1);
-      expect(items[0]?.textContent).toBe('Banana');
-    });
-  });
-
-  it('should restore all items when search is cleared (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="apple">Apple</Command.Item>
-          <Command.Item value="banana">Banana</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'app');
-
-    await vi.waitFor(() => {
-      expect(getItems().length).toBe(1);
-    });
-
-    await typeInInput(input, '');
-
-    await vi.waitFor(() => {
-      expect(getItems().length).toBe(2);
-    });
-  });
-
-  it('should auto-select first matching item after filter (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="apple" forceId="apple">
-            Apple
-          </Command.Item>
-          <Command.Item value="banana" forceId="banana">
-            Banana
-          </Command.Item>
-          <Command.Item value="cherry" forceId="cherry">
-            Cherry
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'ban');
-
-    await vi.waitFor(() => {
-      const active = getActiveItem();
-      expect(active).not.toBeNull();
-      expect(active?.textContent).toBe('Banana');
-    });
-  });
-});
-
-// ============================================================================
-// 6. KEYBOARD NAVIGATION
-// ============================================================================
-// cmdk: ArrowDown/ArrowUp to navigate, Enter to select, Home/End, plus the
-//   vimBindings option (default true): Ctrl+N/Ctrl+J = next, Ctrl+P/Ctrl+K = previous
-// modern-cmdk: ArrowDown/ArrowUp/Home/End/Enter only — it has no vim bindings
-// ============================================================================
-
-describe('6. Keyboard Navigation', () => {
-  it('should navigate down with ArrowDown (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="one" forceId="one">
-            One
-          </Command.Item>
-          <Command.Item value="two" forceId="two">
-            Two
-          </Command.Item>
-          <Command.Item value="three" forceId="three">
-            Three
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    await vi.waitFor(() => {
-      expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
-    });
-
-    await pressKey('ArrowDown');
-
-    await vi.waitFor(() => {
-      expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
-      expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(false);
-    });
-  });
-
-  it('should navigate up with ArrowUp (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="one" forceId="one">
-            One
-          </Command.Item>
-          <Command.Item value="two" forceId="two">
-            Two
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    await pressKey('ArrowDown');
-    await vi.waitFor(() => {
-      expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
-    });
-
-    await pressKey('ArrowUp');
-    await vi.waitFor(() => {
-      expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
-    });
-  });
-
-  it('should select item with Enter key (same as cmdk)', async () => {
-    const onSelect = vi.fn();
-
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="select-me" forceId="select-me" onSelect={onSelect}>
-            Select Me
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    await pressKey('Enter');
-
-    await vi.waitFor(() => {
-      expect(onSelect).toHaveBeenCalledTimes(1);
-    });
-  });
-});
-
-// ============================================================================
-// 7. CONTROLLED STATE
-// ============================================================================
-// cmdk: value/onValueChange for active item, search in input
-// modern-cmdk: equivalent via machine options + callbacks
-// ============================================================================
-
-describe('7. Controlled State', () => {
-  it('should call onValueChange when input changes (same as cmdk Command.Input)', async () => {
-    const onValueChange = vi.fn();
-
-    await render(
-      <Command>
-        <Command.Input onValueChange={onValueChange} />
-        <Command.List>
-          <Command.Item value="one">One</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'hello');
-
-    expect(onValueChange).toHaveBeenCalledWith('hello');
-  });
-
-  it('should reflect search text in the input (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="one">One</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'test query');
-
-    // The input value should reflect what was typed
-    expect(input.value).toBe('test query');
-  });
-});
-
-// ============================================================================
-// 8. DIALOG VARIANT
-// ============================================================================
-// cmdk: Command.Dialog with open/onOpenChange props, renders overlay
-// modern-cmdk: identical API, uses Radix Dialog internally
-// ============================================================================
-
-describe('8. Dialog Variant', () => {
-  it('should render dialog when open=true (same as cmdk)', async () => {
-    await render(
-      <Command.Dialog open label="Test Dialog" container={container}>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command.Dialog>,
-    );
-
-    await vi.waitFor(
-      () => {
-        const dialog = container.querySelector('[data-command-dialog]');
-        expect(dialog).not.toBeNull();
-      },
-      { timeout: 3000 },
-    );
-  });
-
-  it('should NOT render dialog when open=false (same as cmdk)', async () => {
-    await render(
-      <Command.Dialog open={false} label="Closed" container={container}>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command.Dialog>,
-    );
-
-    expect(container.querySelector('[data-command-dialog]')).toBeNull();
-  });
-
-  it('should render overlay when dialog is open (same as cmdk)', async () => {
-    await render(
-      <Command.Dialog open label="With Overlay" container={container}>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command.Dialog>,
-    );
-
-    await vi.waitFor(() => {
-      const overlay = container.querySelector('[data-command-overlay]');
-      expect(overlay).not.toBeNull();
-    });
-  });
-
-  it('should call onOpenChange when overlay is clicked (same as cmdk)', async () => {
-    const onOpenChange = vi.fn();
-
-    await render(
-      <Command.Dialog open onOpenChange={onOpenChange} label="Dismissable" container={container}>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command.Dialog>,
-    );
-
-    await vi.waitFor(() => {
-      expect(container.querySelector('[data-command-overlay]')).not.toBeNull();
-    });
-
-    // Radix's DismissableLayer registers its outside-pointerdown listener on a
-    // deferred macrotask (setTimeout 0) — flush it before simulating the click.
+// ---------------------------------------------------------------------------
+// modern-cmdk features that have no cmdk counterpart: they cannot be differential
+// ---------------------------------------------------------------------------
+
+describe('modern-cmdk superset', () => {
+  let container: HTMLDivElement;
+  let root: Root;
+
+  const nextFrame = (): Promise<void> =>
+    new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+  async function render(ui: ReactNode): Promise<void> {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
     await act(async () => {
-      await new Promise<void>((r) => setTimeout(r, 0));
+      root.render(ui);
     });
-
-    // Radix's DismissableLayer dismisses on a full outside click (pointerdown +
-    // pointerup + click), not a bare pointerdown — simulate a real mouse click.
-    const overlay = container.querySelector('[data-command-overlay]') as Element;
-    await act(async () => {
-      overlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-      overlay.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
-      overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await flushFrame();
-
-    await vi.waitFor(() => {
-      expect(onOpenChange).toHaveBeenCalledWith(false);
-    });
-  });
-
-  it('[NEW] should render data-command-root inside dialog content', async () => {
-    await render(
-      <Command.Dialog open label="Dialog Root" container={container}>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="x">X</Command.Item>
-        </Command.List>
-      </Command.Dialog>,
-    );
-
-    await vi.waitFor(() => {
-      const root = container.querySelector('[data-command-root]');
-      expect(root).not.toBeNull();
-    });
-  });
-});
-
-// ============================================================================
-// 9. useCommandState HOOK
-// ============================================================================
-// cmdk: useCommandState((state) => state.search) — selector-based
-// modern-cmdk: identical signature, richer state object
-// ============================================================================
-
-describe('9. useCommandState Hook', () => {
-  it('should export useCommandState function (same as cmdk)', () => {
-    expect(typeof useCommandState).toBe('function');
-  });
-
-  // Note: useCommandState must be called inside a <Command> context.
-  // We test it indirectly by verifying the state-driven rendering works.
-
-  it('should drive empty state rendering based on filtered count (useCommandState internally)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="apple">Apple</Command.Item>
-          <Command.Empty>No results</Command.Empty>
-        </Command.List>
-      </Command>,
-    );
-
-    // With items, empty should not show
-    expect(container.querySelector('[data-command-empty]')).toBeNull();
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'zzz');
-
-    // With no matches, empty should show
-    await vi.waitFor(() => {
-      expect(container.querySelector('[data-command-empty]')).not.toBeNull();
-    });
-  });
-});
-
-// ============================================================================
-// 10. DISABLED ITEMS
-// ============================================================================
-// cmdk: <Command.Item disabled> — rendered with aria-disabled, skipped during navigation, never selected
-// modern-cmdk: identical prop and rendering; the disabledItems option ('show' by default, 'hide' to drop them) is a superset
-// ============================================================================
-
-describe('10. Disabled Items', () => {
-  async function click(el: Element): Promise<void> {
-    await act(async () => {
-      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await flushFrame();
+    await act(async () => await nextFrame());
   }
 
-  it('should not fire onSelect on disabled items (same as cmdk)', async () => {
-    const onSelect = vi.fn();
-    const onEnabled = vi.fn();
-
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="disabled" forceId="disabled" disabled onSelect={onSelect}>
-            Disabled
-          </Command.Item>
-          <Command.Item value="enabled" forceId="enabled" onSelect={onEnabled}>
-            Enabled
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    // The disabled item is rendered with aria-disabled; clicking it and pressing Enter must not select it
-    const disabled = container.querySelector('#disabled') as Element;
-    expect(disabled.getAttribute('aria-disabled')).toBe('true');
-    await click(disabled);
-    await pressKey('ArrowUp');
-    await pressKey('Enter');
-
-    expect(onSelect).not.toHaveBeenCalled();
-    // Enter selected the active item, the enabled one
-    expect(onEnabled).toHaveBeenCalledTimes(1);
-  });
-
-  it('should skip disabled items during keyboard navigation', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="one" forceId="one">
-            One
-          </Command.Item>
-          <Command.Item value="two" forceId="two" disabled>
-            Two (disabled)
-          </Command.Item>
-          <Command.Item value="three" forceId="three">
-            Three
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    // First item active
-    await vi.waitFor(() => {
-      expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
-    });
-
-    // Arrow down skips the disabled item and lands on "three"
-    await pressKey('ArrowDown');
-
-    await vi.waitFor(() => {
-      expect(container.querySelector('#three')?.hasAttribute('data-active')).toBe(true);
-    });
-    expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(false);
-    expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(false);
-
-    // Arrow down again wraps to "one"; the disabled item was never active
-    await pressKey('ArrowDown');
-    expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
-    expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(false);
-  });
-});
-
-// ============================================================================
-// 11. LOADING / EMPTY STATES
-// ============================================================================
-
-describe('11. Loading / Empty States', () => {
-  it('should show Empty when no items match (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="apple">Apple</Command.Item>
-          <Command.Empty>No results found.</Command.Empty>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'zzzzz');
-
-    await vi.waitFor(() => {
-      const empty = container.querySelector('[data-command-empty]');
-      expect(empty).not.toBeNull();
-      expect(empty?.textContent).toBe('No results found.');
-    });
-  });
-
-  it('should hide Empty when items exist (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="apple">Apple</Command.Item>
-          <Command.Empty>No results found.</Command.Empty>
-        </Command.List>
-      </Command>,
-    );
-
-    expect(container.querySelector('[data-command-empty]')).toBeNull();
-  });
-
-  it('should show Loading when loading prop is true (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Loading loading>Searching...</Command.Loading>
-        </Command.List>
-      </Command>,
-    );
-
-    const loading = container.querySelector('[data-command-loading]');
-    expect(loading).not.toBeNull();
-    expect(loading?.textContent).toBe('Searching...');
-  });
-
-  it('should hide Loading when loading prop is false (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Loading loading={false}>Hidden</Command.Loading>
-        </Command.List>
-      </Command>,
-    );
-
-    expect(container.querySelector('[data-command-loading]')).toBeNull();
-  });
-});
-
-// ============================================================================
-// 12. GROUPS & SEPARATORS
-// ============================================================================
-
-describe('12. Groups & Separators', () => {
-  it('should render groups with heading (same as cmdk)', async () => {
-    await render(
-      <Command
-        items={[
-          { id: itemId('a'), value: 'Apple', groupId: groupId('fruits') },
-          { id: itemId('c'), value: 'Carrot', groupId: groupId('vegs') },
-        ]}
-        groups={[
-          { id: groupId('fruits'), heading: 'Fruits' },
-          { id: groupId('vegs'), heading: 'Vegetables' },
-        ]}
-      >
-        <Command.Input />
-        <Command.List>
-          <Command.Group heading="Fruits" forceId="fruits" />
-          <Command.Group heading="Vegetables" forceId="vegs" />
-        </Command.List>
-      </Command>,
-    );
-
-    await vi.waitFor(() => {
-      const groups = container.querySelectorAll('[data-command-group]');
-      expect(groups.length).toBe(2);
-
-      const headings = container.querySelectorAll('[data-command-group-heading]');
-      expect(headings.length).toBe(2);
-      expect(headings[0]?.textContent).toBe('Fruits');
-      expect(headings[1]?.textContent).toBe('Vegetables');
-    });
-  });
-
-  it('should render group with role="group" and aria-labelledby (same as cmdk)', async () => {
-    await render(
-      <Command
-        items={[{ id: itemId('a'), value: 'Apple', groupId: groupId('fruits') }]}
-        groups={[{ id: groupId('fruits'), heading: 'Fruits' }]}
-      >
-        <Command.Input />
-        <Command.List>
-          <Command.Group heading="Fruits" forceId="fruits" />
-        </Command.List>
-      </Command>,
-    );
-
-    await vi.waitFor(() => {
-      const group = container.querySelector('[data-command-group]') as Element;
-      expect(group.getAttribute('role')).toBe('group');
-      const heading = group.querySelector('[data-command-group-heading]') as Element;
-      expect(group.getAttribute('aria-labelledby')).toBe(heading.id);
-    });
-  });
-
-  it('should render separator with role="none" (presentational inside listbox)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="one">One</Command.Item>
-          <Command.Separator />
-          <Command.Item value="two">Two</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const sep = container.querySelector('[data-command-separator]') as Element;
-    expect(sep.getAttribute('role')).toBe('none');
-  });
-});
-
-// ============================================================================
-// 13. KEYWORDS FILTERING
-// ============================================================================
-// cmdk: <Command.Item keywords={['fruit']}>Apple</Command.Item>
-// modern-cmdk: identical prop
-// ============================================================================
-
-describe('13. Keywords Filtering', () => {
-  it('should match items by keywords in addition to value (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="open-settings" keywords={['preferences', 'config']}>
-            Open Settings
-          </Command.Item>
-          <Command.Item value="close-window">Close Window</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'pref');
-
-    await vi.waitFor(() => {
-      const items = getItems();
-      expect(items.length).toBe(1);
-      expect(items[0]?.textContent).toBe('Open Settings');
-    });
-  });
-
-  it('should still match by value when keywords are set (same as cmdk)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="open-settings" keywords={['preferences']}>
-            Open Settings
-          </Command.Item>
-          <Command.Item value="close-window">Close Window</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'settings');
-
-    await vi.waitFor(() => {
-      const items = getItems();
-      expect(items.length).toBe(1);
-      expect(items[0]?.textContent).toBe('Open Settings');
-    });
-  });
-});
-
-// ============================================================================
-// 14. CUSTOM FILTER FUNCTION
-// ============================================================================
-// cmdk: filter={(value, search, keywords) => number}
-// modern-cmdk: filter={false} to disable (same as cmdk shouldFilter={false})
-// ============================================================================
-
-describe('14. Custom Filter / Disable Filtering', () => {
-  // CMP-9. The function form's signature differs between the libraries (installed types):
-  //   cmdk:        filter?: (value: string, search: string, keywords?: string[]) => number
-  //                (CommandFilter: a number between 0 and 1, 0 hides the item)
-  //   modern-cmdk: filter?: ((item: CommandItem, query: string) => number | false) | false
-  //                (CommandMachineOptions.filter: above 0 keeps the item, higher ranks first;
-  //                0, a negative score or false excludes it; false as the option disables filtering)
-  // So the same predicate needs a thin adapter: ours receives the whole item (item.value,
-  // item.keywords) where cmdk receives the value and keywords as separate arguments.
-  const FRUITS = ['banana', 'pineapple', 'apple', 'cherry'] as const;
-  // Contains the search, and the shorter the value the higher the score (1/length stays in (0, 1))
-  const scoreByLength = (value: string, search: string): number =>
-    value.includes(search) ? 1 / value.length : 0;
-  const scoreItemByLength = (item: CoreCommandItem, query: string): number =>
-    scoreByLength(item.value, query);
-
-  it('CMP-9: a custom filter function keeps the matches and ranks them by score, in both libraries', async () => {
-    // cmdk
-    await render(
-      <CmdkCommand filter={scoreByLength}>
-        <CmdkCommand.Input />
-        <CmdkCommand.List>
-          {FRUITS.map((f) => (
-            <CmdkCommand.Item key={f} value={f}>
-              {f}
-            </CmdkCommand.Item>
-          ))}
-        </CmdkCommand.List>
-      </CmdkCommand>,
-    );
-    await typeInInput(container.querySelector('input') as HTMLInputElement, 'e');
-    const cmdkOrder = [...container.querySelectorAll('[cmdk-item]')].map((el) => el.textContent);
-    expect(cmdkOrder).toEqual(['apple', 'cherry', 'pineapple']);
-
+  afterEach(async () => {
     await act(async () => {
-      root.render(null);
+      root?.unmount();
     });
-
-    // modern-cmdk
-    await render(
-      <Command filter={scoreItemByLength}>
-        <Command.Input />
-        <Command.List>
-          {FRUITS.map((f) => (
-            <Command.Item key={f} value={f}>
-              {f}
-            </Command.Item>
-          ))}
-        </Command.List>
-      </Command>,
-    );
-    await typeInInput(container.querySelector('input') as HTMLInputElement, 'e');
-    await vi.waitFor(() => {
-      expect(getItems().length).toBe(3);
-    });
-    // The set matches cmdk's. The DOM order does not: cmdk re-sorts its items by score, modern-cmdk
-    // renders them in source order and ranks them in the machine (filteredIds), which keyboard
-    // navigation follows: the best match is active first, then the next best.
-    expect([...getItems()].map((el) => el.textContent)).toEqual(['pineapple', 'apple', 'cherry']);
-    expect(getActiveItem()?.textContent).toBe('apple');
-    await pressKey('ArrowDown');
-    expect(getActiveItem()?.textContent).toBe('cherry');
-    await pressKey('ArrowDown');
-    expect(getActiveItem()?.textContent).toBe('pineapple');
+    container?.remove();
   });
 
-  it('CMP-9: a modern-cmdk filter excludes an item by returning false, 0 or a negative score', async () => {
-    const calls: Array<readonly [string, string]> = [];
-    const filter = (item: CoreCommandItem, query: string): number | false => {
-      calls.push([item.value, query]);
-      if (item.value === 'banana') return false;
-      if (item.value === 'pineapple') return 0;
-      if (item.value === 'apple') return -1;
-      return 0.5;
-    };
-    await render(
-      <Command filter={filter}>
-        <Command.Input />
-        <Command.List>
-          {FRUITS.map((f) => (
-            <Command.Item key={f} value={f}>
-              {f}
-            </Command.Item>
-          ))}
-        </Command.List>
-      </Command>,
-    );
-    await typeInInput(container.querySelector('input') as HTMLInputElement, 'x');
-    await vi.waitFor(() => {
-      expect(getItems().length).toBe(1);
-    });
-    expect(getItems()[0]?.textContent).toBe('cherry');
-    // the function received the item and the raw query (cmdk passes value, search and keywords)
-    expect(calls).toContainEqual(['cherry', 'x']);
-  });
-
-  it('should render all items when filtering is disabled (same as cmdk shouldFilter={false})', async () => {
-    await render(
-      <Command filter={false}>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="apple">Apple</Command.Item>
-          <Command.Item value="banana">Banana</Command.Item>
-          <Command.Item value="cherry">Cherry</Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const input = container.querySelector('input') as HTMLInputElement;
-    await typeInInput(input, 'xyz');
-
-    // With filter disabled, all items remain visible regardless of search
-    await vi.waitFor(() => {
-      expect(getItems().length).toBe(3);
-    });
-  });
-});
-
-// ============================================================================
-// 15. LOOP NAVIGATION
-// ============================================================================
-// cmdk: <Command loop> — wraps around at boundaries; opt-in (loop is off unless set)
-// modern-cmdk: wraps around by default; opt out with <Command loop={false}>
-// ============================================================================
-
-describe('15. Loop Navigation', () => {
-  it('should loop from last item to first with ArrowDown (default; cmdk needs loop)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="one" forceId="one">
-            One
-          </Command.Item>
-          <Command.Item value="two" forceId="two">
-            Two
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    // Navigate to last
-    await pressKey('ArrowDown');
-    await vi.waitFor(() => {
-      expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
-    });
-
-    // Loop to first
-    await pressKey('ArrowDown');
-    await vi.waitFor(() => {
-      expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
-    });
-  });
-
-  it('should loop from first item to last with ArrowUp (default; cmdk needs loop)', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="one" forceId="one">
-            One
-          </Command.Item>
-          <Command.Item value="two" forceId="two">
-            Two
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    // First item is active, ArrowUp should loop to last
-    await pressKey('ArrowUp');
-    await vi.waitFor(() => {
-      expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
-    });
-  });
-
-  it('should stop at the boundaries when loop={false} (opt-out of the default)', async () => {
-    await render(
-      <Command loop={false}>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="one" forceId="one">
-            One
-          </Command.Item>
-          <Command.Item value="two" forceId="two">
-            Two
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    // First item is active, ArrowUp must not wrap to the last item
-    await pressKey('ArrowUp');
-    expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
-
-    // Move to the last item, then ArrowDown must not wrap to the first item
-    await pressKey('ArrowDown');
-    await vi.waitFor(() => {
-      expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
-    });
-    await pressKey('ArrowDown');
-    expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(true);
-    expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(false);
-  });
-});
-
-// ============================================================================
-// 16. onSelect CALLBACK
-// ============================================================================
-// cmdk: <Command.Item onSelect={(value) => ...}>
-// modern-cmdk: identical callback signature
-// ============================================================================
-
-describe('16. onSelect Callback', () => {
-  it('should fire onSelect on click (same as cmdk)', async () => {
-    const onSelect = vi.fn();
-
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="clickable" forceId="clickable" onSelect={onSelect}>
-            Click Me
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const item = container.querySelector('#clickable') as Element;
-    await act(async () => {
-      item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await flushFrame();
-
-    await vi.waitFor(() => {
-      expect(onSelect).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  it('should fire onSelect on Enter key (same as cmdk)', async () => {
-    const onSelect = vi.fn();
-
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="enter-item" onSelect={onSelect}>
-            Press Enter
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    await pressKey('Enter');
-
-    await vi.waitFor(() => {
-      expect(onSelect).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  it('should pass the value to onSelect callback', async () => {
-    const onSelect = vi.fn();
-
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="my-value" onSelect={onSelect}>
-            My Item
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    await pressKey('Enter');
-
-    await vi.waitFor(() => {
-      expect(onSelect).toHaveBeenCalled();
-    });
-  });
-});
-
-// ============================================================================
-// 17. UNIQUE FEATURES NOT IN cmdk (SUPERSET)
-// ============================================================================
-// Features that modern-cmdk has but cmdk does NOT:
-//   - Framework-agnostic core engine (pure TS)
-//   - Keyboard shortcut registry
-//   - Frecency engine
-//   - Pluggable search engine
-//   - Pages (multi-page navigation)
-//   - Badge component
-//   - Shortcut component
-//   - Highlight component
-//   - Activity component (React 19 Activity API)
-//   - AsyncItems component (Suspense)
-//   - ErrorBoundary component
-//   - Virtualization (auto at 100+ items)
-//   - Telemetry middleware
-//   - Disposable pattern (using/await using)
-//   - Branded types (ItemId, GroupId)
-//   - Modern built-ins: ES2025 Iterator helpers, explicit resource management (using / await using)
-// ============================================================================
-
-describe('17. NEW Features Not In cmdk (Superset)', () => {
-  // ---- 17a. Framework-agnostic core engine ----
-
-  describe('17a. Framework-Agnostic Core Engine', () => {
-    it('should create a machine without any React dependency', () => {
-      const machine = createCommandMachine();
-      expect(machine).toBeDefined();
-      expect(typeof machine.getState).toBe('function');
-      expect(typeof machine.send).toBe('function');
-      expect(typeof machine.subscribe).toBe('function');
-
-      const state = machine.getState();
-      expect(state).toHaveProperty('search');
-      expect(state).toHaveProperty('activeId');
-      expect(state).toHaveProperty('filteredIds');
-
-      machine[Symbol.dispose]();
-    });
-
-    it('should process SEARCH_CHANGE events independently of React', async () => {
+  describe('framework-agnostic core engine', () => {
+    it('SEARCH_CHANGE is queued and applied one frame later, without React', async () => {
       using machine = createCommandMachine();
-
       const registry = machine.getRegistry();
-      registry.registerItem({
-        id: itemId('apple'),
-        value: 'Apple',
-        keywords: [],
-        disabled: false,
-      });
+      registry.registerItem({ id: itemId('apple'), value: 'Apple', keywords: [], disabled: false });
       registry.registerItem({
         id: itemId('banana'),
         value: 'Banana',
@@ -1587,180 +980,139 @@ describe('17. NEW Features Not In cmdk (Superset)', () => {
 
       machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
       expect(machine.getState().search).toBe(''); // queued, not applied yet
-      // The scheduler batches the event with requestAnimationFrame (happy-dom has one): the frame
-      // queued here runs after the machine's batch, so the state is applied when it resolves
       await nextFrame();
-
-      const state = machine.getState();
-      expect(state.search).toBe('app');
+      expect(machine.getState().search).toBe('app');
     });
 
-    it('should support subscribe/unsubscribe pattern', async () => {
+    it('subscribers hear the batch one frame later and not after unsubscribing', async () => {
       using machine = createCommandMachine();
       const callback = vi.fn();
-
-      const unsub = machine.subscribe(callback);
+      const unsubscribe = machine.subscribe(callback);
       machine.send({ type: 'SEARCH_CHANGE', query: 'test' });
-      expect(callback).not.toHaveBeenCalled(); // queued, not emitted yet
-      // The scheduler batches the event with requestAnimationFrame: one frame later the batch's
-      // stateChange has been emitted
+      expect(callback).not.toHaveBeenCalled();
       await nextFrame();
-
       expect(callback).toHaveBeenCalled();
-      unsub();
+
+      unsubscribe();
+      callback.mockClear();
+      machine.send({ type: 'SEARCH_CHANGE', query: 'other' });
+      await nextFrame();
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('a disposed machine tells its subscribers nothing more', async () => {
+      const callback = vi.fn();
+      {
+        using machine = createCommandMachine();
+        machine.subscribe(callback);
+        machine.send({ type: 'SEARCH_CHANGE', query: 'queued' });
+      }
+      await nextFrame();
+      expect(callback).not.toHaveBeenCalled();
     });
   });
 
-  // ---- 17b. Pluggable Search Engine ----
-
-  describe('17b. Pluggable Search Engine', () => {
-    it('should create an independent search engine', () => {
-      using engine = createSearchEngine();
-      expect(engine).toBeDefined();
-      expect(typeof engine.index).toBe('function');
-      expect(typeof engine.search).toBe('function');
-    });
-
-    it('should score items independently', () => {
+  describe('pluggable search engine', () => {
+    it('scoreItem scores an item against a query', () => {
       const item: CoreCommandItem = {
         id: itemId('test'),
         value: 'Application Settings',
         keywords: ['config', 'preferences'],
         disabled: false,
       };
-
       const result = scoreItem('app', item);
-      expect(result).not.toBeNull();
       expect(result?.score).toBeGreaterThan(0);
       expect(result?.id).toBe(item.id);
     });
 
-    it('should return match ranges for highlighting', () => {
+    it('scoreItem returns match ranges for highlighting', () => {
       const item: CoreCommandItem = {
         id: itemId('test'),
         value: 'Application',
         keywords: [],
         disabled: false,
       };
-
       const result = scoreItem('app', item);
-      expect(result).not.toBeNull();
       expect(result?.matches.length).toBeGreaterThan(0);
-      // First match should start at position 0 (beginning of "Application")
+      // The first match starts at position 0 of "Application"
       expect(result?.matches[0]?.[0]).toBe(0);
+    });
+
+    it('a search engine indexes items and searches them', () => {
+      using engine = createSearchEngine();
+      const items: CoreCommandItem[] = [
+        { id: itemId('a'), value: 'Application', keywords: [], disabled: false },
+        { id: itemId('b'), value: 'Banana', keywords: [], disabled: false },
+      ];
+      engine.index(items);
+      const results = engine.search('app', items).toArray();
+      expect(results.map((result) => result.id)).toEqual([itemId('a')]);
     });
   });
 
-  // ---- 17c. Keyboard Shortcut Registry ----
-
-  describe('17c. Keyboard Shortcut Registry', () => {
-    it('should parse shortcut strings', () => {
-      const shortcut = parseShortcut('Ctrl+Shift+K');
-      expect(shortcut).toBeDefined();
-      // parseShortcut normalizes key to lowercase
-      expect(shortcut.key).toBe('k');
+  describe('keyboard shortcut registry', () => {
+    it('parseShortcut normalizes the key to lowercase', () => {
+      expect(parseShortcut('Ctrl+Shift+K').key).toBe('k');
     });
 
-    it('should format shortcuts back to strings', () => {
-      const shortcut = parseShortcut('Ctrl+K');
-      const formatted = formatShortcut(shortcut);
-      expect(formatted).toContain('K');
+    it('formatShortcut writes a parsed shortcut back', () => {
+      expect(formatShortcut(parseShortcut('Ctrl+K'))).toContain('K');
     });
 
-    it('should match keyboard events against shortcuts', () => {
+    it('matchesShortcut matches a keyboard event against a shortcut', () => {
       const shortcut = parseShortcut('Ctrl+K');
-      const event = new KeyboardEvent('keydown', {
-        key: 'k',
-        ctrlKey: true,
-      });
-      expect(matchesShortcut(event, shortcut)).toBe(true);
+      expect(
+        matchesShortcut(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }), shortcut),
+      ).toBe(true);
     });
 
-    it('should NOT match when modifiers differ', () => {
+    it('matchesShortcut rejects an event whose modifiers differ', () => {
       const shortcut = parseShortcut('Ctrl+K');
-      const event = new KeyboardEvent('keydown', {
-        key: 'k',
-        ctrlKey: false,
-        shiftKey: true,
-      });
+      const event = new KeyboardEvent('keydown', { key: 'k', ctrlKey: false, shiftKey: true });
       expect(matchesShortcut(event, shortcut)).toBe(false);
     });
 
-    it('should detect conflicting shortcuts', () => {
-      const shortcuts = [parseShortcut('Ctrl+K'), parseShortcut('Ctrl+K')];
-      const conflicts = detectConflicts(shortcuts);
+    it('detectConflicts reports a repeated shortcut', () => {
+      const conflicts = detectConflicts([parseShortcut('Ctrl+K'), parseShortcut('Ctrl+K')]);
       expect(conflicts.size).toBeGreaterThan(0);
     });
   });
 
-  // ---- 17d. Frecency Engine ----
-
-  describe('17d. Frecency Engine', () => {
-    it('should compute frecency bonus from a record', () => {
+  describe('frecency engine', () => {
+    it('a used item earns a bonus', () => {
       const now = Date.now();
-      const record: FrecencyRecord = {
-        frequency: 5,
-        lastUsed: now,
-      };
-
-      const bonus = computeFrecencyBonus(record, now);
-      expect(bonus).toBeGreaterThan(0);
+      const record: FrecencyRecord = { frequency: 5, lastUsed: now };
+      expect(computeFrecencyBonus(record, now)).toBeGreaterThan(0);
     });
 
-    it('should give higher bonus to more recently used items', () => {
+    it('a recently used item earns more than one used 30 days ago', () => {
       const now = Date.now();
-      const recentRecord: FrecencyRecord = {
-        frequency: 1,
-        lastUsed: now,
-      };
-      const oldRecord: FrecencyRecord = {
-        frequency: 1,
-        lastUsed: now - 720 * 3_600_000, // 30 days ago
-      };
-
-      const recentBonus = computeFrecencyBonus(recentRecord, now);
-      const oldBonus = computeFrecencyBonus(oldRecord, now);
-      expect(recentBonus).toBeGreaterThan(oldBonus);
+      const recent = computeFrecencyBonus({ frequency: 1, lastUsed: now }, now);
+      const old = computeFrecencyBonus({ frequency: 1, lastUsed: now - 720 * 3_600_000 }, now);
+      expect(recent).toBeGreaterThan(old);
     });
 
-    it('should give higher bonus to more frequently used items', () => {
+    it('a frequently used item earns more than a rarely used one', () => {
       const now = Date.now();
-      const frequentRecord: FrecencyRecord = {
-        frequency: 10,
-        lastUsed: now - 1 * 3_600_000, // 1 hour ago
-      };
-      const rareRecord: FrecencyRecord = {
-        frequency: 1,
-        lastUsed: now - 1 * 3_600_000, // 1 hour ago
-      };
-
-      const frequentBonus = computeFrecencyBonus(frequentRecord, now);
-      const rareBonus = computeFrecencyBonus(rareRecord, now);
-      expect(frequentBonus).toBeGreaterThan(rareBonus);
+      const hourAgo = now - 3_600_000;
+      const frequent = computeFrecencyBonus({ frequency: 10, lastUsed: hourAgo }, now);
+      const rare = computeFrecencyBonus({ frequency: 1, lastUsed: hourAgo }, now);
+      expect(frequent).toBeGreaterThan(rare);
     });
   });
 
-  // ---- 17e. Branded Types ----
-
-  describe('17e. Branded Types (Type Safety)', () => {
-    it('should create ItemId branded types', () => {
-      const id = itemId('my-item');
-      expect(id).toBe('my-item');
-      // The brand is at the type level — runtime value is still a string
-      expect(typeof id).toBe('string');
+  describe('branded ids', () => {
+    it('itemId returns the string it is given', () => {
+      expect(itemId('my-item')).toBe('my-item');
     });
 
-    it('should create GroupId branded types', () => {
-      const id = groupId('my-group');
-      expect(id).toBe('my-group');
-      expect(typeof id).toBe('string');
+    it('groupId returns the string it is given', () => {
+      expect(groupId('my-group')).toBe('my-group');
     });
   });
 
-  // ---- 17f. Page Navigation ----
-
-  describe('17f. Page Navigation (Command.Page)', () => {
-    it('should render only the active page (default is "root")', async () => {
+  describe('components', () => {
+    it('Command.Page renders only the active page, "root" by default', async () => {
       await render(
         <Command>
           <Command.Input />
@@ -1774,32 +1126,21 @@ describe('17. NEW Features Not In cmdk (Superset)', () => {
           </Command.List>
         </Command>,
       );
-
-      // Default page "root" should be rendered
-      const rootPage = container.querySelector('[data-command-page-id="root"]');
-      expect(rootPage).not.toBeNull();
-
-      // Settings page should NOT be rendered
-      const settingsPage = container.querySelector('[data-command-page-id="settings"]');
-      expect(settingsPage).toBeNull();
+      expect(container.querySelector('[data-command-page-id="root"]')).not.toBeNull();
+      expect(container.querySelector('[data-command-page-id="settings"]')).toBeNull();
     });
-  });
 
-  // ---- 17g. Highlight Component ----
-
-  describe('17g. Highlight Component (Command.Highlight)', () => {
-    it('should render <mark> elements for match ranges', async () => {
+    it('Command.Highlight wraps a match range in a mark with the class', async () => {
       await render(
         <Command.Highlight text="Application" ranges={[[0, 3]]} highlightClassName="hl" />,
       );
-
       const marks = container.querySelectorAll('mark');
       expect(marks.length).toBe(1);
       expect(marks[0]?.textContent).toBe('App');
       expect(marks[0]?.className).toBe('hl');
     });
 
-    it('should handle multiple non-overlapping ranges', async () => {
+    it('Command.Highlight marks several non-overlapping ranges', async () => {
       await render(
         <Command.Highlight
           text="Hello World"
@@ -1809,169 +1150,86 @@ describe('17. NEW Features Not In cmdk (Superset)', () => {
           ]}
         />,
       );
-
       const marks = container.querySelectorAll('mark');
       expect(marks.length).toBe(2);
       expect(marks[0]?.textContent).toBe('He');
       expect(marks[1]?.textContent).toBe('World');
     });
 
-    it('should render plain text when no ranges', async () => {
+    it('Command.Highlight renders plain text when there are no ranges', async () => {
       await render(<Command.Highlight text="No highlights" ranges={[]} />);
-
       expect(container.querySelectorAll('mark').length).toBe(0);
       expect(container.textContent).toBe('No highlights');
     });
-  });
 
-  // ---- 17h. Shortcut Component ----
-
-  describe('17h. Shortcut Component (Command.Shortcut)', () => {
-    it('should render <kbd> element', async () => {
+    it('Command.Shortcut renders a kbd element', async () => {
       await render(<Command.Shortcut>Ctrl+K</Command.Shortcut>);
-
       const kbd = container.querySelector('kbd');
-      expect(kbd).not.toBeNull();
       expect(kbd?.getAttribute('data-command-shortcut')).toBe('');
       expect(kbd?.textContent).toBe('Ctrl+K');
     });
-  });
 
-  // ---- 17i. Badge Component ----
-
-  describe('17i. Badge Component (Command.Badge)', () => {
-    it('should render <span> with data-command-badge', async () => {
+    it('Command.Badge renders a span with data-command-badge', async () => {
       await render(<Command.Badge className="tag">New</Command.Badge>);
-
       const badge = container.querySelector('[data-command-badge]');
-      expect(badge).not.toBeNull();
       expect(badge?.tagName).toBe('SPAN');
       expect(badge?.textContent).toBe('New');
     });
-  });
 
-  // ---- 17j. ErrorBoundary Component ----
-
-  describe('17j. ErrorBoundary Component (CommandErrorBoundary)', () => {
-    it('should render children normally when no error', async () => {
+    it('CommandErrorBoundary renders its children when nothing throws', async () => {
       await render(
         <CommandErrorBoundary fallback={<div>Error!</div>}>
           <div data-testid="child">OK</div>
         </CommandErrorBoundary>,
       );
-
-      expect(container.querySelector('[data-testid="child"]')).not.toBeNull();
-    });
-  });
-
-  // ---- 17k. Disposable Pattern ----
-
-  describe('17k. Disposable Pattern (explicit resource management: using)', () => {
-    it('should support Symbol.dispose on the machine', () => {
-      const machine = createCommandMachine();
-      expect(typeof machine[Symbol.dispose]).toBe('function');
-      machine[Symbol.dispose]();
+      expect(container.querySelector('[data-testid="child"]')?.textContent).toBe('OK');
+      expect(container.textContent).not.toContain('Error!');
     });
 
-    it('should work with the using keyword', () => {
-      // This tests that the machine implements Disposable correctly
-      using machine = createCommandMachine();
-      expect(machine.getState()).toBeDefined();
-      // Machine auto-disposes at end of scope
+    it('Command.Loading renders nothing while its loading prop is false', async () => {
+      await render(
+        <Command>
+          <Command.Input />
+          <Command.List>
+            <Command.Loading loading={false}>Hidden</Command.Loading>
+          </Command.List>
+        </Command>,
+      );
+      expect(container.querySelector('[data-command-loading]')).toBeNull();
     });
 
-    it('should support Symbol.dispose on the search engine', () => {
-      const engine = createSearchEngine();
-      expect(typeof engine[Symbol.dispose]).toBe('function');
-      engine[Symbol.dispose]();
+    it('a modern-cmdk filter excludes an item scored false, 0 or negative', async () => {
+      const received: Array<readonly [string, string]> = [];
+      const filter = (item: CoreCommandItem, query: string): number | false => {
+        received.push([item.value, query]);
+        if (item.value === 'banana') return false;
+        if (item.value === 'pineapple') return 0;
+        if (item.value === 'apple') return -1;
+        return 0.5;
+      };
+      await render(
+        <Command filter={filter}>
+          <Command.Input />
+          <Command.List>
+            {FRUITS.map((fruit) => (
+              <Command.Item key={fruit} value={fruit}>
+                {fruit}
+              </Command.Item>
+            ))}
+          </Command.List>
+        </Command>,
+      );
+      const input = container.querySelector('input') as HTMLInputElement;
+      await act(async () => {
+        const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        set?.call(input, 'x');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => await nextFrame());
+      const shown = [...container.querySelectorAll('[data-command-item]')];
+      expect(shown.map((el) => el.textContent)).toEqual(['cherry']);
+      // The function receives the whole item and the raw query
+      expect(received).toContainEqual(['cherry', 'x']);
     });
-  });
-});
-
-// ============================================================================
-// 18. COMPREHENSIVE API SURFACE COMPARISON SUMMARY
-// ============================================================================
-
-describe('18. API Surface Comparison Summary', () => {
-  it('should have complete cmdk feature parity', () => {
-    // This test documents the full feature comparison as assertions
-    // Each assertion proves parity with an original cmdk feature
-
-    const cmdkFeatures = {
-      // Components
-      'Command (root)': Command,
-      'Command.Dialog': Command.Dialog,
-      'Command.Input': Command.Input,
-      'Command.List': Command.List,
-      'Command.Item': Command.Item,
-      'Command.Group': Command.Group,
-      'Command.Separator': Command.Separator,
-      'Command.Empty': Command.Empty,
-      'Command.Loading': Command.Loading,
-
-      // Hooks
-      useCommandState,
-    };
-
-    for (const [name, feature] of Object.entries(cmdkFeatures)) {
-      expect(feature, `Missing cmdk feature: ${name}`).toBeDefined();
-    }
-  });
-
-  it('should have 7 additional components not in cmdk', () => {
-    // 6 on the Command namespace + 1 standalone class component
-    const namespaceComponents = [
-      Command.Page,
-      Command.Badge,
-      Command.Shortcut,
-      Command.Highlight,
-      Command.Activity,
-      Command.AsyncItems,
-    ];
-    const standaloneComponents = [CommandErrorBoundary];
-
-    for (const component of [...namespaceComponents, ...standaloneComponents]) {
-      expect(component).toBeDefined();
-    }
-
-    expect(namespaceComponents.length + standaloneComponents.length).toBe(7);
-  });
-
-  it('should have 5 additional hooks not in cmdk', () => {
-    const newHooks = [
-      useCommand,
-      useRegisterItem,
-      useRegisterGroup,
-      useVirtualizer,
-      useCommandDevtools,
-    ];
-
-    for (const hook of newHooks) {
-      expect(hook).toBeDefined();
-      expect(typeof hook).toBe('function');
-    }
-
-    expect(newHooks.length).toBe(5);
-  });
-
-  it('should have a complete framework-agnostic core not in cmdk', () => {
-    // cmdk is React-only. modern-cmdk provides a standalone core.
-    const coreFunctions = [
-      createCommandMachine,
-      createSearchEngine,
-      scoreItem,
-      computeFrecencyBonus,
-      parseShortcut,
-      formatShortcut,
-      matchesShortcut,
-      detectConflicts,
-      itemId,
-      groupId,
-    ];
-
-    for (const fn of coreFunctions) {
-      expect(fn).toBeDefined();
-      expect(typeof fn).toBe('function');
-    }
   });
 });

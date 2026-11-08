@@ -1,0 +1,889 @@
+{
+  "component-names": {
+    "status": "same",
+    "cmdk": {
+      "namespace": {
+        "Input": true,
+        "List": true,
+        "Item": true,
+        "Group": true,
+        "Separator": true,
+        "Empty": true,
+        "Loading": true,
+        "Dialog": true
+      },
+      "rendered": {
+        "root": true,
+        "input": true,
+        "list": true,
+        "item": true,
+        "group": true,
+        "groupHeading": true,
+        "groupItems": true,
+        "separator": true,
+        "loading": true
+      }
+    },
+    "modernCmdk": {
+      "namespace": {
+        "Input": true,
+        "List": true,
+        "Item": true,
+        "Group": true,
+        "Separator": true,
+        "Empty": true,
+        "Loading": true,
+        "Dialog": true
+      },
+      "rendered": {
+        "root": true,
+        "input": true,
+        "list": true,
+        "item": true,
+        "group": true,
+        "groupHeading": true,
+        "groupItems": true,
+        "separator": true,
+        "loading": true
+      }
+    },
+    "reason": "Both Command namespaces expose Input, List, Item, Group, Separator, Empty, Loading and Dialog, and a palette built from them renders every part.",
+    "ref": "T08"
+  },
+  "basic-tree-structure": {
+    "status": "same",
+    "cmdk": {
+      "shown": ["apple", "banana", "cherry"],
+      "placeholder": "Search...",
+      "separatorShown": true,
+      "emptyShown": false
+    },
+    "modernCmdk": {
+      "shown": ["apple", "banana", "cherry"],
+      "placeholder": "Search...",
+      "separatorShown": true,
+      "emptyShown": false
+    },
+    "reason": "Both render the canonical tree alike: items in source order, the input placeholder, the separator, and no Empty text while items match.",
+    "ref": "T08"
+  },
+  "parts-present": {
+    "status": "same",
+    "cmdk": {
+      "root": true,
+      "input": true,
+      "list": true,
+      "item": true,
+      "group": true,
+      "groupHeading": true,
+      "groupItems": true,
+      "separator": true,
+      "empty": false,
+      "loading": true
+    },
+    "modernCmdk": {
+      "root": true,
+      "input": true,
+      "list": true,
+      "item": true,
+      "group": true,
+      "groupHeading": true,
+      "groupItems": true,
+      "separator": true,
+      "empty": false,
+      "loading": true
+    },
+    "reason": "Both render the root, input, list, item, group, group heading, group items, separator and loading parts on first render, each under its own attribute (`cmdk-*` in cmdk, `data-command-*` in modern-cmdk), and neither shows Empty while items exist.",
+    "ref": "T08"
+  },
+  "state-attributes": {
+    "status": "differs",
+    "cmdk": {
+      "active": {
+        "cmdk-item": "",
+        "data-disabled": "false",
+        "data-selected": "true",
+        "data-value": "banana"
+      },
+      "disabled": {
+        "cmdk-item": "",
+        "data-disabled": "true",
+        "data-selected": "false",
+        "data-value": "apple"
+      },
+      "plain": {
+        "cmdk-item": "",
+        "data-disabled": "false",
+        "data-selected": "false",
+        "data-value": "cherry"
+      }
+    },
+    "modernCmdk": {
+      "active": {
+        "data-active": "",
+        "data-command-item": "",
+        "data-value": "banana"
+      },
+      "disabled": {
+        "data-command-item": "",
+        "data-disabled": "",
+        "data-value": "apple"
+      },
+      "plain": {
+        "data-command-item": "",
+        "data-value": "cherry"
+      }
+    },
+    "reason": "cmdk marks the active item with data-selected=\"true\" and writes data-selected and data-disabled as \"true\" or \"false\" on every item. modern-cmdk marks the active item with a bare data-active and a disabled item with a bare data-disabled. Rewrite CSS that targets [data-selected=\"true\"] to [data-active], and [data-disabled=\"true\"] to [data-disabled].",
+    "ref": "T08"
+  },
+  "large-list-rendered-count": {
+    "status": "differs",
+    "cmdk": {
+      "rendered": 150
+    },
+    "modernCmdk": {
+      "rendered": 12
+    },
+    "reason": "cmdk renders all 150 items. modern-cmdk virtualizes a list of more than 100 matches and renders only a window of them (12 here), so a test or script that counts rendered items sees fewer; pass virtualize={false} to Command.List to render every item.",
+    "ref": "T08"
+  },
+  "large-list-height-property": {
+    "status": "same",
+    "cmdk": {
+      "height": "137.5px"
+    },
+    "modernCmdk": {
+      "height": "137.5px"
+    },
+    "reason": "Both lists hold the measured height (137.5px) on their custom property for a 150-item list. modern-cmdk keeps its last non-virtual measurement while the list is virtual, so the property does not follow the virtual content height.",
+    "ref": "CE-123"
+  },
+  "list-height-property": {
+    "status": "same",
+    "cmdk": {
+      "height": "137.5px"
+    },
+    "modernCmdk": {
+      "height": "137.5px"
+    },
+    "reason": "Both lists write their measured height rounded to one decimal and suffixed with px to a custom property: `--cmdk-list-height` in cmdk and `--command-list-height` in modern-cmdk. Rename the property in CSS that reads it.",
+    "ref": "T41, CMP-13"
+  },
+  "input-aria": {
+    "status": "same",
+    "cmdk": {
+      "role": "combobox",
+      "aria-expanded": "true",
+      "aria-autocomplete": "list",
+      "aria-controls": "list"
+    },
+    "modernCmdk": {
+      "role": "combobox",
+      "aria-expanded": "true",
+      "aria-autocomplete": "list",
+      "aria-controls": "list"
+    },
+    "reason": "Both inputs are comboboxes with aria-expanded=\"true\", aria-autocomplete=\"list\" and aria-controls pointing at the list.",
+    "ref": "T08"
+  },
+  "activedescendant-timing": {
+    "status": "differs",
+    "cmdk": {
+      "atMount": {
+        "aria-activedescendant": null
+      },
+      "afterArrowDown": {
+        "aria-activedescendant": "item:banana"
+      }
+    },
+    "modernCmdk": {
+      "atMount": {
+        "aria-activedescendant": "item:apple"
+      },
+      "afterArrowDown": {
+        "aria-activedescendant": "item:banana"
+      }
+    },
+    "reason": "cmdk sets aria-activedescendant on the input only after the first arrow-key move. modern-cmdk sets it from the first render, to the item that is active then.",
+    "ref": "T08"
+  },
+  "root-label": {
+    "status": "differs",
+    "cmdk": {
+      "root": {
+        "role": null,
+        "aria-label": null
+      },
+      "labelElement": "Menu",
+      "input": {
+        "aria-label": null,
+        "aria-labelledby": "label"
+      }
+    },
+    "modernCmdk": {
+      "root": {
+        "role": "search",
+        "aria-label": "Menu"
+      },
+      "labelElement": null,
+      "input": {
+        "aria-label": "Menu",
+        "aria-labelledby": null
+      }
+    },
+    "reason": "cmdk renders the root label as a visually hidden <label cmdk-label> that the input names itself with through aria-labelledby. modern-cmdk renders no label element: the root is role=\"search\" with aria-label, and the input carries the same aria-label.",
+    "ref": "T08"
+  },
+  "list-role": {
+    "status": "same",
+    "cmdk": {
+      "list": {
+        "role": "listbox"
+      },
+      "item": {
+        "role": "option"
+      }
+    },
+    "modernCmdk": {
+      "list": {
+        "role": "listbox"
+      },
+      "item": {
+        "role": "option"
+      }
+    },
+    "reason": "Both lists are role=\"listbox\" and both items are role=\"option\".",
+    "ref": "T08"
+  },
+  "list-default-label": {
+    "status": "differs",
+    "cmdk": {
+      "aria-label": "Suggestions"
+    },
+    "modernCmdk": {
+      "aria-label": "Command palette"
+    },
+    "reason": "Without a label, cmdk names the list \"Suggestions\" and modern-cmdk names it after the root label, which defaults to \"Command palette\". Pass a list label to name it explicitly.",
+    "ref": "T08"
+  },
+  "list-label-prop": {
+    "status": "same",
+    "cmdk": {
+      "aria-label": "Fruits"
+    },
+    "modernCmdk": {
+      "aria-label": "Fruits"
+    },
+    "reason": "A list label sets the list aria-label in both. cmdk takes it as the label prop of Command.List; modern-cmdk takes the aria-label prop of Command.List.",
+    "ref": "T08"
+  },
+  "aria-selected-follows-active": {
+    "status": "same",
+    "cmdk": {
+      "atMount": ["true", "false", "false"],
+      "afterArrowDown": ["false", "true", "false"]
+    },
+    "modernCmdk": {
+      "atMount": ["true", "false", "false"],
+      "afterArrowDown": ["false", "true", "false"]
+    },
+    "reason": "Both set aria-selected=\"true\" on the active item and \"false\" on the others, and the value follows the arrow keys.",
+    "ref": "T08"
+  },
+  "empty-visibility": {
+    "status": "same",
+    "cmdk": {
+      "atMount": false,
+      "noMatch": true,
+      "matchAgain": false
+    },
+    "modernCmdk": {
+      "atMount": false,
+      "noMatch": true,
+      "matchAgain": false
+    },
+    "reason": "Both show Empty only while no item matches the search and hide it again when a match returns.",
+    "ref": "T08"
+  },
+  "empty-aria": {
+    "status": "differs",
+    "cmdk": {
+      "text": "None",
+      "aria": {
+        "role": "presentation"
+      }
+    },
+    "modernCmdk": {
+      "text": "None",
+      "aria": {
+        "aria-live": "polite",
+        "role": "status"
+      }
+    },
+    "reason": "cmdk renders Empty with role=\"presentation\". modern-cmdk renders it with role=\"status\" and aria-live=\"polite\", so a screen reader announces it.",
+    "ref": "T08"
+  },
+  "loading-aria": {
+    "status": "differs",
+    "cmdk": {
+      "present": true,
+      "aria": {
+        "aria-label": "Loading...",
+        "aria-valuemax": "100",
+        "aria-valuemin": "0",
+        "role": "progressbar"
+      }
+    },
+    "modernCmdk": {
+      "present": true,
+      "aria": {
+        "aria-busy": "true",
+        "aria-live": "assertive",
+        "role": "status"
+      }
+    },
+    "reason": "cmdk renders Loading as role=\"progressbar\" with aria-valuemin, aria-valuemax and aria-label=\"Loading...\". modern-cmdk renders it as role=\"status\" with aria-busy=\"true\" and aria-live=\"assertive\", and shows it only while its loading prop or the palette is loading.",
+    "ref": "T08"
+  },
+  "group-aria": {
+    "status": "differs",
+    "cmdk": {
+      "group": {
+        "role": "presentation"
+      },
+      "heading": {
+        "text": "Fruits",
+        "aria": {
+          "aria-hidden": "true"
+        }
+      },
+      "items": {
+        "aria-labelledby": "group-heading:Fruits",
+        "role": "group"
+      }
+    },
+    "modernCmdk": {
+      "group": {
+        "aria-labelledby": "group-heading:Fruits",
+        "role": "group"
+      },
+      "heading": {
+        "text": "Fruits",
+        "aria": {
+          "aria-hidden": "true"
+        }
+      },
+      "items": {}
+    },
+    "reason": "cmdk marks the group element role=\"presentation\" and puts role=\"group\" and aria-labelledby on the group-items element. modern-cmdk puts role=\"group\" and aria-labelledby on the group element and gives the group-items element no role. Both hide the heading with aria-hidden.",
+    "ref": "T08"
+  },
+  "group-hidden-no-match": {
+    "status": "differs",
+    "cmdk": {
+      "shown": ["carrot"],
+      "groups": [
+        {
+          "heading": "Fruits",
+          "hiddenAttribute": true,
+          "displayNone": false,
+          "itemsRendered": 0
+        },
+        {
+          "heading": "Vegetables",
+          "hiddenAttribute": false,
+          "displayNone": false,
+          "itemsRendered": 1
+        }
+      ]
+    },
+    "modernCmdk": {
+      "shown": ["carrot"],
+      "groups": [
+        {
+          "heading": "Fruits",
+          "hiddenAttribute": false,
+          "displayNone": true,
+          "itemsRendered": 0
+        },
+        {
+          "heading": "Vegetables",
+          "hiddenAttribute": false,
+          "displayNone": false,
+          "itemsRendered": 1
+        }
+      ]
+    },
+    "reason": "A group with no matching item hides itself with the hidden attribute in cmdk and with an inline display: none in modern-cmdk. In both, the unmatched items leave the DOM. CSS that targets [hidden] on a group does not apply to modern-cmdk.",
+    "ref": "T08"
+  },
+  "separator-aria": {
+    "status": "differs",
+    "cmdk": {
+      "role": "separator"
+    },
+    "modernCmdk": {
+      "role": "none"
+    },
+    "reason": "cmdk renders a separator with role=\"separator\". modern-cmdk renders it with role=\"none\", because it is only presentational inside a listbox.",
+    "ref": "T08"
+  },
+  "separator-default-search": {
+    "status": "differs",
+    "cmdk": {
+      "atMount": true,
+      "duringSearch": false
+    },
+    "modernCmdk": {
+      "atMount": true,
+      "duringSearch": true
+    },
+    "reason": "By default cmdk hides a separator while a search is active, and modern-cmdk 1.x keeps it because alwaysRender defaults to true there. Pass alwaysRender={false} for cmdk's behaviour; the default becomes false in 2.0.",
+    "ref": "RA-45"
+  },
+  "separator-always-render-true": {
+    "status": "same",
+    "cmdk": {
+      "atMount": true,
+      "duringSearch": true
+    },
+    "modernCmdk": {
+      "atMount": true,
+      "duringSearch": true
+    },
+    "reason": "With alwaysRender set to true both libraries keep the separator while a search is active.",
+    "ref": "RA-45"
+  },
+  "separator-always-render-false": {
+    "status": "same",
+    "cmdk": {
+      "atMount": true,
+      "duringSearch": false
+    },
+    "modernCmdk": {
+      "atMount": true,
+      "duringSearch": false
+    },
+    "reason": "With alwaysRender set to false both libraries hide the separator while a search is active.",
+    "ref": "RA-45"
+  },
+  "filter-by-query": {
+    "status": "same",
+    "cmdk": {
+      "shown": ["banana"],
+      "active": "banana"
+    },
+    "modernCmdk": {
+      "shown": ["banana"],
+      "active": "banana"
+    },
+    "reason": "Both keep only the items that match the typed query and make the best match active.",
+    "ref": "T08"
+  },
+  "filter-cleared": {
+    "status": "differs",
+    "cmdk": {
+      "shown": ["apple", "banana", "cherry"],
+      "active": "apple"
+    },
+    "modernCmdk": {
+      "shown": ["apple", "banana", "cherry"],
+      "active": "banana"
+    },
+    "reason": "After the search is cleared both show every item in source order. cmdk makes the first item active again; modern-cmdk keeps the item that was active for the search (banana here).",
+    "ref": "T08"
+  },
+  "filter-ranking-order": {
+    "status": "differs",
+    "cmdk": {
+      "shown": ["apple", "applesauce", "pineapple"],
+      "active": "apple"
+    },
+    "modernCmdk": {
+      "shown": ["applesauce", "pineapple", "apple"],
+      "active": "applesauce"
+    },
+    "reason": "The built-in filters rank the same query differently: for \"apple\" cmdk puts the apple item first and re-orders the DOM, while modern-cmdk keeps source order in the DOM and makes applesauce, the first item of its own ranking, active. Rely on the active item, not on DOM order, in modern-cmdk.",
+    "ref": "T08"
+  },
+  "first-match-active": {
+    "status": "same",
+    "cmdk": "cherry",
+    "modernCmdk": "cherry",
+    "reason": "Both make the first match the active item after a search.",
+    "ref": "T08"
+  },
+  "keywords": {
+    "status": "same",
+    "cmdk": {
+      "byKeyword": ["banana"],
+      "sharedKeyword": ["apple", "banana"],
+      "byValue": ["carrot"]
+    },
+    "modernCmdk": {
+      "byKeyword": ["banana"],
+      "sharedKeyword": ["apple", "banana"],
+      "byValue": ["carrot"]
+    },
+    "reason": "Both match an item by its keywords as well as by its value.",
+    "ref": "T08"
+  },
+  "custom-filter-ranking": {
+    "status": "differs",
+    "cmdk": {
+      "shown": ["apple", "cherry", "pineapple"],
+      "active": "apple",
+      "afterArrowDown": "cherry",
+      "afterSecondArrowDown": "pineapple"
+    },
+    "modernCmdk": {
+      "shown": ["pineapple", "apple", "cherry"],
+      "active": "apple",
+      "afterArrowDown": "cherry",
+      "afterSecondArrowDown": "pineapple"
+    },
+    "reason": "Both keep the items a custom filter scores above 0 and make the best-scored item active first, then step by score with the arrow keys. cmdk re-orders its DOM by score; modern-cmdk leaves the DOM in source order. cmdk's filter prop is (value, search, keywords) and modern-cmdk's is (item, query).",
+    "ref": "T08"
+  },
+  "custom-filter-exclusion": {
+    "status": "same",
+    "cmdk": ["apple", "cherry"],
+    "modernCmdk": ["apple", "cherry"],
+    "reason": "In both, a custom filter that returns 0 excludes the item. modern-cmdk also excludes an item for false or a negative score.",
+    "ref": "T08"
+  },
+  "custom-filter-arguments": {
+    "status": "same",
+    "cmdk": {
+      "lastCall": ["cherry", "x", ["red"]]
+    },
+    "modernCmdk": {
+      "lastCall": ["cherry", "x", ["red"]]
+    },
+    "reason": "A custom filter sees the item value, the search and the item keywords in both. cmdk passes them as three arguments; modern-cmdk passes the item and the query, and the item holds the value and keywords.",
+    "ref": "T08"
+  },
+  "filtering-off": {
+    "status": "same",
+    "cmdk": {
+      "shown": ["apple", "banana"],
+      "emptyShown": false
+    },
+    "modernCmdk": {
+      "shown": ["apple", "banana"],
+      "emptyShown": false
+    },
+    "reason": "With filtering off both keep every item shown whatever is typed and never show Empty. cmdk takes shouldFilter={false}; modern-cmdk takes filter={false}.",
+    "ref": "T08"
+  },
+  "force-mount": {
+    "status": "differs",
+    "cmdk": ["apple", "pinned"],
+    "modernCmdk": ["apple"],
+    "reason": "cmdk's forceMount keeps an item shown through any search. modern-cmdk has no forceMount, so the item is filtered out like any other; give it a keyword or a filter that always matches.",
+    "ref": "T08"
+  },
+  "arrow-navigation": {
+    "status": "same",
+    "cmdk": ["apple", "banana", "cherry", "banana"],
+    "modernCmdk": ["apple", "banana", "cherry", "banana"],
+    "reason": "Both move the active item down and up with ArrowDown and ArrowUp.",
+    "ref": "T08"
+  },
+  "home-end": {
+    "status": "same",
+    "cmdk": ["apple", "cherry", "apple"],
+    "modernCmdk": ["apple", "cherry", "apple"],
+    "reason": "Both jump to the first item with Home and to the last with End.",
+    "ref": "T08"
+  },
+  "loop-default": {
+    "status": "differs",
+    "cmdk": {
+      "downFromLast": ["apple", "cherry", "cherry"],
+      "upFromFirst": ["cherry", "apple", "apple"]
+    },
+    "modernCmdk": {
+      "downFromLast": ["apple", "cherry", "apple"],
+      "upFromFirst": ["apple", "apple", "cherry"]
+    },
+    "reason": "Without a loop prop cmdk stops at the first and last item, and modern-cmdk wraps around, because loop defaults to true there. Pass loop={false} for cmdk's behaviour.",
+    "ref": "T08"
+  },
+  "loop-true": {
+    "status": "same",
+    "cmdk": {
+      "downFromLast": ["apple", "cherry", "apple"],
+      "upFromFirst": ["apple", "apple", "cherry"]
+    },
+    "modernCmdk": {
+      "downFromLast": ["apple", "cherry", "apple"],
+      "upFromFirst": ["apple", "apple", "cherry"]
+    },
+    "reason": "With loop set to true both wrap from the last item to the first and from the first to the last.",
+    "ref": "T08"
+  },
+  "loop-false": {
+    "status": "same",
+    "cmdk": {
+      "downFromLast": ["apple", "cherry", "cherry"],
+      "upFromFirst": ["cherry", "apple", "apple"]
+    },
+    "modernCmdk": {
+      "downFromLast": ["apple", "cherry", "cherry"],
+      "upFromFirst": ["cherry", "apple", "apple"]
+    },
+    "reason": "With loop set to false both stop at the first and last item.",
+    "ref": "T08"
+  },
+  "vim-bindings": {
+    "status": "differs",
+    "cmdk": ["apple", "banana", "cherry", "banana", "apple"],
+    "modernCmdk": ["apple", "apple", "apple", "apple", "apple"],
+    "reason": "cmdk moves the active item with Ctrl+N and Ctrl+J (down) and Ctrl+P and Ctrl+K (up) by default, and vimBindings={false} turns that off. modern-cmdk has no vim bindings: those keys do nothing. Bind them yourself with a key handler on the root if you rely on them.",
+    "ref": "T08"
+  },
+  "modifier-arrows": {
+    "status": "differs",
+    "cmdk": ["a1", "b1", "c1", "b1", "c1", "a1"],
+    "modernCmdk": ["a1", "a2", "b1", "a2", "b1", "a2"],
+    "reason": "In cmdk Alt+ArrowDown and Alt+ArrowUp jump to the first item of the next or previous group, and Meta+ArrowDown and Meta+ArrowUp jump to the last and first item. modern-cmdk ignores those modifiers and moves one item like a plain arrow key.",
+    "ref": "T08"
+  },
+  "selection-targets": {
+    "status": "differs",
+    "cmdk": {
+      "click": ["banana"],
+      "activeAfterClick": "banana",
+      "afterEnter": ["banana", "cherry"]
+    },
+    "modernCmdk": {
+      "click": ["banana"],
+      "activeAfterClick": "apple",
+      "afterEnter": ["banana", "banana"]
+    },
+    "reason": "A click selects the clicked item in both. cmdk also makes the clicked item the active one, so the next arrow key and Enter start from it; modern-cmdk leaves the active item where it was, so the next arrow key and Enter start from there.",
+    "ref": "T08"
+  },
+  "select-callback-arguments": {
+    "status": "differs",
+    "cmdk": {
+      "click": [["apple"]],
+      "enter": [["apple"]]
+    },
+    "modernCmdk": {
+      "click": [[]],
+      "enter": [[]]
+    },
+    "reason": "cmdk passes the item's value to onSelect, on a click and on Enter. modern-cmdk 1.x calls onSelect with no argument, and the value argument arrives in 2.0: until then read the value from your own item data.",
+    "ref": "D66, ARCH-62"
+  },
+  "disabled-items": {
+    "status": "same",
+    "cmdk": {
+      "clicked": [],
+      "active": ["apple", "cherry"],
+      "afterEnter": ["cherry"]
+    },
+    "modernCmdk": {
+      "clicked": [],
+      "active": ["apple", "cherry"],
+      "afterEnter": ["cherry"]
+    },
+    "reason": "In both, a disabled item does not select on a click or Enter and the arrow keys step over it.",
+    "ref": "T08"
+  },
+  "pointer-move-activates": {
+    "status": "same",
+    "cmdk": "cherry",
+    "modernCmdk": "cherry",
+    "reason": "Both make an item active when the pointer moves over it.",
+    "ref": "T08"
+  },
+  "item-id-prop": {
+    "status": "differs",
+    "cmdk": {
+      "idIsKept": false
+    },
+    "modernCmdk": {
+      "idIsKept": true
+    },
+    "reason": "cmdk spreads your props and then writes its own generated id, so an id on Command.Item does not reach the DOM. modern-cmdk uses the id prop as the item's DOM id and its registration id.",
+    "ref": "D29"
+  },
+  "group-id-prop": {
+    "status": "same",
+    "cmdk": {
+      "idIsKept": true
+    },
+    "modernCmdk": {
+      "idIsKept": true
+    },
+    "reason": "In both, the id prop on Command.Group is the group element's DOM id.",
+    "ref": "D29"
+  },
+  "input-change-callback": {
+    "status": "same",
+    "cmdk": {
+      "calls": [["app"]],
+      "inputValue": "app"
+    },
+    "modernCmdk": {
+      "calls": [["app"]],
+      "inputValue": "app"
+    },
+    "reason": "Typing calls the input's onValueChange with the new text in both, and the input shows it.",
+    "ref": "T08"
+  },
+  "input-controlled-value": {
+    "status": "same",
+    "cmdk": {
+      "atMount": {
+        "inputValue": "ban",
+        "shown": ["banana"]
+      },
+      "afterTyping": {
+        "calls": [["x"]],
+        "inputValue": "ban",
+        "shown": ["banana"]
+      },
+      "afterReset": ["apple", "banana", "cherry"]
+    },
+    "modernCmdk": {
+      "atMount": {
+        "inputValue": "ban",
+        "shown": ["banana"]
+      },
+      "afterTyping": {
+        "calls": [["x"]],
+        "inputValue": "ban",
+        "shown": ["banana"]
+      },
+      "afterReset": ["apple", "banana", "cherry"]
+    },
+    "reason": "In both, a controlled input value drives the search and holds when the parent does not apply a typed change, and the callback still hears the typing. The prop names match: value and onValueChange.",
+    "ref": "T08"
+  },
+  "root-controlled-active-value": {
+    "status": "differs",
+    "cmdk": {
+      "atMount": "banana",
+      "calls": [["cherry"]],
+      "afterArrowDown": "cherry"
+    },
+    "modernCmdk": {
+      "atMount": "banana",
+      "calls": [["cherry"]],
+      "afterArrowDown": "banana"
+    },
+    "reason": "Both report the next active item to the root callback after an arrow key: cmdk by value through value and onValueChange, modern-cmdk by item id through activeId and onActiveChange (modern-cmdk keys the active item by id, cmdk by value). cmdk then shows the new item active even though the parent kept value unchanged; modern-cmdk holds the controlled item.",
+    "ref": "T08"
+  },
+  "dialog-open-structure": {
+    "status": "same",
+    "cmdk": {
+      "present": {
+        "dialog": true,
+        "overlay": true,
+        "root": true,
+        "input": true,
+        "list": true,
+        "item": true
+      },
+      "rootInsideDialog": true,
+      "shown": ["apple"]
+    },
+    "modernCmdk": {
+      "present": {
+        "dialog": true,
+        "overlay": true,
+        "root": true,
+        "input": true,
+        "list": true,
+        "item": true
+      },
+      "rootInsideDialog": true,
+      "shown": ["apple"]
+    },
+    "reason": "Both render an open Dialog's overlay and content with the palette root, input, list and items inside the content.",
+    "ref": "T08"
+  },
+  "dialog-aria": {
+    "status": "differs",
+    "cmdk": {
+      "dialog": {
+        "aria-label": "Menu",
+        "role": "dialog"
+      },
+      "root": {}
+    },
+    "modernCmdk": {
+      "dialog": {
+        "aria-describedby": "other:p",
+        "aria-label": "Menu",
+        "aria-labelledby": "other:h2",
+        "role": "dialog"
+      },
+      "root": {
+        "aria-label": "Menu",
+        "role": "search"
+      }
+    },
+    "reason": "Both dialogs are role=\"dialog\" with the aria-label. modern-cmdk also labels the dialog with a visually hidden title, describes it with a visually hidden description, and gives the palette root role=\"search\" with the label; cmdk's root inside the dialog has no role or label.",
+    "ref": "T08"
+  },
+  "dialog-closed": {
+    "status": "same",
+    "cmdk": {
+      "dialog": false,
+      "overlay": false,
+      "root": false,
+      "input": false,
+      "item": false
+    },
+    "modernCmdk": {
+      "dialog": false,
+      "overlay": false,
+      "root": false,
+      "input": false,
+      "item": false
+    },
+    "reason": "A Dialog with open false renders nothing in both.",
+    "ref": "T08"
+  },
+  "dialog-overlay-dismiss": {
+    "status": "same",
+    "cmdk": [[false]],
+    "modernCmdk": [[false]],
+    "reason": "A click on the overlay calls onOpenChange(false) once in both.",
+    "ref": "T08"
+  },
+  "dialog-escape-reports": {
+    "status": "differs",
+    "cmdk": [[false]],
+    "modernCmdk": [[false], [false]],
+    "reason": "One Escape calls cmdk's onOpenChange(false) once. A controlled modern-cmdk Dialog calls onOpenChange(false) twice for the same Escape, so a handler that toggles instead of setting the value ends up open.",
+    "ref": "T08"
+  },
+  "server-items": {
+    "status": "same",
+    "cmdk": ["apple", "banana", "cherry"],
+    "modernCmdk": ["apple", "banana", "cherry"],
+    "reason": "The server-rendered HTML lists every item in both.",
+    "ref": "RP-31"
+  },
+  "server-empty-text": {
+    "status": "differs",
+    "cmdk": {
+      "emptyShown": true,
+      "containsEmptyText": true
+    },
+    "modernCmdk": {
+      "emptyShown": false,
+      "containsEmptyText": false
+    },
+    "reason": "cmdk's server HTML includes the Empty element and its text, so a server-rendered palette shows \"no results\" until it hydrates. modern-cmdk renders no Empty text on the server.",
+    "ref": "RP-31"
+  }
+}
