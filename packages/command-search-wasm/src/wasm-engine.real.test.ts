@@ -110,3 +110,21 @@ it.skipIf(skip)('CE-116: remove() drops only the given ids', async () => {
   expect(ids('apricot')).toEqual(['apricot']);
   expect(ids('banana')).toEqual(['banana']);
 });
+
+it.skipIf(skip)('W44: search() returns only ids among the passed items', async () => {
+  const engine = await realEngine();
+  using _engine = engine;
+  const items = [
+    entry('apple', 'Apple pie'),
+    entry('apricot', 'Apple tart'),
+    entry('applesauce', 'Apple sauce'),
+  ];
+  engine.index(items);
+
+  const passed = items.slice(0, 2);
+  const ids = [...engine.search('apple', passed)].map((r) => r.id);
+  expect(ids).toHaveLength(2);
+  expect(ids).toContain(itemId('apple'));
+  expect(ids).toContain(itemId('apricot'));
+  expect(ids).not.toContain(itemId('applesauce'));
+});

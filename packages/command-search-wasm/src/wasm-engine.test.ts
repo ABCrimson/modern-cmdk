@@ -19,6 +19,10 @@ const calls = { free: 0, clear: 0, indexItems: 0, search: 0 };
 /** The payloads `index_items` received, in call order. */
 const payloads: string[] = [];
 
+/** The limits `search` received, and what the fake crate returns for it. */
+const searchLimits: number[] = [];
+let searchReturns: unknown[] = [{ id: 'a', score: 1, matches: [[0, 1]] }];
+
 class FakeWasmInstance {
   free(): void {
     calls.free++;
@@ -30,9 +34,10 @@ class FakeWasmInstance {
     calls.indexItems++;
     payloads.push(items);
   }
-  search(_query: string, _max: number): unknown[] {
+  search(_query: string, max: number): unknown[] {
     calls.search++;
-    return [{ id: 'a', score: 1, matches: [[0, 1]] }];
+    searchLimits.push(max);
+    return searchReturns;
   }
 }
 
@@ -48,6 +53,8 @@ async function loadWasmEngine(): Promise<WasmSearchEngine> {
 beforeEach(() => {
   calls.free = calls.clear = calls.indexItems = calls.search = 0;
   payloads.length = 0;
+  searchLimits.length = 0;
+  searchReturns = [{ id: 'a', score: 1, matches: [[0, 1]] }];
 });
 
 afterEach(() => {
@@ -168,6 +175,35 @@ describe('WASM engine index map', () => {
     expect(calls.clear).toBe(1);
     engine.index([c]);
     expect(JSON.parse(payloads.at(-1) ?? '[]')).toEqual([['c', 'Gamma']]);
+  });
+});
+
+describe('WASM engine search candidates', () => {
+  const hit = (id: string, score: number): unknown => ({ id, score, matches: [[0, 1]] });
+  const a = { id: 'a' as ItemId, value: 'Alpha' };
+  const b = { id: 'b' as ItemId, value: 'Beta' };
+
+  it('W44: search() returns only ids among the passed items', async () => {
+    const engine = await loadWasmEngine();
+    engine.index([
+      { id: 'a' as ItemId, value: 'Alpha' },
+      { id: 'b' as ItemId, value: 'Beta' },
+      { id: 'c' as ItemId, value: 'Gamma' },
+    ]);
+    searchReturns = [hit('c', 1), hit('a', 0.8), hit('b', 0.5)];
+    const ids = [...engine.search('x', [a, b])].map((r) => r.id);
+    expect(ids).toEqual(['a', 'b']);
+  });
+
+  it('W44: the result limit is not starved by the filtered-out ids', async () => {
+    const engine = await loadWasmEngine();
+    engine.index([
+      { id: 'a' as ItemId, value: 'Alpha' },
+      { id: 'b' as ItemId, value: 'Beta' },
+      { id: 'c' as ItemId, value: 'Gamma' },
+    ]);
+    [...engine.search('x', [a])];
+    expect(searchLimits).toEqual([3]);
   });
 });
 
