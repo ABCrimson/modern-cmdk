@@ -16,7 +16,7 @@ The figures below are copied by hand from [`benchmarks/baseline.json`](https://g
 | Method | 3 runs of 1000 samples each, averaged (3000 samples per task) |
 
 > [!WARNING]
-> Runner noise is +/-20-40 %. One CI run is one sample, so the 5 % and 15 % comparison below is a coarse tripwire, not a precise regression gate; the one sub-0.01 ms baseline (`stateUpdate:navigate`, 0.75 microseconds) is reported below a 0.01 ms floor instead of compared, and a median above its `target_ms` still fails. Run `pnpm bench:compare` locally for numbers from your own machine.
+> Runner noise is +/-20-40 %. Each CI comparison is the median of five runs on one shared runner, so the 5 % and 15 % comparison below is a coarse tripwire, not a precise regression gate, and CI goes red only when a re-run of the comparison also fails (see [Regression Tracking](#regression-tracking)); the one sub-0.01 ms baseline (`stateUpdate:navigate`, 0.75 microseconds) is reported below a 0.01 ms floor instead of compared, and a median above its `target_ms` still fails. Run `pnpm bench:compare` locally for numbers from your own machine.
 
 ### Gated tasks
 
@@ -48,18 +48,34 @@ The figures come from [`benchmarks/size-history/1.5.0.json`](https://github.com/
 
 For comparison, 1.3 (commit `85a33bf`, size-limit at that commit, quoted from the `baseline_1_3` block of [`benchmarks/size-history/1.4.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/5f1e01e/benchmarks/size-history/1.4.0.json) (git blob `4687fa7`)) measured `modern-cmdk` at 6355 B and `modern-cmdk/react` at 9844 B, where the React figure was `dist/react/index.mjs` with the core inlined: the pair summed to 16199 B because the core was counted twice. The 1.4.0 build keeps the core external to the adapter (`modern-cmdk` is imported by name): in 1.4.0 the adapter alone was 5403 B and the core plus the adapter together 9830 B (1.4.0 record), and 1.5.0 measures 5539 B and 10003 B.
 
+## Browser bench
+
+The figures above time the headless machine in Node. The browser bench (`benchmarks/browser/run.ts`) times a full React mount in Chromium: it builds the playground (with `react-dom/profiling`, so React's Profiler reports commit durations), serves it, and drives its `/bench` route at 1000 and 10000 items. Each size runs 1 warm-up and 7 measured runs, every run a fresh page load, and a figure is the median of the 7. Only the 10K mount is gated, at 50 ms; the other figures are recorded.
+
+These figures come from [`benchmarks/browser/results/1.4.0-f5fcebb.json`](https://github.com/ABCrimson/modern-cmdk/blob/main/benchmarks/browser/results/1.4.0-f5fcebb.json), a local run on 2026-11-08 on the development machine (Intel Core Ultra 9 290HX Plus, 24 cores, Windows 10.0.26300, Node v28.0.0-nightly20261107a43bfb5bb2) with Chromium 158.0.8127.18, new headless mode. The `1.4.0` in the file name is the version in the package manifest when the run was made, and `f5fcebb` is the commit it measured; neither is a release that was benchmarked. The items come from the shared `basic` dataset (`apps/playground/src/bench/dataset.ts`), the query is `g` (250 matches at 1K, 2500 at 10K), and times are in milliseconds.
+
+| Metric | N = 1000 | N = 10000 |
+|--------|----------|-----------|
+| Mount (first `REGISTER_ITEM` sent to the first state holding all N items) | 6.0 | 18.8 |
+| Filter (keystroke to the first state with the new search) | 2.8 | 5.7 |
+| Keystroke to paint (the keystroke to the animation frame after the one that shows the result) | 18.8 | 120.5 |
+| React commit of the mount (sum of Profiler `actualDuration`) | 9.8 | 38.6 |
+| React commit of the filter | 3.6 | 14.6 |
+
+The 10K mount median was 18.80 ms against the 50 ms gate (the run's verdict is `pass`); its seven runs ranged from 14.7 to 26.8 ms. These are the figures of one machine and one day, not a CI reading: the CI job "Browser bench (Chromium, 10K mount gate)" runs the same harness on a GitHub-hosted runner and uploads its results as the `browser-bench-results` artifact, which replaces these figures once the job is green.
+
 ## Why It's Fast
 
-What the code does, as of 1.2.3:
+What the code does, as of 1.6.0:
 
 1. **Cached lowercase index.** The built-in search engine lowercases each item's value and keywords once at `index()` time, and lowercases the query once per search.
-2. **Incremental search.** When a query extends the previous one, only the previous result set is re-scored.
+2. **Incremental search.** With the built-in scorer, when the lowercased query extends the previous lowercased query, only the previous matches are re-scored. A custom scorer, and a `filter` function (which runs as one), rescan every item on every non-empty query.
 3. **O(1) membership.** The machine keeps a `Set` of filtered ids and an id-to-index `Map`, so rendering checks visibility without scanning.
-4. **Batched updates.** Events go through a scheduler that coalesces them into one pass per `requestAnimationFrame` (browsers) or microtask (Node.js). Only when a batch has more than 10 updates and `navigator.scheduling.isInputPending()` is available and reports pending input does it defer the batch, using `scheduler.yield()` when present.
+4. **Batched updates.** Events go through a scheduler that coalesces them into one pass per `requestAnimationFrame` (browsers) or microtask (Node.js). A batch always runs whole: there is no `isInputPending` or `scheduler.yield()` gate. Registry events (register, update, unregister) only mark the results dirty, so a batch refilters once, and `stateChange` fires at most once per batch.
 5. **Iterator Helpers.** Pipelines use `.values().filter().map()`. Results are still materialised with `.toArray()` or `.sort()` where the code needs an array, so this does not mean zero intermediate arrays.
 6. **`content-visibility: auto`** on `[data-command-item]` (every item) in the shipped stylesheet (`modern-cmdk/styles.css`), so the browser can skip rendering work for off-screen items. The stylesheet's `[data-command-virtual-item]` rule is a reserved hook that no component emits.
-7. **Set helpers for pruning.** `setDifference` removes deleted ids from the incremental cache and the registry order; it does not decide which items get re-scored.
+7. **Cheap removal.** Unregistering an item deletes its id from the registry order, the search index and the incremental cache with one `delete` each, so removing k ids costs O(k) and copies none of them; it does not decide which items get re-scored.
 
 ## Regression Tracking
 
-CI runs `pnpm bench:compare`, which re-measures the three gated tasks and compares their medians with `benchmarks/baseline.json`. A regression above 5 % prints a warning annotation; above 15 %, above a task's `target_ms`, or a harness error the job fails. A baseline below the 0.01 ms floor (only `stateUpdate:navigate`) is reported, not compared. Given the noise above, a single flagged run is a prompt to re-run, not proof of a regression. When the baseline's CPU or Node differs from the machine running the comparison, the tool says so before the table.
+CI runs `pnpm bench:compare`, which runs the three gated tasks five times, takes per task the median of the five runs' p50 and compares it with `benchmarks/baseline.json`. A regression above 5 % prints a warning annotation; above 15 %, above a task's `target_ms`, or a harness error it exits 2. After a first exit 2 the CI step re-runs the comparison once: a passing re-run leaves a warning annotation, a second exit 2 fails the job. The baseline above was recorded under the earlier rule (the mean of three runs) and is re-recorded from the `benchmark-results` artifact of the first green run after each Node pin bump. A baseline below the 0.01 ms floor (only `stateUpdate:navigate`) is reported, not compared. Given the noise above, a single flagged run is a prompt to re-run, not proof of a regression. When the baseline's CPU or Node differs from the machine running the comparison, the tool says so before the table.
