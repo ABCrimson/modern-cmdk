@@ -9,8 +9,9 @@
 //                       exists when the call returns; the bench asserts it and times the creation.
 //   REGISTER_ITEM x N   an empty machine, N sends of { type: 'REGISTER_ITEM', item }, then the state
 //                       emit (through subscribeState) whose filteredIds holds all N. Each send queues one
-//                       scheduler closure; the N closures of one microtask run as one batch, registry
-//                       events only mark the results dirty, and the batch's last event refilters once and
+//                       scheduler closure; the N closures of one scheduler batch (one requestAnimationFrame
+//                       callback; happy-dom, the perf project's environment, runs it through
+//                       setImmediate) run together, registry events only mark the results dirty, and the batch's last event refilters once and
 //                       emits once. The path is linear in N (the pre-1.6.0 core refiltered on every send
 //                       and took ~9-10 s at 10K; benchmarks/registration.bench.ts guards the growth).
 //
