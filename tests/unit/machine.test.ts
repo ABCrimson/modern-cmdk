@@ -1,5 +1,12 @@
-import type { CommandItem, CommandMachine } from 'modern-cmdk';
-import { createCommandMachine, groupId, itemId } from 'modern-cmdk';
+import type {
+  CommandItem,
+  CommandMachine,
+  CommandMachineOptions,
+  ItemId,
+  SearchEngine,
+  SearchResult,
+} from 'modern-cmdk';
+import { createCommandMachine, createSearchEngine, groupId, itemId } from 'modern-cmdk';
 import { describe, expect, it, vi } from 'vitest';
 
 // ES2025 Iterator helpers — generate test items using Iterator pipeline
@@ -269,5 +276,195 @@ describe('CommandMachine', () => {
       expect(machine.getState().page).toBe('root');
       expect(machine.getState().pageStack).toEqual([]);
     });
+  });
+});
+
+// C1: a scheduler batch commits once. The scheduler runs on requestAnimationFrame when the
+// environment has it and on queueMicrotask otherwise; every wait below polls with vi.waitFor.
+interface Searching {
+  machine: CommandMachine;
+  searches: () => number;
+  listener: ReturnType<typeof vi.fn>;
+  base: number;
+}
+
+describe('CommandMachine batching', () => {
+  function counted(): { engine: SearchEngine; searches: () => number } {
+    const inner = createSearchEngine();
+    let calls = 0;
+    const engine: SearchEngine = {
+      index: (items: readonly CommandItem[]): void => inner.index(items),
+      remove: (ids: ReadonlySet<ItemId>): void => inner.remove(ids),
+      clear: (): void => inner.clear(),
+      search: (query: string, items: readonly CommandItem[]): IteratorObject<SearchResult> => {
+        calls++;
+        return inner.search(query, items);
+      },
+      [Symbol.dispose]: (): void => inner[Symbol.dispose](),
+    };
+    return { engine, searches: () => calls };
+  }
+
+  /** A machine already filtered by a non-empty query, so each refilter calls the search engine once. */
+  async function searching(options: CommandMachineOptions = {}): Promise<Searching> {
+    const { engine, searches } = counted();
+    const machine = createCommandMachine({ ...options, search: engine });
+    machine.send({ type: 'SEARCH_CHANGE', query: 'item' });
+    await vi.waitFor(() => {
+      expect(machine.getState().search).toBe('item');
+    });
+    const listener = vi.fn();
+    machine.subscribe(listener);
+    return { machine, searches, listener, base: searches() };
+  }
+
+  it('CE-20, ARCH-24, RA-49: 500 REGISTER_ITEM events in one tick run one refilter and emit stateChange once', async () => {
+    const { machine, searches, listener, base } = await searching();
+    using _m = machine;
+    const items = generateItems(500);
+    for (const item of items) machine.send({ type: 'REGISTER_ITEM', item });
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredCount).toBe(500);
+    });
+    expect(searches() - base).toBe(1);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(machine.getState().filteredIds).toEqual(items.map((i) => i.id));
+  });
+
+  it('CE-20: 400 UNREGISTER_ITEM events in one tick run one refilter and emit stateChange once', async () => {
+    const items = generateItems(500);
+    const { machine, searches, listener, base } = await searching({ items });
+    using _m = machine;
+    expect(machine.getState().filteredCount).toBe(500);
+    for (const item of items.slice(0, 400)) machine.send({ type: 'UNREGISTER_ITEM', id: item.id });
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredCount).toBe(100);
+    });
+    expect(searches() - base).toBe(1);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('CE-20: REGISTER_GROUP and UNREGISTER_GROUP events in one tick run one refilter per batch and emit once per batch', async () => {
+    const { machine, searches, listener, base } = await searching({ items: generateItems(3) });
+    using _m = machine;
+    const groups = Array.from({ length: 50 }, (_, i) => ({
+      id: groupId(`g${i}`),
+      heading: `Group ${i}`,
+    }));
+    for (const group of groups) machine.send({ type: 'REGISTER_GROUP', group });
+    await vi.waitFor(() => {
+      expect(machine.getRegistry().getGroup(groupId('g49'))).toBeDefined();
+    });
+    expect(searches() - base).toBe(1);
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    for (const group of groups) machine.send({ type: 'UNREGISTER_GROUP', id: group.id });
+    await vi.waitFor(() => {
+      expect(machine.getRegistry().getGroup(groupId('g0'))).toBeUndefined();
+    });
+    expect(searches() - base).toBe(2);
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('CE-20: ITEMS_LOADED events in one tick run one refilter and emit stateChange once', async () => {
+    const { machine, searches, listener, base } = await searching();
+    using _m = machine;
+    const items = generateItems(300);
+    for (let i = 0; i < 3; i++) {
+      machine.send({ type: 'ITEMS_LOADED', items: items.slice(i * 100, (i + 1) * 100) });
+    }
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredCount).toBe(300);
+    });
+    expect(searches() - base).toBe(1);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('CE-20: registry events followed by SEARCH_CHANGE in one batch refilter once and emit once', async () => {
+    const { machine, searches, listener, base } = await searching();
+    using _m = machine;
+    for (const item of generateItems(50)) machine.send({ type: 'REGISTER_ITEM', item });
+    machine.send({ type: 'SEARCH_CHANGE', query: 'item 7' });
+    await vi.waitFor(() => {
+      expect(machine.getState().search).toBe('item 7');
+    });
+    expect(searches() - base).toBe(1);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(machine.getState().filteredIds).toContain(itemId('item-7'));
+  });
+
+  it('CE-20: an event sent from inside a callback runs in the next batch and the first batch emits once', async () => {
+    using machine = createCommandMachine();
+    const opens: boolean[] = [];
+    machine.subscribe(() => opens.push(machine.getState().open));
+    const first: CommandItem = {
+      id: itemId('first'),
+      value: 'First',
+      onSelect: () => machine.send({ type: 'OPEN' }),
+    };
+    machine.send({ type: 'REGISTER_ITEM', item: first });
+    machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('second'), value: 'Second' } });
+    machine.send({ type: 'ITEM_SELECT', id: first.id });
+    await vi.waitFor(() => {
+      expect(machine.getState().open).toBe(true);
+    });
+    expect(opens).toEqual([false, true]);
+  });
+
+  it('CE-20: a handler that throws still lets its batch commit once, and the error is reported', async () => {
+    const original = globalThis.queueMicrotask;
+    const reported: unknown[] = [];
+    // The scheduler rethrows a failed update from a microtask; catch it there instead of failing the run.
+    const spy = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((callback) => {
+      original(() => {
+        try {
+          callback();
+        } catch (error: unknown) {
+          reported.push(error);
+        }
+      });
+    });
+    try {
+      using machine = createCommandMachine();
+      const listener = vi.fn();
+      machine.subscribe(listener);
+      const boom = new Error('onSelect failed');
+      const bad: CommandItem = {
+        id: itemId('bad'),
+        value: 'Bad',
+        onSelect: () => {
+          throw boom;
+        },
+      };
+      machine.send({ type: 'REGISTER_ITEM', item: bad });
+      machine.send({ type: 'ITEM_SELECT', id: bad.id });
+      machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('ok'), value: 'Ok' } });
+      await vi.waitFor(() => {
+        expect(machine.getState().filteredCount).toBe(2);
+        expect(reported).toEqual([boom]);
+      });
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      // The counter is balanced: the next batch commits normally.
+      machine.send({ type: 'OPEN' });
+      await vi.waitFor(() => {
+        expect(machine.getState().open).toBe(true);
+      });
+      expect(listener).toHaveBeenCalledTimes(2);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('CE-78: send() after dispose is a no-op', async () => {
+    const machine = createCommandMachine();
+    const registry = machine.getRegistry();
+    machine[Symbol.dispose]();
+    machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('late'), value: 'Late' } });
+    machine.send({ type: 'OPEN' });
+    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+    expect(registry.size).toBe(0);
+    expect(machine.getState().filteredCount).toBe(0);
+    expect(machine.getState().open).toBe(false);
   });
 });
