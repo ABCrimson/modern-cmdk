@@ -553,8 +553,53 @@ describe('Command — React Compound Components', () => {
     it('should render the disabled item with filter={false} under a query that matches nothing', async () => {
       await render(<Command filter={false}>{list()}</Command>);
       await typeInInput(container.querySelector('input') as HTMLInputElement, 'zzz');
-      expect(container.querySelector('#disabled-item')?.getAttribute('aria-disabled')).toBe('true');
+      const disabled = container.querySelector('#disabled-item');
+      expect(disabled?.getAttribute('aria-disabled')).toBe('true');
+      expect(disabled?.hasAttribute('data-disabled')).toBe(true);
     });
+
+    it('should not render the disabled item with filter={false} and disabledItems="hide"', async () => {
+      await render(
+        <Command filter={false} disabledItems="hide">
+          {list()}
+        </Command>,
+      );
+      expect(container.querySelector('#enabled')).not.toBeNull();
+      expect(container.querySelector('#disabled-item')).toBeNull();
+      await typeInInput(container.querySelector('input') as HTMLInputElement, 'zzz');
+      expect(container.querySelector('#enabled')).not.toBeNull();
+      expect(container.querySelector('#disabled-item')).toBeNull();
+    });
+
+    describe.each([
+      ['show (default)', undefined, true],
+      ['hide', 'hide', false],
+    ] as const)(
+      'a group that holds only disabled items, disabledItems %s',
+      (_name, option, rendered) => {
+        it('renders the group, its heading and its items only when the items are listed', async () => {
+          await render(
+            <Command {...(option !== undefined && { disabledItems: option })}>
+              <Command.Input />
+              <Command.List>
+                <Command.Group heading="Locked" forceId="locked-group">
+                  <Command.Item value="locked one" forceId="locked-one" disabled>
+                    Locked one
+                  </Command.Item>
+                </Command.Group>
+                <Command.Item value="free" forceId="free">
+                  Free
+                </Command.Item>
+              </Command.List>
+            </Command>,
+          );
+          expect(container.querySelector('[data-command-group]') !== null).toBe(rendered);
+          expect(container.querySelector('[data-command-group-heading]') !== null).toBe(rendered);
+          expect(container.querySelector('#locked-one') !== null).toBe(rendered);
+          expect(container.querySelector('#free')).not.toBeNull();
+        });
+      },
+    );
 
     it('should not fire onSelect on a disabled item click', async () => {
       const onEnabled = vi.fn();
