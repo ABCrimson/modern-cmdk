@@ -244,6 +244,46 @@ describe('KeyboardShortcutRegistry conflicts (CE-08, DAE-32)', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
+  it('unregisterByItem touches only the stacks of that item: none for an unbound item, one for an item with one key', () => {
+    using registry = new KeyboardShortcutRegistry();
+    for (let i = 0; i < 200; i++) {
+      registry.register(`Ctrl+Alt+k${i}`, itemId(`i${i}`), () => {});
+    }
+    const filter = vi.spyOn(Array.prototype, 'filter');
+    try {
+      registry.unregisterByItem(itemId('unbound'));
+      expect(filter).not.toHaveBeenCalled();
+      registry.unregisterByItem(itemId('i7'));
+      expect(filter).toHaveBeenCalledTimes(1);
+    } finally {
+      filter.mockRestore();
+    }
+    expect(registry.getBindings().size).toBe(199);
+  });
+
+  it('unregisterByItem removes every key of an item bound under two shortcuts, and only that item', () => {
+    const other = vi.fn();
+    using registry = new KeyboardShortcutRegistry();
+    registry.register('Ctrl+K', a, () => {});
+    registry.register('Ctrl+J', a, () => {});
+    registry.register('Ctrl+K', b, other);
+    registry.unregisterByItem(a);
+    expect([...registry.getBindings().keys()]).toEqual([parseShortcut('Ctrl+K').normalized]);
+    press('k');
+    expect(other).toHaveBeenCalledTimes(1);
+    registry.unregisterByItem(b);
+    expect(registry.getBindings().size).toBe(0);
+  });
+
+  it('unregister(shortcut) leaves no stale key for the items it removed: unregisterByItem afterwards is a no-op', () => {
+    using registry = new KeyboardShortcutRegistry();
+    registry.register('Ctrl+K', a, () => {});
+    registry.unregister('Ctrl+K');
+    registry.register('Ctrl+K', b, () => {});
+    registry.unregisterByItem(a);
+    expect(registry.getBindings().get(parseShortcut('Ctrl+K').normalized)?.itemId).toBe(b);
+  });
+
   it('DAE-32: two Command items with the same shortcut are reported by the machine keyboard registry', () => {
     using machine = createCommandMachine({
       items: [

@@ -24,6 +24,8 @@ interface ShortcutBinding {
  */
 export class KeyboardShortcutRegistry implements Disposable {
   #bindings = new Map<string, ShortcutBinding[]>();
+  // The keys each item is bound under: unregisterByItem touches only those stacks, not every key
+  #keysByItem = new Map<ItemId, Set<string>>();
   #globalListener: ((event: KeyboardEvent) => void) | null = null;
   #enabled = true;
 
@@ -43,6 +45,8 @@ export class KeyboardShortcutRegistry implements Disposable {
     if (own < 0) stack.push(binding);
     else stack[own] = binding;
     this.#bindings.set(shortcut.normalized, stack);
+    const keys = this.#keysByItem.get(itemId) ?? new Set<string>();
+    this.#keysByItem.set(itemId, keys.add(shortcut.normalized));
 
     return {
       [Symbol.dispose]: (): void => this.#remove(shortcut.normalized, (b) => b === binding),
@@ -51,20 +55,30 @@ export class KeyboardShortcutRegistry implements Disposable {
 
   /** Drops the bindings of one key that the predicate selects; an emptied key goes away */
   #remove(key: string, drop: (binding: ShortcutBinding) => boolean): void {
-    const rest = this.#bindings.get(key)?.filter((b) => !drop(b));
-    if (rest?.length) this.#bindings.set(key, rest);
+    const stack = this.#bindings.get(key);
+    if (!stack) return;
+    const rest = stack.filter((b) => !drop(b));
+    if (rest.length) this.#bindings.set(key, rest);
     else this.#bindings.delete(key);
+    // An item whose binding left this key no longer lists it
+    for (const { itemId } of stack) {
+      if (rest.some((b) => b.itemId === itemId)) continue;
+      const keys = this.#keysByItem.get(itemId);
+      keys?.delete(key);
+      if (!keys?.size) this.#keysByItem.delete(itemId);
+    }
   }
 
   /** Unregister a shortcut by its string representation — every binding of that key */
   unregister(shortcutStr: string): void {
-    const shortcut = parseShortcut(shortcutStr);
-    this.#bindings.delete(shortcut.normalized);
+    this.#remove(parseShortcut(shortcutStr).normalized, () => true);
   }
 
-  /** Unregister all shortcuts for a given item — Map spec allows deletion during iteration */
+  /** Unregister all shortcuts for a given item — only the stacks of the keys it is bound under are touched */
   unregisterByItem(itemId: ItemId): void {
-    for (const key of this.#bindings.keys()) this.#remove(key, (b) => b.itemId === itemId);
+    const keys = this.#keysByItem.get(itemId);
+    if (!keys) return;
+    for (const key of [...keys]) this.#remove(key, (b) => b.itemId === itemId);
   }
 
   /** Keys bound by two or more items (normalized shortcut -> the parsed shortcuts, earliest first) */
@@ -119,5 +133,6 @@ export class KeyboardShortcutRegistry implements Disposable {
   [Symbol.dispose](): void {
     this.#detachGlobalListener();
     this.#bindings.clear();
+    this.#keysByItem.clear();
   }
 }
