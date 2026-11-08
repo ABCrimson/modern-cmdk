@@ -7,7 +7,7 @@ import type { CommandItem, CommandMachine, ItemId } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
-import { act, use, useLayoutEffect } from 'react';
+import { act, StrictMode, use, useLayoutEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -141,7 +141,128 @@ function FallbackProbe(): ReactNode {
   return <span>loading</span>;
 }
 
+/** Runs `scenario` once plain and once inside StrictMode, each in a fresh tree. */
+async function plainAndStrict(
+  scenario: (wrap: (ui: ReactNode) => ReactNode) => Promise<void>,
+): Promise<void> {
+  await scenario((ui) => ui);
+  await teardown();
+  await scenario((ui) => <StrictMode>{ui}</StrictMode>);
+}
+
 describe('Command.AsyncItems registration', () => {
+  it('ARCH-12: a loaded item rendered as Command.Item with its id counts once', async () => {
+    await plainAndStrict(async (wrap) => {
+      const raw = vi.fn();
+      const rendered = vi.fn();
+      const spy = new Spy();
+      const batch = batchOf(
+        [
+          ['one', 'Alpha'],
+          ['two', 'Beta'],
+        ],
+        raw,
+      );
+      await mount(wrap(palette(spy, Promise.resolve(batch), renderItems(rendered))));
+      await settle();
+
+      expect(spy.ids.sort()).toEqual(['one', 'two']);
+      expect(spy.current.getRegistry().size).toBe(2);
+      expect(spy.current.getState().filteredCount).toBe(2);
+
+      await act(async () => {
+        spy.current.send({ type: 'ITEM_SELECT', id: itemId('one') });
+      });
+      expect(rendered).toHaveBeenCalledTimes(1);
+      expect(raw).not.toHaveBeenCalled();
+    });
+  });
+
+  it('RA-18: unmounting AsyncItems unregisters every item it loaded', async () => {
+    const withItems = renderItems(vi.fn());
+    const withoutItems = (): ReactNode => null;
+    for (const render of [withItems, withoutItems]) {
+      const spy = new Spy();
+      const batch = batchOf(
+        [
+          ['one', 'Alpha'],
+          ['two', 'Beta'],
+        ],
+        vi.fn(),
+      );
+      await mount(palette(spy, Promise.resolve(batch), render));
+      await settle();
+      expect(spy.current.getRegistry().size).toBe(2);
+
+      await update(
+        <Command>
+          <spy.Probe />
+          <Command.Input />
+          <Command.List />
+        </Command>,
+      );
+      await settle();
+      expect(spy.current.getRegistry().size).toBe(0);
+      expect(await spy.search('Alpha')).toEqual([]);
+      await teardown();
+    }
+  });
+
+  it('DGX-ASYNC-4: a new items promise replaces the previous batch in the registry and the search index', async () => {
+    await plainAndStrict(async (wrap) => {
+      const raw = vi.fn();
+      const rendered = vi.fn();
+      const spy = new Spy();
+      const first = Promise.resolve(
+        batchOf(
+          [
+            ['old', 'Apple'],
+            ['shared', 'Banana'],
+          ],
+          raw,
+        ),
+      );
+      const second = Promise.resolve(
+        batchOf(
+          [
+            ['shared', 'Banana'],
+            ['fresh', 'Cherry'],
+          ],
+          raw,
+        ),
+      );
+      // Only the shared id renders a Command.Item; the others live in the registry through the loaded batch alone.
+      const renderShared = (items: readonly CommandItem[]): ReactNode =>
+        items
+          .filter((item) => item.id === 'shared')
+          .map((item) => (
+            <Command.Item key={item.id} id={item.id} value={item.value} onSelect={rendered}>
+              {item.value}
+            </Command.Item>
+          ));
+
+      await mount(wrap(palette(spy, first, renderShared)));
+      await settle();
+      expect(spy.ids.sort()).toEqual(['old', 'shared']);
+      expect(await spy.search('Apple')).toEqual([itemId('old')]);
+      await spy.search('');
+
+      await update(wrap(palette(spy, second, renderShared)));
+      await settle();
+      expect(spy.ids.sort()).toEqual(['fresh', 'shared']);
+      expect(spy.current.getRegistry().getItem(itemId('old'))).toBeUndefined();
+      expect(await spy.search('Apple')).toEqual([]);
+      expect(await spy.search('Cherry')).toEqual([itemId('fresh')]);
+      await spy.search('');
+
+      await act(async () => {
+        spy.current.send({ type: 'ITEM_SELECT', id: itemId('shared') });
+      });
+      expect(rendered).toHaveBeenCalledTimes(1);
+      expect(raw).not.toHaveBeenCalled();
+    });
+  });
+
   it('RA-17: a promise held stable across renders suspends once', async () => {
     fallbackMounts = 0;
     const spy = new Spy();
@@ -158,5 +279,27 @@ describe('Command.AsyncItems registration', () => {
     }
     expect(fallbackMounts).toBe(1);
     expect(spy.ids).toEqual(['one']);
+  });
+
+  it('ARCH-12: an item without an id inside AsyncItems warns once in development', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const spy = new Spy();
+    const batch = Promise.resolve(batchOf([['one', 'Alpha']], vi.fn()));
+    const render = (items: readonly CommandItem[]): ReactNode =>
+      items.map((item) => (
+        <Command.Item key={item.id} value={item.value}>
+          {item.value}
+        </Command.Item>
+      ));
+    await mount(palette(spy, batch, render));
+    await settle();
+    await update(palette(spy, batch, render));
+    await settle();
+
+    const warnings = warn.mock.calls
+      .map((args) => String(args[0]))
+      .filter((text) => text.startsWith('[modern-cmdk]') && text.includes('AsyncItems'));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('id={item.id}');
   });
 });
