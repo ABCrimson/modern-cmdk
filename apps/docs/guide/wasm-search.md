@@ -62,7 +62,7 @@ function WasmSearchPalette() {
   if (!engine) return <div>Loading search engine...</div>;
 
   return (
-    <Command search={engine}>
+    <Command searchEngine={engine}>
       <Command.Input placeholder="Fuzzy search 50K items..." />
       <Command.List>
         <Command.Empty>No results.</Command.Empty>
@@ -142,7 +142,7 @@ function WorkerSearchPalette() {
   if (!engine) return <div>Initializing worker...</div>;
 
   return (
-    <Command search={engine}>
+    <Command searchEngine={engine}>
       <Command.Input placeholder="Search 100K items..." />
       <Command.List>
         <Command.Empty>No results.</Command.Empty>
@@ -235,7 +235,7 @@ const largeDataset: readonly CommandItem[] = Array.from({ length: 50_000 }, (_, 
 const searchEngine = await createWasmSearchEngine();
 
 const machine = createCommandMachine({
-  search: searchEngine,
+  searchEngine,
   items: largeDataset,
 });
 
@@ -243,15 +243,16 @@ const machine = createCommandMachine({
 // with it only for a non-empty query with the filter on; an empty query, or `filter: false`, lists
 // the items without a search.
 
-// Dispose on teardown, not at module top level. Disposing the machine disposes the engine it was given.
-export function teardown(): void {
+// Dispose on teardown, not at module top level: the machine first, then the engine it used.
+export async function teardown(): Promise<void> {
   machine[Symbol.dispose]();
+  await searchEngine[Symbol.asyncDispose]();
 }
 ```
 
-The machine disposes the search engine it is given when it is itself disposed, so `teardown()` does not dispose the engine separately (disposing twice frees once); do not reuse an engine after its machine is disposed. A disposed WASM engine throws from `index`, `search`, `remove` and `clear`.
+The machine disposes a search engine only when it created the engine itself, that is when you pass neither `searchEngine` nor `search`. An engine you pass is yours to dispose, as `teardown()` does, and it survives the machine's dispose and its `suspend()` and `resume()`. Disposing twice frees once, and a disposed WASM engine throws from `index`, `search`, `remove` and `clear`. `search` is the deprecated name of `searchEngine`; it is removed in 2.0.
 
-Or via the React adapter's `search` prop:
+Or via the React adapter's `searchEngine` prop. `<Command>` never disposes the engine you pass: it keeps one machine per mount, suspends it when the component unmounts or an `<Activity>` hides it and resumes it when the component is mounted or shown again (StrictMode's replay included), so the engine stays usable, and the component that created it disposes it, as the cleanup of the samples above does:
 
 ```tsx
 import type { SearchEngine } from 'modern-cmdk';
@@ -259,7 +260,7 @@ import { Command } from 'modern-cmdk/react';
 
 export function WasmPalette({ wasmEngine }: { readonly wasmEngine: SearchEngine }) {
   return (
-    <Command search={wasmEngine}>
+    <Command searchEngine={wasmEngine}>
       {/* All child items are indexed and searched via WASM */}
     </Command>
   );
