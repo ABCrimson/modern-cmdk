@@ -94,3 +94,7 @@ minimumReleaseAgeExclude:
   - '@typescript/typescript-win32-arm64@7.1.0-dev.20261108.1'
   - '@typescript/typescript-win32-x64@7.1.0-dev.20261108.1'
   - typescript@7.1.0-dev.20261108.1
+  # fake-indexeddb@6.2.8 (latest; published 2026-11-08T16:32:39Z: a fix for transaction.abort() inside a request error
+  # handler, a regression of 6.2.6, and for inline typed-array keys) was under the 24 h minimumReleaseAge at the
+  # 2026-11-08 bump from 6.2.7, found by the C7b landing sweep. Drop after a day.
+  - fake-indexeddb@6.2.8
