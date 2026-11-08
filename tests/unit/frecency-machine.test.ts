@@ -181,6 +181,26 @@ describe('machine frecency persistence', () => {
     expect(machine.getState().filteredIds).toEqual([two, one]);
   });
 
+  it('CE-109: hydration at an empty query emits no stateChange', async () => {
+    const { storage, resolve } = deferredStorage();
+    const machine = track(
+      createCommandMachine({
+        items: items('app one', 'app two'),
+        frecency: { enabled: true, storage },
+      }),
+    );
+    const listener = vi.fn();
+    machine.subscribe(listener);
+    await settle();
+    expect(listener).not.toHaveBeenCalled();
+
+    resolve(new Map([[itemId('app two'), { frequency: 5, lastUsed: Date.now() }]]));
+    await settle();
+
+    expect(listener).not.toHaveBeenCalled();
+    expect(machine.getState().filteredIds).toEqual([itemId('app one'), itemId('app two')]);
+  });
+
   it('CE-14: a load that settles after dispose does not search or emit', async () => {
     const two = itemId('app two');
     const { storage, resolve } = deferredStorage();

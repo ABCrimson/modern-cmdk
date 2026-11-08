@@ -100,7 +100,9 @@ export function createCommandMachine(
     // pending and commits them itself) take the loaded bonuses; a failed load is reported, not thrown
     void frecencyEngine.load().then(
       () => {
-        if (disposed) return;
+        // Frecency re-ranks only non-empty queries (DT-18) and `filter: false` lists registration order, so
+        // there the loaded bonuses change no result: skip the refilter and the stateChange
+        if (disposed || state.search === '' || options.filter === false) return;
         dirty = true;
         if (queued === 0) commit();
       },
