@@ -1,0 +1,13 @@
+{
+  "proves": "A baseline row below floor_ms without a target_ms is a harness error (exit 2): nothing would check it.",
+  "regressionThresholds": { "warning": 0.05, "failure": 0.15, "floor_ms": 0.01 },
+  "benchmarks": {
+    "search": {
+      "ts-scorer-10k": { "median_ms": 15.5, "p99_ms": 20, "target_ms": 16 }
+    },
+    "stateUpdate": {
+      "navigate": { "median_ms": 0.00075, "p99_ms": 0.008 },
+      "searchChange": { "median_ms": 0.4, "p99_ms": 0.6, "target_ms": 4 }
+    }
+  }
+}
