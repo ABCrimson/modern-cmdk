@@ -130,7 +130,6 @@ const inputOf = (host: HTMLElement): HTMLInputElement => {
 };
 
 describe('React lifecycle (C1)', () => {
-  // `onSelect prop change fires the new callback` is red until the commit that makes root callbacks live; that commit turns it into `it`.
   it('query survives StrictMode remount', async () => {
     const spy = new Spy();
     const host = await mount(
@@ -202,7 +201,7 @@ describe('React lifecycle (C1)', () => {
     expect(spy.searches.slice(seenBefore)).toContain('ban');
   });
 
-  it.fails('onSelect prop change fires the new callback', async () => {
+  it('onSelect prop change fires the new callback', async () => {
     const calls: string[] = [];
     const first = (id: string): void => {
       calls.push(`first:${id}`);
@@ -359,5 +358,47 @@ describe('React lifecycle (C1)', () => {
 
     expect(search).toHaveBeenCalled();
     expect(spy.machine.getState().filteredIds.length).toBe(1);
+  });
+
+  it('Command.Dialog: an onSearchChange prop change after mount reaches the new callback', async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const spy = new Spy();
+    const tree = (onSearchChange: (query: string) => void): ReactNode => (
+      <Command.Dialog open onSearchChange={onSearchChange}>
+        <spy.Probe />
+        <Command.Input />
+      </Command.Dialog>
+    );
+    await mount(tree(first));
+    await settle();
+    await update(tree(second));
+    await settle();
+    await act(async () => {
+      spy.machine.send({ type: 'SEARCH_CHANGE', query: 'ap' });
+    });
+    await settle();
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second.mock.calls).toEqual([['ap']]);
+  });
+
+  it('onSearchChange is not called twice for one query', async () => {
+    const onSearchChange = vi.fn();
+    const spy = new Spy();
+    await mount(
+      <Command items={[apple, banana]} onSearchChange={onSearchChange}>
+        <spy.Probe />
+      </Command>,
+    );
+    await settle();
+    for (const query of ['ap', 'ap', 'ban', 'ban', 'ap']) {
+      await act(async () => {
+        spy.machine.send({ type: 'SEARCH_CHANGE', query });
+      });
+      await settle();
+    }
+
+    expect(onSearchChange.mock.calls).toEqual([['ap'], ['ban'], ['ap']]);
   });
 });

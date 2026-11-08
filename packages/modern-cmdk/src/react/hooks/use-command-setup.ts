@@ -1,9 +1,10 @@
 // packages/modern-cmdk/src/react/hooks/use-command-setup.ts
 // Shared setup hook — deduplicates machine init, context creation, keyboard handler,
-// and the suspend/resume lifecycle between <Command> and <Command.Dialog>
+// the latest-props options object, and the suspend/resume lifecycle between <Command> and <Command.Dialog>
 // Isolated declarations: explicit return types on all exports
 
-import type { CommandMachine, CommandState } from 'modern-cmdk';
+import type { CommandMachine, CommandMachineOptions, CommandState, ItemId } from 'modern-cmdk';
+import { createCommandMachine } from 'modern-cmdk';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import type { CommandStableContextValue, CommandStateContextValue } from '../context.js';
 import { useCommand } from './use-command.js';
@@ -18,6 +19,44 @@ export interface UseCommandSetupReturn {
   readonly handleKeyDown: (e: KeyboardEvent) => void;
   readonly stableContextValue: CommandStableContextValue;
   readonly stateContextValue: CommandStateContextValue;
+}
+
+/** The last value each deduped callback forwarded to the consumer. */
+interface Forwarded {
+  search: string;
+  activeId: unknown;
+  open: boolean;
+}
+
+type Callback = 'onSearchChange' | 'onActiveChange' | 'onOpenChange';
+
+/**
+ * The options object the machine keeps for its whole life: the first render's props, with the callbacks
+ * replaced by trampolines over `latest.current`, so a prop change after mount reaches them. `onSelect` forwards
+ * every call; the others forward a value only when it differs from the last one forwarded (a controlled
+ * `activeId` reports every candidate: the caller may have refused the last one). A module-level function, so no
+ * closure here sees the machine: the core's FinalizationRegistry holds this object through the search engine's
+ * scorer, and a reference to the machine would keep it alive.
+ */
+function createLiveOptions(
+  latest: { readonly current: CommandMachineOptions },
+  fwd: Forwarded,
+): CommandMachineOptions {
+  const dedupe =
+    (key: keyof Forwarded, name: Callback) =>
+    (value: unknown): void => {
+      if (value === fwd[key] && (key !== 'activeId' || latest.current.activeId === undefined))
+        return;
+      fwd[key] = value as never;
+      (latest.current[name] as ((value: unknown) => void) | undefined)?.(value);
+    };
+  return {
+    ...latest.current,
+    onSelect: (id: ItemId): void => latest.current.onSelect?.(id),
+    onSearchChange: dedupe('search', 'onSearchChange'),
+    onActiveChange: dedupe('activeId', 'onActiveChange'),
+    onOpenChange: dedupe('open', 'onOpenChange'),
+  };
 }
 
 /**
@@ -35,21 +74,30 @@ export interface UseCommandSetupReturn {
  * no global reference, and the core's FinalizationRegistry disposes the search engine the
  * machine created once the machine is collected.
  *
- * @param machineFactory - Called exactly once (first render) to create the machine. Subsequent
- *   renders skip it via the ref guard. Its options must not reference the machine, or the
- *   registry's hold on the created search engine keeps the machine alive.
+ * The machine's options object is built once, over a ref that holds the latest props. The ref starts as the
+ * first render's props, so a server render (where layout effects never run) reads real props, and a layout
+ * effect without dependencies assigns each commit's props, so render writes nothing.
+ *
+ * @param options - The props that are machine options, from every render. The first render's values initialise
+ *   the machine.
  * @param label - Accessible label for the command palette (included in stable context).
  */
 export function useCommandSetup(
-  machineFactory: () => CommandMachine,
+  options: CommandMachineOptions,
   label: string,
 ): UseCommandSetupReturn {
+  const latest = useRef(options);
+
   // The one render-time ref write: a null-guarded initializer, which react.dev/reference/react/useRef
   // sanctions because the result is always the same and the condition runs only during initialization
   const machineRef = useRef<CommandMachine | null>(null);
   if (machineRef.current === null) {
-    machineRef.current = machineFactory();
-    machineRef.current.suspend?.();
+    // Construction calls no option callback; the memory takes the machine's state once it exists
+    const fwd: Forwarded = { search: '', activeId: null, open: false };
+    const machine = createCommandMachine(createLiveOptions(latest, fwd));
+    machine.suspend?.();
+    Object.assign(fwd, machine.getState());
+    machineRef.current = machine;
   }
   const machine = machineRef.current;
 
@@ -68,6 +116,11 @@ export function useCommandSetup(
       machine.suspend?.();
     };
   }, [machine]);
+
+  // Every commit: publish the props to the options object
+  useLayoutEffect(() => {
+    latest.current = options;
+  });
 
   // Keyboard handler — useMemo (not useCallback) to memoize the factory result
   const handleKeyDown = useMemo(

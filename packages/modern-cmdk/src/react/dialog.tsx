@@ -5,10 +5,9 @@
 // Isolated declarations: explicit return types on all exports
 
 import type { CommandMachineOptions } from 'modern-cmdk';
-import { createCommandMachine } from 'modern-cmdk';
 import { Dialog } from 'radix-ui';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommandSetup } from './hooks/use-command-setup.js';
 
@@ -39,22 +38,8 @@ export function CommandDialog({
   container,
   ...machineOptions
 }: CommandDialogProps): ReactNode {
-  // Ref to avoid stale onOpenChange closure captured at mount time
-  const onOpenChangeRef = useRef(onOpenChange);
-  onOpenChangeRef.current = onOpenChange;
-
   const { machine, state, handleKeyDown, stableContextValue, stateContextValue, inputId } =
-    useCommandSetup(
-      () =>
-        createCommandMachine({
-          ...machineOptions,
-          open: controlledOpen ?? false,
-          onOpenChange: (open: boolean): void => {
-            onOpenChangeRef.current?.(open);
-          },
-        }),
-      label,
-    );
+    useCommandSetup({ ...machineOptions, open: controlledOpen ?? false, onOpenChange }, label);
 
   // Keyboard listener — only when dialog is open
   useEffect(() => {
