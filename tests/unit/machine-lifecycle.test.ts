@@ -414,3 +414,27 @@ it('ARCH-29: controlled activeId: construction calls no callback, whatever the o
   expect(named.getState().activeId).toBe(missing);
   expect(none.getState().activeId).toBeNull();
 });
+
+it('a custom filter is read on every query, so a getter over a new function takes effect on the next query', () => {
+  type Filter = (item: CommandItem, query: string) => number | false;
+  const first = vi.fn<Filter>(() => 1);
+  const second = vi.fn<Filter>(() => false);
+  let current: Filter = first;
+  using machine = createCommandMachine({
+    items: abc,
+    get filter(): Filter {
+      return current;
+    },
+  });
+
+  machine.send({ type: 'SEARCH_CHANGE', query: 'item' });
+  nextBatch();
+  expect(first).toHaveBeenCalled();
+  expect(machine.getState().filteredCount).toBe(3);
+
+  current = second;
+  machine.send({ type: 'SEARCH_CHANGE', query: 'item x' });
+  nextBatch();
+  expect(second).toHaveBeenCalled();
+  expect(machine.getState().filteredCount).toBe(0);
+});
