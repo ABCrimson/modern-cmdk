@@ -16,9 +16,9 @@
 //
 // The statistic is the median latency (tinybench's latency.p50, ms per iteration) divided by N; the
 // ratio is per-item(10K) / per-item(1K). Measured on the landed 1.6.0 core (Node 28 nightly, Windows 11,
-// 14 runs of this file on 2026-11-08 on one development host, idle and under load (30 load threads on 24 cores);
-// per path: register 1.14-2.12x, unregister 1.18-1.95x, register + shortcuts 1.08-1.97x (the 9 runs that
-// recorded every path), unregister + shortcuts 1.20-2.36x (all 14, 2.36x under load). The pre-1.6.0 core refiltered on every send;
+// 16 runs of this file on 2026-11-08 on one development host, idle and under load (30 load threads on 24 cores), every
+// path recorded in each run: register 1.14-2.12x, unregister 1.18-1.95x, register + shortcuts 1.02-1.97x,
+// unregister + shortcuts 1.20-2.36x (2.36x under load). The pre-1.6.0 core refiltered on every send;
 // mount.bench.ts measured REGISTER_ITEM x N at ~70-90 ms for 1K and ~9-10 s for 10K, a per-item ratio
 // of ~13. The self-check at the end of this file measures a deliberately quadratic stand-in at 7.9-18x
 // (measured on one host on 2026-11-08, Intel Core Ultra 9 290HX, Windows: 7.92x to 17.7x).
