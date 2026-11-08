@@ -515,3 +515,69 @@ describe('FrecencyEngine config and namespace', () => {
     expect(storage.save).toHaveBeenCalledWith('palette-1', expect.anything());
   });
 });
+
+describe('FrecencyEngine save and load ordering', () => {
+  it('CE-114: a save triggered before the load settles writes the merged history once', async () => {
+    const storage = makeStorage();
+    const loading = Promise.withResolvers<FrecencyData>();
+    storage.load.mockReturnValueOnce(loading.promise);
+    const engine = makeEngine({ storage });
+
+    const loaded = engine.load();
+    engine.recordSelection(A);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(storage.save).not.toHaveBeenCalled();
+
+    loading.resolve({ records: new Map([[B, { frequency: 4, lastUsed: 9 }]]) });
+    await loaded;
+    await tick();
+
+    expect(storage.save).toHaveBeenCalledTimes(1);
+    const written = storage.save.mock.calls[0]?.[1].records;
+    expect(written?.get(B)).toEqual({ frequency: 4, lastUsed: 9 });
+    expect(written?.get(A)?.frequency).toBe(1);
+  });
+
+  it('CE-114: flush and dispose wait for the load in flight and write the merged history', async () => {
+    const storage = makeStorage();
+    const loading = Promise.withResolvers<FrecencyData>();
+    storage.load.mockReturnValueOnce(loading.promise);
+    const engine = makeEngine({ storage });
+
+    void engine.load();
+    engine.recordSelection(A);
+    engine.recordSelection(B);
+    const disposed = engine[Symbol.asyncDispose]();
+    await tick();
+    expect(storage.save).not.toHaveBeenCalled();
+    expect(storage[Symbol.dispose]).not.toHaveBeenCalled();
+
+    loading.resolve({ records: new Map([[A, { frequency: 2, lastUsed: 1 }]]) });
+    await disposed;
+
+    expect(storage.save).toHaveBeenCalledTimes(1);
+    expect(storage.save.mock.calls[0]?.[1].records.get(A)?.frequency).toBe(3);
+    expect(storage[Symbol.dispose]).toHaveBeenCalledTimes(1);
+  });
+
+  it('CE-114: a load that rejects releases the save, which writes the new selection alone', async () => {
+    const storage = makeStorage();
+    const loading = Promise.withResolvers<FrecencyData>();
+    storage.load.mockReturnValueOnce(loading.promise);
+    const engine = makeEngine({ storage });
+
+    const loaded = engine.load();
+    const rejection = expect(loaded).rejects.toThrow('idb blocked');
+    engine.recordSelection(A);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(storage.save).not.toHaveBeenCalled();
+
+    loading.reject(new Error('idb blocked'));
+    await rejection;
+    await tick();
+
+    expect(storage.save).toHaveBeenCalledTimes(1);
+    expect([...(storage.save.mock.calls[0]?.[1].records.keys() ?? [])]).toEqual([A]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
