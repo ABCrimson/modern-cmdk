@@ -7,7 +7,7 @@ import type { CommandItem, CommandMachine, ItemId } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
-import { act, StrictMode, use, useLayoutEffect } from 'react';
+import { act, StrictMode, startTransition, use, useLayoutEffect, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -141,6 +141,26 @@ function FallbackProbe(): ReactNode {
   return <span>loading</span>;
 }
 
+/** The setter of a SwapHost's items promise. */
+type SetItems = (items: Promise<readonly CommandItem[]>) => void;
+
+/** A palette whose items promise is state; `expose` receives the setter on every render. */
+function SwapHost({
+  spy,
+  initial,
+  render,
+  expose,
+}: {
+  readonly spy: Spy;
+  readonly initial: Promise<readonly CommandItem[]>;
+  readonly render: (items: readonly CommandItem[]) => ReactNode;
+  readonly expose: (set: SetItems) => void;
+}): ReactNode {
+  const [items, setItems] = useState(initial);
+  expose(setItems);
+  return palette(spy, items, render, <span data-testid="fallback">loading</span>);
+}
+
 /** Runs `scenario` once plain and once inside StrictMode, each in a fresh tree. */
 async function plainAndStrict(
   scenario: (wrap: (ui: ReactNode) => ReactNode) => Promise<void>,
@@ -253,6 +273,88 @@ describe('Command.AsyncItems registration', () => {
       expect(spy.current.getRegistry().getItem(itemId('old'))).toBeUndefined();
       expect(await spy.search('Apple')).toEqual([]);
       expect(await spy.search('Cherry')).toEqual([itemId('fresh')]);
+      await spy.search('');
+
+      await act(async () => {
+        spy.current.send({ type: 'ITEM_SELECT', id: itemId('shared') });
+      });
+      expect(rendered).toHaveBeenCalledTimes(1);
+      expect(raw).not.toHaveBeenCalled();
+    });
+  });
+
+  it("DGX-ASYNC-4: a transition-driven promise swap keeps a rendered Item's onSelect and keywords for an id in both batches", async () => {
+    await plainAndStrict(async (wrap) => {
+      const raw = vi.fn();
+      const rendered = vi.fn();
+      const spy = new Spy();
+      const first = Promise.resolve(
+        batchOf(
+          [
+            ['old', 'Apple'],
+            ['shared', 'Banana'],
+          ],
+          raw,
+        ),
+      );
+      let resolveSecond: ((items: readonly CommandItem[]) => void) | undefined;
+      const pending = new Promise<readonly CommandItem[]>((resolve) => {
+        resolveSecond = resolve;
+      });
+      // Only the shared id renders a Command.Item, with a keyword of its own that the loaded item lacks.
+      const renderShared = (items: readonly CommandItem[]): ReactNode =>
+        items
+          .filter((item) => item.id === 'shared')
+          .map((item) => (
+            <Command.Item
+              key={item.id}
+              id={item.id}
+              value={item.value}
+              keywords={['gooseberry']}
+              onSelect={rendered}
+            >
+              {item.value}
+            </Command.Item>
+          ));
+      let setItems: SetItems | undefined;
+      const host = await mount(
+        wrap(
+          <SwapHost
+            spy={spy}
+            initial={first}
+            render={renderShared}
+            expose={(set: SetItems): void => {
+              setItems = set;
+            }}
+          />,
+        ),
+      );
+      await settle();
+      expect(spy.ids.sort()).toEqual(['old', 'shared']);
+
+      // A swap inside a transition keeps the old batch on screen: nothing re-suspends, so no layout effect re-runs
+      // by itself and the Item has to send its entry again once the new batch loads.
+      await act(async () => {
+        startTransition(() => setItems?.(pending));
+      });
+      await settle();
+      expect(host.querySelector('[data-testid="fallback"]')).toBeNull();
+      expect(spy.ids.sort()).toEqual(['old', 'shared']);
+
+      await act(async () => {
+        resolveSecond?.(
+          batchOf(
+            [
+              ['shared', 'Banana'],
+              ['fresh', 'Cherry'],
+            ],
+            raw,
+          ),
+        );
+      });
+      await settle();
+      expect(spy.ids.sort()).toEqual(['fresh', 'shared']);
+      expect(await spy.search('gooseberry')).toEqual([itemId('shared')]);
       await spy.search('');
 
       await act(async () => {
