@@ -782,10 +782,18 @@ export class ParitySession {
     await flushFrame();
   }
 
-  /** Presses Escape on `document`, where Radix listens for it. */
-  async pressEscapeOnDocument(): Promise<void> {
+  /**
+   * Presses Escape on the focused element (`document.body` when nothing has focus) as a browser
+   * does: a cancelable keydown that bubbles up to `document`, where Radix listens for it. The
+   * event must be cancelable, because Radix calls `preventDefault()` on it and modern-cmdk reads
+   * `defaultPrevented` to avoid sending a second close.
+   */
+  async pressEscapeOnFocus(): Promise<void> {
+    const target = document.activeElement ?? document.body;
     await act(async () => {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      target.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
     });
     await flushFrame();
   }

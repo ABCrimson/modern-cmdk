@@ -860,11 +860,11 @@
     "ref": "T08"
   },
   "dialog-escape-reports": {
-    "status": "differs",
+    "status": "same",
     "cmdk": [[false]],
-    "modernCmdk": [[false], [false]],
-    "reason": "One Escape calls cmdk's onOpenChange(false) once. A controlled modern-cmdk Dialog calls onOpenChange(false) twice for the same Escape, so a handler that toggles instead of setting the value ends up open.",
-    "ref": "T08"
+    "modernCmdk": [[false]],
+    "reason": "One Escape calls onOpenChange(false) once in both.",
+    "ref": "RA-34"
   },
   "server-items": {
     "status": "same",
