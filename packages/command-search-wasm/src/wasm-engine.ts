@@ -1,10 +1,13 @@
 // WASM-accelerated fuzzy search engine
-// Uses: Symbol.dispose / Symbol.asyncDispose for the WASM instance (works with `await using`), Iterator Helpers (ES2025)
+// Uses: Symbol.dispose / Symbol.asyncDispose for the WASM instance (works with `await using`; disposing twice frees once), Iterator Helpers (ES2025)
 // Falls back to TypeScript scorer from modern-cmdk if WASM fails to load
 
 import type { ItemId, SearchEngine, SearchResult } from 'modern-cmdk';
 
 import { isDev } from './env.js';
+
+const DISPOSED_MESSAGE =
+  'modern-cmdk: the WASM search engine was disposed; create a new engine with createWasmSearchEngine()';
 
 /** Extended search engine backed by a WASM trigram index */
 export interface WasmSearchEngine extends SearchEngine, AsyncDisposable {
@@ -28,10 +31,23 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
     const wasm = await import('../pkg/command_search_wasm.js');
     const instance = new wasm.WasmSearchEngine();
 
+    // wasm-bindgen `free()` must run once per instance: the machine disposes the engine it was given
+    // (ledger DG-35), so a consumer's own dispose (useEffect cleanup, `await using`) comes second.
+    let disposed = false;
+    const assertLive = (): void => {
+      if (disposed) throw new Error(DISPOSED_MESSAGE);
+    };
+    const dispose = (): void => {
+      if (disposed) return;
+      disposed = true;
+      instance.free();
+    };
+
     const engine: WasmSearchEngine = {
       isWasm: true,
 
       index(items: readonly { id: ItemId; value: string }[]): void {
+        assertLive();
         const serialized = JSON.stringify(
           items
             .values()
@@ -42,6 +58,7 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
       },
 
       *search(query: string, items: readonly { id: ItemId }[]): Generator<SearchResult> {
+        assertLive();
         const results = instance.search(query, items.length) as Array<{
           id: string;
           score: number;
@@ -58,20 +75,20 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
       },
 
       remove(_ids: ReadonlySet<ItemId>): void {
+        assertLive();
         // Clears the whole index: the remaining items are not re-indexed (known gap, ledger W05)
         instance.clear();
       },
 
       clear(): void {
+        assertLive();
         instance.clear();
       },
 
-      [Symbol.dispose](): void {
-        instance.free();
-      },
+      [Symbol.dispose]: dispose,
 
       async [Symbol.asyncDispose](): Promise<void> {
-        instance.free();
+        dispose();
       },
     };
 
@@ -88,6 +105,14 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
     const { createSearchEngine } = await import('modern-cmdk');
     const tsEngine = createSearchEngine();
 
+    // Forwards the first dispose only, whichever of the two protocols it arrives through.
+    let disposed = false;
+    const dispose = (): void => {
+      if (disposed) return;
+      disposed = true;
+      tsEngine[Symbol.dispose]();
+    };
+
     const fallback: FallbackSearchEngine = {
       isWasm: false,
       index: tsEngine.index.bind(tsEngine),
@@ -95,12 +120,10 @@ export async function createWasmSearchEngine(): Promise<WasmSearchEngine | Fallb
       remove: tsEngine.remove.bind(tsEngine),
       clear: tsEngine.clear.bind(tsEngine),
 
-      [Symbol.dispose](): void {
-        tsEngine[Symbol.dispose]();
-      },
+      [Symbol.dispose]: dispose,
 
       async [Symbol.asyncDispose](): Promise<void> {
-        tsEngine[Symbol.dispose]();
+        dispose();
       },
     };
 
