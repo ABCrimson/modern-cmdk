@@ -485,52 +485,132 @@ describe('Command — React Compound Components', () => {
   // ---- 7. Disabled items ----
 
   describe('disabled items', () => {
-    it('should render disabled item with aria-disabled', async () => {
-      await render(
-        <Command>
+    /** One enabled and one disabled item; both match the query "item". */
+    function list(onEnabled: () => void = vi.fn(), onDisabled: () => void = vi.fn()): ReactNode {
+      return (
+        <>
           <Command.Input />
           <Command.List>
-            <Command.Item value="enabled" forceId="enabled">
+            <Command.Item value="item enabled" forceId="enabled" onSelect={onEnabled}>
               Enabled
             </Command.Item>
-            <Command.Item value="disabled" forceId="disabled-item" disabled>
+            <Command.Item
+              value="item disabled"
+              forceId="disabled-item"
+              disabled
+              onSelect={onDisabled}
+            >
               Disabled
             </Command.Item>
           </Command.List>
-        </Command>,
+        </>
       );
+    }
 
-      await vi.waitFor(() => {
-        // Disabled items with disabled=true are filtered out by refilter (filter skips disabled)
-        // Check that the enabled item is rendered
-        const enabledItem = container.querySelector('#enabled');
-        expect(enabledItem).not.toBeNull();
+    async function click(el: Element): Promise<void> {
+      await act(async () => {
+        el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
+      await act(async () => {
+        await new Promise<void>((r) => queueMicrotask(r));
+      });
+    }
+
+    it('should render disabled item with aria-disabled and data-disabled at rest', async () => {
+      await render(<Command>{list()}</Command>);
+
+      const disabled = container.querySelector('#disabled-item');
+      expect(disabled).not.toBeNull();
+      expect(disabled?.getAttribute('role')).toBe('option');
+      expect(disabled?.getAttribute('aria-disabled')).toBe('true');
+      expect(disabled?.hasAttribute('data-disabled')).toBe(true);
+      // The enabled sibling carries neither
+      const enabled = container.querySelector('#enabled');
+      expect(enabled?.hasAttribute('aria-disabled')).toBe(false);
+      expect(enabled?.hasAttribute('data-disabled')).toBe(false);
     });
 
-    it('should not fire onSelect on disabled item click', async () => {
-      const onSelect = vi.fn();
+    it('should keep rendering the disabled item, with aria-disabled, under a query', async () => {
+      await render(<Command>{list()}</Command>);
+      await typeInInput(container.querySelector('input') as HTMLInputElement, 'item');
 
+      const disabled = container.querySelector('#disabled-item');
+      expect(disabled).not.toBeNull();
+      expect(disabled?.getAttribute('aria-disabled')).toBe('true');
+      expect(disabled?.hasAttribute('data-disabled')).toBe(true);
+    });
+
+    it('should not render the disabled item at rest or under a query with disabledItems="hide"', async () => {
+      await render(<Command disabledItems="hide">{list()}</Command>);
+      expect(container.querySelector('#enabled')).not.toBeNull();
+      expect(container.querySelector('#disabled-item')).toBeNull();
+
+      await typeInInput(container.querySelector('input') as HTMLInputElement, 'item');
+      expect(container.querySelector('#enabled')).not.toBeNull();
+      expect(container.querySelector('#disabled-item')).toBeNull();
+    });
+
+    it('should render the disabled item with filter={false} under a query that matches nothing', async () => {
+      await render(<Command filter={false}>{list()}</Command>);
+      await typeInInput(container.querySelector('input') as HTMLInputElement, 'zzz');
+      expect(container.querySelector('#disabled-item')?.getAttribute('aria-disabled')).toBe('true');
+    });
+
+    it('should not fire onSelect on a disabled item click', async () => {
+      const onEnabled = vi.fn();
+      const onDisabled = vi.fn();
+      const onSelect = vi.fn();
+      await render(<Command onSelect={onSelect}>{list(onEnabled, onDisabled)}</Command>);
+
+      await click(container.querySelector('#disabled-item') as Element);
+      expect(onDisabled).not.toHaveBeenCalled();
+      expect(onSelect).not.toHaveBeenCalled();
+
+      // Control: the same click on the enabled item selects it
+      await click(container.querySelector('#enabled') as Element);
+      expect(onEnabled).toHaveBeenCalledTimes(1);
+      expect(onSelect).toHaveBeenCalledTimes(1);
+    });
+
+    it('should skip the disabled item on ArrowDown and never select it with Enter', async () => {
+      const onEnabled = vi.fn();
+      const onDisabled = vi.fn();
+      await render(<Command>{list(onEnabled, onDisabled)}</Command>);
+
+      const enabled = container.querySelector('#enabled');
+      const disabled = container.querySelector('#disabled-item');
+      expect(enabled?.hasAttribute('data-active')).toBe(true);
+
+      await pressKey('ArrowDown');
+      expect(enabled?.hasAttribute('data-active')).toBe(true);
+      expect(disabled?.hasAttribute('data-active')).toBe(false);
+      await pressKey('ArrowUp');
+      expect(disabled?.hasAttribute('data-active')).toBe(false);
+
+      await pressKey('Enter');
+      expect(onEnabled).toHaveBeenCalledTimes(1);
+      expect(onDisabled).not.toHaveBeenCalled();
+    });
+
+    it('should leave nothing active and select nothing on Enter when every item is disabled', async () => {
+      const onDisabled = vi.fn();
       await render(
         <Command>
           <Command.Input />
           <Command.List>
-            <Command.Item
-              value="disabled-click"
-              forceId="disabled-click"
-              disabled
-              onSelect={onSelect}
-            >
-              Can't click me
+            <Command.Item value="only" forceId="only" disabled onSelect={onDisabled}>
+              Only
             </Command.Item>
           </Command.List>
         </Command>,
       );
 
-      // Disabled items are filtered out, so click on the item div directly won't call select
-      // The machine filters out disabled items, so the item won't render at all
-      // But if it were somehow rendered, onSelect wouldn't fire
-      expect(onSelect).not.toHaveBeenCalled();
+      const only = container.querySelector('#only');
+      expect(only?.getAttribute('aria-disabled')).toBe('true');
+      expect(only?.hasAttribute('data-active')).toBe(false);
+      await pressKey('Enter');
+      await click(only as Element);
+      expect(onDisabled).not.toHaveBeenCalled();
     });
   });
 

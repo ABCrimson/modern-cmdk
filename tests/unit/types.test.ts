@@ -196,6 +196,13 @@ describe('Type Foundation', () => {
       machine.send({ type: 'ITEM_SELECT', id: itemId('picked') });
       await vi.waitFor(() => expect(onSelect).toHaveBeenCalledExactlyOnceWith('picked'));
     });
+
+    it("should type disabledItems as an optional 'hide' | 'show'", () => {
+      expectTypeOf<CommandMachineOptions['disabledItems']>().toEqualTypeOf<
+        'hide' | 'show' | undefined
+      >();
+      expect(createCommandMachine({ disabledItems: 'hide' })[Symbol.dispose]()).toBeUndefined();
+    });
   });
 
   describe('FrecencyDecayConfig', () => {

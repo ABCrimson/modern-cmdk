@@ -49,7 +49,7 @@ export interface CommandItem {
   readonly groupId?: GroupId | undefined;
   /** Keyboard shortcut string (e.g., "Ctrl+C", "Mod+K") */
   readonly shortcut?: string | undefined;
-  /** Whether this item is disabled (excluded from filtering and selection) */
+  /** Whether this item is disabled: excluded from navigation and selection; rendered unless `disabledItems: 'hide'` */
   readonly disabled?: boolean | undefined;
   /** Callback fired when this item is selected */
   readonly onSelect?: (() => void) | undefined;
@@ -188,6 +188,12 @@ export interface CommandMachineOptions {
   readonly onSearchChange?: ((query: string) => void) | undefined;
   /** Whether keyboard navigation loops from last to first item (default: true) */
   readonly loop?: boolean | undefined;
+  /**
+   * How disabled items are listed: `'show'` keeps them in `filteredIds` under every query (rendered with
+   * `aria-disabled`, never active, skipped by navigation and activation, not selectable); `'hide'` drops them
+   * from `filteredIds` in every branch (default: `'show'`)
+   */
+  readonly disabledItems?: 'hide' | 'show' | undefined;
   /** Accepted but not read yet: Command.List uses fixed thresholds (on above 100 matches, off at 50 or fewer) (default: 100) */
   readonly virtualizeThreshold?: number | undefined;
 }

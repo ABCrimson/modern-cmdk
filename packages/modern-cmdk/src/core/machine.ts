@@ -60,8 +60,10 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
   // O(1) membership check — kept in sync with filteredIds
   let filteredIdSet = new Set<ItemId>();
-  // O(1) index lookup — kept in sync with filteredIds for navigate()
+  // O(1) index lookup — kept in sync with filteredIds
   let filteredIdIndex = new Map<ItemId, number>();
+  // The filtered ids that navigation and activation may land on (disabled ones left out), same order
+  let navIds: ItemId[] = [];
 
   const registry = new CommandRegistry();
   // Pluggable search engine: use options.search if provided, otherwise create default.
@@ -138,18 +140,17 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
 
   function refilter(query: string): void {
     dirty = false;
-    const items = registry.getItems();
+    const items =
+      options.disabledItems === 'hide'
+        ? registry.getItems().filter((i) => !i.disabled)
+        : registry.getItems();
     const disableFilter = options.filter === false;
 
     let filteredIds: ItemId[];
 
     if (disableFilter || query === '') {
       // Iterator Helper pipeline — no manual for...push
-      filteredIds = items
-        .values()
-        .filter((i) => !i.disabled)
-        .map((i) => i.id)
-        .toArray();
+      filteredIds = items.map((i) => i.id);
     } else {
       let results: readonly SearchResult[] = searchEngine.search(query, items).toArray();
 
@@ -176,11 +177,14 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       return (item?.groupId ?? ('__ungrouped' as GroupId)) as GroupId;
     });
 
-    // Select first item if no active or active is no longer visible
+    // Navigation list: disabled items are listed but never active
+    navIds = filteredIds.filter(isEnabled);
+
+    // Keep the active item while it is still listed and enabled, else the first enabled one
     const activeId =
-      state.activeId && filteredIdSet.has(state.activeId)
+      state.activeId && filteredIdSet.has(state.activeId) && isEnabled(state.activeId)
         ? state.activeId
-        : (filteredIds[0] ?? null);
+        : (navIds[0] ?? null);
 
     setState({
       search: query,
@@ -191,14 +195,17 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     });
   }
 
+  function isEnabled(id: ItemId): boolean {
+    return !registry.getItem(id)?.disabled;
+  }
+
   function navigate(direction: 'next' | 'prev' | 'first' | 'last'): void {
-    const { filteredIds, activeId } = state;
-    const last = filteredIds.length - 1;
+    const { activeId } = state;
+    const last = navIds.length - 1;
     if (last < 0) return;
 
     const loop = options.loop ?? true;
-    // O(1) index lookup via Map instead of O(n) indexOf
-    const current = activeId ? (filteredIdIndex.get(activeId) ?? -1) : -1;
+    const current = activeId ? navIds.indexOf(activeId) : -1;
     let index: number;
 
     if (direction === 'first') index = 0;
@@ -207,7 +214,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       index = current < 0 || current >= last ? (loop ? 0 : last) : current + 1;
     else index = current <= 0 ? (loop ? last : 0) : current - 1;
 
-    const newActiveId = filteredIds[index] ?? null;
+    const newActiveId = navIds[index] ?? null;
     if (newActiveId !== activeId) {
       setState({ activeId: newActiveId });
       options.onActiveChange?.(newActiveId);
@@ -249,8 +256,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       }
 
       case 'ITEM_ACTIVATE':
-        // O(1) Set.has instead of O(n) Array.includes
-        if (filteredIdSet.has(event.id)) {
+        // O(1) Set.has instead of O(n) Array.includes; a disabled item cannot become active
+        if (filteredIdSet.has(event.id) && isEnabled(event.id)) {
           setState({ activeId: event.id });
           options.onActiveChange?.(event.id);
         }
