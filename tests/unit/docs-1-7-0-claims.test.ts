@@ -28,6 +28,7 @@
 //     RA-26 activity.tsx   RA-28 shortcut.tsx   RA-29 page.tsx   RA-30 dialog.tsx   RA-70
 //       dialog.tsx and command.tsx   RA-85 dialog.tsx (the open and onOpenChange JSDoc)
 //     RA-86 activity.tsx (the CommandActivity JSDoc) and api/command-react.md (Command.Activity)
+//     CE-125 core/types.ts (the CommandGroup JSDoc)
 //   Delta table
 //     guide/migration-from-cmdk.md renders every row of tests/unit/cmdk-parity-delta.json (not a
 //       ledger row)
@@ -508,6 +509,26 @@ describe('docs rows of 1.7.0', () => {
     expect(row, 'DAE-37: no claim that React sorts the groups by the number').not.toMatch(
       /\b(?:sort\w*|order\w*|render\w*|arrang\w*)\s+(?:the\s+)?(?:groups\s+)?by\s+(?:this\s+number|`?priority`?)|\b(?:in|by)\s+(?:`?priority`?|numeric|number)\s+order\b|\bpriority order\b/i,
     );
+  });
+
+  it('CE-125: core/types.ts CommandGroup JSDoc says priority orders groupedIds and getGroups, not the React render order', () => {
+    // `priority` orders the keys of `CommandState.groupedIds` (core/machine.ts, the refilter) and
+    // `getGroups()` (core/registry.ts); the React adapter renders `<Command.Group>` elements in JSX
+    // order. The JSDoc of the interface and of its `priority` member is the hover text of the type.
+    const file = 'packages/modern-cmdk/src/core/types.ts';
+    const doc: string = `${jsdocAbove(file, /^export interface CommandGroup\b/)} ${jsdocAbove(file, /^\s*readonly priority\?:/)}`;
+    expect(doc, 'CE-125: the JSDoc names groupedIds').toContain('groupedIds');
+    expect(doc, 'CE-125: the JSDoc names getGroups').toContain('getGroups');
+    // A sentence that says the groups are rendered, displayed, shown, listed or sorted by priority
+    // (or that lower values appear first) is the false claim, unless the same sentence names the
+    // keys of groupedIds, getGroups() or the JSX order.
+    const claim =
+      /\b(?:render\w*|display\w*|show\w*|shown|list\w*|sort\w*|order\w*|arrang\w*|appear\w*)\b[^.]*\b(?:by|in|with)\s+(?:`?priority`?|numeric|priority order)|\bpriority order\b|\blower (?:values?|numbers?)\b[^.]*\b(?:appear\w*|render\w*|show\w*|display\w*|first)\b/i;
+    const qualified = /\bgroupedIds\b|\bgetGroups\b|\bkeys\b|\bJSX\b/;
+    expect(
+      sentences(doc).filter((s) => claim.test(s) && !qualified.test(s)),
+      'CE-125: no sentence says the groups are rendered or displayed in priority order',
+    ).toEqual([]);
   });
 
   it('DAE-38: api/command-react.md Dialog open row states the controlled contract and a closed uncontrolled start', () => {
