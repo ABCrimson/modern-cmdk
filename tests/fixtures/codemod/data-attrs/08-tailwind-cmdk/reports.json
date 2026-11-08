@@ -1,3 +1,4 @@
 [
+  "line 10: group-data-[selected=true]: styles this element by the state of another element (an ancestor or a sibling) that need not be a cmdk element, so it cannot be migrated automatically; left unchanged",
   "line 20: data-[selected=false]: has no modern-cmdk equivalent, data-active is a presence attribute with no false value (use not-data-active:); left unchanged"
 ]

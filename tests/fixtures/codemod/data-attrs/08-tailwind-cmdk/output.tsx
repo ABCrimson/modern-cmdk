@@ -7,7 +7,7 @@ export function Item({ className }: { className?: string }) {
       className={cn(
         'data-active:bg-accent data-disabled:opacity-50',
         className,
-        `group-data-active:text-white ${className}`,
+        `group-data-[selected=true]:text-white ${className}`,
       )}
     />
   );

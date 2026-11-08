@@ -73,6 +73,8 @@ const TITLES: Readonly<Record<string, string>> = {
     "DA-3: inside the :is(), :not() or :where() of a [&...] arbitrary variant a state attribute before a _, >, + or ~ sits on another element and stays as it is; the argument's subject is rewritten",
   '29-attribute-name-case':
     'DA-11: cmdk attribute names match case-insensitively, as in an HTML document: [CMDK-ITEM], [DATA-SELECTED] and a CMDK-ROOT JSX attribute are rewritten, CMDK-LABEL is reported',
+  '30-tailwind-group-peer':
+    "DA-12: group-, peer- and in- data variants style a bound element by another element's state and are reported, not rewritten; the element's own data-[selected=true]: still is",
 };
 
 const cases = listCases('data-attrs');
