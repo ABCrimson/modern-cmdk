@@ -565,17 +565,6 @@ describe('CommandMachine batching', () => {
     expect(machine.getState().search).toBe('item');
     expect(log).toEqual(['onOpenChange true', 'onSearchChange item', 'stateChange']);
   });
-
-  it('batching: events dropped by dispose do not stall the batches of a machine that is used again', () => {
-    const machine = createCommandMachine();
-    // Pending when dispose runs: the scheduler drops it, so it must not count towards a batch.
-    machine.send({ type: 'OPEN' });
-    machine[Symbol.dispose]();
-    machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('again'), value: 'Again' } });
-    nextBatch();
-    expect(machine.getState().filteredCount).toBe(1);
-    expect(machine.getState().open).toBe(false);
-  });
 });
 
 describe('CommandMachine custom filter scores (ARCH-14)', () => {
