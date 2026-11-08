@@ -509,14 +509,17 @@ describe('docs rows of 1.7.0', () => {
     const doc: string = `${jsdocAbove(file, /^export interface CommandGroup\b/)} ${jsdocAbove(file, /^\s*readonly priority\?:/)}`;
     expect(doc, 'CE-125: the JSDoc names groupedIds').toContain('groupedIds');
     expect(doc, 'CE-125: the JSDoc names getGroups').toContain('getGroups');
-    // A sentence that says the groups are rendered, displayed, shown, listed or sorted by priority
-    // (or that lower values appear first) is the false claim, unless the same sentence names the
-    // keys of groupedIds, getGroups() or the JSX order.
-    const claim =
-      /\b(?:render\w*|display\w*|show\w*|shown|list\w*|sort\w*|order\w*|arrang\w*|appear\w*)\b[^.]*\b(?:by|in|with)\s+(?:`?priority`?|numeric|priority order)|\bpriority order\b|\blower (?:values?|numbers?)\b[^.]*\b(?:appear\w*|render\w*|show\w*|display\w*|first)\b/i;
-    const qualified = /\bgroupedIds\b|\bgetGroups\b|\bkeys\b|\bJSX\b/;
+    // A sentence that says the groups are rendered, displayed, shown, listed or arranged by
+    // priority (or that lower values appear first) is the false claim, even when it names JSX or
+    // the data. A sentence that says the groups are sorted or ordered by priority is the false
+    // claim unless it names the data the number does order (groupedIds, getGroups).
+    const shown =
+      /\b(?:render\w*|display\w*|show\w*|shown|list\w*|arrang\w*|appear\w*)\b(?:(?!\b(?:not|never|regardless|rather|instead|independent\w*)\b)[^.;])*?\b(?:by|in|with|on)\s+(?:(?:ascending|descending|numeric)\s+)?(?:`?priority`?|numeric order|priority order)\b|\blower (?:values?|numbers?|priorit\w*)\b[^.;]*\b(?:appear\w*|render\w*|show\w*|display\w*|on top)\b/i;
+    const sorted =
+      /\b(?:sort\w*|order\w*)\b(?:(?!\b(?:not|never|regardless|rather|instead|independent\w*)\b)[^.;])*?\bby\s+(?:(?:ascending|descending)\s+)?`?priority`?|\bpriority order\b|\blower (?:values?|numbers?)\b[^.;]*\bfirst\b/i;
+    const dataNamed = /\bgroupedIds\b|\bgetGroups\b/;
     expect(
-      sentences(doc).filter((s) => claim.test(s) && !qualified.test(s)),
+      sentences(doc).filter((s) => shown.test(s) || (sorted.test(s) && !dataNamed.test(s))),
       'CE-125: no sentence says the groups are rendered or displayed in priority order',
     ).toEqual([]);
   });
@@ -756,17 +759,24 @@ describe('docs rows of 1.7.0', () => {
     }
     // The false claim: a Suspense around the AsyncItems shows the AsyncItems fallback (the
     // component renders its own boundary and its `fallback` prop). The anchor above pins the
-    // samples; this pins the prose: a sentence about an enclosing `<Suspense>` that shows,
-    // displays or renders a fallback carries a negation.
+    // samples; this pins the prose: a comma clause about an enclosing Suspense that shows,
+    // displays or renders a fallback carries a negation in the same clause.
     const loading: string = sectionOf(`${DOCS}guide/async-items.md`, /^Loading States$/);
     const fallbackRow: string = tableRow(
       sectionOf(`${DOCS}guide/async-items.md`, /^Props$/),
       /^\| `fallback` \|/,
     );
     const outerShows =
-      /(?=.*<Suspense>)(?=.*\b(?:enclos\w*|outer|surround\w*|wrap\w*|parent|ancestor|higher up|further up|around it|above it)\b)(?=.*\b(?:shows?|displays?|renders?|catch\w*|handles?|provides?)\b[^.]*\bfallback\b)/i;
+      /(?=.*\bSuspense\b)(?=.*\b(?:enclos\w*|outer|surround\w*|wrap\w*|parent|ancestor|higher up|further up|around (?:it|the list|the items)|above it)\b)(?=.*\b(?:shows?|displays?|renders?|catch\w*|handles?|provides?|appears?|visible)\b)(?=.*\bfallback\b)/i;
+    const clauseClaims = (text: string): string[] =>
+      sentences(text)
+        .flatMap((s) => s.split(/,\s+/))
+        .filter(
+          (c) =>
+            outerShows.test(c) && !/\b(?:no|not|never|without|neither|nor|none)\b|n't\b/i.test(c),
+        );
     expect(
-      [...claimsOf(loading, outerShows), ...claimsOf(fallbackRow, outerShows)],
+      [...clauseClaims(loading), ...clauseClaims(fallbackRow)],
       'DG-74: no sentence says an enclosing Suspense shows the fallback',
     ).toEqual([]);
   });
