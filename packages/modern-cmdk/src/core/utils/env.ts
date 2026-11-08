@@ -13,9 +13,10 @@ declare const process: { readonly env: { readonly NODE_ENV?: string } };
  *   catch makes `dev` `false`, and the first operand short-circuits before the bare `process` at the use site.
  * - Development bundle (Vite's dev server defines `process.env.NODE_ENV` as `"development"`, still without a
  *   `process` global): both operands are `true`.
- * - Production bundle: the define turns the use site into `dev && false`, which the minifier folds. A `const`
- *   read has no side effect, so the `@__PURE__`-marked call is then unused and the minifier drops it with its
- *   branch. The comparison repeats at the use site because a flag alone is a runtime value the minifier cannot fold.
+ * - Production bundle: the define turns the use site into `dev && false`, which minifiers fold, so the development
+ *   branch and its warning strings leave the bundle. Whether the then unused flag is also dropped depends on the
+ *   minifier (rolldown 1.2.16 drops the `@__PURE__`-marked call; esbuild 0.28.2 keeps it, about 40 B). The comparison
+ *   repeats at the use site because a flag alone is a runtime value a minifier cannot fold.
  */
 export const dev: boolean = /* @__PURE__ */ (() => {
   try {
