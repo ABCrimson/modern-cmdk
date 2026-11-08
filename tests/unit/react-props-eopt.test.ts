@@ -14,6 +14,7 @@ import type {
   CommandPageId,
   CommandPageProps,
   CommandRootProps,
+  CommandSeparatorProps,
   CommandShortcutProps,
   RegisterGroupOptions,
   RegisterItemOptions,
@@ -85,6 +86,7 @@ describe('React prop types (C2)', () => {
     };
     type LoadingUndefined = { loading: undefined };
     type PageUndefined = { id: string; children: undefined };
+    type SeparatorUndefined = { alwaysRender: undefined };
     type ShortcutUndefined = { shortcut: undefined };
     type RegisterItemUndefined = {
       keywords: undefined;
@@ -116,6 +118,7 @@ describe('React prop types (C2)', () => {
     expectTypeOf<ListUndefined>().toExtend<CommandListProps>();
     expectTypeOf<LoadingUndefined>().toExtend<CommandLoadingProps>();
     expectTypeOf<PageUndefined>().toExtend<CommandPageProps>();
+    expectTypeOf<SeparatorUndefined>().toExtend<CommandSeparatorProps>();
     expectTypeOf<ShortcutUndefined>().toExtend<CommandShortcutProps>();
     expectTypeOf<RegisterItemUndefined>().toExtend<RegisterItemOptions>();
     expectTypeOf<RegisterGroupUndefined>().toExtend<RegisterGroupOptions>();
