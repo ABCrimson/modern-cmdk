@@ -794,9 +794,10 @@ export class ParitySession {
 
   /**
    * Presses Escape on the focused element (`document.body` when nothing has focus) as a browser
-   * does: a cancelable keydown that bubbles up to `document`, where Radix listens for it. The
-   * event must be cancelable, because Radix calls `preventDefault()` on it and modern-cmdk reads
-   * `defaultPrevented` to avoid sending a second close.
+   * does: a cancelable keydown that bubbles. Radix listens for it on `document` in the capture
+   * phase, so its `preventDefault()` runs before the palette's own bubble-phase listener on
+   * `document` reads `defaultPrevented` and skips a second close. On an event that is not
+   * cancelable that call does nothing, and modern-cmdk reports the close twice.
    */
   async pressEscapeOnFocus(): Promise<void> {
     const target = document.activeElement ?? document.body;
