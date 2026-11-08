@@ -36,15 +36,7 @@ export class CommandRegistry implements Disposable {
 
   /** Register an item — returns Disposable for `using` auto-deregister */
   registerItem(item: CommandItem): Disposable {
-    this.#items.set(item.id, item);
-    this.#itemOrderSet.add(item.id);
-    this.#invalidateCache();
-
-    return {
-      [Symbol.dispose]: (): void => {
-        this.unregisterItem(item.id);
-      },
-    };
+    return this.registerItems([item]);
   }
 
   /** Register multiple items at once — single Disposable for batch cleanup. for...of for hot path. */
@@ -55,11 +47,12 @@ export class CommandRegistry implements Disposable {
     }
     this.#invalidateCache();
 
-    const ids = new Set(items.values().map((i) => i.id));
     return {
+      // A stale handle must not delete a newer item registered under the same id
       [Symbol.dispose]: (): void => {
-        // Batch unregister — one unregisterItems(ids) call instead of per-item unregisterItem calls
-        this.unregisterItems(ids);
+        for (const item of items) {
+          if (this.#items.get(item.id) === item) this.unregisterItem(item.id);
+        }
       },
     };
   }
@@ -86,8 +79,7 @@ export class CommandRegistry implements Disposable {
     this.#invalidateGroupCache();
     return {
       [Symbol.dispose]: (): void => {
-        this.#groups.delete(group.id);
-        this.#invalidateGroupCache();
+        if (this.#groups.get(group.id) === group) this.unregisterGroup(group.id);
       },
     };
   }
