@@ -478,7 +478,7 @@
       "shown": ["banana"],
       "active": "banana"
     },
-    "reason": "Both keep only the items that match the typed query and make the best match active.",
+    "reason": "Both keep only the items that match the typed query and make the only match active.",
     "ref": "T08"
   },
   "filter-cleared": {
@@ -492,7 +492,7 @@
       "active": "banana"
     },
     "reason": "After the search is cleared both show every item in source order. cmdk makes the first item active again; modern-cmdk keeps the item that was active for the search (banana here).",
-    "ref": "T08"
+    "ref": "RA-84"
   },
   "filter-ranking-order": {
     "status": "differs",
@@ -504,15 +504,15 @@
       "shown": ["applesauce", "pineapple", "apple"],
       "active": "applesauce"
     },
-    "reason": "The built-in filters rank the same query differently: for \"apple\" cmdk puts the apple item first and re-orders the DOM, while modern-cmdk keeps source order in the DOM and makes applesauce, the first item of its own ranking, active. Rely on the active item, not on DOM order, in modern-cmdk.",
-    "ref": "T08"
+    "reason": "Both rank apple first for \"apple\". cmdk re-orders the DOM by rank and makes the top match active. modern-cmdk keeps the item that was active before the search while it still matches, so here applesauce stays active and Enter selects it, and in 1.7 it leaves the DOM in source order, which RA-02 changes to rank order in 1.8.0.",
+    "ref": "RA-02, RA-84"
   },
   "first-match-active": {
     "status": "same",
     "cmdk": "cherry",
     "modernCmdk": "cherry",
-    "reason": "Both make the first match the active item after a search.",
-    "ref": "T08"
+    "reason": "Both make the first match active when the item that was active before the search no longer matches.",
+    "ref": "RA-84"
   },
   "keywords": {
     "status": "same",
@@ -543,8 +543,8 @@
       "afterArrowDown": "cherry",
       "afterSecondArrowDown": "pineapple"
     },
-    "reason": "Both keep the items a custom filter scores above 0 and make the best-scored item active first, then step by score with the arrow keys. cmdk re-orders its DOM by score; modern-cmdk leaves the DOM in source order. cmdk's filter prop is (value, search, keywords) and modern-cmdk's is (item, query).",
-    "ref": "T08"
+    "reason": "Both keep the items a custom filter scores above 0 and make the best-scored item active first, then step by score with the arrow keys. cmdk re-orders its DOM by score; modern-cmdk 1.7 leaves the DOM in source order, which RA-02 changes in 1.8.0. cmdk's filter prop is (value, search, keywords) and modern-cmdk's is (item, query).",
+    "ref": "RA-02"
   },
   "custom-filter-exclusion": {
     "status": "same",
@@ -663,7 +663,7 @@
       "activeAfterClick": "apple",
       "afterEnter": ["banana", "banana"]
     },
-    "reason": "A click selects the clicked item in both. cmdk also makes the clicked item the active one, so the next arrow key and Enter start from it; modern-cmdk leaves the active item where it was, so the next arrow key and Enter start from there.",
+    "reason": "cmdk makes the clicked item active. modern-cmdk makes an item active on pointer move or the keyboard, not on click, so a tap or a programmatic click leaves the active item where it was (with a mouse, the pointer move before the click makes it active in both).",
     "ref": "T08"
   },
   "select-callback-arguments": {
