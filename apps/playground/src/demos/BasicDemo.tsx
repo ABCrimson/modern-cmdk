@@ -1,11 +1,11 @@
 'use client';
 
 // apps/playground/src/demos/BasicDemo.tsx
-// Basic inline command palette with ~15 items across 3 groups
-// React 19: useId, useCallback
+// Basic inline command palette with 15 items across 3 groups
+// Hooks: useId, useState
 
 import { Command, useCommandDevtools } from 'modern-cmdk/react';
-import { useCallback, useId } from 'react';
+import { useId, useState } from 'react';
 
 /**
  * Registers this palette on `globalThis.__MODERN_CMDK_DEVTOOLS__` and fires `modern-cmdk-devtools`
@@ -18,9 +18,8 @@ function DevtoolsBridge(): null {
 
 export function BasicDemo(): React.ReactNode {
   const headingId = useId();
-  const handleSelect = useCallback((_item: string) => {
-    // Selection handler — wired to analytics/telemetry in production
-  }, []);
+  const [lastSelected, setLastSelected] = useState('');
+  const handleSelect = (item: string): void => setLastSelected(item);
 
   return (
     <div className="demo-container" role="region" aria-labelledby={headingId}>
@@ -235,6 +234,10 @@ export function BasicDemo(): React.ReactNode {
           </Command.Group>
         </Command.List>
       </Command>
+
+      <p>
+        Last selected: <output data-testid="last-selected">{lastSelected}</output>
+      </p>
     </div>
   );
 }
