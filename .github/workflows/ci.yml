@@ -551,12 +551,13 @@ jobs:
     name: Browser bench (Chromium, 10K mount gate)
     needs: build
     runs-on: ubuntu-26.04
-    # A hang bound, not a mask. The harness takes 3 minutes (185 s on the author's laptop, 181 s on the
-    # verifier's: 8 runs of ~23 s at 10K while the mount is unbatched, 8 of ~0.5 s at 1K) and fails each wait
-    # on its own bound, but the worst case of those bounds added up is far past any sane limit, so the
-    # harness carries an overall deadline (HARNESS_DEADLINE_MS, 15 minutes) that fails it loudly (exit 2,
-    # naming where it was) first. This timeout is that deadline plus 10 minutes of checkout, install,
-    # dist download and Chromium install with its bounded retry.
+    # A hang bound, not a mask. On CI run 42455685144 (2026-11-08) the harness step ran from 06:41:51Z to
+    # 06:42:12Z, about 21 s (total_wall_ms 19310 in its results file): 8 runs at 10K of 1764 to 1974 ms
+    # wall each and 8 at 1K of 493 to 592 ms, and the whole job 62 s. The harness fails each wait on its
+    # own bound, but the worst case of those bounds added up is far past any sane limit, so the harness
+    # carries an overall deadline (HARNESS_DEADLINE_MS, 15 minutes) that fails it loudly (exit 2, naming
+    # where it was) first. This timeout is that deadline plus 10 minutes of checkout, install, dist
+    # download and Chromium install with its bounded retry; the derivation holds, so the value stays 25.
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

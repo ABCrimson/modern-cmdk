@@ -58,10 +58,13 @@ const DATASET_VARIANT = 'basic';
 
 /**
  * Bounds on every wait, in ms. A failed wait fails the whole run loudly (exit 2) naming N, run and
- * metric; nothing is retried and a bound is never raised to mask a slow run. The 10K mount registers
- * 10K items twice (the list switches to its virtual wrapper and remounts them), ~15 s on this
- * branch's unbatched path on a developer laptop (P05 measured ~9.9 s for the first registration
- * alone), so the 10K settle bound is 8x that; the 1K bound is the same factor of its ~1 s.
+ * metric; nothing is retried and a bound is never raised to mask a slow run. Every bound is a hang
+ * bound, far above what a run takes: on CI run 42455685144 (2026-11-08, ubuntu-26.04 runner,
+ * benchmarks/browser/results/1.4.0-8362840.json) a measured run's wall was 1764 to 1974 ms at 10K and
+ * 493 to 528 ms at 1K (the warm-up runs 1784 and 592 ms). The mounted wait is bounded at 120 s at
+ * 10K (about 60x the slowest 10K run's wall) and 30 s at 1K (about 57x the slowest 1K run's wall);
+ * the page load, key press and filter waits are 10 to 30 s against sub-second steps. Lowering a bound
+ * buys nothing and risks a false failure on a slower runner.
  */
 const TIMEOUT_MS = {
   build: 300_000,
