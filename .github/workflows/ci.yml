@@ -417,8 +417,8 @@ jobs:
           sha256: 1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
           path-in-archive: lychee-x86_64-unknown-linux-gnu/lychee
           tool: lychee
-      # The run lychee-action v2.9.0 performs (its entrypoint.sh with fail, failIfEmpty and checkbox on, format markdown): a task-list
-      # Markdown report, the report in the job summary, and a failure on any lychee error or when no link was found.
+      # The run lychee-action v2.9.0 performs (its entrypoint.sh with fail, failIfEmpty and checkbox on, format markdown): a Markdown
+      # report (--mode task is kept for parity; lychee 0.24.2 renders the same markdown with it), the report in the job summary, and a failure on any lychee error or when no link was found.
       # The repository's own github.com pages are excluded here (lychee 0.24.2 chains CLI --exclude onto lychee.toml's
       # exclude list; it does not replace it): a GitHub 5xx on them failed this job in run 41998415732 even with
       # lychee.toml's max_retries = 6. The job's last step, node scripts/check-repo-links.ts (after setup-node), checks the blob/, tree/ and raw/ paths into
@@ -430,13 +430,17 @@ jobs:
           # Authenticated GitHub API calls: unauthenticated link checks are rate-limited
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -uo pipefail
+          set -euo pipefail
           report="$RUNNER_TEMP/lychee-report.md"
+          status=0
           lychee --mode task --format markdown --output "$report" \
             --config lychee.toml --no-progress \
             --exclude '^https://github\.com/ABCrimson/modern-cmdk(\.git)?([/#?]|$)' \
-            README.md 'packages/*/README.md' CONTRIBUTING.md SECURITY.md ARCHITECTURE.md 'apps/docs/**/*.md'
-          status=$?
+            README.md 'packages/*/README.md' CONTRIBUTING.md SECURITY.md ARCHITECTURE.md 'apps/docs/**/*.md' || status=$?
+          if [ ! -f "$report" ]; then
+            echo "::error::lychee wrote no report (exit $status); see its output above"
+            exit "$(( status == 0 ? 1 : status ))"
+          fi
           cat "$report" >> "$GITHUB_STEP_SUMMARY"
           cat "$report"
           if grep -E 'Total\s+\|\s+0' "$report"; then
@@ -685,9 +689,10 @@ jobs:
             tar -xzf "$tarball" -C "$RUNNER_TEMP/sbom-src/$name"
           done
           printf 'select-catalogers:\n  - "+javascript-package-cataloger"\n' > "$RUNNER_TEMP/syft.yaml"
-      # sbom-action v0.24.3 looks for syft in the runner tool cache (actions/tool-cache find('syft', '1.57.0'), the folder
-      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and downloads syft's install.sh and checksums file, with no
-      # retry, only on a miss; a GitHub release-host HTTP 504 on the checksums file failed this job on four of five attempts. The local
+      # sbom-action v0.24.3 looks for syft in the runner tool cache (actions/tool-cache find('syft', 'v1.57.0'), which semver.clean reduces to
+      # 1.57.0: the folder $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and, only on a miss, downloads syft's
+      # install.sh through @actions/tool-cache (three attempts); install.sh fetches the checksums file and the tarball with one curl
+      # each; a GitHub release-host HTTP 504 on the checksums file failed this job on four of five attempts. The local
       # install-release-binary action seeds that folder from the release tarball (up to eight attempts, gh release download then curl
       # with retries, and a pinned sha256), so the action finds syft and skips its download. The sha256 is the tarball's GitHub asset
       # digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest').
