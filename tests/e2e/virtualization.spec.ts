@@ -1,13 +1,14 @@
-import { expect, type Page, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, open, test } from './fixtures';
 
 // Locator-first assertions, toBeInViewport()
 // 2000 items: well above the 100-item virtualization threshold,
 // fast enough for parallel E2E workers (10K hangs the browser).
 const virtualizationUrl = '/virtualization?count=2000';
 
-test.describe('Virtualization — Large Item Set', () => {
+test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(virtualizationUrl);
+    await open(page, virtualizationUrl);
     // Wait for hydration using locator-first pattern
     await expect(page.locator('[data-command-root]')).toBeVisible();
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
@@ -350,7 +351,7 @@ test.describe('Virtualization — Large Item Set', () => {
     // Navigate to the virtualization page and measure performance
     const startTime = Date.now();
 
-    await page.goto(virtualizationUrl);
+    await open(page, virtualizationUrl);
     await expect(page.locator('[data-command-root]')).toBeVisible();
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
 
@@ -534,11 +535,11 @@ async function hoverEveryVisibleRow(page: Page): Promise<number> {
 
 // Navigates to the virtualized demo once the test has registered its routes, and waits for a row.
 async function openVirtualizedDemo(page: Page): Promise<void> {
-  await page.goto(virtualizationUrl);
+  await open(page, virtualizationUrl);
   await expect(page.locator('[data-command-item]').first()).toBeVisible();
 }
 
-test.describe('Virtualization — scroll to the active row (CE-119)', () => {
+test.describe('Virtualization — scroll to the active row (CE-119)', { tag: '@virtual' }, () => {
   // The whole list (its bottom edge sits near y = 1000 in the playground) fits the page viewport, so the mouse can reach every row
   test.use({ viewport: { width: 1280, height: 1100 } });
 
@@ -550,7 +551,8 @@ test.describe('Virtualization — scroll to the active row (CE-119)', () => {
   });
 
   // A late font swap moves the rows between the position read and the pointer move. The fonts load
-  // before the first render, so holding every font response cannot move a row.
+  // before the first render, so holding every font response cannot move a row; the fonts.ready wait
+  // of open() is a second guard.
   test('TEB-104: the CE-119 hover case passes without a per-describe fonts wait', async ({
     page,
   }) => {
