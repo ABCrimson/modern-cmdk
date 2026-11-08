@@ -102,7 +102,19 @@ onMounted(() => {
         />
       </div>
 
-      <div class="mc-scroller">
+      <!-- The scrolling region is the listbox itself once the engine runs. axe 4.14.0 (installed) reports
+           scrollable-region-focusable (https://dequeuniversity.com/rules/axe/4.14/scrollable-region-focusable, read
+           2026-11-07) for a scrolling div that is not a listbox; with the region as the listbox, axe passes in the hydrated
+           and empty states. The combobox input keeps focus and points at the listbox with aria-controls and
+           aria-activedescendant, so Tab still leaves the palette in one step and no tabindex is added. Before mount the
+           region holds real links, which are focusable. -->
+      <div
+        ref="list"
+        class="mc-scroller"
+        :id="palette.ready ? palette.listId : undefined"
+        :role="palette.ready && !palette.showEmpty ? 'listbox' : undefined"
+        :aria-labelledby="palette.ready && !palette.showEmpty ? palette.headingId : undefined"
+      >
         <template v-if="!palette.ready">
           <!-- The same heading the mounted list opens with, so the first row keeps its y through hydration. -->
           <div :id="palette.ssrHeadingId" class="mc-group-heading" :aria-hidden="palette.ssrHeading ? undefined : 'true'">{{ palette.ssrHeading }}</div>
@@ -116,7 +128,6 @@ onMounted(() => {
         </ul>
         </template>
         <template v-else>
-          <div v-show="!palette.showEmpty" :id="palette.listId" ref="list" class="mc-list" role="listbox" :aria-labelledby="palette.headingId">
             <div v-for="group in palette.groups" :key="group.key" class="mc-group" role="group" :aria-labelledby="group.headingId">
               <div :id="group.headingId" class="mc-group-heading">{{ group.heading }}</div>
               <div
@@ -140,7 +151,6 @@ onMounted(() => {
                 <span class="mc-kind">{{ palette.copiedId === row.id ? 'Copied' : row.entry.kind }}</span>
               </div>
             </div>
-          </div>
           <p v-if="palette.showEmpty" class="mc-empty">No command matches “{{ palette.shownQuery }}”. Try ‘frecency’ or ‘dark’.</p>
         </template>
       </div>
@@ -150,13 +160,17 @@ onMounted(() => {
         <button v-else-if="palette.autoplaying" class="mc-pause" data-mc="palette-pause" type="button" @click="palette.pauseAutoplay">
           Pause demo
         </button>
-        <p v-else class="mc-hints">
+        <template v-else>
+        <p class="mc-hints">
           <span class="mc-hint"
             ><span class="mc-keys" role="img" aria-label="Up and Down arrows"><kbd class="mc-kbd">↑</kbd><kbd class="mc-kbd">↓</kbd></span> move</span
           >
           <span class="mc-hint"><kbd class="mc-kbd">Enter</kbd> open</span>
           <span class="mc-hint"><kbd class="mc-kbd">Esc</kbd> clear</span>
         </p>
+        <!-- Narrow panels hide the hints; the count fills the footer so no empty band is left. -->
+        <span class="mc-count mc-count-narrow">{{ palette.resultCount }} {{ palette.resultCount === 1 ? 'result' : 'results' }}</span>
+        </template>
       </div>
     </div>
     <div class="mc-sr-only" role="status" aria-live="polite" aria-atomic="true">{{ palette.liveMessage }}</div>
@@ -178,7 +192,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   /* Fixed block size: hydration and filtering never shift layout; the list scrolls inside. */
-  block-size: 420px;
+  block-size: 360px;
   overflow: hidden;
   color: var(--mc-text-1);
   font-size: var(--mc-step--1);
@@ -195,8 +209,11 @@ onMounted(() => {
     scale var(--mc-dur-4) var(--mc-ease-spring);
 }
 
-.mc-palette[data-mode='finder'] .mc-frame {
-  block-size: 360px;
+/* 360 px below 960 px in both modes; the hero grows to 420 px from 960 px (design-final.md 3.2). */
+@media (min-width: 960px) {
+  .mc-palette[data-mode='hero'] .mc-frame {
+    block-size: 420px;
+  }
 }
 
 /* Entrance: the end state is shown where @starting-style is unsupported; durations are 0s under reduced motion. */
@@ -435,9 +452,17 @@ onMounted(() => {
   gap: var(--mc-space-1);
 }
 
+.mc-count-narrow {
+  display: none;
+}
+
 @container mc-palette (max-inline-size: 480px) {
   .mc-hints {
     display: none;
+  }
+
+  .mc-count-narrow {
+    display: block;
   }
 }
 

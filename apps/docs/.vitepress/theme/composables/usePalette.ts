@@ -602,7 +602,7 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
   function keepActiveRowVisible(): void {
     const list = elements.list.value;
     const row = list?.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
-    const scroller = list?.parentElement;
+    const scroller = list;
     if (!row || !scroller) return;
     const top = row.offsetTop;
     const bottom = top + row.offsetHeight;
@@ -676,7 +676,11 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
     // Replay what was typed before the engine loaded (or the finder's initial query) as the first SEARCH_CHANGE.
     const first =
       typedBeforeHydration !== '' ? typedBeforeHydration : (options.initialQuery() ?? '');
-    if (first !== '') applyQuery(first);
+    if (first !== '') {
+      applyQuery(first);
+      // Text the visitor typed while the core loaded is announced like any typing; the finder's prefill and the autoplay stay silent.
+      if (typedBeforeHydration !== '') announceResultsSoon();
+    }
 
     await nextTick();
     if (disposed) return;
