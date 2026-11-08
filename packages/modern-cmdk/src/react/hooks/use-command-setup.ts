@@ -32,7 +32,10 @@ type Callback = 'onSearchChange' | 'onActiveChange' | 'onOpenChange';
 
 /**
  * The options object the machine keeps for its whole life: the first render's props, with the callbacks
- * replaced by trampolines over `latest.current`, so a prop change after mount reaches them. `onSelect` forwards
+ * replaced by trampolines over `latest.current` and `activeId`, `loop`, `disabledItems` and `filter` replaced by
+ * getters over it, so a prop change after mount reaches them. The engine kind (a custom scorer or the default)
+ * is chosen once from the first render's `filter`: a value of the other kind keeps the first render's filter,
+ * while `false` and `undefined` share the default engine and switch freely. `onSelect` forwards
  * every call; the others forward a value only when it differs from the last one forwarded (a controlled
  * `activeId` reports every candidate: the caller may have refused the last one). A module-level function, so no
  * closure here sees the machine: the core's FinalizationRegistry holds this object through the search engine's
@@ -50,13 +53,24 @@ function createLiveOptions(
       fwd[key] = value as never;
       (latest.current[name] as ((value: unknown) => void) | undefined)?.(value);
     };
-  return {
-    ...latest.current,
+  const first = latest.current;
+  const options: CommandMachineOptions = {
+    ...first,
+    get filter(): CommandMachineOptions['filter'] {
+      const { filter } = latest.current;
+      return (typeof filter === 'function') === (typeof first.filter === 'function')
+        ? filter
+        : first.filter;
+    },
     onSelect: (id: ItemId): void => latest.current.onSelect?.(id),
     onSearchChange: dedupe('search', 'onSearchChange'),
     onActiveChange: dedupe('activeId', 'onActiveChange'),
     onOpenChange: dedupe('open', 'onOpenChange'),
   };
+  for (const key of ['activeId', 'loop', 'disabledItems'] as const) {
+    Object.defineProperty(options, key, { get: () => latest.current[key], enumerable: true });
+  }
+  return options;
 }
 
 /**
@@ -117,9 +131,15 @@ export function useCommandSetup(
     };
   }, [machine]);
 
-  // Every commit: publish the props to the options object
+  // Every commit: publish the props to the options object, then refilter if `disabledItems` changed (the machine
+  // reads it in its refilter; upserting an unchanged item triggers one)
   useLayoutEffect(() => {
+    const previous = latest.current;
     latest.current = options;
+    if (previous.disabledItems !== options.disabledItems) {
+      const [item] = machine.getRegistry().getItems();
+      if (item) machine.send({ type: 'UPDATE_ITEM', item });
+    }
   });
 
   // Keyboard handler — useMemo (not useCallback) to memoize the factory result
