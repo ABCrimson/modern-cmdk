@@ -44,4 +44,21 @@ describe('codemod: should-filter fixtures', () => {
       expect(again.output).toBe(c.output);
     });
   }
+
+  // The forms the transform header lists as left unchanged (should-filter.ts: filter={x!},
+  // filter={x as F}, filter={o?.f}, filter={super.f}). SEC-52's remaining clause for this fixture
+  // is carried from 1.5.0 by DECISIONS G-41/G-42.
+  it('SEC-52 (G-41/G-42 carry): filter={x!}, {x as F}, {o?.f} and {super.f} are left byte-identical, one computed-value report each', () => {
+    const c = readCase('should-filter', 'SEC-52-unadaptable-filter-forms');
+    const result = run(c.inputPath, c.input);
+    expect(result.output).toBe(c.input);
+    expect(result.reports).toHaveLength(4);
+    for (const report of result.reports) expect(report).toContain('computed where it stands');
+    expect(result.reports.map((r) => /at line (\d+)/.exec(r)?.[1])).toEqual([
+      '10',
+      '11',
+      '12',
+      '15',
+    ]);
+  });
 });
