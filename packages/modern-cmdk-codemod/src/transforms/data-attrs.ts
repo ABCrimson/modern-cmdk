@@ -14,22 +14,23 @@ import type { API, FileInfo } from 'jscodeshift';
 import { printOptions } from '../print-options.js';
 
 // Targets, from what packages/modern-cmdk/src/react renders:
-//   cmdk-root          -> data-command-root           (command.tsx:68; dialog.tsx:114 renders it on the root inside the dialog)
-//   cmdk-dialog        -> data-command-dialog         (dialog.tsx:103, the Dialog.Content element)
-//   cmdk-overlay       -> data-command-overlay        (dialog.tsx:97, the Dialog.Overlay element)
-//   cmdk-input         -> data-command-input          (input.tsx:68)
-//   cmdk-list          -> data-command-list           (list.tsx:158)
-//   cmdk-list-sizer    -> data-command-list-inner     (list.tsx:174: the innerRef element, which the ResizeObserver at
-//                                                      list.tsx:58-73 measures into --command-list-height, set at
-//                                                      list.tsx:105; cmdk's sizer does the same for --cmdk-list-height.
-//                                                      Not rendered while the list is virtualized, where
-//                                                      data-command-list-virtual at list.tsx:168 replaces it)
-//   cmdk-item          -> data-command-item           (item.tsx:84; data-active at :85, data-disabled at :86)
-//   cmdk-group         -> data-command-group          (group.tsx:64)
-//   cmdk-group-heading -> data-command-group-heading  (group.tsx:70)
-//   cmdk-group-items   -> data-command-group-items    (group.tsx:74)
-//   cmdk-separator     -> data-command-separator      (separator.tsx:12)
-//   cmdk-empty         -> data-command-empty          (empty.tsx:24)
+//   cmdk-root          -> data-command-root           (command.tsx:118; dialog.tsx:144 renders it on the root inside the dialog)
+//   cmdk-dialog        -> data-command-dialog         (dialog.tsx:133, the Dialog.Content element)
+//   cmdk-overlay       -> data-command-overlay        (dialog.tsx:126, the Dialog.Overlay element)
+//   cmdk-input         -> data-command-input          (input.tsx:86)
+//   cmdk-list          -> data-command-list           (list.tsx:188)
+//   cmdk-list-sizer    -> data-command-list-inner     (list.tsx:199: the one inner element, innerRef, which the
+//                                                      ResizeObserver at list.tsx:79-85 measures into
+//                                                      --command-list-height, set at list.tsx:125; cmdk's sizer does
+//                                                      the same for --cmdk-list-height. While the list is virtualized
+//                                                      the same element carries data-command-list-virtual
+//                                                      (list.tsx:200) instead of data-command-list-inner)
+//   cmdk-item          -> data-command-item           (item.tsx:113; data-active at :114, data-disabled at :115)
+//   cmdk-group         -> data-command-group          (group.tsx:66)
+//   cmdk-group-heading -> data-command-group-heading  (group.tsx:74)
+//   cmdk-group-items   -> data-command-group-items    (group.tsx:78)
+//   cmdk-separator     -> data-command-separator      (separator.tsx:26)
+//   cmdk-empty         -> data-command-empty          (empty.tsx:28)
 //   cmdk-loading       -> data-command-loading        (loading.tsx:28)
 // The cmdk side is node_modules/cmdk/dist/index.mjs (cmdk 1.1.1), which renders exactly these and cmdk-label.
 // Tailwind: in v4 `data-active:` is the presence variant of [data-active], and `data-[selected=true]:`
