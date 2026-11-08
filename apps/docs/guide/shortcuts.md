@@ -189,9 +189,9 @@ The machine binds each item's `shortcut` in a `KeyboardShortcutRegistry`, which 
 - `unregister(shortcut)` removes every binding of that key. `unregisterByItem(itemId, keep?)` removes the item's bindings, except the one on the `keep` shortcut.
 
 ```typescript
-import { createCommandMachine, itemId } from 'modern-cmdk';
+import { createCommandMachine, itemId, parseShortcut } from 'modern-cmdk';
 
-using machine = createCommandMachine({
+const machine = createCommandMachine({
   items: [
     { id: itemId('copy'), value: 'Copy', shortcut: 'Mod+K', onSelect: () => console.log('copy') },
     { id: itemId('clear'), value: 'Clear', shortcut: 'Mod+K', onSelect: () => console.log('clear') },
@@ -202,7 +202,12 @@ const registry = machine.getKeyboardRegistry();
 for (const [key, shortcuts] of registry.getConflicts()) {
   console.warn(`${shortcuts.length} items share ${key}`); // "2 items share ctrl+k" ('meta+k' on macOS)
 }
-registry.getBindings().get('ctrl+k')?.itemId; // 'clear': the later binding handles the key
+registry.getBindings().get(parseShortcut('Mod+K').normalized)?.itemId; // 'clear': the later binding handles the key
+
+// Dispose on teardown, not at module top level: dispose removes the global shortcut listener.
+export function teardown(): void {
+  machine[Symbol.dispose]();
+}
 ```
 
 What an item's shortcut does follows its state and the `shortcutAction` option:
