@@ -171,12 +171,17 @@ async function measureRun(
   const label = `N=${n} run ${run}`;
   const started = performance.now();
   const context = await browser.newContext();
+  // The full Chromium build asks for /favicon.ico (the playground ships none; the headless shell never asks):
+  // answer it with an empty 204 so the one resource that is not part of the page cannot read as a page error
+  await context.route('**/favicon.ico', (route) => route.fulfill({ status: 204 }));
   try {
     const page = await context.newPage();
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(`pageerror: ${error.message}`));
     page.on('console', (message) => {
-      if (message.type() === 'error') pageErrors.push(`console.error: ${message.text()}`);
+      if (message.type() === 'error') {
+        pageErrors.push(`console.error: ${message.text()} (${message.location().url})`);
+      }
     });
     const failOnPageErrors = (): void => {
       if (pageErrors.length > 0) throw new Error(`${label}: ${pageErrors.join(' | ')}`);
