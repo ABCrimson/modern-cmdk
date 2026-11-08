@@ -25,9 +25,8 @@ declare const __groupIdBrand: unique symbol;
 export type GroupId = string & { readonly [__groupIdBrand]: never };
 
 /**
- * The `groupedIds` key of items that have no group. Reserved: `registerGroup` throws a `RangeError` for a
- * group with this id, so a group can never claim the bucket of the ungrouped items. The value is an
- * observable key of `CommandState.groupedIds` and stays `'__ungrouped'`.
+ * The `groupedIds` key of items that have no group. The value is an observable key of
+ * `CommandState.groupedIds` and stays `'__ungrouped'`.
  */
 export const UNGROUPED_GROUP_ID: GroupId = '__ungrouped' as GroupId;
 

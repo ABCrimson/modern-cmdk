@@ -1210,3 +1210,60 @@ describe('Command — item updates keep their position (ARCH-20)', () => {
     });
   });
 });
+
+describe('Command.Group heading counts only the group own items (CE-50)', () => {
+  function palette(groupProps: { forceId?: string }): ReactNode {
+    return (
+      <Command>
+        <Command.Input />
+        <Command.List>
+          <Command.Item value="loose apple" forceId="loose">
+            Loose apple
+          </Command.Item>
+          <Command.Group heading="Fruit" {...groupProps}>
+            <Command.Item value="banana" forceId="banana">
+              Banana
+            </Command.Item>
+          </Command.Group>
+        </Command.List>
+      </Command>
+    );
+  }
+  const heading = (): Element | null => container.querySelector('[data-command-group-heading]');
+  const search = async (query: string): Promise<void> => {
+    await typeInInput(container.querySelector('input') as HTMLInputElement, query);
+  };
+
+  it('CE-50: a group with forceId="__ungrouped" renders no heading while only ungrouped items outside it match', async () => {
+    await render(palette({ forceId: '__ungrouped' }));
+    await search('apple');
+    await vi.waitFor(() => {
+      expect(container.querySelector('#loose')).not.toBeNull();
+      expect(container.querySelector('#banana')).toBeNull();
+    });
+    expect(heading()).toBeNull();
+  });
+
+  it('CE-50: a group with forceId="__ungrouped" renders its heading when one of its own items matches', async () => {
+    await render(palette({ forceId: '__ungrouped' }));
+    await search('banana');
+    await vi.waitFor(() => {
+      expect(container.querySelector('#banana')).not.toBeNull();
+    });
+    expect(heading()?.textContent).toBe('Fruit');
+  });
+
+  it('CE-50: an ordinary group still shows its heading only while its own items match', async () => {
+    await render(palette({ forceId: 'fruit' }));
+    await search('apple');
+    await vi.waitFor(() => {
+      expect(container.querySelector('#banana')).toBeNull();
+    });
+    expect(heading()).toBeNull();
+    await search('banana');
+    await vi.waitFor(() => {
+      expect(container.querySelector('#banana')).not.toBeNull();
+    });
+    expect(heading()?.textContent).toBe('Fruit');
+  });
+});

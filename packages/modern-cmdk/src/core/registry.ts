@@ -76,11 +76,8 @@ export class CommandRegistry implements Disposable {
     this.#invalidateCache();
   }
 
-  /** Register a group; throws a RangeError for {@link UNGROUPED_GROUP_ID}, the reserved bucket of ungrouped items */
+  /** Register a group */
   registerGroup(group: CommandGroup): Disposable {
-    if (group.id === UNGROUPED_GROUP_ID) {
-      throw new RangeError(`Group id "${UNGROUPED_GROUP_ID}" is reserved for ungrouped items`);
-    }
     this.#groups.set(group.id, group);
     this.#invalidateGroupCache();
     return {
