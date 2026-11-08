@@ -725,6 +725,46 @@ describe('React lifecycle (C1)', () => {
     expect(afterUpdates).toBeLessThan(30);
   });
 
+  it("an open prop change on a plain Command warns that it is init-only, and Command.Dialog's open does not", async () => {
+    using warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnings = (): string[] => warn.mock.calls.map((call) => String(call[0]));
+    const plain = (open: boolean): ReactNode => (
+      <Command open={open}>
+        <Command.List />
+      </Command>
+    );
+    await mount(plain(false));
+    await settle();
+    expect(warn).not.toHaveBeenCalled();
+    await update(plain(true));
+    await update(plain(false));
+    await settle();
+    expect(warnings()).toHaveLength(1);
+    expect(warnings()[0]).toContain('"open"');
+
+    const mounted = root;
+    root = undefined;
+    await act(async () => {
+      mounted?.unmount();
+    });
+    container?.remove();
+    warn.mockClear();
+
+    // A controlled dialog's `open` changes on every toggle and is read by the machine's sync effect, not once
+    const dialog = (open: boolean | undefined): ReactNode => (
+      <Command.Dialog open={open}>
+        <Command.Input />
+      </Command.Dialog>
+    );
+    await mount(dialog(false));
+    await settle();
+    await update(dialog(true));
+    await update(dialog(false));
+    await update(dialog(undefined));
+    await settle();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it('a shortcutAction prop change after mount warns once that the option is read at mount', async () => {
     using warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const tree = (shortcutAction: 'direct' | 'select'): ReactNode => (

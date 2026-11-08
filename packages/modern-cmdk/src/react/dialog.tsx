@@ -7,7 +7,7 @@
 import type { CommandMachineOptions } from 'modern-cmdk';
 import { Dialog } from 'radix-ui';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommandSetup } from './hooks/use-command-setup.js';
 
@@ -49,6 +49,9 @@ export function CommandDialog({
   container,
   ...machineOptions
 }: CommandDialogProps): ReactNode {
+  // The machine reads `open` once, at construction, and the effect below makes it follow the prop afterwards, so
+  // the setup gets the first render's value on every render: its init-only warning for `open` stays silent here.
+  const [initialOpen] = useState(controlledOpen ?? false);
   // The machine reports every change of its open state. An uncontrolled dialog hands that report to the consumer. A
   // controlled dialog hands it over only when it differs from `open`: the machine's own request (a selection that
   // closes, CLOSE, OPEN, TOGGLE) is reported once, while the machine following the prop (the effect below) and the
@@ -56,7 +59,7 @@ export function CommandDialog({
   const { machine, state, handleKeyDown, stableContextValue, stateContextValue } = useCommandSetup(
     {
       ...machineOptions,
-      open: controlledOpen ?? false,
+      open: initialOpen,
       onOpenChange:
         controlledOpen === undefined
           ? onOpenChange
