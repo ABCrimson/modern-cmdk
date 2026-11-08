@@ -48,8 +48,10 @@ export interface UseCommandSetupReturn {
  * What the deduped callbacks remember: the last value each forwarded to the consumer, whether the root is live
  * (its layout effect is set up: mounted and not hidden by an `<Activity>`), and the search queries the caller owns
  * that the machine has not processed yet, oldest first. The dedupe memory (`search`, `activeId`, `open`) stays the
- * last value forwarded; `held` is the active item the cleanup takes from the machine when the root stops being
- * live, for the re-activation when it is live again, and is never a forwarded value.
+ * last value forwarded. `held` is the active item the cleanup takes from the machine when the root stops being
+ * live; the setup, when the root is live again, sends its re-activation and leaves `held` set only while that
+ * report is pending. The dedupe swallows the first `activeId` report that follows (the re-activation's, which the
+ * consumer already has) without writing the memory. It is never a forwarded value.
  */
 interface Forwarded {
   search: string;
@@ -109,6 +111,14 @@ function createLiveOptions(
         fwd[key] = value as never;
         return;
       }
+      if (key === 'activeId' && fwd.held !== null) {
+        // The pending re-activation's report is swallowed; any other report means the re-activation was ignored
+        // (its item is not registered), so the pending mark ends. A re-activation ignored with no report after it
+        // leaves the mark until the next report or cleanup, which swallows one later report of that same id.
+        const pending = fwd.held;
+        fwd.held = null;
+        if (value === pending) return;
+      }
       if (value === fwd[key] && (key !== 'activeId' || latest.current.activeId === undefined))
         return;
       fwd[key] = value as never;
@@ -147,7 +157,7 @@ function createLiveOptions(
  * re-creates effects while keeping state; react.dev/reference/react/Activity) keep the same
  * machine with its registrations and query. While the effect is cleaned up (hidden or unmounted) the callbacks
  * `onSearchChange`, `onActiveChange` and `onOpenChange` forward nothing, and an `<Activity>` show puts an uncontrolled
- * root's active item back, which the dedupe reports only if it differs from the last value forwarded. The hook never disposes: a suspended machine holds
+ * root's active item back without a report. The hook never disposes: a suspended machine holds
  * no global reference, and the core's FinalizationRegistry disposes the search engine the
  * machine created once the machine is collected.
  *
@@ -217,17 +227,22 @@ export function useCommandSetup(
   // it), then stops forwarding and holds the machine's active item in `fwd.held`; the dedupe memory stays the last
   // value forwarded. A hide unmounts the items, which empties the registry and drops the machine's active item; the
   // setup puts the held item back (an uncontrolled root: a controlled one mirrors its prop, which the registrations
-  // restore). The re-activation passes through the dedupe: an item already forwarded reports nothing, one the
-  // consumer has not heard of is reported once. StrictMode's replay finds the held item still active and sends nothing.
+  // restore) and keeps `fwd.held` set while that re-activation is pending, so the dedupe swallows its report and
+  // leaves the memory alone: a show reports nothing, and a later activation of an item the consumer has not heard of is
+  // reported once. StrictMode's replay finds the held item still active, sends nothing and clears `fwd.held`.
   useLayoutEffect(() => {
     machine.resume?.();
     fwd.live = true;
+    const held = fwd.held;
+    fwd.held = null;
     if (
       latest.current.activeId === undefined &&
-      fwd.held !== null &&
-      fwd.held !== machine.getState().activeId
-    )
-      machine.send({ type: 'ITEM_ACTIVATE', id: fwd.held });
+      held !== null &&
+      held !== machine.getState().activeId
+    ) {
+      fwd.held = held;
+      machine.send({ type: 'ITEM_ACTIVATE', id: held });
+    }
     return (): void => {
       machine.suspend?.();
       fwd.live = false;

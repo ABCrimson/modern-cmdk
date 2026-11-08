@@ -410,6 +410,7 @@ describe('React lifecycle (C1)', () => {
     await update(tree('visible'));
     await settle();
     expect(spy.machine.getState().activeId).toBe('fixed-a');
+    expect(onActiveChange).not.toHaveBeenCalled();
 
     await act(async () => {
       spy.machine.send({ type: 'ITEM_ACTIVATE', id: itemId('fixed-a') });
@@ -425,7 +426,7 @@ describe('React lifecycle (C1)', () => {
     await mount(<StrictMode>{activityTree('visible', spy, { onActiveChange })}</StrictMode>);
     await settle();
     expect(spy.machine.getState().activeId).toBe('fixed-a');
-    onActiveChange.mockClear();
+    expect(onActiveChange).not.toHaveBeenCalled();
 
     await act(async () => {
       spy.machine.send({ type: 'ITEM_ACTIVATE', id: itemId('fixed-a') });
