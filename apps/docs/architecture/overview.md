@@ -48,7 +48,7 @@ Pure TypeScript state machine with no hard DOM dependency (DOM APIs are feature-
 - **Navigation** -- Active item tracking, page stack, loop/no-loop
 - **State snapshots** -- Immutable `CommandState` objects for efficient change detection
 
-The core has no side effects beyond subscriber notification. It can be used with any UI framework or no framework at all.
+The core's side effects are the ones you switch on: notifying subscribers, the keyboard registry's document-level `keydown` listener (attached when a document exists), and, when frecency is enabled, the engine's debounced save to its storage with its `pagehide` and `visibilitychange` listeners. It can be used with any UI framework or no framework at all.
 
 ### Layer 2: React Adapter (`modern-cmdk/react`)
 
@@ -94,11 +94,14 @@ stateDiagram-v2
 
 ### Event Processing
 
-1. External code calls `machine.send(event)`
-2. The machine processes the event synchronously
-3. A new immutable `CommandState` snapshot is created
-4. All subscribers are notified with the new state
-5. React `useSyncExternalStore` triggers a re-render with the new snapshot
+1. External code calls `machine.send(event)`. It returns at once: the event is queued on the machine's scheduler, not handled.
+2. The scheduler runs everything queued, in the order sent, as one batch on the next `requestAnimationFrame` in browsers, or in a microtask (`queueMicrotask`) where `requestAnimationFrame` is absent (Node, SSR). An event sent from inside a handler runs in the next batch.
+3. Each handler updates the immutable `CommandState` snapshot. A registry event (`REGISTER_ITEM`, `UPDATE_ITEM`, `UNREGISTER_ITEM`, `ITEMS_LOADED`, group registration) only marks the results stale; the last event of the batch refilters once for all of them, and `SEARCH_CHANGE` filters when it runs.
+4. Handler-time notifications fire as their event runs, so they come before the batch's `stateChange`: the `openChange` emitter event and then the `onOpenChange` option, the `onSearchChange` and `onActiveChange` options, and for a selection the item's own `onSelect`, the `select` emitter event and the `onSelect` option.
+5. After the last event, the machine emits one `stateChange` for the batch (if anything changed), and subscribers are notified with the new state.
+6. React `useSyncExternalStore` triggers a re-render with the new snapshot.
+
+Because of the batching, `machine.getState()` right after `machine.send()` still returns the previous state. Core-only code observes the result with `machine.subscribe` (or `subscribeState`), or by awaiting the next frame or microtask. Disposing the machine drops events that have not run yet.
 
 ## Data Flow: Items to Rendered Output
 
@@ -122,8 +125,8 @@ flowchart LR
 1. **Registration** -- Items are registered via `REGISTER_ITEM` events (or React component mount)
 2. **Query** -- User types in the input, triggering `SEARCH_CHANGE`
 3. **Scoring** -- The search engine (TypeScript or WASM) scores each item against the query
-4. **Frecency boost** -- If enabled, frecency bonuses are added to search scores
-5. **Filtering** -- Items with score `0` or `false` are excluded
+4. **Frecency boost** -- If enabled, frecency bonuses are added to search scores of a non-empty query (an empty query lists registration order)
+5. **Filtering** -- With the default engine, items that do not match are dropped. A custom `filter` function returning `false`, `0` or a negative number excludes the item, and a positive number keeps it as its score. Results from a pluggable `search` engine are used as returned, so such an engine returns only the items it matches
 6. **Sorting** -- Results are sorted by final score (descending)
 7. **Grouping** -- Results are partitioned into groups based on `groupId`
 8. **Rendering** -- React adapter renders visible items, virtualizing if needed
@@ -251,7 +254,9 @@ const myEngine: SearchEngine = {
   [Symbol.dispose]() { /* release the index, worker, or WASM instance */ },
 };
 
-using machine = createCommandMachine({ search: myEngine });
+// Dispose the machine when your UI goes away (`machine[Symbol.dispose]()`): it disposes the engine too.
+// A `using` at module level would dispose it as soon as the module has run.
+const machine = createCommandMachine({ search: myEngine });
 ```
 
 To add a custom frecency storage:
