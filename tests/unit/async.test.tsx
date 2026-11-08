@@ -1,11 +1,13 @@
 // tests/unit/async.test.tsx
 // Command.AsyncItems tests — React 19 use() + Suspense with happy-dom
+// Pins ASY-1 (the machine receives ITEMS_LOADED), ASY-4 (the console spy is disposed with `using`)
+// and ASY-5/T35 (rejection and reset through the shipped CommandErrorBoundary).
 // Vitest + React (experimental channel build) + TypeScript, ESNext
 
 import type { CommandItem as CommandItemType } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
-import { Command } from 'modern-cmdk/react';
-import { act, Component, type ErrorInfo, type ReactNode } from 'react';
+import { Command, CommandErrorBoundary, useCommandState } from 'modern-cmdk/react';
+import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { silenceConsoleError } from '../act-guard.ts';
@@ -50,41 +52,14 @@ async function renderAsync(ui: ReactNode): Promise<void> {
   await flushFrame();
 }
 
-// ---------------------------------------------------------------------------
-// Error boundary for testing rejection handling
-// ---------------------------------------------------------------------------
-
-interface ErrorBoundaryProps {
-  readonly fallback: ReactNode;
-  readonly children: ReactNode;
+/** Reads the machine's filtered count, so a test observes what the machine holds. */
+function MachineCount(): ReactNode {
+  const count = useCommandState((state) => state.filteredCount);
+  return <output data-testid="count">{count}</output>;
 }
 
-interface ErrorBoundaryState {
-  readonly hasError: boolean;
-  readonly error: Error | null;
-}
-
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  override componentDidCatch(_error: Error, _info: ErrorInfo): void {
-    // Silence console errors in test output
-  }
-
-  override render(): ReactNode {
-    if (this.state.hasError) {
-      return this.props.fallback;
-    }
-    return this.props.children;
-  }
-}
+const countText = (): string | null =>
+  container.querySelector('[data-testid="count"]')?.textContent ?? null;
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -247,47 +222,45 @@ describe('Command.AsyncItems — Suspense + use()', () => {
     expect(container.querySelector('[data-testid="fallback"]')).toBeNull();
   });
 
-  it('should send ITEMS_LOADED to the machine after resolving', async () => {
+  it('ASY-1: ITEMS_LOADED registers the resolved items with the machine, not the render prop', async () => {
     const { promise, resolve } = Promise.withResolvers<readonly CommandItemType[]>();
-    const testItems = createTestItems(2);
 
     await renderAsync(
       <Command>
+        <MachineCount />
         <Command.Input />
         <Command.List>
           <Command.AsyncItems items={promise} fallback={<div>Loading...</div>}>
-            {(items: readonly CommandItemType[]): ReactNode[] =>
-              items.map((item) => (
-                <Command.Item key={item.id} value={item.value} forceId={item.id}>
-                  {item.value}
-                </Command.Item>
-              ))
-            }
+            {(): ReactNode => null}
           </Command.AsyncItems>
         </Command.List>
       </Command>,
     );
+    expect(countText()).toBe('0');
 
     await act(async () => {
-      resolve(testItems);
+      resolve(createTestItems(2));
     });
     await flushFrame();
 
-    // Items should be registered and visible in the filtered list
+    // The render prop renders no Command.Item: only the machine's registration can make the count 2.
     await vi.waitFor(() => {
-      const renderedItems = container.querySelectorAll('[data-command-item]');
-      expect(renderedItems.length).toBe(2);
+      expect(countText()).toBe('2');
     });
+    expect(container.querySelectorAll('[data-command-item]').length).toBe(0);
   });
 
-  it('should handle promise rejection gracefully with error boundary', async () => {
-    // Suppress console.error for expected errors
-    const consoleSpy = silenceConsoleError();
-
+  it('ASY-5: a rejected promise reaches the shipped CommandErrorBoundary fallback and onError', async () => {
+    using _consoleSpy = silenceConsoleError();
+    const onError = vi.fn();
     const { promise, reject } = Promise.withResolvers<readonly CommandItemType[]>();
+    const failure = new Error('Failed to load items');
 
     await renderAsync(
-      <ErrorBoundary fallback={<div data-testid="error">Something went wrong</div>}>
+      <CommandErrorBoundary
+        fallback={(error: Error): ReactNode => <div data-testid="error">{error.message}</div>}
+        onError={onError}
+      >
         <Command>
           <Command.Input />
           <Command.List>
@@ -305,23 +278,75 @@ describe('Command.AsyncItems — Suspense + use()', () => {
             </Command.AsyncItems>
           </Command.List>
         </Command>
-      </ErrorBoundary>,
+      </CommandErrorBoundary>,
     );
 
-    // Reject the promise
+    await act(async () => {
+      reject(failure);
+    });
+    await flushFrame();
+
+    await vi.waitFor(() => {
+      expect(container.querySelector('[data-testid="error"]')?.textContent).toBe(
+        'Failed to load items',
+      );
+    });
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0]?.[0]).toBe(failure);
+  });
+
+  it('T35: reset after a rejection renders a new resolved batch and the machine holds it', async () => {
+    using _consoleSpy = silenceConsoleError();
+    const { promise: failing, reject } = Promise.withResolvers<readonly CommandItemType[]>();
+
+    const tree = (itemsPromise: Promise<readonly CommandItemType[]>): ReactNode => (
+      <Command>
+        <MachineCount />
+        <Command.Input />
+        <Command.List>
+          <CommandErrorBoundary
+            fallback={(error: Error, resetBoundary: () => void): ReactNode => (
+              <button type="button" data-testid="retry" onClick={resetBoundary}>
+                {error.message}
+              </button>
+            )}
+          >
+            <Command.AsyncItems items={itemsPromise} fallback={<div>Loading...</div>}>
+              {(items: readonly CommandItemType[]): ReactNode[] =>
+                items.map((item) => (
+                  <Command.Item key={item.id} value={item.value} forceId={item.id}>
+                    {item.value}
+                  </Command.Item>
+                ))
+              }
+            </Command.AsyncItems>
+          </CommandErrorBoundary>
+        </Command.List>
+      </Command>
+    );
+
+    await renderAsync(tree(failing));
     await act(async () => {
       reject(new Error('Failed to load items'));
     });
     await flushFrame();
-
-    // The error boundary should catch the rejection
     await vi.waitFor(() => {
-      const errorEl = container.querySelector('[data-testid="error"]');
-      expect(errorEl).not.toBeNull();
-      expect(errorEl?.textContent).toBe('Something went wrong');
+      expect(container.querySelector('[data-testid="retry"]')).not.toBeNull();
     });
+    expect(countText()).toBe('0');
 
-    consoleSpy.mockRestore();
+    // A new resolved promise, then the reset: the boundary renders its children again.
+    await renderAsync(tree(Promise.resolve(createTestItems(2))));
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="retry"]')?.click();
+    });
+    await flushFrame();
+
+    await vi.waitFor(() => {
+      expect(container.querySelectorAll('[data-command-item]').length).toBe(2);
+    });
+    expect(container.querySelector('[data-testid="retry"]')).toBeNull();
+    expect(countText()).toBe('2');
   });
 
   it('should work with a pre-resolved promise', async () => {

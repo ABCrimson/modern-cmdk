@@ -105,7 +105,7 @@ describe('ARCH-59 loading state from pending AsyncItems', () => {
   });
 
   it('ARCH-59: a rejected promise inside CommandErrorBoundary clears loading', async () => {
-    const errorSpy = silenceConsoleError();
+    using _errorSpy = silenceConsoleError();
     const d = deferred();
     const { container } = await renderInAct(
       <Shell>
@@ -122,7 +122,6 @@ describe('ARCH-59 loading state from pending AsyncItems', () => {
     await settle();
     expect(container.querySelector('[data-testid="err"]')).not.toBeNull();
     expect(busy(container)).not.toBe('true');
-    errorSpy.mockRestore();
   });
 
   it('ARCH-59: an unmounted pending AsyncItems clears its share', async () => {
