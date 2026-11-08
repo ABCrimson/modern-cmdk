@@ -39,8 +39,8 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 // The act guard: a test fails on any React act warning. React reports a state update outside act() ("An update to
 // %s inside a test was not wrapped in act(...)") and a suspension in a synchronous act scope ("A component suspended
 // inside an `act` scope, but the `act` call was not awaited") through console.error, and a test that never reads the
-// console passes with the warning. tests/act-guard.ts holds the store. The wrapper below records every console.error
-// call at the moment it is made and forwards it; a test that silences console.error uses silenceConsoleError(), whose
+// console passes with the warning. tests/act-guard.ts holds the store. The wrapper below records the act warning of
+// each console.error call at the moment it is made and forwards every call; a test that silences console.error uses silenceConsoleError(), whose
 // implementation records too, so a spy restored in the test body or by vi.restoreAllMocks() cannot hide a warning.
 // The afterEach fails the test with the recorded texts. It fails afterwards, rather than throwing from console.error,
 // because React logs from inside its own render and scheduler paths (a throw there is caught by React or surfaces as
@@ -48,7 +48,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 // warning raised while unmounting counts too. The scan of a still-installed spy's recorded calls below is a fallback
 // for a spy made outside silenceConsoleError(). Caveat: React's development build prints "suspended inside an `act`
 // scope" once per module instance (react.development.js, didWarnNoAwaitAct), so only the first offending test of a
-// file fails on it; the "not wrapped in act" warning repeats per component.
+// file fails on it; the "not wrapped in act" warning is printed for every update outside act().
 
 // The console, held in one binding: biome (noConsole) flags each member access on the global itself
 const stderr: Console = console;

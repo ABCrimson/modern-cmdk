@@ -2,8 +2,8 @@
 // The React act-warning guard's store, shared by tests/setup.ts (which installs the console.error wrapper and fails
 // the test in afterEach) and by every test that silences console.error. A warning is recorded when console.error is
 // called, so the state of a spy at the end of the test (restored in the test body, restored by vi.restoreAllMocks()
-// in an afterEach, or left installed) cannot hide it. tests/unit/act-guard-usage.test.ts fails a test file that
-// silences console.error any other way.
+// in an afterEach, or left installed) cannot hide it. tests/unit/act-guard-usage.test.ts fails any other file that
+// spies on or assigns console.error; a test that asserts on the calls uses the MockInstance silenceConsoleError() returns.
 
 import { format } from 'node:util';
 import { type MockInstance, vi } from 'vitest';
