@@ -37,6 +37,10 @@ exclude = [
   '^https?://localhost(:\d+)?(/|$)',
   # a documentation placeholder, not a live host
   '^https?://example\.(com|org)(/|$)',
+  # the CI workflow-status badge: shields.io renders it from GitHub's Actions API and answers 408 while
+  # that call times out (every attempt of runs 42472395644 on 2026-11-08, and two host probes); the
+  # static badges (npm version, licence, the React and TypeScript versions) stay checked
+  '^https://img\.shields\.io/github/actions/workflow/status/',
 ]
 
 # The glob over apps/docs/**/*.md also reaches installed packages' READMEs and the VitePress build
