@@ -2,7 +2,7 @@
 "modern-cmdk": minor
 ---
 
-The machine does what its documentation says: disabled items stay listed but can no longer be activated or selected, a custom `filter` that returns 0 or less excludes the item, shortcut conflicts are reported, frecency is saved and restored, and a batch of registry events commits one refilter, and every batch one `stateChange`. Some of these are visible changes at rest; each one is listed under its heading.
+The machine does what its documentation says: disabled items stay listed but can no longer be activated or selected, a custom `filter` that returns 0 or less excludes the item, shortcut conflicts are reported, frecency is saved and restored, and a batch of registry events commits one refilter, and every batch at most one `stateChange`. Some of these are visible changes at rest; each one is listed under its heading.
 
 **Disabled items**
 
@@ -27,9 +27,9 @@ The machine does what its documentation says: disabled items stay listed but can
 
 **Machine**
 
-- One refilter and one `stateChange` per scheduler batch for registry events (REGISTER, UNREGISTER, UPDATE, `ITEMS_LOADED`): the machine refilters once at the end of the batch (CE-20, ARCH-24, P05, RA-49). A `SEARCH_CHANGE` still filters when it runs. A `NAVIGATE` or `ITEM_ACTIVATE` that follows a registry event in the same batch refilters first, so navigation reads current ids (machine.ts:275-278). The emit order changed: `onOpenChange`, `onSearchChange` and the `openChange` event run while the batch handles its events, before the batch's single `stateChange`. An active item survives an `UNREGISTER_ITEM` and `REGISTER_ITEM` of the same id in one batch.
+- One refilter and at most one `stateChange` per scheduler batch for registry events (REGISTER, UNREGISTER, UPDATE, `ITEMS_LOADED`, `REGISTER_GROUP`, `UNREGISTER_GROUP`): the machine refilters once at the end of the batch (CE-20, ARCH-24, P05, RA-49). A `SEARCH_CHANGE` still filters when it runs. A `NAVIGATE` or `ITEM_ACTIVATE` that follows a registry event in the same batch refilters first, so navigation reads current ids. The emit order changed: `onOpenChange`, `onSearchChange` and the `openChange` event run while the batch handles its events, before the batch's `stateChange`. An active item survives an `UNREGISTER_ITEM` and `REGISTER_ITEM` of the same id in one batch.
 - New event `UPDATE_ITEM` upserts an item in place; `useRegisterItem` sends it, instead of re-registering, when an item's props change (ARCH-20, CE-49).
-- `groupedIds` keys follow group priority, lower first; `filteredIds` and navigation are unchanged and React renders groups in JSX order (TUB-06). `Command.Group` counts only its own items for its heading (CE-50).
+- `groupedIds` keys follow group priority, lower first; `filteredIds` and navigation are unchanged and React renders groups in JSX order (TUB-06). `Command.Group` counts only its own items for whether it shows (CE-50).
 - `UNGROUPED_GROUP_ID` (`'__ungrouped'`) is a public export of the core entry (CE-50).
 - The machine reads `loop` and `open` from the exported `DEFAULT_MACHINE_OPTIONS` (CE-72).
 - Frecency hydration at an empty query, or with `filter: false`, does nothing: no refilter and no `stateChange` (CE-109).
@@ -40,8 +40,10 @@ The machine does what its documentation says: disabled items stay listed but can
 
 **Frecency**
 
-- `FrecencyEngine` saves 1000 ms after the last selection (a trailing debounce), when the page becomes hidden (`visibilitychange`) and on `pagehide`, besides `flush()` and dispose; before, it saved only on `flush()` and dispose, and a page reload runs neither (CE-01, CE-15, DG-62, SEC-02, DG-08). It disposes its storage only after every save settled.
+- `FrecencyEngine` saves 1000 ms after the last selection (a trailing debounce), when the page becomes hidden (`visibilitychange`) and on `pagehide`, besides `flush()` and dispose; before, it saved only on `flush()` and dispose, and a page reload runs neither (CE-01, CE-15, DG-62, SEC-02, DG-08). It disposes a storage it created only after every save settled.
 - `load()` merges into what the engine holds: frequencies add and the later `lastUsed` wins.
+- A save waits for the in-flight `load()`, so a selection made before the stored history arrives no longer overwrites it (CE-114).
+- A storage passed in `frecency.storage` is the caller's to dispose; the engine disposes only the storage it created (D95). Under React StrictMode the development double-mount no longer leaves `<Command>` with a disposed storage (CE-115).
 - The machine handles its frecency load: it re-ranks once the data is hydrated (for a non-empty query with the filter on, the one case frecency re-ranks) and reports a failed load through `console.warn` (CE-14, SEC-27).
 - `createCommandMachine()` returns `CommandMachine & AsyncDisposable`: `await using` or `[Symbol.asyncDispose]()` awaits the pending frecency save, then disposes like `[Symbol.dispose]()`; the `CommandMachine` interface is unchanged (CE-02).
 - `IdbFrecencyStorage` validates every persisted row (a dropped row is counted in a `console.warn`), reads the v1 payload and the v2 `{ version: 2, records }` envelope and still writes v1; a second `storeName` in an existing database is created instead of failing with `NotFoundError` (SEC-26, CE-60, SEC-35).
