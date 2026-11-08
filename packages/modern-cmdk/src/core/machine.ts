@@ -371,8 +371,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     }
     if (searched) hooks?.onSearchComplete?.(search, state.filteredCount, performance.now() - start);
     for (const id of ids) hooks?.onItemSelected?.(id, search, filteredIdIndex.get(id) ?? -1);
-    // A close turns an open that an earlier report marked and stamped (it reads the option first and
-    // stamps before its hook runs), so openedAt is set
+    // A close turns an open that an earlier report marked and stamped (the option is read first,
+    // the stamp is written before the hook runs), so openedAt is set
     if (turned && !open) hooks?.onPaletteClose?.(performance.now() - openedAt);
   }
 
