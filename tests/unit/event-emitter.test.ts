@@ -97,6 +97,37 @@ describe('TypedEmitter', () => {
     expect(handler).toHaveBeenCalledOnce();
   });
 
+  it('TUB-42: emit iterates a snapshot, so a listener removed or added during emit takes effect on the next emit', () => {
+    using emitter = new TypedEmitter<TestEvents>();
+    const h2 = vi.fn();
+    const h3 = vi.fn();
+    let sub2: Disposable | undefined;
+    let h3Added = false;
+    const h1 = vi.fn(() => {
+      sub2?.[Symbol.dispose]();
+      sub2 = undefined;
+      if (!h3Added) {
+        h3Added = true;
+        emitter.on('message', h3);
+      }
+    });
+
+    using _sub1 = emitter.on('message', h1);
+    sub2 = emitter.on('message', h2);
+
+    emitter.emit('message', 'first');
+    // h1 disposed h2 and added h3 mid-emit: the snapshot still calls h2 and skips h3
+    expect(h1).toHaveBeenCalledTimes(1);
+    expect(h2).toHaveBeenCalledTimes(1);
+    expect(h3).not.toHaveBeenCalled();
+
+    emitter.emit('message', 'second');
+    expect(h1).toHaveBeenCalledTimes(2);
+    expect(h2).toHaveBeenCalledTimes(1);
+    expect(h3).toHaveBeenCalledTimes(1);
+    expect(h3).toHaveBeenCalledWith('second');
+  });
+
   it('should not emit to removed listeners', () => {
     using emitter = new TypedEmitter<TestEvents>();
     const handler = vi.fn();
