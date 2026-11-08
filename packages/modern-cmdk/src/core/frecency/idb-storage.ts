@@ -7,6 +7,25 @@ import type { UseStore } from 'idb-keyval';
 import type { FrecencyData, FrecencyRecord, FrecencyStorage, ItemId } from '../types.js';
 import { ensureWellFormed } from '../utils/string-wellformed.js';
 
+// CE-30: where Symbol.dispose / Symbol.asyncDispose are undefined, the computed keys of
+// `[Symbol.dispose]()` and `[Symbol.asyncDispose]()` collapse to the string 'undefined' and the
+// second method overwrites the first (FrecencyEngine, IdbFrecencyStorage).
+// Support, read 2026-11-08 from MDN browser-compat-data javascript/builtins/Symbol.json
+// (https://raw.githubusercontent.com/mdn/browser-compat-data/main/javascript/builtins/Symbol.json):
+// Symbol.dispose Chrome 125, Firefox 141, Safari "preview" only; Symbol.asyncDispose Chrome 127,
+// Firefox 141, Safari "preview". web-features marks `explicit-resource-management` baseline: false
+// (https://raw.githubusercontent.com/web-platform-dx/web-features/main/features/explicit-resource-management.yml.dist).
+// Symbol.for('Symbol.dispose') is the registered key lowered-`using` helpers fall back to
+// (@swc/helpers' _using helper reads `Symbol.dispose || Symbol.for("Symbol.dispose")`).
+// `??=` never writes when the native symbol exists (it is non-writable there).
+// These statements live here because this is the first module core/index.ts evaluates that defines
+// a class (its own import, utils/string-wellformed.ts, defines none), before any class with a
+// computed disposal key; a side-effect-only shim module is dropped by the build, since
+// package.json `sideEffects` lists only styles.css. Keep './frecency/idb-storage.js' the first
+// import of core/index.ts.
+(Symbol as { dispose?: symbol }).dispose ??= Symbol.for('Symbol.dispose');
+(Symbol as { asyncDispose?: symbol }).asyncDispose ??= Symbol.for('Symbol.asyncDispose');
+
 /**
  * v1 payload: a bare record map of `[id, { frequency, lastUsedMs }]` rows with
  * no version field. Written through 1.10; read from every release.
