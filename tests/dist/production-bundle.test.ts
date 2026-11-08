@@ -63,12 +63,15 @@ interface RolldownBuild {
   }>;
 }
 
-/** Every development-only string a production bundle must not carry; one entry per guarded branch. */
+/** Every development-only string a production bundle must not carry; one entry per guarded string (the devtools branch carries four: the key, its alias and the two event names). */
 const DEV_ONLY_STRINGS: readonly string[] = [
   // core/search/index.ts: the FinalizationRegistry leak warning
   'was garbage collected without being disposed',
-  // react/hooks/use-devtools.ts: the global devtools registry key
+  // react/hooks/use-devtools.ts: the global devtools registry key and its deprecated alias
+  '__MODERN_CMDK_DEVTOOLS__',
   '__CRIMSON_COMMAND_DEVTOOLS__',
+  'modern-cmdk-devtools',
+  'crimson-command-devtools',
   // react/hooks/use-command-setup.ts: the init-only prop warning
   'is read once, when the component mounts',
 ];
@@ -214,10 +217,14 @@ describe.skipIf(!distBuilt)('built package: production bundle', () => {
     expect('process' in reactContext, 'react: the context has no process global').toBe(false);
     const reactCode = await bundle('react/index.mjs', 'development', '__cmdkReact');
     runInContext(`${reactCode}\n__cmdkReact.useCommandDevtools('probe');`, reactContext);
-    const devtools = reactContext.__CRIMSON_COMMAND_DEVTOOLS__ as Map<string, unknown> | undefined;
+    const devtools = reactContext.__MODERN_CMDK_DEVTOOLS__ as Map<string, unknown> | undefined;
     expect([...(devtools?.keys() ?? [])], 'react: the devtools registry holds the probe').toEqual([
       'probe',
     ]);
+    expect(
+      reactContext.__CRIMSON_COMMAND_DEVTOOLS__,
+      'react: the deprecated name is the same Map',
+    ).toBe(devtools);
   });
 
   it('PERF-15: an unbundled import without a process global does not throw', async () => {

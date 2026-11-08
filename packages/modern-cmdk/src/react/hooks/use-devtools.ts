@@ -20,11 +20,29 @@ interface DevtoolsState {
   readonly loading: boolean;
 }
 
-/** Branded key for the global devtools instance map */
-const DEVTOOLS_KEY = '__CRIMSON_COMMAND_DEVTOOLS__' as const;
+/** Key of the global devtools instance map */
+const DEVTOOLS_KEY = '__MODERN_CMDK_DEVTOOLS__' as const;
+
+/** Deprecated alias of `DEVTOOLS_KEY`: the same Map, removed in 2.0 */
+const DEPRECATED_DEVTOOLS_KEY = '__CRIMSON_COMMAND_DEVTOOLS__' as const;
 
 /** Type-safe global devtools registry */
 type DevtoolsRegistry = Map<string, DevtoolsState>;
+
+/**
+ * The registry on `globalThis`, created on first use. An existing Map under either name is reused (another copy of
+ * the library may have created the deprecated one), and both names end up holding the same Map.
+ */
+function registry(): DevtoolsRegistry {
+  const globals = globalThis as Record<string, unknown>;
+  const instances: DevtoolsRegistry =
+    (globals[DEVTOOLS_KEY] as DevtoolsRegistry | undefined) ??
+    (globals[DEPRECATED_DEVTOOLS_KEY] as DevtoolsRegistry | undefined) ??
+    new Map<string, DevtoolsState>();
+  globals[DEVTOOLS_KEY] = instances;
+  globals[DEPRECATED_DEVTOOLS_KEY] = instances;
+  return instances;
+}
 
 /**
  * Exposes command palette internals to browser devtools.
@@ -69,16 +87,12 @@ export function useCommandDevtools(label: string = 'default'): void {
         loading: s.loading,
       } satisfies DevtoolsState;
 
-      const globals = globalThis as Record<string, unknown>;
-      if (!globals[DEVTOOLS_KEY]) {
-        globals[DEVTOOLS_KEY] = new Map<string, DevtoolsState>();
-      }
-      const instances: DevtoolsRegistry = globals[DEVTOOLS_KEY] as DevtoolsRegistry;
+      const instances = registry();
       instances.set(label, devState);
 
-      globalThis.dispatchEvent?.(
-        new CustomEvent('crimson-command-devtools', { detail: { label, state: devState } }),
-      );
+      const detail = { label, state: devState };
+      globalThis.dispatchEvent?.(new CustomEvent('modern-cmdk-devtools', { detail }));
+      globalThis.dispatchEvent?.(new CustomEvent('crimson-command-devtools', { detail }));
     };
 
     const unsub = stable.machine.subscribe(update);
