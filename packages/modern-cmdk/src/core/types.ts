@@ -26,7 +26,8 @@ export type GroupId = string & { readonly [__groupIdBrand]: never };
 
 /**
  * The `groupedIds` key of items that have no group. The value is an observable key of
- * `CommandState.groupedIds` and stays `'__ungrouped'`.
+ * `CommandState.groupedIds` and stays `'__ungrouped'`. A group registered under this id shares the
+ * bucket: its items are listed with the ungrouped ones and the bucket takes its priority.
  */
 export const UNGROUPED_GROUP_ID: GroupId = '__ungrouped' as GroupId;
 

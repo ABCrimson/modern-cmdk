@@ -44,6 +44,7 @@ describe('package exports', () => {
       'KeyboardShortcutRegistry',
       'MemoryFrecencyStorage',
       'TypedEmitter',
+      'UNGROUPED_GROUP_ID',
       'batchScoreItems',
       'computeFrecencyBonus',
       'createCommandMachine',
