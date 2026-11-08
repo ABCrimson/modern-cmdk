@@ -69,18 +69,26 @@ Persist frecency data across browser sessions with `IdbFrecencyStorage`:
 ```tsx
 'use client';
 
-import { Command } from 'modern-cmdk/react';
+import type { FrecencyStorage } from 'modern-cmdk';
 import { IdbFrecencyStorage } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
+
+// One IndexedDB storage for the page. The machine disposes the storage it is given, and <Command>
+// disposes its machine when it unmounts, and once more before the remount under StrictMode in
+// development, so <Command> gets a view that forwards load and save and leaves disposal to this module.
+const idb = new IdbFrecencyStorage('my-app-db', 'frecency');
+const storage: FrecencyStorage = {
+  load: (namespace) => idb.load(namespace),
+  save: (namespace, data) => idb.save(namespace, data),
+  [Symbol.dispose]: () => {},
+};
 
 export function PersistentFrecencyExample() {
   return (
     <Command
       frecency={{
         enabled: true,
-        // The machine owns this storage: it saves pending data and then disposes it when the
-        // Command unmounts. Create it here, not once at module level, so a later mount
-        // does not receive a disposed storage.
-        storage: new IdbFrecencyStorage('my-app-db', 'frecency'),
+        storage,
         namespace: 'command-palette',
       }}
       label="Persistent Frecency"
@@ -110,7 +118,7 @@ What persists, and when:
 
 - A selection is saved 1000 ms after the last selection (a trailing debounce), so a burst of selections is one write.
 - The data is also saved at once when the page becomes hidden (`visibilitychange`) or is hidden for good (`pagehide`), and when the machine is disposed (the `Command` unmounts).
-- On the next mount the machine loads the stored data in the background and merges it into the new session's selections (frequencies add, the later `lastUsed` wins). If a search is in progress when the load finishes, the results re-rank once; an empty search is unaffected, because frecency only re-ranks non-empty queries.
+- On the next mount the machine loads the stored data in the background and merges it into the new session's selections (frequencies add, the later `lastUsed` wins). If a search is in progress when the load finishes, the results re-rank once; an empty search is unaffected, because frecency only re-ranks non-empty queries. A save that runs before the load has finished writes only this session's selections over the stored ones.
 
 ::: tip
 `IdbFrecencyStorage` uses `idb-keyval@6.3.0` under the hood. It is included as a direct dependency of `modern-cmdk`, so no separate install is needed.
@@ -153,9 +161,12 @@ import { createCommandMachine, itemId } from 'modern-cmdk';
 import type { CommandState } from 'modern-cmdk';
 import { IdbFrecencyStorage } from 'modern-cmdk';
 async function demo() {
+  const storage = new IdbFrecencyStorage();
+
   // `await using` awaits the pending frecency save, then disposes the machine, which in turn
-  // disposes the storage it was given. Do not also declare the storage with `using`: it would be
-  // disposed right after the machine starts that save, and the save would be skipped.
+  // disposes the storage it was given, so the storage needs no `using` of its own. (A storage declared
+  // with `await using` before a sync `using machine` is marked disposed before the machine's queued
+  // save runs, and that save is dropped.)
   await using machine = createCommandMachine({
     items: [
       { id: itemId('settings'), value: 'Settings' },
@@ -163,7 +174,7 @@ async function demo() {
     ],
     frecency: {
       enabled: true,
-      storage: new IdbFrecencyStorage(),
+      storage,
       namespace: 'my-app',
     },
   });

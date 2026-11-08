@@ -50,7 +50,14 @@ const machine = createCommandMachine({
 const list = document.querySelector<HTMLDivElement>('#command-list')!;
 const input = document.querySelector<HTMLInputElement>('#command-input')!;
 
-// The markup the React adapter renders for an item: role="option", aria-selected, data-command-item
+// The markup the React adapter renders: a combobox input that controls a listbox of options
+// (role="option", aria-selected, data-command-item)
+list.id ||= 'command-list';
+list.setAttribute('role', 'listbox');
+input.setAttribute('role', 'combobox');
+input.setAttribute('aria-controls', list.id);
+input.setAttribute('aria-expanded', 'true');
+
 function render(): void {
   const { filteredIds, activeId } = machine.getState();
   const registry = machine.getRegistry();
@@ -75,14 +82,11 @@ const unsubscribe = machine.subscribe(render);
 render(); // the initial list: subscribe reports later changes only
 
 // Dispose on teardown (here, when the page goes away). Disposing drops events that have not run yet
-addEventListener(
-  'pagehide',
-  () => {
-    unsubscribe();
-    machine[Symbol.dispose]();
-  },
-  { once: true },
-);
+addEventListener('pagehide', (event) => {
+  if (event.persisted) return; // kept in the back/forward cache: the page may be restored
+  unsubscribe();
+  machine[Symbol.dispose]();
+});
 
 // Wire input
 input.addEventListener('input', () => {
