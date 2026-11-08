@@ -74,11 +74,15 @@ export class KeyboardShortcutRegistry implements Disposable {
     this.#remove(parseShortcut(shortcutStr).normalized, () => true);
   }
 
-  /** Unregister all shortcuts for a given item — only the stacks of the keys it is bound under are touched */
-  unregisterByItem(itemId: ItemId): void {
+  /**
+   * Unregister all shortcuts for a given item — only the stacks of the keys it is bound under are touched.
+   * `keep` names one shortcut whose binding stays (a re-bind then replaces it in place, see register).
+   */
+  unregisterByItem(itemId: ItemId, keep?: string): void {
     const keys = this.#keysByItem.get(itemId);
     if (!keys) return;
-    for (const key of [...keys]) this.#remove(key, (b) => b.itemId === itemId);
+    const kept = keep === undefined ? undefined : parseShortcut(keep).normalized;
+    for (const key of [...keys]) if (key !== kept) this.#remove(key, (b) => b.itemId === itemId);
   }
 
   /** Keys bound by two or more items (normalized shortcut -> the parsed shortcuts, earliest first) */

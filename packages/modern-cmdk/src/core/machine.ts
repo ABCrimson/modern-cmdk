@@ -213,21 +213,22 @@ export function createCommandMachine(
 
   /**
    * (Re)binds an item's keyboard shortcut — the one place that does it, for initial items, ITEMS_LOADED,
-   * REGISTER_ITEM and UPDATE_ITEM. The item's old binding goes first. A disabled item is not bound at all (its key
+   * REGISTER_ITEM and UPDATE_ITEM. The item's bindings on other keys go first; one on the same key is replaced in place, so
+   * it keeps its place in that key's stack (CE-108). A disabled item is not bound at all (its key
    * stays free for the page and for other items on it); UPDATE_ITEM re-binds, so enabling an item binds it. Under
    * 'select' the binding dispatches ITEM_SELECT, whose guard checks the item; under 'direct' it only binds an item
    * with an onSelect and checks the registry entry again before calling it.
    */
   function bind({ id, shortcut, disabled, onSelect }: CommandItem): void {
-    keyboardRegistry.unregisterByItem(id);
-    if (!shortcut || disabled) return;
-    if (options.shortcutAction === 'select') {
-      keyboardRegistry.register(shortcut, id, () => machine.send({ type: 'ITEM_SELECT', id }));
-    } else if (onSelect) {
-      keyboardRegistry.register(shortcut, id, () => {
-        if (isEnabled(id)) onSelect();
-      });
-    }
+    const select = options.shortcutAction === 'select';
+    const bound = shortcut && !disabled && (select || onSelect) ? shortcut : undefined;
+    keyboardRegistry.unregisterByItem(id, bound);
+    if (!bound) return;
+    const handler = (): void => {
+      if (select) machine.send({ type: 'ITEM_SELECT', id });
+      else if (isEnabled(id)) onSelect?.();
+    };
+    keyboardRegistry.register(bound, id, handler);
   }
 
   function navigate(direction: 'next' | 'prev' | 'first' | 'last'): void {
