@@ -388,6 +388,32 @@ describe('IdbFrecencyStorage', () => {
         lastUsed: 10,
       });
     });
+
+    it('CE-112: three storages on one database name opened in one tick all save and load', async () => {
+      const db = uniqueDb();
+      const names = ['one', 'two', 'three'];
+      const storages = names.map((name) => new IdbFrecencyStorage(db, name));
+      try {
+        // All three open the database in the same tick: each must create its own store
+        await Promise.all(
+          storages.map((storage, i) =>
+            storage.save('ns', {
+              records: new Map([
+                [itemId(`in-${names[i]}`), { frequency: i + 1, lastUsed: 10 * (i + 1) }],
+              ]),
+            }),
+          ),
+        );
+        const loaded = await Promise.all(storages.map((storage) => storage.load('ns')));
+        expect(loaded.map((data) => [...data.records])).toEqual(
+          names.map((name, i) => [
+            [itemId(`in-${name}`), { frequency: i + 1, lastUsed: 10 * (i + 1) }],
+          ]),
+        );
+      } finally {
+        for (const storage of storages) storage[Symbol.dispose]();
+      }
+    });
   });
 
   describe('cross-instance persistence', () => {
