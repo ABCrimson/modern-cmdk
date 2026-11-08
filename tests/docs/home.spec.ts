@@ -239,10 +239,10 @@ it.describe('home page with the palette', () => {
 it.describe('without JavaScript', () => {
   it.use({ javaScriptEnabled: false });
 
-  it('the hero palette is seven real links and the first one navigates', async ({ page }) => {
+  it('the hero palette is eight real links and the first one navigates', async ({ page }) => {
     await page.goto('');
     const links = page.locator('[data-mc="palette"] a[href]');
-    await expect(links).toHaveCount(7);
+    await expect(links).toHaveCount(8);
     await links.first().click();
     await page.waitForURL('**/modern-cmdk/guide/getting-started.html');
   });
