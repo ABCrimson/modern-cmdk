@@ -6,7 +6,7 @@ import {
   itemId,
   MemoryFrecencyStorage,
 } from 'modern-cmdk';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -202,5 +202,39 @@ describe('Stress Tests', () => {
     const state = machine.getState();
     expect(state).toBeDefined();
     expect(typeof state.search).toBe('string');
+  });
+
+  it('P05: mounting 5,000 items in one tick emits stateChange once and holds every item', {
+    timeout: 15_000,
+  }, async () => {
+    const items = generateItems(5_000);
+    using machine = createCommandMachine();
+    const listener = vi.fn();
+    machine.subscribe(listener);
+
+    for (const item of items) machine.send({ type: 'REGISTER_ITEM', item });
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredCount).toBe(5_000);
+    });
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(machine.getState().activeId).toBe(items[0]?.id);
+  });
+
+  it('P05: unmounting 5,000 items in one tick emits stateChange once', {
+    timeout: 15_000,
+  }, async () => {
+    const items = generateItems(5_000);
+    using machine = createCommandMachine({ items });
+    const listener = vi.fn();
+    machine.subscribe(listener);
+
+    for (const item of items) machine.send({ type: 'UNREGISTER_ITEM', id: item.id });
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredCount).toBe(0);
+    });
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(machine.getState().activeId).toBeNull();
   });
 });

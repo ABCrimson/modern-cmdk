@@ -95,6 +95,16 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     void frecencyEngine.load();
   }
 
+  // Batching: send() queues one scheduler closure per event. A handler's setState only marks the state
+  // changed and registry events only mark it dirty; the last event of the batch refilters once (if dirty)
+  // and emits stateChange once (if changed). Events sent from inside a handler run in the next batch.
+  let queued = 0; // events sent and not yet handled
+  let nextQueued = 0; // of those, the ones sent from inside a handler: they run in the next batch
+  let inHandler = false;
+  let dirty = false;
+  let changed = false;
+  let disposed = false;
+
   // Register initial items and groups
   if (options.items) {
     registry.registerItems(options.items);
@@ -112,15 +122,23 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     }
   }
 
-  // Run initial filter
+  // Run initial filter (nobody listens yet: it is not a change to announce)
   refilter('');
+  changed = false;
 
-  function setState(newState: CommandState): void {
-    state = newState;
-    emitter.emit('stateChange', state);
+  function setState(patch: Partial<CommandState>): void {
+    state = { ...state, ...patch, lastUpdated: Date.now() };
+    changed = true;
+  }
+
+  function setOpen(open: boolean): void {
+    setState({ open });
+    emitter.emit('openChange', open);
+    options.onOpenChange?.(open);
   }
 
   function refilter(query: string): void {
+    dirty = false;
     const items = registry.getItems();
     const disableFilter = options.filter === false;
 
@@ -166,65 +184,33 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
         : (filteredIds[0] ?? null);
 
     setState({
-      ...state,
       search: query,
       filteredIds,
       groupedIds,
       filteredCount: filteredIds.length,
       activeId,
-      lastUpdated: Date.now(),
     });
   }
 
   function navigate(direction: 'next' | 'prev' | 'first' | 'last'): void {
     const { filteredIds, activeId } = state;
-    if (filteredIds.length === 0) return;
-
-    // Fast path for first/last — skip indexOf entirely
-    if (direction === 'first') {
-      const newActiveId = filteredIds[0] ?? null;
-      if (newActiveId !== activeId) {
-        setState({ ...state, activeId: newActiveId, lastUpdated: Date.now() });
-        options.onActiveChange?.(newActiveId);
-      }
-      return;
-    }
-    if (direction === 'last') {
-      const newActiveId = filteredIds[filteredIds.length - 1] ?? null;
-      if (newActiveId !== activeId) {
-        setState({ ...state, activeId: newActiveId, lastUpdated: Date.now() });
-        options.onActiveChange?.(newActiveId);
-      }
-      return;
-    }
+    const last = filteredIds.length - 1;
+    if (last < 0) return;
 
     const loop = options.loop ?? true;
     // O(1) index lookup via Map instead of O(n) indexOf
-    const currentIdx = activeId ? (filteredIdIndex.get(activeId) ?? -1) : -1;
-    let newIdx: number;
+    const current = activeId ? (filteredIdIndex.get(activeId) ?? -1) : -1;
+    let index: number;
 
-    if (direction === 'next') {
-      if (currentIdx === -1 || currentIdx >= filteredIds.length - 1) {
-        newIdx = loop ? 0 : filteredIds.length - 1;
-      } else {
-        newIdx = currentIdx + 1;
-      }
-    } else {
-      // direction === 'prev'
-      if (currentIdx <= 0) {
-        newIdx = loop ? filteredIds.length - 1 : 0;
-      } else {
-        newIdx = currentIdx - 1;
-      }
-    }
+    if (direction === 'first') index = 0;
+    else if (direction === 'last') index = last;
+    else if (direction === 'next')
+      index = current < 0 || current >= last ? (loop ? 0 : last) : current + 1;
+    else index = current <= 0 ? (loop ? last : 0) : current - 1;
 
-    const newActiveId = filteredIds[newIdx] ?? null;
+    const newActiveId = filteredIds[index] ?? null;
     if (newActiveId !== activeId) {
-      setState({
-        ...state,
-        activeId: newActiveId,
-        lastUpdated: Date.now(),
-      });
+      setState({ activeId: newActiveId });
       options.onActiveChange?.(newActiveId);
     }
   }
@@ -250,11 +236,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
       case 'ITEM_ACTIVATE':
         // O(1) Set.has instead of O(n) Array.includes
         if (filteredIdSet.has(event.id)) {
-          setState({
-            ...state,
-            activeId: event.id,
-            lastUpdated: Date.now(),
-          });
+          setState({ activeId: event.id });
           options.onActiveChange?.(event.id);
         }
         break;
@@ -264,58 +246,40 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
         break;
 
       case 'PAGE_PUSH':
-        setState({
-          ...state,
-          page: event.page,
-          pageStack: [...state.pageStack, state.page],
-          lastUpdated: Date.now(),
-        });
+        setState({ page: event.page, pageStack: [...state.pageStack, state.page] });
         break;
 
       case 'PAGE_POP': {
         const prevPage = state.pageStack.at(-1);
         if (prevPage != null) {
-          setState({
-            ...state,
-            page: prevPage,
-            pageStack: state.pageStack.toSpliced(-1, 1),
-            lastUpdated: Date.now(),
-          });
+          setState({ page: prevPage, pageStack: state.pageStack.toSpliced(-1, 1) });
         }
         break;
       }
 
       case 'OPEN':
-        setState({ ...state, open: true, lastUpdated: Date.now() });
-        emitter.emit('openChange', true);
-        options.onOpenChange?.(true);
+        setOpen(true);
         break;
 
       case 'CLOSE':
-        setState({ ...state, open: false, lastUpdated: Date.now() });
-        emitter.emit('openChange', false);
-        options.onOpenChange?.(false);
+        setOpen(false);
         break;
 
-      case 'TOGGLE': {
-        const newOpen = !state.open;
-        setState({ ...state, open: newOpen, lastUpdated: Date.now() });
-        emitter.emit('openChange', newOpen);
-        options.onOpenChange?.(newOpen);
+      case 'TOGGLE':
+        setOpen(!state.open);
         break;
-      }
 
       case 'ITEMS_LOADED':
         registry.registerItems(event.items);
         searchEngine.index(event.items);
-        refilter(state.search);
+        dirty = true;
         break;
 
       case 'LOADING': {
         if (event.pending) pendingSources.add(event.source);
         else pendingSources.delete(event.source);
         const loading = pendingSources.size > 0;
-        if (loading !== state.loading) setState({ ...state, loading, lastUpdated: Date.now() });
+        if (loading !== state.loading) setState({ loading });
         break;
       }
 
@@ -325,24 +289,24 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
         if (event.item.shortcut && event.item.onSelect) {
           keyboardRegistry.register(event.item.shortcut, event.item.id, event.item.onSelect);
         }
-        refilter(state.search);
+        dirty = true;
         break;
 
       case 'UNREGISTER_ITEM':
         registry.unregisterItem(event.id);
         searchEngine.remove(new Set([event.id]));
         keyboardRegistry.unregisterByItem(event.id);
-        refilter(state.search);
+        dirty = true;
         break;
 
       case 'REGISTER_GROUP':
         registry.registerGroup(event.group);
-        refilter(state.search);
+        dirty = true;
         break;
 
       case 'UNREGISTER_GROUP':
         registry.unregisterGroup(event.id);
-        refilter(state.search);
+        dirty = true;
         break;
     }
   }
@@ -353,7 +317,26 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     },
 
     send(event: CommandEvent): void {
-      scheduler.schedule(() => handleEvent(event));
+      if (disposed) return;
+      queued++;
+      if (inHandler) nextQueued++;
+      scheduler.schedule(() => {
+        inHandler = true;
+        try {
+          handleEvent(event);
+        } finally {
+          inHandler = false;
+          if (--queued === nextQueued) {
+            // Last event of the batch: commit once
+            nextQueued = 0;
+            if (dirty) refilter(state.search);
+            if (changed) {
+              changed = false;
+              emitter.emit('stateChange', state);
+            }
+          }
+        }
+      });
     },
 
     /** useSyncExternalStore-compatible subscribe — returns cleanup function */
@@ -384,6 +367,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     },
 
     [Symbol.dispose](): void {
+      disposed = true;
       scheduler[Symbol.dispose]();
       registry[Symbol.dispose]();
       searchEngine[Symbol.dispose]();
