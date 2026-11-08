@@ -24,8 +24,10 @@ export interface VirtualizerReturn {
   readonly virtualItems: readonly VirtualItem[];
   readonly totalSize: number;
   /**
-   * Scrolls the element to a row. `align` is `'start'` (the default: the row meets the top edge) or
-   * `'nearest'` (a row in view does not scroll; a row above or below meets the nearest edge).
+   * Scrolls the element to a row. `align` is `'start'` (the default: `scrollTop` becomes the row's offset among the
+   * rows, so the row meets the top edge only when nothing precedes the rows, padding included) or `'nearest'`
+   * (measured from the element's first child, where the rows must start: a row fully in view does not scroll, a row
+   * above meets the top edge, and a row below or partly below meets the bottom edge).
    */
   readonly scrollToIndex: (index: number, align?: 'start' | 'nearest' | undefined) => void;
   readonly measureElement: (element: HTMLElement | null) => void;
@@ -114,8 +116,9 @@ export function useVirtualizer(options: VirtualizerOptions): VirtualizerReturn {
     return items;
   }, [enabled, containerHeight, count, scrollOffset, overscan, estimateSize, getItemSize]);
 
-  // Scroll to a specific index — instant for keyboard nav responsiveness. 'start' puts the row at the top;
-  // 'nearest' leaves a row that is in view alone and moves a row above or below just to the viewport's edge.
+  // Scroll to a specific index — instant for keyboard nav responsiveness. 'start' sets scrollTop to the row's offset
+  // among the rows, with no allowance for padding or anything before them; 'nearest' adds that origin (the first
+  // child's position), leaves a row fully in view alone and moves any other row just to the viewport's edge.
   const scrollToIndex = useCallback(
     (index: number, align: 'start' | 'nearest' | undefined = 'start'): void => {
       if (!scrollElement || !enabled) return;
