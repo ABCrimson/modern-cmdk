@@ -26,6 +26,26 @@ async function chooseScheme(page: Page, scheme: Scheme): Promise<void> {
   );
 }
 
+/**
+ * Counts the calls to document.startViewTransition in `window.__vt`. VPSwitchAppearance falls back to its own instant toggle
+ * when nothing provides 'toggle-appearance', so a flipped colour alone does not prove that Layout.vue's provide() is wired: the
+ * call count does.
+ */
+async function countViewTransitions(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    Reflect.set(window, '__vt', 0);
+    const original = document.startViewTransition?.bind(document);
+    if (original === undefined) return;
+    document.startViewTransition = (...args: Parameters<typeof original>): ViewTransition => {
+      Reflect.set(window, '__vt', (Reflect.get(window, '__vt') as number) + 1);
+      return original(...args);
+    };
+  });
+}
+
+const viewTransitions = (page: Page): Promise<number> =>
+  page.evaluate(() => Reflect.get(window, '__vt') as number);
+
 /** The sRGB bytes of any CSS colour the browser accepts (oklch(), light-dark() results, rgb()), through a 1x1 canvas. */
 async function rgbOf(page: Page, cssColor: string): Promise<Rgb> {
   return page.evaluate((value) => {
@@ -169,6 +189,7 @@ it.describe('home page with the palette', () => {
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await chooseScheme(page, 'light');
+    await countViewTransitions(page);
     await page.goto('');
     await page.locator(HYDRATED).waitFor();
     // Vite's lightningcss lowers light-dark() into --lightningcss-light/--lightningcss-dark toggles, so the custom property
@@ -184,12 +205,17 @@ it.describe('home page with the palette', () => {
     await page.locator('.VPSwitchAppearance').first().click();
     await expect(page.locator('html')).toHaveClass(/dark/);
     await expect.poll(background).toBe('rgb(10, 14, 39)');
+    // transitionAppearance skips the view transition under reduced motion (canTransition in view-transitions.ts) and flips at once
+    expect(await viewTransitions(page)).toBe(0);
   });
 
-  it('the appearance switch also flips through the view transition', async ({ page }) => {
+  it('the appearance switch flips through exactly one view transition', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await chooseScheme(page, 'light');
+    await countViewTransitions(page);
     await page.goto('');
+    await page.locator(HYDRATED).waitFor();
+    expect(await viewTransitions(page)).toBe(0);
     await page.locator('.VPSwitchAppearance').first().click();
     await expect(page.locator('html')).toHaveClass(/dark/, { timeout: 5000 });
     await expect
@@ -206,6 +232,7 @@ it.describe('home page with the palette', () => {
         },
       )
       .toBe('rgb(10, 14, 39)');
+    expect(await viewTransitions(page)).toBe(1);
   });
 });
 
