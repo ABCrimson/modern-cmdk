@@ -19,7 +19,8 @@
 // 4 runs of this file, 2026-11-08): register 1.29-2.12x, unregister 1.72-1.95x, register + shortcuts
 // 1.08-1.97x, unregister + shortcuts 1.20-1.59x. The pre-1.6.0 core refiltered on every send;
 // mount.bench.ts measured REGISTER_ITEM x N at ~70-90 ms for 1K and ~9-10 s for 10K, a per-item ratio
-// of ~13. The self-check at the end of this file measures a deliberately quadratic stand-in at 9.0-12.0x.
+// of ~13. The self-check at the end of this file measures a deliberately quadratic stand-in at 10-18x
+// (three runs on one host, Intel Core Ultra 9 290HX, Windows, 2026-11-08: 10.3x, 12.3x, 17.7x).
 //
 // Vitest runs the tests of a file in order, so the benches fill RESULTS before the assertion reads it;
 // a missing result (a bench filtered out with -t, or one that threw) fails the assertion with its name.
@@ -31,10 +32,11 @@ import { generateItems } from './fixtures.ts';
 
 /**
  * The most the per-item time may grow from 1K to 10K items. Linear work measures ~1-2x here (the fixed
- * cost of one microtask batch and one refilter weighs more at 1K, a bigger working set costs more cache
- * misses and GC at 10K); a quadratic path measures ~10x (13x on the pre-1.6.0 core, 9-12x for the
- * self-check stand-in). 4x sits about twice the highest linear ratio measured (2.12x) and under half the
- * lowest quadratic one (9.0x), which leaves room for CI noise in both directions.
+ * cost of one scheduler batch (one requestAnimationFrame callback) and one refilter weighs more at
+ * 1K, a bigger working set costs more cache misses and GC at 10K); a quadratic path measures ~10x (13x on the pre-1.6.0 core, 10-18x for the
+ * self-check stand-in on one host, Intel Core Ultra 9 290HX, Windows, 2026-11-08). True O(N^2) at 10x N
+ * gives a 10x per-item ratio. 4x sits about twice the highest linear ratio measured (2.12x) and under half
+ * the lowest quadratic one measured (10.3x), which leaves room for CI noise in both directions.
  */
 const GROWTH_FACTOR = 4;
 
@@ -189,7 +191,7 @@ describe('Registration: complexity budget (P33)', () => {
 // removal rebuilds the whole id list, the shape of the pre-1.6.0 per-send refilter) goes through the
 // same recording and the same growthViolations, and must exceed GROWTH_FACTOR, so the budget above is
 // shown to turn red on quadratic work in every run.
-/** One 10K iteration of the stand-in takes ~0.3 s: five timed iterations (median of five) after one warm-up, no time budget. */
+/** One 10K iteration of the stand-in takes ~0.3-0.4 s (measured on the host above): five timed iterations (median of five) after one warm-up, no time budget. */
 const STAND_IN_RUN = { warmupIterations: 1, warmupTime: 0, iterations: 5, time: 0 } as const;
 
 describe('Registration: self-check, a quadratic stand-in', () => {
