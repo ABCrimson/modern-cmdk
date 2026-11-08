@@ -18,7 +18,7 @@ graph TB
 
     subgraph "Layer 2: React 19 Adapter"
         REACT["modern-cmdk/react\nCompound components"]
-        HOOKS["useSyncExternalStore\nuseTransition\nuseOptimistic"]
+        HOOKS["useSyncExternalStore"]
     end
 
     subgraph "Layer 1: Core Engine"
@@ -48,15 +48,16 @@ Pure TypeScript state machine with no hard DOM dependency (DOM APIs are feature-
 - **Navigation** -- Active item tracking, page stack, loop/no-loop
 - **State snapshots** -- Immutable `CommandState` objects for efficient change detection
 
-Beyond notifying subscribers, the core has these side effects: every machine's keyboard registry attaches a document-level `keydown` listener when a document exists (removed on dispose); when frecency is enabled, the engine loads from its storage, saves to it on a debounce, and listens for `pagehide` and `visibilitychange`; and importing the core defines `Symbol.dispose` and `Symbol.asyncDispose` as `Symbol.for('Symbol.dispose')` and `Symbol.for('Symbol.asyncDispose')` where the runtime lacks them. It can be used with any UI framework or no framework at all.
+Beyond notifying subscribers, the core has these side effects: every machine's keyboard registry attaches a document-level `keydown` listener when a document exists (removed by `suspend()` and by dispose; `resume()` attaches it again); when frecency is enabled, the engine loads from its storage, saves to it on a debounce, and listens for `pagehide` and `visibilitychange` (`suspend()` removes these listeners and flushes a pending save, `resume()` adds them again; dispose is terminal); and importing the core defines `Symbol.dispose` and `Symbol.asyncDispose` as `Symbol.for('Symbol.dispose')` and `Symbol.for('Symbol.asyncDispose')` where the runtime lacks them. It can be used with any UI framework or no framework at all.
 
 ### Layer 2: React Adapter (`modern-cmdk/react`)
 
 Compound component API that bridges the core state machine to React 19:
 
 - **`useSyncExternalStore`** -- Subscribes to machine state without tearing
-- **`useTransition`** -- Wraps only the optimistic active-item update; `Command.Input` keeps an urgent draft value and the machine catches up on its scheduler tick, so `isPending` never reflects a search
-- **`useOptimistic`** -- Optimistic active item updates for instant visual feedback
+- **One machine per mount** -- `Command` and `Command.Dialog` create the machine in a lazy ref, suspend it in the layout-effect cleanup and resume it in the setup, so StrictMode's replay and an `<Activity>` hide and show re-arm the same machine. The React root never disposes it; the search engine it created is released on collection (`react/hooks/use-command-setup.ts:150-166`, `:227-250`)
+- **`Command.Input` keeps an urgent draft value** -- the machine catches up on its scheduler tick, outside React. `useCommand().isPending` is constant `false` and `setOptimisticActiveId(id)` sends `ITEM_ACTIVATE`; both are deprecated, removed in 2.0 (`react/hooks/use-command.ts:12-24`)
+- **A pure `Command`** -- `Command` is a `/* @__PURE__ */ Object.assign(...)` (`react/command.tsx:132-152`), so a bundle that imports only individual components (such as `CommandSeparator`) drops the root and the other parts
 - **`ref` as prop** -- React 19 native ref forwarding (no `forwardRef`)
 - **`"use client"` directive** -- The shipped React components are client-only: `dist/react/index.mjs` and `dist/react/dialog.mjs` begin with the directive, added as a banner by `packages/modern-cmdk/tsdown.config.ts` (the source files under `src/react` do not carry it)
 - **Radix UI integration** -- Dialog with focus trap, portal, overlay
@@ -127,7 +128,7 @@ flowchart LR
 3. **Scoring** -- The search engine (TypeScript or WASM) scores each item against the query
 4. **Frecency boost** -- If enabled, frecency bonuses are added to search scores of a non-empty query (an empty query lists registration order)
 5. **Filtering** -- With the default engine, items that do not match are dropped. A custom `filter` function returning `false`, `0` or a negative number excludes the item, and a positive number keeps it as its score. Results from a pluggable `search` engine are kept as returned, except that frecency re-ranks them and `disabledItems: 'hide'` drops disabled ones, so such an engine returns only the items it matches
-6. **Sorting** -- The default engine returns results by score (descending); with frecency enabled the machine re-sorts them by score plus bonus. Otherwise a pluggable engine's order is kept
+6. **Sorting** -- The default engine returns results by score (descending); with frecency enabled the machine re-sorts them by score plus bonus. Otherwise a pluggable engine's order is kept After the results are set, the active item stays the same while it is still listed and enabled under the new query; otherwise the first enabled item of the ranked list becomes active (`core/machine.ts:274-277`).
 7. **Grouping** -- Results are partitioned into groups based on `groupId`
 8. **Rendering** -- React adapter renders visible items, virtualizing if needed
 
@@ -217,8 +218,8 @@ interface SearchEngine extends Disposable {
 
 ::: warning `SearchEngine` extends `Disposable`
 `[Symbol.dispose]()` is **required**, not optional -- a custom engine without it will not
-typecheck. The machine disposes its engine when the machine itself is disposed, so this is
-where you release indexes, workers, or WASM instances.
+typecheck. The machine disposes only an engine it created (neither `searchEngine` nor `search` passed). An engine you pass is yours to dispose, and it survives the machine's dispose, suspend and resume, so
+call its `[Symbol.dispose]()` yourself (or write `using`) where you release indexes, workers, or WASM instances.
 :::
 
 ### Frecency Storage Interface
@@ -254,9 +255,10 @@ const myEngine: SearchEngine = {
   [Symbol.dispose]() { /* release the index, worker, or WASM instance */ },
 };
 
-// Dispose the machine when your UI goes away (`machine[Symbol.dispose]()`): it disposes the engine too.
-// A `using` at module level would dispose it as soon as the module has run.
-const machine = createCommandMachine({ search: myEngine });
+// The engine you pass is yours to dispose, and it outlives the machine: dispose the machine
+// (`machine[Symbol.dispose]()`) and the engine when your UI goes away. A `using` at module level
+// would dispose them as soon as the module has run.
+const machine = createCommandMachine({ searchEngine: myEngine });
 ```
 
 To add a custom frecency storage:
@@ -279,10 +281,10 @@ class RedisFrecencyStorage implements FrecencyStorage {
 `packages/modern-cmdk/tsdown.config.ts` holds three tsdown configs:
 
 1. **The core** (`dist/core/index.mjs`, with declarations).
-2. **The React adapter**: two entries, `modern-cmdk/react` and `modern-cmdk/react/dialog`, in one config so the code both use (context, hooks, `CommandDialog`) is emitted once as a shared chunk in `dist/react`. The core is external: the adapter imports it as `modern-cmdk`, so a bundle holds one core, not a second copy inlined into the adapter. `radix-ui` stays external too, and the two React outputs (`react/index.mjs`, `react/dialog.mjs`) begin with `'use client'`: the banner comes from this config, and no file under `src/react` carries the directive. `styles.css` is copied to `dist/react/styles.css`.
+2. **The React adapter**: two entries (`react/index` and `react/dialog` in `entry`), `modern-cmdk/react` and `modern-cmdk/react/dialog`, in one config so the code both use (context, hooks, `CommandDialog`) is emitted once as a shared chunk in `dist/react`. The core is external: the adapter imports it as `modern-cmdk`, so a bundle holds one core, not a second copy inlined into the adapter. `radix-ui` stays external too, and the two React outputs (`react/index.mjs`, `react/dialog.mjs`) begin with `'use client'`: the banner comes from this config, and no file under `src/react` carries the directive. `styles.css` is copied to `dist/react/styles.css`.
 3. **The codemod** (`dist/codemod`): the deprecated `modern-cmdk` bin. Its source lives in the sibling package `packages/modern-cmdk-codemod` (bin `modern-cmdk-codemod`); this config builds `cli.mjs`, the worker and the transforms from that source, bundled with jscodeshift and its parser tree (ten packages), behind the shim `dist/codemod/bin.mjs`, which warns once and keeps the 1.x exit codes and 1.4's excludes until 2.0. `modern-cmdk` ships `THIRD-PARTY-NOTICES.md` for the bundled code (`pnpm check:notices`). Neither `modern-cmdk` nor `modern-cmdk-codemod` ships declarations for the codemod, because it is a CLI and not an importable API.
 
-`sideEffects` in `packages/modern-cmdk/package.json` is `["./dist/react/styles.css"]` only. `Command.Dialog` is a member of the `Command` compound, so every `modern-cmdk/react` import loads `radix-ui`, and `radix-ui` is a required peer dependency (`>=1.4.0 <2.0.0`) through 1.x. See [Server-Side Rendering](/guide/ssr#tree-shaking) for the measured consequence for bundle size.
+The configs hold 1 + 2 + 7 entries (the core, the two React entries, and `bin`, `cli`, `worker` and four `transforms/*` for the codemod), and `exports` in `packages/modern-cmdk/package.json` has five subpaths: `.` (`dist/core/index.mjs`), `./react`, `./react/dialog`, `./styles.css` and `./package.json`. `sideEffects` in `packages/modern-cmdk/package.json` is `["./dist/react/styles.css"]` only. `Command.Dialog` is a member of the `Command` compound, so every `modern-cmdk/react` import loads `radix-ui`, and `radix-ui` is a required peer dependency (`>=1.4.0 <2.0.0`) through 1.x. See [Server-Side Rendering](/guide/ssr#tree-shaking) for the measured consequence for bundle size.
 
 ## Language Features & Editions
 
