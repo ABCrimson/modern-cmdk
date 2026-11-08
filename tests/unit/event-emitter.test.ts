@@ -220,4 +220,37 @@ describe('TypedEmitter', () => {
     const emitter = new TypedEmitter<TestEvents>();
     expect(typeof emitter[Symbol.dispose]).toBe('function');
   });
+
+  it('CE-75: a throwing listener does not skip the later listeners and its error is rethrown from a microtask', async () => {
+    const original = globalThis.queueMicrotask;
+    const reported: unknown[] = [];
+    const queue = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((callback) => {
+      original(() => {
+        try {
+          callback();
+        } catch (error: unknown) {
+          reported.push(error);
+        }
+      });
+    });
+    try {
+      using emitter = new TypedEmitter<TestEvents>();
+      const boom = new Error('listener failed');
+      const later = vi.fn();
+      using _first = emitter.on('message', () => {
+        throw boom;
+      });
+      using _second = emitter.on('message', later);
+
+      expect(() => emitter.emit('message', 'hi')).not.toThrow();
+
+      expect(later).toHaveBeenCalledExactlyOnceWith('hi');
+      expect(queue).toHaveBeenCalledOnce();
+      await Promise.resolve();
+      expect(reported).toHaveLength(1);
+      expect(reported[0]).toBe(boom);
+    } finally {
+      queue.mockRestore();
+    }
+  });
 });

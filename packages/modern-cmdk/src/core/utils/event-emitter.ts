@@ -27,7 +27,10 @@ export class TypedEmitter<T extends object> implements Disposable {
     };
   }
 
-  /** Emit an event to all listeners. Snapshots the set to prevent live-iteration issues. */
+  /**
+   * Emit an event to all listeners. Snapshots the set to prevent live-iteration issues.
+   * A throwing listener does not stop the later ones: its error is rethrown from a microtask, as the scheduler does.
+   */
   emit<K extends keyof T>(event: K, data: T[K]): void {
     const set = this.#listeners.get(event);
     if (!set || set.size === 0) return;
@@ -35,7 +38,13 @@ export class TypedEmitter<T extends object> implements Disposable {
     // Snapshot via spread — prevents listeners added/removed during emit from
     // affecting the current iteration pass (ES Set iterators are live)
     for (const fn of [...set]) {
-      fn(data as never);
+      try {
+        fn(data as never);
+      } catch (error: unknown) {
+        queueMicrotask(() => {
+          throw error;
+        });
+      }
     }
   }
 
