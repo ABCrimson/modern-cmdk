@@ -131,3 +131,40 @@ html:root .VPSidebar .VPSidebarItem:not(.level-0):not(.is-active) > .item:hover 
 html:root .VPSidebar .VPSidebarItem:not(.level-0):not(.is-active) > .item > .link:hover .text {
   color: var(--mc-text-1);
 }
+
+/*
+ * Local search (Ctrl K, VPLocalSearchBox): a lift toward the site's own palette. The shell takes the palette's radius and
+ * shadow, a result row has no box and the selected one is a brand-soft fill with a 3 px brand-3 bar, the footer keys are
+ * the .mc-kbd key caps of doc.css. Class names are VPLocalSearchBox.vue:504-800.
+ */
+html:root .VPLocalSearchBox .shell {
+  border-radius: var(--mc-radius-xl);
+  box-shadow: 0 24px 64px -24px oklch(0.177 0.051 273 / 45%);
+}
+
+@media not all and (min-width: 48rem) {
+  html:root .VPLocalSearchBox .shell {
+    border-radius: 0;
+  }
+}
+
+html:root .VPLocalSearchBox .result {
+  border: 0;
+  border-radius: var(--mc-radius-sm);
+}
+
+html:root .VPLocalSearchBox .result.selected {
+  background-color: var(--mc-brand-soft);
+  box-shadow: inset 3px 0 var(--mc-brand-3);
+}
+
+html:root .VPLocalSearchBox .search-keyboard-shortcuts kbd {
+  border: 1px solid var(--mc-border-strong);
+  border-block-end-width: 2px;
+  border-radius: var(--mc-radius-xs);
+  background-color: var(--mc-bg-soft);
+  box-shadow: none;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.8em;
+  color: var(--mc-text-1);
+}
