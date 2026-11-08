@@ -32,7 +32,7 @@ const ActivityComponent: ComponentType<ActivityComponentProps> | null =
 
 /**
  * Wraps content in React's <Activity> API (React 19.2+).
- * When mode="hidden", the component tree is preserved in memory but not rendered.
+ * When mode="hidden", React keeps the children mounted with their state and DOM, hides the DOM with `display: none` and cleans up their effects until the mode is visible again.
  * Falls back to conditional rendering if Activity is unavailable.
  */
 export function CommandActivity({ mode, children }: CommandActivityProps): ReactNode {
