@@ -48,14 +48,21 @@ export function CommandList({
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
   const [height, setHeight] = useState<number>(0);
 
-  // Latch: once virtualization enables, keep it until explicit override or count drops well below threshold
-  const shouldVirtualizeRef = useRef<boolean>(false);
-  const computedVirtualize: boolean = virtualize ?? stateCtx.state.filteredCount > 100;
-  if (computedVirtualize) shouldVirtualizeRef.current = true;
-  else if (stateCtx.state.filteredCount <= 50) shouldVirtualizeRef.current = false;
-  const shouldVirtualize: boolean = virtualize ?? shouldVirtualizeRef.current;
+  // Latch: virtualization turns on above 100 matches and stays on until the count drops to 50 or fewer, so a
+  // count hovering around the threshold does not flip the mode on every keystroke. The latch is state derived
+  // from its previous value while rendering (the "adjusting state while rendering" pattern of react.dev), so
+  // render writes no ref: React re-renders this component at once with the new value, before any child runs.
+  const filteredCount = stateCtx.state.filteredCount;
+  const [latched, setLatched] = useState<boolean>(false);
+  const nextLatched: boolean = filteredCount > 100 || (latched && filteredCount > 50);
+  if (nextLatched !== latched) setLatched(nextLatched);
+  const shouldVirtualize: boolean = virtualize ?? nextLatched;
 
-  // ResizeObserver for --command-list-height CSS custom property
+  // ResizeObserver for the --command-list-height CSS custom property. The one inner element is always
+  // mounted, so the observer never watches a detached node. It reports the inner element's content height:
+  // the rows' natural height without virtualization and the virtual total (the sum of the row sizes) with it.
+  // No rule of styles.css reads the property; a consumer that sizes the list from it clamps that height with
+  // its own max-height.
   useEffect(() => {
     const element = innerRef.current;
     if (!element) return;
@@ -163,18 +170,19 @@ export function CommandList({
         style={mergedStyle}
         {...props}
       >
-        {shouldVirtualize ? (
-          <div
-            data-command-list-virtual=""
-            style={{ height: `${virtualizer.totalSize}px`, position: 'relative' }}
-          >
-            <CommandStateContext value={virtualizedStateCtx}>{children}</CommandStateContext>
-          </div>
-        ) : (
-          <div ref={innerRef} data-command-list-inner="">
-            {children}
-          </div>
-        )}
+        {/* One element tree in both modes: the mode changes this element's props only, so the items stay mounted when the match count crosses the threshold. */}
+        <div
+          ref={innerRef}
+          data-command-list-inner={shouldVirtualize ? undefined : ''}
+          data-command-list-virtual={shouldVirtualize ? '' : undefined}
+          style={
+            shouldVirtualize
+              ? { height: `${virtualizer.totalSize}px`, position: 'relative' }
+              : undefined
+          }
+        >
+          <CommandStateContext value={virtualizedStateCtx}>{children}</CommandStateContext>
+        </div>
       </div>
       {/* Status container for Command.Empty — rendered outside the listbox for ARIA compliance */}
       <div ref={statusContainerRef} data-command-list-status="" />
