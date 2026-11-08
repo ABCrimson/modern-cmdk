@@ -31,9 +31,11 @@
 //
 // The adapter keeps a cmdk filter working. cmdk's filter is (value, search, keywords) => number
 // and 0 hides the item (node_modules/cmdk/dist/index.d.ts:7, `CommandFilter`). modern-cmdk calls
-// filter(item, query) and reads `false` as "exclude" and any number, 0 included, as a score
-// (core/machine.ts:66-80; core/types.ts `CommandMachineOptions.filter`), so the adapter maps a
-// score of 0 (or less) to `false`.
+// filter(item, query) and reads `false` as "exclude". The 1.6.0 core also excludes a score of 0 and
+// a negative score (ARCH-14: the custom-filter adapter in core/machine.ts:73-87, documented at
+// core/types.ts `CommandMachineOptions.filter`), which is cmdk's meaning of 0. The adapter's mapping
+// of a score of 0 (or less) to `false` stays for output that runs on a 1.5.x core, where 0 was a
+// score, and is a no-op on 1.6.0.
 
 import type {
   API,
