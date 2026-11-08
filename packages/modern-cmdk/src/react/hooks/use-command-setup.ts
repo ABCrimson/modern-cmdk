@@ -121,6 +121,10 @@ function createLiveOptions(
  * no global reference, and the core's FinalizationRegistry disposes the search engine the
  * machine created once the machine is collected.
  *
+ * A change of the `disabledItems` or `activeId` prop calls `machine.refresh()` after the commit's item and group
+ * diffs: the machine refilters once over the registry as it then reads, and a controlled `activeId` is mirrored in
+ * the state (`null` while that item is not listed or is disabled) without a call to `onActiveChange`.
+ *
  * The machine's options object is built once, over a ref that holds the latest props. The ref starts as the
  * first render's props, so a server render (where layout effects never run) reads real props, and a layout
  * effect without dependencies assigns each commit's props, so render writes nothing.
@@ -137,7 +141,7 @@ export function useCommandSetup(
   // The first render's props and, in development, the init-only props already warned about
   const [first] = useState(options);
   const [warned] = useState(() => new Set<string>());
-  // The last value each deduped callback forwarded; the machine's options object and the `activeId` effect share it
+  // The last value each deduped callback forwarded; the machine's options object holds it
   const [fwd] = useState<Forwarded>(() => ({ search: '', activeId: null, open: false }));
 
   // The one render-time ref write: a null-guarded initializer, which react.dev/reference/react/useRef
@@ -169,10 +173,12 @@ export function useCommandSetup(
   }, [machine]);
 
   // Every commit: in development, warn about a changed init-only prop; publish the props to the options object, then
-  // register what changed. `UPDATE_ITEM` upserts, so it
-  // serves a new item and a changed one. StrictMode's replay and a re-render from the machine's own state pass the
-  // same arrays, so the diff sends nothing. A `disabledItems` change refilters (the machine reads it in its refilter;
-  // upserting an unchanged item triggers one).
+  // register what changed. `UPDATE_ITEM` upserts, so it serves a new item and a changed one. StrictMode's replay and
+  // a re-render from the machine's own state pass the same arrays, so the diff sends nothing. A change of
+  // `disabledItems` or `activeId` is a change of what the machine reads in its refilter, so the effect ends with
+  // `machine.refresh()`: one batch slot, queued after the diffs' sends and after the UNREGISTER sends of children
+  // unmounted in this commit (their layout cleanups run in the mutation phase, before this effect). Its refilter
+  // therefore sees the final registry, and it reports no candidate: the prop is the caller's own change.
   useLayoutEffect(() => {
     // Inline comparison, so a consumer minifier that defines NODE_ENV as "production" folds the branch and drops the
     // warning below; `typeof process` keeps an unbundled browser import (no `process`) from throwing, and there the
@@ -203,22 +209,9 @@ export function useCommandSetup(
       (group) => machine.send({ type: 'REGISTER_GROUP', group }),
       ({ id }) => machine.send({ type: 'UNREGISTER_GROUP', id }),
     );
-    if (previous.disabledItems !== options.disabledItems) {
-      const [item] = machine.getRegistry().getItems();
-      if (item) machine.send({ type: 'UPDATE_ITEM', item });
-    }
+    if (previous.disabledItems !== options.disabledItems || previous.activeId !== options.activeId)
+      machine.refresh?.();
   });
-
-  // A controlled `activeId`: the machine reads the option itself, but only `ITEM_ACTIVATE` of that id moves
-  // `state.activeId` (and it calls no callback for the caller's own value). The id is the last value the caller
-  // saw, so it becomes the memory the `onActiveChange` dedupe compares against. `null` has no event: the
-  // state keeps the previous id. This effect follows the one above, so `latest` already holds the new prop.
-  const { activeId } = options;
-  useLayoutEffect(() => {
-    if (activeId == null) return;
-    fwd.activeId = activeId;
-    machine.send({ type: 'ITEM_ACTIVATE', id: activeId });
-  }, [activeId, machine, fwd]);
 
   // Keyboard handler — useMemo (not useCallback) to memoize the factory result
   const handleKeyDown = useMemo(

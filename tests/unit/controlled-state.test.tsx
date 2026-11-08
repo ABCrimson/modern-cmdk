@@ -200,6 +200,39 @@ it('a controlled activeId holds while navigation reports the candidate', async (
   expect(appliedHeld.machine?.getState().activeId).toBe('c');
 });
 
+it('activeId={null} clears the active item and aria-activedescendant', async () => {
+  const held: Held = {};
+  const onActiveChange = vi.fn();
+  const tree = (activeId: ItemId | null): ReactNode => (
+    <Command activeId={activeId} onActiveChange={onActiveChange}>
+      <Probe held={held} />
+      <Command.Input />
+      <Command.List>
+        {['a', 'b'].map((value) => (
+          <Command.Item key={value} value={value} forceId={value}>
+            {value}
+          </Command.Item>
+        ))}
+      </Command.List>
+    </Command>
+  );
+  const view = render(tree(itemId('b')));
+  const input = view.getByRole('combobox') as HTMLInputElement;
+  await settle();
+  expect(held.machine?.getState().activeId).toBe('b');
+  expect(input.getAttribute('aria-activedescendant')).toBe('b');
+  expect(view.container.querySelectorAll('[data-active]')).toHaveLength(1);
+
+  view.rerender(tree(null));
+  await settle();
+
+  expect(held.machine?.getState().activeId).toBeNull();
+  expect(input.hasAttribute('aria-activedescendant')).toBe(false);
+  expect(view.container.querySelectorAll('[data-active]')).toHaveLength(0);
+  expect(view.container.querySelectorAll('[aria-selected="true"]')).toHaveLength(0);
+  expect(onActiveChange).not.toHaveBeenCalled();
+});
+
 it('the root forwards div props and its ref', async () => {
   const held: Held = {};
   const keyDowns: string[] = [];
