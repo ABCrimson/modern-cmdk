@@ -8,7 +8,7 @@ import { parserFor } from '../../packages/modern-cmdk-codemod/src/files.js';
 import transform from '../../packages/modern-cmdk-codemod/src/transforms/should-filter.js';
 import { applyTransform, listCases, readCase, toCrlf } from './codemod-fixtures.ts';
 
-const ROW_ID = /^(?:SF-\d+|SF-DOC|SF-TEST|SEC-\d+|TUB-\d+|ARCH-\d+)-/;
+const ROW_ID = /^(?:SF-\d+|SF-DOC|SF-TEST|SEC-\d+|G41|TUB-\d+|ARCH-\d+)-/;
 
 function run(path: string, source: string): { output: string; reports: string[] } {
   const parser = parserFor(path);
@@ -46,10 +46,10 @@ describe('codemod: should-filter fixtures', () => {
   }
 
   // The forms the transform header lists as left unchanged (should-filter.ts: filter={x!},
-  // filter={x as F}, filter={o?.f}, filter={super.f}). SEC-52's remaining clause for this fixture
-  // is carried from 1.5.0 by DECISIONS G-41/G-42.
-  it('SEC-52 (G-41/G-42 carry): filter={x!}, {x as F}, {o?.f} and {super.f} are left byte-identical, one computed-value report each', () => {
-    const c = readCase('should-filter', 'SEC-52-unadaptable-filter-forms');
+  // filter={x as F}, filter={o?.f}, filter={super.f}). The fixture is the carry recorded in
+  // DECISIONS G-41 and G-42 (it is not a SEC-52 clause: that row's remainder is SEC-02).
+  it('G-41 carry (should-filter fixture): filter={x!}, {x as F}, {o?.f} and {super.f} are left byte-identical, one computed-value report each', () => {
+    const c = readCase('should-filter', 'G41-unadaptable-filter-forms');
     const result = run(c.inputPath, c.input);
     expect(result.output).toBe(c.input);
     expect(result.reports).toHaveLength(4);
