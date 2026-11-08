@@ -1,6 +1,10 @@
 // packages/modern-cmdk/src/core/machine.ts
 // Core state machine — pure functions, `using` for subscription cleanup
 // Implements Disposable, useSyncExternalStore-compatible API
+// Browser floor of the core: Chrome, Edge and Android Chrome 122; Firefox and Android Firefox 131;
+// Safari and iOS Safari 18.4. tests/unit/browser-floor.json pins it and tests/unit/browser-floor.test.ts
+// recomputes it from web-features and fails on drift. Symbol.dispose and Symbol.asyncDispose are shimmed
+// in core/frecency/idb-storage.ts (`??=`) for the Safari floor.
 
 import { FrecencyEngine } from './frecency/index.js';
 import { KeyboardShortcutRegistry } from './keyboard/index.js';
