@@ -74,6 +74,7 @@ function SearchResults() {
               {items!.map((item) => (
                 <Command.Item
                   key={item.id}
+                  id={item.id}
                   value={item.value}
                   keywords={item.keywords ?? []}
                   onSelect={() => console.log('Selected:', item.id)}
@@ -109,6 +110,8 @@ export function AsyncSearchExample() {
 Setting `filter={false}` on `<Command>` disables client-side filtering. All filtering is delegated to your API.
 :::
 
+Each `Command.Item` passes `id={item.id}`, the id of the loaded item, so the rendered item and the loaded item are one registration and the rendered item's `onSelect` and `keywords` win. An item without an `id` registers under a generated id and counts twice; in development it warns once. With `filter={false}` every resolved batch replaces the previous one: `Command.AsyncItems` unregisters exactly the ids of the old batch when the promise changes or the component unmounts, so results of earlier queries do not stay counted or keyboard-reachable.
+
 ## With Error Boundary
 
 `modern-cmdk/react` exports `CommandErrorBoundary`. Wrap async items in it so a failed request renders a fallback instead of unmounting the palette. Its `fallback` prop takes a node or a function `(error, reset)`, and `onError` receives the error and React's `ErrorInfo`. The sample retries by changing the boundary's `key` so React mounts a fresh boundary; `reset` and `resetKeys` are the alternative (see below). The search promises are cached per query, so a rejected one would be reused: the Retry button clears the cache before it changes the key, so the retry fetches again.
@@ -134,7 +137,7 @@ function SearchResults() {
     >
       {(results) =>
         results.map((item) => (
-          <Command.Item key={item.id} value={item.value}>
+          <Command.Item key={item.id} id={item.id} value={item.value}>
             {item.value}
           </Command.Item>
         ))
@@ -242,7 +245,7 @@ export function MultiSourceExample() {
           >
             {(items) =>
               items.map((item) => (
-                <Command.Item key={item.id} value={item.value}>
+                <Command.Item key={item.id} id={item.id} value={item.value}>
                   {item.value}
                 </Command.Item>
               ))
@@ -257,7 +260,7 @@ export function MultiSourceExample() {
           >
             {(items) =>
               items.map((item) => (
-                <Command.Item key={item.id} value={item.value}>
+                <Command.Item key={item.id} id={item.id} value={item.value}>
                   {item.value}
                 </Command.Item>
               ))
@@ -270,4 +273,4 @@ export function MultiSourceExample() {
 }
 ```
 
-Each group loads independently and shows its own loading state. `state.loading` is `true` while any of them is pending; the `loading` prop on a fallback `<Command.Loading>` is an override, kept so the element renders on the fallback's first render. The first group to resolve renders immediately.
+Item ids must be unique across the sources of one palette: both sources register through the same machine, and a replaced or unmounted batch unregisters the ids it loaded, so an id shared by two sources would remove the other source's entry. Each group loads independently and shows its own loading state. `state.loading` is `true` while any of them is pending; the `loading` prop on a fallback `<Command.Loading>` is an override, kept so the element renders on the fallback's first render. The first group to resolve renders immediately.
