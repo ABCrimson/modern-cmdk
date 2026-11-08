@@ -11,6 +11,7 @@ import { KeyboardShortcutRegistry } from './keyboard/index.js';
 import { CommandRegistry } from './registry.js';
 import { createSearchEngine } from './search/index.js';
 import type { SearchEngine, SearchResult } from './search/types.js';
+import { telemetryOver } from './telemetry.js';
 import type {
   CommandEvent,
   CommandItem,
@@ -148,6 +149,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     options.searchEngine ?? options.search ?? createOwnedEngine(options);
   const scheduler: Scheduler = createScheduler();
   const emitter = new TypedEmitter<MachineEvents>();
+  const telemetry = telemetryOver(() => options.telemetry);
   const keyboardRegistry = new KeyboardShortcutRegistry();
 
   // Sources with an outstanding load — state.loading is true while the set is non-empty
@@ -218,6 +220,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     setState({ open });
     emitter.emit('openChange', open);
     options.onOpenChange?.(open);
+    if (open) telemetry.onOpen();
+    else telemetry.onClose();
   }
 
   /** Recomputes the lists and the active item for `query`; `report` lets a controlled `activeId` hear the candidate it does not take. */
@@ -360,10 +364,13 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
       refilter(state.search);
     }
     switch (event.type) {
-      case 'SEARCH_CHANGE':
+      case 'SEARCH_CHANGE': {
+        const start = Date.now();
         refilter(event.query);
+        telemetry.onSearch(event.query, state.filteredCount, start);
         options.onSearchChange?.(event.query);
         break;
+      }
 
       case 'ITEM_SELECT': {
         const item = registry.getItem(event.id);
@@ -372,6 +379,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
           frecencyEngine?.recordSelection(event.id);
           emitter.emit('select', event.id);
           options.onSelect?.(event.id);
+          telemetry.onSelect(event.id, state.search, filteredIdIndex.get(event.id) ?? -1);
         }
         break;
       }
