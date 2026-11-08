@@ -103,7 +103,6 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
   let inHandler = false;
   let dirty = false;
   let changed = false;
-  let disposed = false;
 
   // Register initial items and groups
   if (options.items) {
@@ -215,7 +214,23 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     }
   }
 
+  /** Ends a batch: one refilter if a registry event ran, then one stateChange even if the refilter throws. */
+  function commit(): void {
+    try {
+      if (dirty) refilter(state.search);
+    } finally {
+      if (changed) {
+        changed = false;
+        emitter.emit('stateChange', state);
+      }
+    }
+  }
+
   function handleEvent(event: CommandEvent): void {
+    // Navigation reads the filtered ids: bring them up to date after a registry event of this batch
+    if (dirty && (event.type === 'NAVIGATE' || event.type === 'ITEM_ACTIVATE')) {
+      refilter(state.search);
+    }
     switch (event.type) {
       case 'SEARCH_CHANGE':
         refilter(event.query);
@@ -317,7 +332,6 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     },
 
     send(event: CommandEvent): void {
-      if (disposed) return;
       queued++;
       if (inHandler) nextQueued++;
       scheduler.schedule(() => {
@@ -329,11 +343,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
           if (--queued === nextQueued) {
             // Last event of the batch: commit once
             nextQueued = 0;
-            if (dirty) refilter(state.search);
-            if (changed) {
-              changed = false;
-              emitter.emit('stateChange', state);
-            }
+            commit();
           }
         }
       });
@@ -367,7 +377,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     },
 
     [Symbol.dispose](): void {
-      disposed = true;
+      queued = nextQueued = 0; // the scheduler drops its pending closures
       scheduler[Symbol.dispose]();
       registry[Symbol.dispose]();
       searchEngine[Symbol.dispose]();

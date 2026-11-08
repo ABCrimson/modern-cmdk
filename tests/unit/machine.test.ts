@@ -305,6 +305,22 @@ describe('CommandMachine batching', () => {
     return { engine, searches: () => calls };
   }
 
+  /** The scheduler rethrows a failed update from a microtask: collect it there instead of failing the run. */
+  function captureRethrown(): { reported: unknown[]; restore: () => void } {
+    const original = globalThis.queueMicrotask;
+    const reported: unknown[] = [];
+    const spy = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((callback) => {
+      original(() => {
+        try {
+          callback();
+        } catch (error: unknown) {
+          reported.push(error);
+        }
+      });
+    });
+    return { reported, restore: () => spy.mockRestore() };
+  }
+
   /** A machine already filtered by a non-empty query, so each refilter calls the search engine once. */
   async function searching(options: CommandMachineOptions = {}): Promise<Searching> {
     const { engine, searches } = counted();
@@ -412,18 +428,7 @@ describe('CommandMachine batching', () => {
   });
 
   it('CE-20: a handler that throws still lets its batch commit once, and the error is reported', async () => {
-    const original = globalThis.queueMicrotask;
-    const reported: unknown[] = [];
-    // The scheduler rethrows a failed update from a microtask; catch it there instead of failing the run.
-    const spy = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((callback) => {
-      original(() => {
-        try {
-          callback();
-        } catch (error: unknown) {
-          reported.push(error);
-        }
-      });
-    });
+    const { reported, restore } = captureRethrown();
     try {
       using machine = createCommandMachine();
       const listener = vi.fn();
@@ -452,19 +457,101 @@ describe('CommandMachine batching', () => {
       });
       expect(listener).toHaveBeenCalledTimes(2);
     } finally {
-      spy.mockRestore();
+      restore();
     }
   });
 
-  it('CE-78: send() after dispose is a no-op', async () => {
-    const machine = createCommandMachine();
-    const registry = machine.getRegistry();
-    machine[Symbol.dispose]();
-    machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('late'), value: 'Late' } });
+  it('CE-20: ITEM_ACTIVATE after a REGISTER_ITEM in the same batch sees the registered item', async () => {
+    using machine = createCommandMachine({ items: [{ id: itemId('a'), value: 'A' }] });
+    machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('b'), value: 'B' } });
+    machine.send({ type: 'ITEM_ACTIVATE', id: itemId('b') });
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredCount).toBe(2);
+    });
+    expect(machine.getState().activeId).toBe(itemId('b'));
+  });
+
+  it('CE-20: NAVIGATE next after an ITEMS_LOADED in the same batch navigates the loaded items', async () => {
+    using machine = createCommandMachine();
+    machine.send({
+      type: 'ITEMS_LOADED',
+      items: ['a', 'b', 'c'].map((id) => ({ id: itemId(id), value: id })),
+    });
+    machine.send({ type: 'NAVIGATE', direction: 'next' });
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredCount).toBe(3);
+    });
+    expect(machine.getState().activeId).toBe(itemId('b'));
+  });
+
+  it('CE-20: NAVIGATE last after a REGISTER_ITEM in the same batch reaches the registered item', async () => {
+    using machine = createCommandMachine({
+      items: ['a', 'b'].map((id) => ({ id: itemId(id), value: id })),
+    });
+    machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('c'), value: 'c' } });
+    machine.send({ type: 'NAVIGATE', direction: 'last' });
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredCount).toBe(3);
+    });
+    expect(machine.getState().activeId).toBe(itemId('c'));
+  });
+
+  it('CE-20: a filter that throws in the batch refilter still announces the batch once', async () => {
+    const { reported, restore } = captureRethrown();
+    try {
+      let fail = false;
+      const boom = new Error('filter failed');
+      using machine = createCommandMachine({
+        items: generateItems(3),
+        filter: (item: CommandItem) => {
+          if (fail) throw boom;
+          return item.value.length;
+        },
+      });
+      machine.send({ type: 'SEARCH_CHANGE', query: 'item' });
+      await vi.waitFor(() => {
+        expect(machine.getState().search).toBe('item');
+      });
+      const listener = vi.fn();
+      machine.subscribe(listener);
+
+      fail = true;
+      machine.send({ type: 'OPEN' });
+      machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('late'), value: 'Item late' } });
+      await vi.waitFor(() => {
+        expect(reported).toEqual([boom]);
+      });
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(machine.getState().open).toBe(true);
+    } finally {
+      restore();
+    }
+  });
+
+  it('C1: onOpenChange and onSearchChange run before the single stateChange of their batch', async () => {
+    const log: string[] = [];
+    using machine = createCommandMachine({
+      items: generateItems(3),
+      onOpenChange: (open: boolean) => log.push(`onOpenChange ${open}`),
+      onSearchChange: (query: string) => log.push(`onSearchChange ${query}`),
+    });
+    machine.subscribe(() => log.push('stateChange'));
     machine.send({ type: 'OPEN' });
-    await new Promise<void>((resolve) => setTimeout(resolve, 50));
-    expect(registry.size).toBe(0);
-    expect(machine.getState().filteredCount).toBe(0);
-    expect(machine.getState().open).toBe(false);
+    machine.send({ type: 'SEARCH_CHANGE', query: 'item' });
+    await vi.waitFor(() => {
+      expect(machine.getState().search).toBe('item');
+    });
+    expect(log).toEqual(['onOpenChange true', 'onSearchChange item', 'stateChange']);
+  });
+
+  it('CE-78: events dropped by dispose do not stall the batches of a machine that is used again', async () => {
+    const machine = createCommandMachine();
+    // Pending when dispose runs: the scheduler drops it, so it must not count towards a batch.
+    machine.send({ type: 'OPEN' });
+    machine[Symbol.dispose]();
+    machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('again'), value: 'Again' } });
+    await vi.waitFor(() => {
+      expect(machine.getState().filteredCount).toBe(1);
+    });
   });
 });

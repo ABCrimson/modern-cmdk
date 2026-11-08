@@ -4,7 +4,7 @@
 
 import { groupId, itemId } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
-import { act, type ReactNode } from 'react';
+import { act, type ReactNode, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -246,6 +246,35 @@ describe('Command — React Compound Components', () => {
   // ---- 4. Item filtering ----
 
   describe('item filtering', () => {
+    it('CE-78: under StrictMode the machine keeps registering items and filtering', async () => {
+      await render(
+        <StrictMode>
+          <Command>
+            <Command.Input />
+            <Command.List>
+              <Command.Item value="apple" forceId="apple">
+                Apple
+              </Command.Item>
+              <Command.Item value="banana" forceId="banana">
+                Banana
+              </Command.Item>
+            </Command.List>
+          </Command>
+        </StrictMode>,
+      );
+
+      await vi.waitFor(() => {
+        expect(container.querySelectorAll('[data-command-item]').length).toBe(2);
+      });
+
+      await typeInInput(container.querySelector('input') as HTMLInputElement, 'app');
+      await vi.waitFor(() => {
+        const items = container.querySelectorAll('[data-command-item]');
+        expect(items.length).toBe(1);
+        expect(items[0]?.textContent).toBe('Apple');
+      });
+    });
+
     it('should filter items when typing in the input', async () => {
       await render(
         <Command>
