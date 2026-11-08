@@ -164,6 +164,12 @@ html .vp-doc td code {
   white-space: nowrap;
 }
 
+/* ...but the description column keeps a readable measure: with nowrap on the other cells, auto table layout squeezed it to
+   one word a line (the frecency row of api/command-react was 210 px tall). The table scrolls under its edge fade instead. */
+html .vp-doc td:last-child {
+  min-inline-size: 15rem;
+}
+
 /* 4.5 Containers: tinted fill, a 3 px inline-start bar and the title in the container's -1 hue, no icons */
 html .vp-doc .custom-block {
   --mc-cb-ink: var(--mc-text-2);
