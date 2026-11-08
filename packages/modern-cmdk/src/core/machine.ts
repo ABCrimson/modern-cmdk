@@ -75,15 +75,20 @@ type CreatedMachine = CommandMachine &
 const engineRegistry = new FinalizationRegistry<SearchEngine>((engine) => engine[Symbol.dispose]());
 
 /**
- * The search engine a machine creates when its options pass none. A function of `filter` alone, so the engine's
- * closure holds the filter and not the machine's scope.
+ * The search engine a machine creates when its options pass none. The engine kind (custom scorer or default) is
+ * chosen from `options.filter` at construction; a custom scorer reads `options.filter` on every call, so a getter
+ * over a new function takes effect on the next query. The engine holds the options object and never the machine's
+ * scope, so a collected machine can dispose it; an options object that references the machine would pin the machine.
  */
-function createOwnedEngine(filter: CommandMachineOptions['filter']): SearchEngine {
+function createOwnedEngine(options: CommandMachineOptions): SearchEngine {
   return createSearchEngine(
-    typeof filter === 'function'
+    typeof options.filter === 'function'
       ? {
           scorer: (query: string, item: CommandItem) => {
-            const score = filter(item, query);
+            const score = (options.filter as (item: CommandItem, query: string) => number | false)(
+              item,
+              query,
+            );
             // false and scores <= 0 exclude the item
             return score && score > 0 ? { id: item.id, score, matches: [] } : null;
           },
@@ -124,7 +129,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   // create the default. A caller's engine is the caller's to dispose: the machine disposes only the one it creates.
   const ownsEngine = (options.searchEngine ?? options.search) === undefined;
   const searchEngine: SearchEngine =
-    options.searchEngine ?? options.search ?? createOwnedEngine(options.filter);
+    options.searchEngine ?? options.search ?? createOwnedEngine(options);
   const scheduler: Scheduler = createScheduler();
   const emitter = new TypedEmitter<MachineEvents>();
   const keyboardRegistry = new KeyboardShortcutRegistry();
