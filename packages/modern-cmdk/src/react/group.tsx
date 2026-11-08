@@ -15,7 +15,10 @@ const HIDDEN_STYLE: CSSProperties = { display: 'none' } as const;
 export interface CommandGroupProps extends ComponentPropsWithRef<'div'> {
   /** Heading text displayed above the group */
   readonly heading?: string;
-  /** Sort priority (lower = higher in list) */
+  /**
+   * Orders the keys of `CommandState.groupedIds` (lower first). React renders the groups in the JSX order
+   * of the group elements, not by this number.
+   */
   readonly priority?: number;
   /** Force a specific ID */
   readonly forceId?: string;
