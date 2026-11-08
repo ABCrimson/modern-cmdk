@@ -568,7 +568,7 @@ Internal registry for items and groups. Access via `machine.getRegistry()`.
 | `registerGroup(group)` | `Disposable` | Register a group — `using` auto-deregisters |
 | `unregisterGroup(id)` | `void` | Remove a group |
 | `getItem(id)` / `getGroup(id)` | item/group or `undefined` | O(1) lookup by ID |
-| `getItems()` / `getGroups()` | `readonly []` | All registered items/groups in insertion order |
+| `getItems()` / `getGroups()` | `readonly []` | All registered items in insertion order; all registered groups sorted by `priority` (lower first, stable for equal values) |
 | `getGroupedItems()` | `ReadonlyMap` | Items bucketed by group ID |
 | `getItemIds()` | `ReadonlySet<ItemId>` | All registered item IDs |
 | `intersectWith(ids)` / `differenceFrom(ids)` / `unionWith(ids)` / `symmetricDifferenceWith(ids)` | `ReadonlySet<ItemId>` | Set operations against the registered ID set |
