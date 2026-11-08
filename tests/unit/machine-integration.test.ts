@@ -1,13 +1,27 @@
 import type { CommandItem, ItemId } from 'modern-cmdk';
 import { createCommandMachine, groupId, itemId } from 'modern-cmdk';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeItem(id: string, value: string, opts?: Partial<CommandItem>): CommandItem {
   return { id: itemId(id), value, ...opts };
 }
 
+// The scheduler batches events into one requestAnimationFrame callback (happy-dom provides it). Faking only the
+// frame functions makes every batch an explicit step: nothing in this file waits on a real async source.
+function nextFrame(): void {
+  vi.advanceTimersToNextFrame();
+}
+
 describe('Machine Integration', () => {
-  it('should support full flow: register → search → navigate → select → frecency', async () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should support full flow: register → search → navigate → select → frecency', () => {
     const onSelect = vi.fn();
     using machine = createCommandMachine({
       items: [
@@ -24,84 +38,73 @@ describe('Machine Integration', () => {
 
     // Search
     machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
-    await vi.waitFor(() => {
-      expect(machine.getState().search).toBe('app');
-      expect(machine.getState().filteredCount).toBeLessThan(3);
-    });
+    nextFrame();
+    expect(machine.getState().search).toBe('app');
+    expect(machine.getState().filteredCount).toBeLessThan(3);
 
     // Navigate
     machine.send({ type: 'NAVIGATE', direction: 'first' });
-    await vi.waitFor(() => {
-      expect(machine.getState().activeId).not.toBeNull();
-    });
+    nextFrame();
+    expect(machine.getState().activeId).not.toBeNull();
 
     // Select
     const activeId = machine.getState().activeId as ItemId;
     machine.send({ type: 'ITEM_SELECT', id: activeId });
-    await vi.waitFor(() => {
-      expect(onSelect).toHaveBeenCalled();
-    });
+    nextFrame();
+    expect(onSelect).toHaveBeenCalled();
 
     // Clear search and verify frecency boost
     machine.send({ type: 'SEARCH_CHANGE', query: '' });
-    await vi.waitFor(() => {
-      expect(machine.getState().filteredCount).toBe(3);
-    });
+    nextFrame();
+    expect(machine.getState().filteredCount).toBe(3);
   });
 
-  it('should handle dynamic item registration and deregistration', async () => {
+  it('should handle dynamic item registration and deregistration', () => {
     using machine = createCommandMachine();
 
     expect(machine.getState().filteredCount).toBe(0);
 
     // Register items dynamically
     machine.send({ type: 'REGISTER_ITEM', item: makeItem('a', 'Apple') });
-    await vi.waitFor(() => {
-      expect(machine.getState().filteredCount).toBe(1);
-    });
+    nextFrame();
+    expect(machine.getState().filteredCount).toBe(1);
 
     machine.send({ type: 'REGISTER_ITEM', item: makeItem('b', 'Banana') });
-    await vi.waitFor(() => {
-      expect(machine.getState().filteredCount).toBe(2);
-    });
+    nextFrame();
+    expect(machine.getState().filteredCount).toBe(2);
 
     // Deregister
     machine.send({ type: 'UNREGISTER_ITEM', id: itemId('a') });
-    await vi.waitFor(() => {
-      expect(machine.getState().filteredCount).toBe(1);
-    });
+    nextFrame();
+    expect(machine.getState().filteredCount).toBe(1);
   });
 
-  it('should handle page navigation', async () => {
+  it('should handle page navigation', () => {
     using machine = createCommandMachine();
 
     expect(machine.getState().page).toBe('root');
 
     machine.send({ type: 'PAGE_PUSH', page: 'settings' });
-    await vi.waitFor(() => {
-      expect(machine.getState().page).toBe('settings');
-      expect(machine.getState().pageStack).toEqual(['root']);
-    });
+    nextFrame();
+    expect(machine.getState().page).toBe('settings');
+    expect(machine.getState().pageStack).toEqual(['root']);
 
     machine.send({ type: 'PAGE_PUSH', page: 'account' });
-    await vi.waitFor(() => {
-      expect(machine.getState().page).toBe('account');
-      expect(machine.getState().pageStack).toEqual(['root', 'settings']);
-    });
+    nextFrame();
+    expect(machine.getState().page).toBe('account');
+    expect(machine.getState().pageStack).toEqual(['root', 'settings']);
 
     machine.send({ type: 'PAGE_POP' });
-    await vi.waitFor(() => {
-      expect(machine.getState().page).toBe('settings');
-    });
+    nextFrame();
+    expect(machine.getState().page).toBe('settings');
 
     machine.send({ type: 'PAGE_POP' });
-    await vi.waitFor(() => {
-      expect(machine.getState().page).toBe('root');
-      expect(machine.getState().pageStack).toEqual([]);
-    });
+    nextFrame();
+    expect(machine.getState().page).toBe('root');
+    expect(machine.getState().pageStack).toEqual([]);
   });
 
-  it('should support groups with priority ordering', async () => {
+  it('should support groups with priority ordering', () => {
     using machine = createCommandMachine({
       items: [
         makeItem('a', 'Apple', { groupId: groupId('vegs') }),
@@ -122,7 +125,7 @@ describe('Machine Integration', () => {
     expect(groupedIds.get(groupId('vegs'))).toEqual(['a', 'c']);
   });
 
-  it('groups of equal priority keep their first-appearance order, ungrouped items included (TUB-06)', async () => {
+  it('groups of equal priority keep their first-appearance order, ungrouped items included (TUB-06)', () => {
     using machine = createCommandMachine({
       items: [
         makeItem('a', 'Apple', { groupId: groupId('y') }),
@@ -140,34 +143,30 @@ describe('Machine Integration', () => {
     expect([...machine.getState().groupedIds.keys()]).toEqual(['first', 'y', '__ungrouped', 'x']);
   });
 
-  it('should handle open/close/toggle lifecycle', async () => {
+  it('should handle open/close/toggle lifecycle', () => {
     const onOpenChange = vi.fn();
     using machine = createCommandMachine({ onOpenChange });
 
     machine.send({ type: 'OPEN' });
-    await vi.waitFor(() => {
-      expect(machine.getState().open).toBe(true);
-      expect(onOpenChange).toHaveBeenCalledWith(true);
-    });
+    nextFrame();
+    expect(machine.getState().open).toBe(true);
+    expect(onOpenChange).toHaveBeenCalledWith(true);
 
     machine.send({ type: 'CLOSE' });
-    await vi.waitFor(() => {
-      expect(machine.getState().open).toBe(false);
-      expect(onOpenChange).toHaveBeenCalledWith(false);
-    });
+    nextFrame();
+    expect(machine.getState().open).toBe(false);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
 
     machine.send({ type: 'TOGGLE' });
-    await vi.waitFor(() => {
-      expect(machine.getState().open).toBe(true);
-    });
+    nextFrame();
+    expect(machine.getState().open).toBe(true);
 
     machine.send({ type: 'TOGGLE' });
-    await vi.waitFor(() => {
-      expect(machine.getState().open).toBe(false);
-    });
+    nextFrame();
+    expect(machine.getState().open).toBe(false);
   });
 
-  it('should handle keyboard shortcut registration via items', async () => {
+  it('should handle keyboard shortcut registration via items', () => {
     const handler = vi.fn();
     using machine = createCommandMachine({
       items: [makeItem('copy', 'Copy', { shortcut: 'Ctrl+C', onSelect: handler })],
@@ -178,7 +177,7 @@ describe('Machine Integration', () => {
     expect(bindings.size).toBe(1);
   });
 
-  it('should support custom filter function', async () => {
+  it('should support custom filter function', () => {
     using machine = createCommandMachine({
       items: [makeItem('a', 'Apple'), makeItem('b', 'Banana'), makeItem('c', 'Cherry')],
       filter: (item: CommandItem, query: string) => {
@@ -191,103 +190,153 @@ describe('Machine Integration', () => {
     });
 
     machine.send({ type: 'SEARCH_CHANGE', query: 'b' });
-    await vi.waitFor(() => {
-      expect(machine.getState().filteredCount).toBe(1);
-    });
+    nextFrame();
+    expect(machine.getState().filteredCount).toBe(1);
   });
 
-  it('should support filter=false to disable filtering', async () => {
+  it('should support filter=false to disable filtering', () => {
     using machine = createCommandMachine({
       items: [makeItem('a', 'Apple'), makeItem('b', 'Banana')],
       filter: false,
     });
 
     machine.send({ type: 'SEARCH_CHANGE', query: 'xyz' });
-    await vi.waitFor(() => {
-      // All items visible because filtering is disabled
-      expect(machine.getState().filteredCount).toBe(2);
-    });
+    nextFrame();
+    // All items visible because filtering is disabled
+    expect(machine.getState().filteredCount).toBe(2);
   });
 
-  it('should not select disabled items', async () => {
-    const onSelect = vi.fn();
+  it('TUB-08: ITEM_SELECT on a disabled item is a no-op, an enabled one in the same frame still selects', () => {
+    const onDisabled = vi.fn();
+    const onEnabled = vi.fn();
+    const onMachineSelect = vi.fn();
     using machine = createCommandMachine({
-      items: [makeItem('disabled', 'Disabled Item', { disabled: true, onSelect })],
+      items: [
+        makeItem('disabled', 'Disabled Item', { disabled: true, onSelect: onDisabled }),
+        makeItem('enabled', 'Enabled Item', { onSelect: onEnabled }),
+      ],
+      onSelect: onMachineSelect,
     });
+    // D78: a disabled item is rendered (it counts as filtered) and skipped, not removed
+    expect(machine.getState().filteredCount).toBe(2);
 
     machine.send({ type: 'ITEM_SELECT', id: itemId('disabled') });
-    // Vitest — use vi.waitFor() instead of raw setTimeout for async assertions
-    await vi.waitFor(() => {
-      expect(onSelect).not.toHaveBeenCalled();
-    });
+    machine.send({ type: 'ITEM_SELECT', id: itemId('enabled') });
+    // Neither ran before the frame, so the assertions below see what the frame did
+    expect(onEnabled).not.toHaveBeenCalled();
+    nextFrame();
+
+    expect(onEnabled).toHaveBeenCalledTimes(1);
+    expect(onDisabled).not.toHaveBeenCalled();
+    expect(onMachineSelect).toHaveBeenCalledExactlyOnceWith(itemId('enabled'));
   });
 
-  it('should handle ITEMS_LOADED for async sources', async () => {
+  it('TUB-35: LOADING moves state.loading, and ITEMS_LOADED adds the items', () => {
     using machine = createCommandMachine();
+    expect(machine.getState().loading).toBe(false);
+
+    machine.send({ type: 'LOADING', source: 'remote', pending: true });
+    nextFrame();
+    expect(machine.getState().loading).toBe(true);
 
     machine.send({
       type: 'ITEMS_LOADED',
       items: [makeItem('x', 'Loaded Item X'), makeItem('y', 'Loaded Item Y')],
     });
-
-    await vi.waitFor(() => {
-      expect(machine.getState().filteredCount).toBe(2);
-      expect(machine.getState().loading).toBe(false);
-    });
+    machine.send({ type: 'LOADING', source: 'remote', pending: false });
+    nextFrame();
+    expect(machine.getState().filteredCount).toBe(2);
+    expect(machine.getState().loading).toBe(false);
   });
 
-  it('should use Date.now() for all state timestamps', async () => {
+  it('TUB-35: ITEMS_LOADED binds the shortcut of a loaded item to its onSelect', () => {
+    const onSelect = vi.fn();
     using machine = createCommandMachine();
+    const bindings = machine.getKeyboardRegistry().getBindings();
+    expect(bindings.size).toBe(0);
 
-    machine.send({ type: 'OPEN' });
-    await vi.waitFor(() => {
-      expect(typeof machine.getState().lastUpdated).toBe('number');
-      expect(machine.getState().lastUpdated).toBeGreaterThan(0);
+    machine.send({
+      type: 'ITEMS_LOADED',
+      items: [
+        makeItem('copy', 'Copy', { shortcut: 'Ctrl+C', onSelect }),
+        makeItem('plain', 'Plain'),
+      ],
     });
+    nextFrame();
+
+    const loaded = machine.getKeyboardRegistry().getBindings();
+    expect(loaded.size).toBe(1);
+    const [binding] = loaded.values();
+    expect(binding?.itemId).toBe(itemId('copy'));
+    binding?.handler();
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it('should properly clean up on dispose', () => {
-    const machine = createCommandMachine({
-      items: [makeItem('a', 'Apple')],
-    });
-
-    expect(machine.getState().filteredCount).toBe(1);
-
-    machine[Symbol.dispose]();
-
-    // Machine is disposed — state is still readable but no more subscriptions fire
-    expect(machine.getState().filteredCount).toBe(1);
+  it('should stamp lastUpdated with Date.now() when state changes', () => {
+    using machine = createCommandMachine();
+    const stamp = machine.getState().lastUpdated + 1000;
+    const now = vi.spyOn(Date, 'now').mockReturnValue(stamp);
+    try {
+      machine.send({ type: 'OPEN' });
+      nextFrame();
+      expect(machine.getState().lastUpdated).toBe(stamp);
+    } finally {
+      now.mockRestore();
+    }
   });
 
-  it('should support useSyncExternalStore-compatible subscribe', async () => {
+  it('TUB-36: after dispose no subscribe listener fires, for an event pending at dispose or one sent later', () => {
+    const disposed = createCommandMachine({ items: [makeItem('a', 'Apple')] });
+    using live = createCommandMachine({ items: [makeItem('a', 'Apple')] });
+    const onDisposed = vi.fn();
+    const onLive = vi.fn();
+    disposed.subscribe(onDisposed);
+    live.subscribe(onLive);
+
+    expect(disposed.getState().filteredCount).toBe(1);
+    disposed.send({ type: 'OPEN' }); // pending when the machine is disposed
+    disposed[Symbol.dispose]();
+    disposed.send({ type: 'TOGGLE' }); // sent after dispose
+    live.send({ type: 'OPEN' });
+    nextFrame();
+
+    // send() after dispose is still processed and options callbacks (onOpenChange...) still fire; only listeners
+    // added through subscribe/subscribeState are silent, which is all this test asserts
+    // Positive control: the same frame ran the live machine's batch and notified its listener
+    expect(live.getState().open).toBe(true);
+    expect(onLive).toHaveBeenCalledTimes(1);
+    expect(onDisposed).not.toHaveBeenCalled();
+    // The state stays readable
+    expect(disposed.getState().filteredCount).toBe(1);
+  });
+
+  it('should support useSyncExternalStore-compatible subscribe', () => {
     using machine = createCommandMachine();
     const listener = vi.fn();
 
     const unsubscribe = machine.subscribe(listener);
     machine.send({ type: 'OPEN' });
 
-    await vi.waitFor(() => {
-      expect(listener).toHaveBeenCalled();
-    });
+    nextFrame();
+    expect(listener).toHaveBeenCalled();
 
     unsubscribe();
   });
 
-  it('should support Disposable-style subscribeState', async () => {
+  it('should support Disposable-style subscribeState', () => {
     using machine = createCommandMachine();
     const listener = vi.fn();
 
     using _sub = machine.subscribeState(listener);
     machine.send({ type: 'OPEN' });
 
-    await vi.waitFor(() => {
-      expect(listener).toHaveBeenCalled();
-      const state = listener.mock.calls.at(-1)?.[0];
-      expect(state?.open).toBe(true);
-    });
+    nextFrame();
+    expect(listener).toHaveBeenCalled();
+    const state = listener.mock.calls.at(-1)?.[0];
+    expect(state?.open).toBe(true);
   });
 
-  it('should handle rapid events without data loss', async () => {
+  it('TUB-37: 20 rapid NAVIGATE next events in one frame all apply, from item-0 to item-20', () => {
     using machine = createCommandMachine({
       // ES2025 Iterator helpers — generate items via iterator pipeline
       items: Iterator.from({
@@ -304,9 +353,8 @@ describe('Machine Integration', () => {
       machine.send({ type: 'NAVIGATE', direction: 'next' });
     }
 
-    await vi.waitFor(() => {
-      // Should have navigated, active item should not be the first
-      expect(machine.getState().activeId).not.toBe(itemId('item-0'));
-    });
+    expect(machine.getState().activeId).toBe(itemId('item-0'));
+    nextFrame();
+    expect(machine.getState().activeId).toBe(itemId('item-20'));
   });
 });
