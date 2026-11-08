@@ -46,13 +46,57 @@ export interface CommandMachine extends Disposable {
   getFilteredIdSet(): ReadonlySet<ItemId>;
   /** Get the index map for filtered IDs — O(1) positional lookup */
   getFilteredIdIndex(): ReadonlyMap<ItemId, number>;
+  /**
+   * Release every global hold the machine owns, reversibly: the shortcut keydown listener on `document`, the
+   * frecency page-exit listeners (`pagehide`, `visibilitychange`), the frecency debounce timer and the scheduled
+   * frame. The pending batch runs at once and the save of pending frecency data starts first (a failed save
+   * is reported with a warning, never thrown). State, registered items and shortcut bindings, the search engine
+   * and the frecency storage stay, so `resume()` takes the holds back with nothing lost. A suspended machine nobody
+   * references can be collected, and the search engine it created is then disposed. An event sent while suspended
+   * is scheduled as usual. Idempotent; does nothing after dispose, which stays the terminal teardown.
+   * Optional on the interface so that a hand-written machine of the 1.5 shape stays a `CommandMachine`; the
+   * machine `createCommandMachine` returns always has it.
+   */
+  suspend?(): void;
+  /** Take back the holds `suspend()` released (the keydown listener, the page-exit listeners). Idempotent; does nothing after dispose. */
+  resume?(): void;
   [Symbol.dispose](): void;
+}
+
+/** What `createCommandMachine` returns: a `CommandMachine` that also has `suspend`, `resume` and `Symbol.asyncDispose` */
+type CreatedMachine = CommandMachine &
+  AsyncDisposable &
+  Required<Pick<CommandMachine, 'suspend' | 'resume'>>;
+
+/**
+ * Collected without dispose: disposes the search engine the machine created, which unregisters the engine's dev
+ * leak sentinel before it can warn. The held value is the engine; it must not reference the machine.
+ */
+const engineRegistry = new FinalizationRegistry<SearchEngine>((engine) => engine[Symbol.dispose]());
+
+/**
+ * The search engine a machine creates when its options pass none. A function of `filter` alone, so the engine's
+ * closure holds the filter and not the machine's scope.
+ */
+function createOwnedEngine(filter: CommandMachineOptions['filter']): SearchEngine {
+  return createSearchEngine(
+    typeof filter === 'function'
+      ? {
+          scorer: (query: string, item: CommandItem) => {
+            const score = filter(item, query);
+            // false and scores <= 0 exclude the item
+            return score && score > 0 ? { id: item.id, score, matches: [] } : null;
+          },
+        }
+      : undefined,
+  );
 }
 
 /**
  * Creates a headless command palette state machine with search, frecency,
  * and keyboard shortcut support. Implements Disposable and AsyncDisposable for
- * `using` and `await using` cleanup (the latter awaits the pending frecency save).
+ * `using` and `await using` cleanup (the latter awaits the pending frecency save). `suspend()` and `resume()`
+ * release and re-take its global holds without ending it; dispose is the terminal teardown.
  *
  * @example
  * ```ts
@@ -65,9 +109,7 @@ export interface CommandMachine extends Disposable {
  * machine[Symbol.dispose]();
  * ```
  */
-export function createCommandMachine(
-  options: CommandMachineOptions = {},
-): CommandMachine & AsyncDisposable {
+export function createCommandMachine(options: CommandMachineOptions = {}): CreatedMachine {
   let state: CommandState = createInitialState(options);
 
   // O(1) membership check — kept in sync with filteredIds
@@ -82,21 +124,7 @@ export function createCommandMachine(
   // create the default. A caller's engine is the caller's to dispose: the machine disposes only the one it creates.
   const ownsEngine = (options.searchEngine ?? options.search) === undefined;
   const searchEngine: SearchEngine =
-    options.searchEngine ??
-    options.search ??
-    createSearchEngine(
-      typeof options.filter === 'function'
-        ? {
-            scorer: (query: string, item: CommandItem) => {
-              const score = (
-                options.filter as (item: CommandItem, query: string) => number | false
-              )(item, query);
-              // false and scores <= 0 exclude the item
-              return score && score > 0 ? { id: item.id, score, matches: [] } : null;
-            },
-          }
-        : undefined,
-    );
+    options.searchEngine ?? options.search ?? createOwnedEngine(options.filter);
   const scheduler: Scheduler = createScheduler();
   const emitter = new TypedEmitter<MachineEvents>();
   const keyboardRegistry = new KeyboardShortcutRegistry();
@@ -386,7 +414,7 @@ export function createCommandMachine(
     }
   }
 
-  const machine: CommandMachine & AsyncDisposable = {
+  const machine: CreatedMachine = {
     getState(): CommandState {
       return state;
     },
@@ -436,12 +464,27 @@ export function createCommandMachine(
       return filteredIdIndex;
     },
 
+    suspend(): void {
+      if (disposed) return;
+      scheduler.flush();
+      keyboardRegistry.suspend();
+      frecencyEngine?.suspend();
+    },
+
+    resume(): void {
+      keyboardRegistry.resume();
+      frecencyEngine?.resume();
+    },
+
     [Symbol.dispose](): void {
       disposed = true;
       queued = nextQueued = 0; // the scheduler drops its pending closures
       scheduler[Symbol.dispose]();
       registry[Symbol.dispose]();
-      if (ownsEngine) searchEngine[Symbol.dispose]();
+      if (ownsEngine) {
+        engineRegistry.unregister(machine);
+        searchEngine[Symbol.dispose]();
+      }
       emitter[Symbol.dispose]();
       keyboardRegistry[Symbol.dispose]();
       frecencyEngine?.[Symbol.dispose]();
@@ -457,5 +500,6 @@ export function createCommandMachine(
     },
   };
 
+  if (ownsEngine) engineRegistry.register(machine, searchEngine, machine);
   return machine;
 }
