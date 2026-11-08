@@ -353,19 +353,61 @@ function disposalReaders(program: AstNode, name: string, shims: readonly AstNode
   return readers;
 }
 
+/** Whether an initializer runs no code of the module's own: a literal, a template without expressions, a function or an arrow. */
+function isInertInit(init: unknown): boolean {
+  if (init === null || init === undefined) {
+    return true;
+  }
+  if (!isNode(init)) {
+    return false;
+  }
+  return (
+    init.type === 'Literal' ||
+    init.type === 'FunctionExpression' ||
+    init.type === 'ArrowFunctionExpression' ||
+    (init.type === 'TemplateLiteral' && (init.expressions as unknown[]).length === 0)
+  );
+}
+
+/** Whether a top-level statement runs nothing when evaluated: an import, a function declaration, or a declaration of inert initializers. */
+function isInertStatement(statement: AstNode): boolean {
+  switch (statement.type) {
+    case 'ImportDeclaration':
+    case 'FunctionDeclaration':
+      return true;
+    case 'VariableDeclaration':
+      return (statement.declarations as AstNode[]).every((declarator) =>
+        isInertInit(declarator.init),
+      );
+    case 'ExportNamedDeclaration':
+      return (
+        !isNode(statement.declaration) ||
+        (statement.declaration.type !== 'ClassDeclaration' &&
+          isInertStatement(statement.declaration))
+      );
+    default:
+      return false;
+  }
+}
+
 /**
  * One line per violation of "the shim precedes the first read of the symbol" in an ES module's text; empty when it holds.
  *
  * Why source position is evaluation order here: the bundle is one flat ES module, whose top-level statements run in source order
  * once its imports have been evaluated. A class declaration is not hoisted and evaluates its computed keys when its statement
  * runs; a hoisted function declaration runs nothing until it is called, and a call can only come from a top-level statement
- * (itself ordered) or from another module that imports this one (after the whole body ran). So no read can run before a shim
- * that starts earlier in the text; a shim that starts later is a read that may run first, the failure on a runtime without the
- * symbol (Safari 18.4: both keys become the property "undefined", and the async disposer would be the sync one).
+ * or from another module that imports this one (after the whole body ran). A read whose own text starts after the shim is
+ * therefore safe only if no earlier statement can call it, so the check has two halves: (1) no read starts before the shim, and
+ * (2) every top-level statement before a symbol's shim is inert (an import, a function declaration, or a variable declaration
+ * whose initializers are literals, expression-free templates, functions or arrows; the other symbol's shim statement is exempt).
+ * Together they guarantee that nothing which reads the symbol can run before its shim, the failure on a runtime without the
+ * symbol (Safari 18.4: both keys become the property "undefined", and the async disposer would be the sync one). A call
+ * statement, a class, or any other code before the shim is reported with its type and offset.
  */
 function disposalShimProblems(text: string, file: string): string[] {
   const program = parseAst(text, null, file) as unknown as AstNode;
   const problems: string[] = [];
+  const shimsOf = DISPOSAL_SYMBOLS.flatMap((name) => shimStatements(program, name));
   for (const name of DISPOSAL_SYMBOLS) {
     const shims = shimStatements(program, name);
     if (shims.length !== 1) {
@@ -385,6 +427,17 @@ function disposalShimProblems(text: string, file: string): string[] {
       problems.push(
         `${file}: Symbol.${name}: the shim starts at offset ${startOf(shim)}, not before the first read at offset ${startOf(first)}`,
       );
+      continue;
+    }
+    for (const statement of program.body as AstNode[]) {
+      if (startOf(statement) >= startOf(shim)) {
+        break;
+      }
+      if (!isInertStatement(statement) && !shimsOf.some((other) => other === statement)) {
+        problems.push(
+          `${file}: Symbol.${name}: the top-level ${statement.type} at offset ${startOf(statement)} runs before the shim at offset ${startOf(shim)}`,
+        );
+      }
     }
   }
   return problems;
@@ -678,6 +731,25 @@ describe('browser floor: the disposal-symbol shim of the built entries (R7, CE-2
     expect(disposalShimProblems(text, CORE)).toEqual([
       `${CORE}: Symbol.asyncDispose: expected exactly one top-level "Symbol.asyncDispose ??= Symbol.for('Symbol.asyncDispose')" statement, found 0`,
     ]);
+  });
+
+  it('R7: a scratch copy of the built core with a top-level call before the shims fails naming the statement', () => {
+    const program = parseAst(core(), null, CORE) as unknown as AstNode;
+    const shims = DISPOSAL_SYMBOLS.flatMap((name) => shimStatements(program, name));
+    const firstShim = Math.min(...shims.map(startOf));
+    // `init` is a hoisted function declared after the shims, so every read of the symbol starts after them; only the call
+    // statement ahead of the shims makes the read run first.
+    const call = 'init();';
+    const reader = 'function init() { return { [Symbol.dispose]: () => undefined }; }';
+    const text = [core().slice(0, firstShim), call, core().slice(firstShim), reader, ''].join('\n');
+    // The join puts a newline before the call, so it starts one character past the original shim offset.
+    const problems = disposalShimProblems(text, CORE);
+    expect(problems).toHaveLength(DISPOSAL_SYMBOLS.length);
+    for (const problem of problems) {
+      expect(problem).toContain(
+        `the top-level ExpressionStatement at offset ${firstShim + 1} runs before the shim`,
+      );
+    }
   });
 
   it('R7: a shim nested in a function (not evaluated at module load) does not count', () => {
