@@ -32,7 +32,7 @@ describe('Command.Shortcut hydration', () => {
   it('RA-19: Command.Shortcut hydrates under a macOS client with no recoverable error', async () => {
     const tree: ReactNode = (
       <Command label="Test">
-        {/* Outside any Item: items register in layout effects and are not in the server HTML */}
+        {/* Outside any Item, so the assertion reads the Shortcut alone */}
         <Command.Shortcut shortcut="Mod+K" />
       </Command>
     );
