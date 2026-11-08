@@ -186,18 +186,18 @@ describe.skipIf(!distBuilt)('built package: production bundle', () => {
     expect(warnings.join(' '), 'core: the leak registry exists').toContain(DEV_ONLY_STRINGS[0]);
 
     // react: useCommandDevtools publishes its state on the global registry from inside an effect. A stub react runs
-    // the effect at once, and `use` returns one value that serves as the stable and the state context.
+    // the effect at once, and `use` returns one value that serves as the stable context; its machine reports the state.
+    const state = {
+      filteredIds: [],
+      search: '',
+      activeId: null,
+      page: 'root',
+      pageStack: [],
+      open: false,
+      loading: false,
+    };
     const fake = {
-      machine: { getRegistry: () => new Map(), subscribe: () => () => {} },
-      state: {
-        filteredIds: [],
-        search: '',
-        activeId: null,
-        page: 'root',
-        pageStack: [],
-        open: false,
-        loading: false,
-      },
+      machine: { getRegistry: () => new Map(), getState: () => state, subscribe: () => () => {} },
     };
     const overrides: Record<string, unknown> = {
       use: () => fake,
