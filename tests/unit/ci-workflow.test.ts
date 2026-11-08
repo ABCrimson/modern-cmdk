@@ -3,14 +3,28 @@
 // Regex over the YAML as release-workflow.test.ts does: no YAML parser is a dependency of the workspace.
 // Jobs sit at two-space indentation under `jobs:`; a job block runs to the next job key or job-level comment.
 
-import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { delimiter, join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(import.meta.dirname, '../..');
 const workflow = readFileSync(resolve(root, '.github/workflows/ci.yml'), 'utf8');
+/**
+ * The bash that runs the step. On Windows, the System32 bash.exe (WSL's) can precede Git for Windows' on PATH, so
+ * Git's own bash is derived from git: `git --exec-path` is <Git root>/mingw64/libexec/git-core, with the Program Files
+ * install as the fallback. Elsewhere PATH's bash is GNU bash.
+ */
+function bashPath(): string {
+  if (process.platform !== 'win32') return 'bash';
+  const execPath = execFileSync('git', ['--exec-path'], { encoding: 'utf8' }).trim();
+  const derived = resolve(execPath, '../../../bin/bash.exe');
+  return existsSync(derived)
+    ? derived
+    : join(process.env.ProgramFiles ?? 'C:/Program Files', 'Git', 'bin', 'bash.exe');
+}
+
 const harnessSource = readFileSync(resolve(root, 'benchmarks/browser/run.ts'), 'utf8');
 
 /** The lines of one job (its key line included) up to the next two-space-indented key or comment. */
@@ -147,19 +161,25 @@ describe('ci.yml', () => {
       const file = join(dir, 'step.sh');
       writeFileSync(file, script.replace(/^ {10}/gm, ''));
       const counter = join(dir, 'calls');
+      const bash = bashPath();
       const outcomes: Record<string, { status: number | null; calls: number }> = {};
+      const errors: Record<string, Error | undefined> = {};
       for (const seq of ['2,0', '2,2', '1', '2,1', '0', '3']) {
         writeFileSync(counter, '0');
-        const run = spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', file], {
+        const run = spawnSync(bash, ['--noprofile', '--norc', '-eo', 'pipefail', file], {
           env: {
             ...process.env,
             PATH: `${dir}${delimiter}${process.env.PATH ?? ''}`,
             SEQ: seq,
             PNPM_COUNTER: counter,
           },
+          timeout: 30_000,
         });
+        errors[seq] = run.error;
         outcomes[seq] = { status: run.status, calls: Number(readFileSync(counter, 'utf8')) };
       }
+      // A missing or hung bash reports its spawn error, not `status: null`
+      expect(Object.values(errors).filter(Boolean)).toEqual([]);
       expect(outcomes).toEqual({
         '2,0': { status: 0, calls: 2 },
         '2,2': { status: 2, calls: 2 },
