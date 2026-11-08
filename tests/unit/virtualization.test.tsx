@@ -1,4 +1,4 @@
-import { Command } from 'modern-cmdk/react';
+import { Command, useVirtualizer, type VirtualizerReturn } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -159,5 +159,60 @@ describe('Virtualization', () => {
     // Should render without error — props are accepted
     const list = container.querySelector('[data-command-list]');
     expect(list).not.toBeNull();
+  });
+});
+
+/** Calls useVirtualizer for `element` and hands the return value to `onValue`. */
+function HookProbe({
+  element,
+  onValue,
+}: {
+  readonly element: HTMLElement;
+  readonly onValue: (value: VirtualizerReturn) => void;
+}): null {
+  onValue(useVirtualizer({ count: 100, estimateSize: 44, scrollElement: element }));
+  return null;
+}
+
+describe('useVirtualizer scrollToIndex', () => {
+  /** Mounts the hook on a scroll element with a `clientHeight` of `viewport` and returns the hook value and the `scrollTo` spy. */
+  async function mountHook(viewport: number): Promise<{
+    readonly current: () => VirtualizerReturn;
+    readonly scrollTo: ReturnType<typeof vi.fn>;
+  }> {
+    const element = document.createElement('div');
+    Object.defineProperty(element, 'clientHeight', { value: viewport });
+    const scrollTo = vi.fn();
+    element.scrollTo = scrollTo as unknown as typeof element.scrollTo;
+    let value: VirtualizerReturn | undefined;
+    await render(
+      <HookProbe
+        element={element}
+        onValue={(next: VirtualizerReturn): void => {
+          value = next;
+        }}
+      />,
+    );
+    return {
+      current: (): VirtualizerReturn => {
+        if (!value) throw new Error('hook never rendered');
+        return value;
+      },
+      scrollTo,
+    };
+  }
+
+  it('CE-119: scrollToIndex aligns the row to the top by default, in view or not', async () => {
+    const { current, scrollTo } = await mountHook(1000);
+    current().scrollToIndex(5);
+    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 220, behavior: 'instant' });
+  });
+
+  it("CE-119: scrollToIndex with 'nearest' leaves a row in view alone and scrolls a row below just into view", async () => {
+    const { current, scrollTo } = await mountHook(100);
+    (current().scrollToIndex as (index: number, align: string) => void)(1, 'nearest');
+    expect(scrollTo).not.toHaveBeenCalled();
+    (current().scrollToIndex as (index: number, align: string) => void)(5, 'nearest');
+    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 164, behavior: 'instant' });
   });
 });
