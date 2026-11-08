@@ -16,6 +16,7 @@
     "unit/**/*",
     "setup.ts",
     "../benchmarks/standalone/compare-rules.ts",
+    "../benchmarks/standalone/record-baseline.ts",
     "../vitest.config.ts",
     "../playwright.config.ts",
     "../packages/create-modern-cmdk/templates/*/src/App.tsx",

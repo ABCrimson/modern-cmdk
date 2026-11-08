@@ -24,7 +24,7 @@
 // version of packages/modern-cmdk/package.json at that commit (`git show <commit>:...`). Row order
 // follows the existing baseline, new rows come last in the file's order.
 // Exit codes: 0 = written, 2 = usage or harness error (an unknown flag, a missing, misplaced or
-// misnamed <history-file>, `runs` other than 5, an unreadable or malformed input, a commit git cannot
+// misnamed <history-file>, a `commit` that is not a 40-character hex sha, `runs` other than 5, an unreadable or malformed input, a commit git cannot
 // resolve, a task with no existing row and no --target, a --target that is not a positive finite
 // number or names no task, an existing row that the file has no task for). Nothing is written then.
 // Runs under Node's native type stripping, no loader.
@@ -106,8 +106,10 @@ function parseCli(argv: readonly string[]): CliArgs {
   for (const spec of values.target ?? []) {
     const at = spec.lastIndexOf('=');
     const key = spec.slice(0, at);
-    const ms = Number(spec.slice(at + 1));
-    const valid = at >= 1 && key.includes(':') && spec.slice(at + 1).trim() !== '';
+    const text = spec.slice(at + 1);
+    const ms = Number(text);
+    // plain decimal only: Number() would also take '0x10', '1e3', ' 5 ' and 'Infinity'
+    const valid = at >= 1 && key.includes(':') && /^\d+(\.\d+)?$/.test(text);
     if (!(valid && Number.isFinite(ms) && ms > 0)) {
       throw new UsageError(`--target ${spec}: expected <category>:<key>=<ms> with a finite ms > 0`);
     }
@@ -252,6 +254,12 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
 
   if (typeof resultsFile.commit !== 'string' || typeof resultsFile.date !== 'string') {
     throw new UsageError(`${args.history}: expected string "commit" and "date"`);
+  }
+  // `commit` reaches `git show`: only a full lower-case sha may ('HEAD' or '-x' never)
+  if (!/^[0-9a-f]{40}$/.test(resultsFile.commit)) {
+    throw new UsageError(
+      `${args.history}: "commit" must be a 40-character lower-case hex sha, got ${JSON.stringify(resultsFile.commit)}`,
+    );
   }
   const stamp = new Date(resultsFile.date);
   if (Number.isNaN(stamp.getTime())) {
