@@ -99,10 +99,10 @@ export function CommandList({
     enabled: shouldVirtualize,
   });
 
-  // Scroll-to-active on keyboard navigation. A row the pointer activates is the hovered row, which is in
-  // view, so an active row under the pointer is not scrolled to; keyboard navigation moves the active row
-  // away from the hovered one and scrolls it just into view ('nearest'). A row the virtualizer does not
-  // render cannot be hovered, so it is scrolled to by index.
+  // Scroll-to-active, just into view ('nearest'): virtual mode scrolls by index (a row the virtualizer does not
+  // render cannot be hovered), DOM mode with scrollIntoView. A hovered active row is not scrolled: a pointer
+  // activates the row it is over, which is in view, and a keyboard step onto the hovered row does not scroll it
+  // either, so a hovered row partly outside the view stays as it is.
   const prevActiveId = useRef<string | null>(stateCtx.state.activeId);
   useEffect(() => {
     const activeId = stateCtx.state.activeId;
