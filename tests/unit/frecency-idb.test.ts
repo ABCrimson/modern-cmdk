@@ -21,12 +21,17 @@ describe('IdbFrecencyStorage', () => {
       expect(data.records.size).toBe(0);
     });
 
-    it('should return empty data when disposed', async () => {
-      const storage = new IdbFrecencyStorage(uniqueDb());
-      storage[Symbol.dispose]();
+    it('should return empty data when disposed although the namespace holds a row', async () => {
+      const db = uniqueDb();
+      await using live = new IdbFrecencyStorage(db);
+      await live.save('test-ns', {
+        records: new Map([[itemId('stored'), { frequency: 1, lastUsed: Date.now() }]]),
+      });
+      const disposed = new IdbFrecencyStorage(db);
+      disposed[Symbol.dispose]();
 
-      const data = await storage.load('test-ns');
-      expect(data.records.size).toBe(0);
+      expect((await disposed.load('test-ns')).records.size).toBe(0);
+      expect((await live.load('test-ns')).records.size).toBe(1);
     });
   });
 
@@ -155,32 +160,45 @@ describe('IdbFrecencyStorage', () => {
 
     it('should work with using declaration', async () => {
       const db = uniqueDb();
-      let loadedOutside: FrecencyData | undefined;
+      let loadedInside: FrecencyData | undefined;
+      let ref: IdbFrecencyStorage | undefined;
 
       {
         using storage = new IdbFrecencyStorage(db);
+        ref = storage;
         const now = Date.now();
 
         await storage.save('dispose-test', {
           records: new Map([[itemId('d'), { frequency: 1, lastUsed: now }]]),
         });
 
-        loadedOutside = await storage.load('dispose-test');
+        loadedInside = await storage.load('dispose-test');
       }
 
-      expect(loadedOutside?.records.size).toBe(1);
+      expect(loadedInside?.records.size).toBe(1);
+      // TUB-72: leaving the block disposed the instance, so it no longer reads the stored row
+      expect((await ref?.load('dispose-test'))?.records.size).toBe(0);
     });
 
-    it('should reject operations after dispose', async () => {
-      const storage = new IdbFrecencyStorage(uniqueDb());
+    it('should no-op operations after dispose', async () => {
+      const db = uniqueDb();
+      const kept = new Map([[itemId('kept'), { frequency: 2, lastUsed: Date.now() }]]);
+      await using live = new IdbFrecencyStorage(db);
+      await live.save('kept-ns', { records: kept });
+      const storage = new IdbFrecencyStorage(db);
       storage[Symbol.dispose]();
 
-      await storage.save('post-dispose', {
-        records: new Map([[itemId('x'), { frequency: 1, lastUsed: Date.now() }]]),
-      });
+      await expect(
+        storage.save('post-dispose', {
+          records: new Map([[itemId('x'), { frequency: 1, lastUsed: Date.now() }]]),
+        }),
+      ).resolves.toBeUndefined();
+      await expect(storage.delete('kept-ns')).resolves.toBeUndefined();
 
-      const data = await storage.load('post-dispose');
-      expect(data.records.size).toBe(0);
+      expect((await storage.load('kept-ns')).records.size).toBe(0);
+      // the disposed instance wrote nothing and deleted nothing
+      expect((await live.load('post-dispose')).records.size).toBe(0);
+      expect((await live.load('kept-ns')).records.get(itemId('kept'))?.frequency).toBe(2);
     });
   });
 
