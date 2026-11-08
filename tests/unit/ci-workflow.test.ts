@@ -13,7 +13,7 @@ const root = resolve(import.meta.dirname, '../..');
 const workflow = readFileSync(resolve(root, '.github/workflows/ci.yml'), 'utf8');
 /**
  * The bash that runs the step. On Windows, the System32 bash.exe (WSL's) can precede Git for Windows' on PATH, so
- * Git's own bash is derived from git: `git --exec-path` is <Git root>/mingw64/libexec/git-core, with the Program Files
+ * Git's own bash is derived from git: `git --exec-path` is <Git root>/<mingw64|ucrt64>/libexec/git-core, with the Program Files
  * install as the fallback. Elsewhere PATH's bash is GNU bash.
  */
 function bashPath(): string {
