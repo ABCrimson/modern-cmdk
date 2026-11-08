@@ -209,6 +209,7 @@
 
   [data-command-item] {
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     transition: background-color var(--command-duration-item) linear(0, 0.25, 0.5, 0.75, 1);
     scroll-margin-block: 8px;
@@ -237,6 +238,7 @@
   /* ─── Group ─── */
 
   [data-command-group-heading] {
+    -webkit-user-select: none;
     user-select: none;
     font-size: 0.75em;
     text-transform: uppercase;
