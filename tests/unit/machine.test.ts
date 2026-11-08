@@ -685,3 +685,30 @@ describe('CommandMachine UPDATE_ITEM (ARCH-20, CE-49)', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 });
+
+describe('CommandMachine frecency ranking (DT-18)', () => {
+  it('frecency re-ranks only non-empty queries: the empty query keeps registration order', async () => {
+    using machine = createCommandMachine({
+      items: [
+        { id: itemId('alpha'), value: 'Alpha item' },
+        { id: itemId('settings'), value: 'Settings item' },
+      ],
+      frecency: { enabled: true },
+    });
+    machine.send({ type: 'ITEM_SELECT', id: itemId('settings') });
+    machine.send({ type: 'SEARCH_CHANGE', query: '' });
+    machine.send({ type: 'OPEN' }); // handled after the two events above
+    await vi.waitFor(() => {
+      expect(machine.getState().open).toBe(true);
+    });
+    // The empty query is not re-ranked (the React adapter renders in JSX order, so arrow keys must match it)
+    expect(machine.getState().filteredIds).toEqual(['alpha', 'settings']);
+
+    machine.send({ type: 'SEARCH_CHANGE', query: 'item' });
+    await vi.waitFor(() => {
+      expect(machine.getState().search).toBe('item');
+    });
+    // A non-empty query matching both puts the selected item first
+    expect(machine.getState().filteredIds).toEqual(['settings', 'alpha']);
+  });
+});
