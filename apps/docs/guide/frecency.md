@@ -32,7 +32,7 @@ function FrecencyPalette() {
 }
 ```
 
-Frecency is off by default: `enabled` is optional and defaults to `false`, so ranking applies only with `enabled: true` (the default flips to `true` in 2.0). When enabled, each time a user selects an item via `onSelect`, the frecency engine records the selection with a `Date.now()` timestamp. Future searches re-rank results by applying a frecency bonus to the search score.
+Frecency is off by default: `enabled` is optional and defaults to `false`, so ranking applies only with `enabled: true` (the default flips to `true` in 2.0). When enabled, each time a user selects an item (a click, Enter, or a shortcut under `shortcutAction: 'select'`), the frecency engine records the selection with a `Date.now()` timestamp. Future searches re-rank results by applying a frecency bonus to the search score. Frecency re-ranks only non-empty queries: the empty query, and every query under `filter={false}`, list the items in registration order.
 
 ::: tip
 Frecency only affects the **order** of results, not whether they appear. An item must still match the search query to be shown. The frecency bonus is added to the search score to promote frequently/recently used items.
@@ -45,10 +45,19 @@ By default, frecency data is stored in memory and resets on page reload. For per
 ```tsx
 'use client';
 
-import { Command } from 'modern-cmdk/react';
+import type { FrecencyStorage } from 'modern-cmdk';
 import { IdbFrecencyStorage } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
 
-const storage = new IdbFrecencyStorage();
+// One IndexedDB storage for the page. The machine disposes the storage it is given, and React
+// disposes the machine on every unmount (twice in development under StrictMode), so the palette
+// gets a view that forwards load and save and leaves disposal to this module.
+const idb = new IdbFrecencyStorage();
+const storage: FrecencyStorage = {
+  load: (namespace) => idb.load(namespace),
+  save: (namespace, data) => idb.save(namespace, data),
+  [Symbol.dispose]: () => {},
+};
 
 function PersistentFrecencyPalette() {
   return (
@@ -74,6 +83,12 @@ function PersistentFrecencyPalette() {
 }
 ```
 
+The machine owns the storage it is given: when the machine is disposed it saves any pending selection and then disposes the storage, and a disposed `IdbFrecencyStorage` loads empty data and ignores saves. React disposes the machine when `<Command>` unmounts, and under StrictMode in development it does so once before the remount that keeps running; a storage handed straight to `<Command>` is then already disposed when the palette is in use (every later `load()` is empty, every `save()` a no-op). So give `<Command>` a view like the one above, which forwards `load` and `save` and ignores the dispose; give a storage straight to `createCommandMachine`, which is created and disposed once, as shown below.
+
+Selections are saved 1000 ms after the last one (a trailing debounce), when the page becomes hidden (`visibilitychange`) or is hidden for good (`pagehide`), and when the machine is disposed. When the stored data has loaded, it is merged into the engine (frequencies add up, the later `lastUsed` wins, selections made while it loaded are kept) and a non-empty search ranks with it. A load that fails is reported once through `console.warn` and the palette keeps working with in-memory data.
+
+`new IdbFrecencyStorage(dbName?, storeName?)` defaults to the database `'modern-cmdk'` and the store `'frecency'`; a second `storeName` in an existing database works.
+
 ::: tip
 `idb-keyval` is included as a direct dependency of `modern-cmdk`, so no separate install is needed.
 :::
@@ -92,20 +107,22 @@ async function withFrecencyStorage() {
   const data = await storage.load('my-app');
   console.log('Frecency records:', data.records.size);
 
-  // Storage is automatically disposed when scope exits
-  // Pending writes are flushed, transactions are closed
+  // The storage is disposed when the scope exits. It only marks itself disposed: afterwards
+  // load() returns empty data and save() and delete() do nothing. It keeps no write queue and
+  // no open transaction (each operation opens its own and closes its connection), so there is
+  // nothing to flush; the frecency engine awaits its own save before it disposes the storage.
 }
 ```
 
-When used with the core state machine directly:
+With the core state machine, let the machine own the storage:
 
 ```typescript
 import { createCommandMachine, IdbFrecencyStorage, itemId } from 'modern-cmdk';
 
 async function createMachineWithFrecency() {
-  await using storage = new IdbFrecencyStorage();
+  const storage = new IdbFrecencyStorage();
 
-  using machine = createCommandMachine({
+  await using machine = createCommandMachine({
     items: [{ id: itemId('save'), value: 'Save' }],
     frecency: {
       enabled: true,
@@ -114,7 +131,9 @@ async function createMachineWithFrecency() {
     },
   });
 
-  // Both machine and storage are cleaned up when scope exits
+  // Leaving the scope awaits the pending frecency save, then disposes the machine and, with it,
+  // the storage. A storage with its own `await using` declared before a sync `using machine`
+  // would be marked disposed before the machine's queued save runs, and drop it.
 }
 ```
 
@@ -204,24 +223,30 @@ export function computeFrecencyBonus(
 
 ## Core State Machine Usage
 
-Frecency works at the core engine level, independent of React:
+Frecency works at the core engine level, independent of React. `send()` is scheduled (on `requestAnimationFrame` in a browser, on a microtask where there is none), so `getState()` right after it still returns the previous state: subscribe and read the state when it changes. Frecency re-ranks only non-empty queries, so the sample searches for `open`:
 
 ```typescript
 import { createCommandMachine, itemId } from 'modern-cmdk';
+import type { CommandState } from 'modern-cmdk';
 
-using machine = createCommandMachine({
-  items: [
-    { id: itemId('settings'), value: 'Settings' },
-    { id: itemId('profile'), value: 'Profile' },
-  ],
-  frecency: { enabled: true },
-});
+async function rankByFrecency(): Promise<readonly string[]> {
+  await using machine = createCommandMachine({
+    items: [
+      { id: itemId('settings'), value: 'Open settings' },
+      { id: itemId('sessions'), value: 'Open sessions' },
+    ],
+    frecency: { enabled: true },
+  });
 
-// Select an item — frecency is recorded with Date.now()
-machine.send({ type: 'ITEM_SELECT', id: itemId('settings') });
+  const next = Promise.withResolvers<CommandState>();
+  using subscription = machine.subscribeState(next.resolve);
 
-// Future searches rank "Settings" higher due to frecency bonus
-machine.send({ type: 'SEARCH_CHANGE', query: '' });
-const state = machine.getState();
-// state.filteredIds[0] === 'settings' (boosted by frecency)
+  // Both events run in the same batch, in order: the selection is recorded with Date.now(),
+  // then the search ranks with it. One stateChange follows.
+  machine.send({ type: 'ITEM_SELECT', id: itemId('sessions') });
+  machine.send({ type: 'SEARCH_CHANGE', query: 'open' });
+
+  const state = await next.promise;
+  return state.filteredIds; // ['sessions', 'settings']: "Open sessions" first, boosted by frecency
+}
 ```
