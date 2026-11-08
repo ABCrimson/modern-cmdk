@@ -903,9 +903,8 @@ async function runVariant(
     }
 
     const html = await (await fetch(url, { signal: AbortSignal.timeout(10_000) })).text();
-    // The root and its label are server-rendered. The items are not at 1.2.3: they register in
-    // effects, so the server HTML shows the empty state (RP-31, 1.7.0). ssrFirstItem records
-    // whether the first item's label is in the HTML; it is reported, not asserted, until then.
+    // The root, its label and the items are server-rendered: an item the registry does not hold yet renders
+    // under an empty query, and the empty state and the result count wait for hydration.
     result.ssr =
       html.includes('data-command-root') && html.includes('aria-label="Consumer palette"');
     result.ssrFirstItem = />Item 1</.test(html);
@@ -914,6 +913,12 @@ async function runVariant(
     );
     if (!result.ssr) {
       result.failures.push('the server HTML lacks data-command-root or the palette label');
+    }
+    if (!result.ssrFirstItem) {
+      result.failures.push('the server HTML lacks the text of the first item ("Item 1")');
+    }
+    for (const empty of ['No results', '0 results available']) {
+      if (html.includes(empty)) result.failures.push(`the server HTML contains "${empty}"`);
     }
     if (variant !== 'vite' && !html.includes('data-palette="server"')) {
       result.failures.push(
