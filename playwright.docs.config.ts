@@ -6,7 +6,8 @@ const port = 4173;
 const baseURL = `http://localhost:${port}/modern-cmdk/`;
 
 // Render pass over every built docs page. Run `pnpm docs:build` first: the spec enumerates
-// apps/docs/.vitepress/dist/**/*.html and `vitepress preview` serves that same directory.
+// apps/docs/.vitepress/dist/**/*.html and scripts/serve-dist.mjs serves that same directory (not `vitepress preview`: its
+// file server has no stream error handler, so one failed read killed it and failed every later test).
 export default defineConfig({
   testDir: './tests/docs',
   fullyParallel: true,
@@ -26,7 +27,7 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `pnpm --filter docs exec vitepress preview --port ${port}`,
+    command: `node scripts/serve-dist.mjs --port ${port}`,
     url: baseURL,
     timeout: 120_000,
     reuseExistingServer: !isCI,
