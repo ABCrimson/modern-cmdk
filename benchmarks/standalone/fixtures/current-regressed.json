@@ -1,8 +1,17 @@
 {
   "proves": "searchChange +25 % (above the 15 % threshold), under its target_ms: FAIL, exit 2.",
+  "environment": {
+    "cpu": "Fixture CPU A"
+  },
   "tasks": {
-    "search:ts-scorer-10k": { "median_ms": 15.5 },
-    "stateUpdate:navigate": { "median_ms": 0.00075 },
-    "stateUpdate:searchChange": { "median_ms": 0.5 }
+    "search:ts-scorer-10k": {
+      "median_ms": 15.5
+    },
+    "stateUpdate:navigate": {
+      "median_ms": 0.00075
+    },
+    "stateUpdate:searchChange": {
+      "median_ms": 0.5
+    }
   }
 }

@@ -5,6 +5,7 @@
 // R5: the browser bench's pure stats and 10K mount gate rules, the /bench page settle rule, and the
 // harness refusing a diagnostic run without --out.
 // P33: the bench:compare harness proves its own verdicts end to end on fixed fixtures.
+// TEB-103, D97: the baseline holds one record per CPU model; the thresholds judge a run only against the record of its own CPU.
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -332,6 +333,40 @@ describe('P33: bench:compare proves its own verdicts on fixed fixtures', () => {
     const run = compare(withFixtures('current-extra-key.json'));
     expect(run.status).toBe(2);
     expect(run.stderr).toContain('NO BASELINE ENTRY for measured key "stateUpdate:extra"');
+  });
+
+  // TEB-103, D97: the baseline keeps one record per CPU model. baseline-two-cpus.json holds A and B
+  // under shared thresholds; B's searchChange median is 0.5 ms against A's 0.4 ms. The medians of
+  // current-regressed.json (searchChange 0.5 ms) are a +25 % regression on A and equal to B.
+  it('TEB-103: thresholds apply within one CPU model', () => {
+    const onA = compare(withFixtures('current-regressed.json', 'baseline-two-cpus.json'));
+    expect(onA.status).toBe(2);
+    expect(onA.stdout).toMatch(/stateUpdate:searchChange\s+\|.*\+25\.0%\s+\|\s+FAIL \| compared/);
+    expect(onA.stdout).not.toContain('INFO');
+
+    // the same medians on CPU B are compared with B's record: every row PASS
+    const onB = compare(withFixtures('current-regressed-on-b.json', 'baseline-two-cpus.json'));
+    expect(onB.status).toBe(0);
+    expect(onB.stdout).toMatch(/stateUpdate:searchChange\s+\|.*\+0\.0%\s+\|\s+PASS \| compared/);
+    expect(onB.stdout).not.toMatch(/WARN|FAIL|INFO/);
+  });
+
+  it('TEB-103: a run on a CPU without a baseline record exits 0 with an informational table', () => {
+    const run = compare(withFixtures('current-unrecorded-cpu.json', 'baseline-two-cpus.json'));
+    expect(run.status).toBe(0);
+    expect(run.stderr).toBe('');
+    // one table per record, every row INFO and naming both CPUs; the medians are 3x A's, never judged
+    for (const recorded of ['Fixture CPU A', 'Fixture CPU B']) {
+      expect(run.stdout).toContain(`record: ${recorded}; this run: Fixture CPU C`);
+      expect(run.stdout).toMatch(
+        new RegExp(
+          String.raw`search:ts-scorer-10k\s+\|.*\+200\.0%\s+\|\s+INFO \| ${recorded} -> Fixture CPU C`,
+        ),
+      );
+    }
+    expect(run.stdout).toContain('no baseline record for Fixture CPU C');
+    expect(run.stdout).toContain('no threshold applies (exit 0)');
+    expect(run.stdout).not.toMatch(/WARN|FAIL|PASS/);
   });
 
   it('P33: an unknown flag is a harness error, exit 2, with a usage line', () => {

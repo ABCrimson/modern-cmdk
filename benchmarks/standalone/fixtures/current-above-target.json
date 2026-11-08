@@ -1,8 +1,17 @@
 {
   "proves": "ts-scorer-10k 16.2 ms is only +4.5 % over its baseline (a PASS by comparison) but above its target_ms of 16: FAIL on the target alone, exit 2.",
+  "environment": {
+    "cpu": "Fixture CPU A"
+  },
   "tasks": {
-    "search:ts-scorer-10k": { "median_ms": 16.2 },
-    "stateUpdate:navigate": { "median_ms": 0.00075 },
-    "stateUpdate:searchChange": { "median_ms": 0.4 }
+    "search:ts-scorer-10k": {
+      "median_ms": 16.2
+    },
+    "stateUpdate:navigate": {
+      "median_ms": 0.00075
+    },
+    "stateUpdate:searchChange": {
+      "median_ms": 0.4
+    }
   }
 }

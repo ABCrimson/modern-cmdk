@@ -1,9 +1,11 @@
 // benchmarks/standalone/record-baseline.ts
-// The baseline recorder (`pnpm bench:record`, D93): rewrites benchmarks/baseline.json from the
-// `benchmark-results` artifact of a CI run, committed as benchmarks/history/<YYYY-MM-DD>-<sha7>.json (a
-// copy of benchmarks/results/bench-<sha>.json, which compare-baseline.ts writes). D93 re-records the
-// baseline from the first green run after each Node pin bump; this is that step as a tool, so the file
-// is never edited by hand.
+// The baseline recorder (`pnpm bench:record`, D93): records the `benchmark-results` artifact of a CI run,
+// committed as benchmarks/history/<YYYY-MM-DD>-<sha7>.json (a copy of benchmarks/results/bench-<sha>.json,
+// which compare-baseline.ts writes), into benchmarks/baseline.json. D93 re-records the baseline from the
+// first green run after each Node pin bump; this is that step as a tool, so the file is never edited by
+// hand. The baseline holds one record per CPU model (D97): the file's `environment.cpu` names the record
+// this run replaces, or creates; every other CPU's record and the shared thresholds are written back
+// unchanged.
 //
 // Usage: node benchmarks/standalone/record-baseline.ts <history-file> [--out <file>] [--baseline <file>]
 //                                                      [--target <category>:<key>=<ms>]... [--repo <dir>]
@@ -14,19 +16,23 @@
 //                   `source` is this file's repo-relative path (forward slashes), never a run id; the
 //                   note names it too.
 //   --out           the file to write (default <repo>/benchmarks/baseline.json).
-//   --baseline      the existing baseline the rows' target_ms and the thresholds (warning, failure,
-//                   floor_ms) are carried over from (default <repo>/benchmarks/baseline.json).
-//   --target        the target_ms (finite, > 0) of a task that has no row in the existing baseline, or a
-//                   new target for one that has (repeatable).
+//   --baseline      the existing baseline: the thresholds (warning, failure, floor_ms) and the other CPUs'
+//                   records are carried over from it, and so are the rows' target_ms, from the record of
+//                   the file's CPU, else from the first record that has the row (default
+//                   <repo>/benchmarks/baseline.json).
+//   --target        the target_ms (finite, > 0) of a task that has no row in any record of the existing
+//                   baseline, or a new target for one that has (repeatable).
 //   --repo          the repository root: where benchmarks/history/ is and where git resolves the commit
 //                   (default: this checkout). The tests point it at a throwaway repository.
 // `commit`, `date` (its UTC calendar day) and `environment` come from the history file; `version` is the
 // version of packages/modern-cmdk/package.json at that commit (`git show <commit>:...`). Row order
-// follows the existing baseline, new rows come last in the file's order.
+// follows the CPU's existing record, new rows come last in the file's order; a new CPU's record is
+// appended after the existing ones.
 // Exit codes: 0 = written, 2 = usage or harness error (an unknown flag, a missing, misplaced or
-// misnamed <history-file>, a `commit` that is not a 40-character hex sha, `runs` other than 5, an unreadable or malformed input, a commit git cannot
-// resolve, a task with no existing row and no --target, a --target that is not a positive finite
-// number or names no task, an existing row that the file has no task for). Nothing is written then.
+// misnamed <history-file>, a `commit` that is not a 40-character hex sha, `runs` other than 5, a file
+// without `environment.cpu`, an unreadable or malformed input, a commit git cannot resolve, a task with
+// no existing row and no --target, a --target that is not a positive finite number or names no task, a
+// row of the CPU's existing record that the file has no task for). Nothing is written then.
 // Runs under Node's native type stripping, no loader.
 // tests/unit/bench-record.test.ts proves the output against compare-baseline.ts on the fixtures in
 // benchmarks/standalone/fixtures/ (record-artifact*.json).
@@ -170,17 +176,27 @@ function readThresholds(path: string, file: Record<string, unknown>): Thresholds
     : { warning: t.warning, failure: t.failure, floor_ms: t.floor_ms };
 }
 
-/** The existing rows' target_ms by `<category>:<key>`, in file order. */
-function readExistingTargets(path: string, file: Record<string, unknown>): Map<string, number> {
-  if (!isRecord(file.benchmarks)) throw new UsageError(`${path}: expected a "benchmarks" object`);
+/** The baseline's records by CPU model, in file order. */
+function readRecords(path: string, file: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(file.records)) throw new UsageError(`${path}: expected a "records" object`);
+  return file.records;
+}
+
+/** One record's rows' target_ms by `<category>:<key>`, in file order. */
+function readTargets(path: string, cpu: string, record: unknown): Map<string, number> {
+  if (!isRecord(record) || !isRecord(record.benchmarks)) {
+    throw new UsageError(`${path}: record "${cpu}" needs a "benchmarks" object`);
+  }
   const targets = new Map<string, number>();
-  for (const [category, entries] of Object.entries(file.benchmarks)) {
+  for (const [category, entries] of Object.entries(record.benchmarks)) {
     if (!isRecord(entries)) continue;
     for (const [key, entry] of Object.entries(entries)) {
       if (isRecord(entry) && isFiniteNumber(entry.target_ms)) {
         targets.set(`${category}:${key}`, entry.target_ms);
       } else {
-        throw new UsageError(`${path}: row "${category}:${key}" has no finite target_ms`);
+        throw new UsageError(
+          `${path}: record "${cpu}", row "${category}:${key}" has no finite target_ms`,
+        );
       }
     }
   }
@@ -250,7 +266,7 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
   const source = `benchmarks/history/${inHistory}`;
   const tasks = readTasks(args.history, resultsFile);
   const thresholds = readThresholds(args.baseline, baselineFile);
-  const existing = readExistingTargets(args.baseline, baselineFile);
+  const records = readRecords(args.baseline, baselineFile);
 
   if (typeof resultsFile.commit !== 'string' || typeof resultsFile.date !== 'string') {
     throw new UsageError(`${args.history}: expected string "commit" and "date"`);
@@ -280,7 +296,23 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
   if (!isRecord(resultsFile.environment)) {
     throw new UsageError(`${args.history}: expected an "environment" object`);
   }
+  const cpu = resultsFile.environment.cpu;
+  if (typeof cpu !== 'string' || cpu === '') {
+    throw new UsageError(
+      `${args.history}: "environment.cpu" is ${JSON.stringify(cpu)}; a record is kept per CPU model, so the file must name one`,
+    );
+  }
   const version = manifestVersion(args.repo, resultsFile.commit);
+  // The CPU's own rows decide what a re-record may drop; the other records only lend a target_ms
+  const existing = Object.hasOwn(records, cpu)
+    ? readTargets(args.baseline, cpu, records[cpu])
+    : new Map<string, number>();
+  const known = new Map<string, number>();
+  for (const [otherCpu, record] of Object.entries(records)) {
+    for (const [name, target] of readTargets(args.baseline, otherCpu, record)) {
+      if (!known.has(name)) known.set(name, target);
+    }
+  }
 
   const names = new Set(tasks.map((task) => task.name));
   for (const key of args.targets.keys()) {
@@ -292,7 +324,7 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
       `${args.history} has no task for the existing row(s) ${unmeasured.join(', ')}: a re-record never drops a row silently`,
     );
   }
-  const untargeted = tasks.filter((t) => !existing.has(t.name) && !args.targets.has(t.name));
+  const untargeted = tasks.filter((t) => !known.has(t.name) && !args.targets.has(t.name));
   if (untargeted.length > 0) {
     throw new UsageError(
       `no existing row in ${args.baseline} for ${untargeted.map((t) => t.name).join(', ')}: pass --target ${untargeted[0]?.name}=<ms> for each`,
@@ -311,23 +343,29 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
     rows[key] = {
       median_ms: task.median_ms,
       p99_ms: task.p99_ms,
-      target_ms: (args.targets.get(name) ?? existing.get(name)) as number,
+      target_ms: (args.targets.get(name) ?? existing.get(name) ?? known.get(name)) as number,
     };
   }
 
+  // Only the history file's CPU gets a new record; the rest of the baseline is written back as read
   const document = {
-    version,
-    date: day,
-    commit: resultsFile.commit,
-    source,
-    note: buildNote({ source, environment: resultsFile.environment, thresholds }),
-    environment: resultsFile.environment,
-    regressionThresholds: thresholds,
-    benchmarks,
+    ...baselineFile,
+    records: {
+      ...records,
+      [cpu]: {
+        version,
+        date: day,
+        commit: resultsFile.commit,
+        source,
+        note: buildNote({ source, environment: resultsFile.environment, thresholds }),
+        environment: resultsFile.environment,
+        benchmarks,
+      },
+    },
   };
   await writeFile(args.out, `${JSON.stringify(document, null, 2)}\n`);
   console.log(
-    `recorded ${tasks.length} rows from ${source} (commit ${resultsFile.commit.slice(0, 7)}, ${day}) into ${args.out}`,
+    `recorded ${tasks.length} rows from ${source} (commit ${resultsFile.commit.slice(0, 7)}, ${day}) as the record of ${cpu} into ${args.out}`,
   );
   return 0;
 }

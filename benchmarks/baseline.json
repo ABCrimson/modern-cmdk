@@ -1,40 +1,45 @@
 {
-  "version": "1.4.0",
-  "date": "2026-11-08",
-  "commit": "201f701bd3b57ac4c8071e32563546b1077edb8b",
-  "source": "benchmarks/history/2026-11-08-201f701.json",
-  "note": "The medians are the median of the harness's 5 runs' p50 (D93), recorded from benchmarks/history/2026-11-08-201f701.json on ubuntu26 image 20261101.186.1 (AMD EPYC 7763 64-Core Processor, 4 cores) with Node v28.0.0-nightly20261107a43bfb5bb2. The compare warns above 5 % and fails above 15 % of regression, with a floor of 0.01 ms (a baseline median below it is reported, not compared); a median above target_ms fails. Runner noise (+/-20-40 %) makes the 5 %/15 % compare a coarse tripwire, not a verdict, until the 1.9 CodSpeed gate. This note is rewritten at each re-record by benchmarks/standalone/record-baseline.ts.",
-  "environment": {
-    "os": "linux 7.0.0-1019-azure",
-    "runner": "ubuntu26",
-    "runnerImageVersion": "20261101.186.1",
-    "node": "v28.0.0-nightly20261107a43bfb5bb2",
-    "cpu": "AMD EPYC 7763 64-Core Processor",
-    "cpuCount": 4
-  },
+  "schemaVersion": 2,
   "regressionThresholds": {
     "warning": 0.05,
     "failure": 0.15,
     "floor_ms": 0.01
   },
-  "benchmarks": {
-    "search": {
-      "ts-scorer-10k": {
-        "median_ms": 3.7884075000000053,
-        "p99_ms": 7.915879500000144,
-        "target_ms": 16
-      }
-    },
-    "stateUpdate": {
-      "navigate": {
-        "median_ms": 0.0009020000006785267,
-        "p99_ms": 0.007003499998827464,
-        "target_ms": 1
+  "records": {
+    "AMD EPYC 7763 64-Core Processor": {
+      "version": "1.4.0",
+      "date": "2026-11-08",
+      "commit": "201f701bd3b57ac4c8071e32563546b1077edb8b",
+      "source": "benchmarks/history/2026-11-08-201f701.json",
+      "note": "The medians are the median of the harness's 5 runs' p50 (D93), recorded from benchmarks/history/2026-11-08-201f701.json on ubuntu26 image 20261101.186.1 (AMD EPYC 7763 64-Core Processor, 4 cores) with Node v28.0.0-nightly20261107a43bfb5bb2. The compare warns above 5 % and fails above 15 % of regression, with a floor of 0.01 ms (a baseline median below it is reported, not compared); a median above target_ms fails. Runner noise (+/-20-40 %) makes the 5 %/15 % compare a coarse tripwire, not a verdict, until the 1.9 CodSpeed gate. This note is rewritten at each re-record by benchmarks/standalone/record-baseline.ts.",
+      "environment": {
+        "os": "linux 7.0.0-1019-azure",
+        "runner": "ubuntu26",
+        "runnerImageVersion": "20261101.186.1",
+        "node": "v28.0.0-nightly20261107a43bfb5bb2",
+        "cpu": "AMD EPYC 7763 64-Core Processor",
+        "cpuCount": 4
       },
-      "searchChange": {
-        "median_ms": 0.3928280000018276,
-        "p99_ms": 0.7219302999992941,
-        "target_ms": 4
+      "benchmarks": {
+        "search": {
+          "ts-scorer-10k": {
+            "median_ms": 3.7884075000000053,
+            "p99_ms": 7.915879500000144,
+            "target_ms": 16
+          }
+        },
+        "stateUpdate": {
+          "navigate": {
+            "median_ms": 0.0009020000006785267,
+            "p99_ms": 0.007003499998827464,
+            "target_ms": 1
+          },
+          "searchChange": {
+            "median_ms": 0.3928280000018276,
+            "p99_ms": 0.7219302999992941,
+            "target_ms": 4
+          }
+        }
       }
     }
   }

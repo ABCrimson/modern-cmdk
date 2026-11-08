@@ -1,0 +1,17 @@
+{
+  "proves": "The medians of current-regressed.json taken on CPU B: equal to B’s record, so every row PASS with baseline-two-cpus.json, exit 0.",
+  "environment": {
+    "cpu": "Fixture CPU B"
+  },
+  "tasks": {
+    "search:ts-scorer-10k": {
+      "median_ms": 15.5
+    },
+    "stateUpdate:navigate": {
+      "median_ms": 0.00075
+    },
+    "stateUpdate:searchChange": {
+      "median_ms": 0.5
+    }
+  }
+}

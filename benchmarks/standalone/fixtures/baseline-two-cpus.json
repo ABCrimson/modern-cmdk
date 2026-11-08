@@ -1,0 +1,62 @@
+{
+  "proves": "Two CPU records sharing the thresholds: A is the P33 baseline, B differs only in stateUpdate:searchChange (0.5 ms against A’s 0.4 ms), so the same medians are a +25 % regression on A and equal on B.",
+  "regressionThresholds": {
+    "warning": 0.05,
+    "failure": 0.15,
+    "floor_ms": 0.01
+  },
+  "records": {
+    "Fixture CPU A": {
+      "environment": {
+        "cpu": "Fixture CPU A"
+      },
+      "benchmarks": {
+        "search": {
+          "ts-scorer-10k": {
+            "median_ms": 15.5,
+            "p99_ms": 20,
+            "target_ms": 16
+          }
+        },
+        "stateUpdate": {
+          "navigate": {
+            "median_ms": 0.00075,
+            "p99_ms": 0.008,
+            "target_ms": 1
+          },
+          "searchChange": {
+            "median_ms": 0.4,
+            "p99_ms": 0.6,
+            "target_ms": 4
+          }
+        }
+      }
+    },
+    "Fixture CPU B": {
+      "environment": {
+        "cpu": "Fixture CPU B"
+      },
+      "benchmarks": {
+        "search": {
+          "ts-scorer-10k": {
+            "median_ms": 15.5,
+            "p99_ms": 20,
+            "target_ms": 16
+          }
+        },
+        "stateUpdate": {
+          "navigate": {
+            "median_ms": 0.00075,
+            "p99_ms": 0.008,
+            "target_ms": 1
+          },
+          "searchChange": {
+            "median_ms": 0.5,
+            "p99_ms": 0.6,
+            "target_ms": 4
+          }
+        }
+      }
+    }
+  }
+}
