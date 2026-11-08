@@ -713,5 +713,300 @@
     "id": "SEC-72",
     "test": "tests/unit/ci-workflow.test.ts::SEC-72: the consumers and templates jobs run the smoke scripts through pnpm run, so npm_execpath names the pnpm entry the scripts spawn",
     "status": "covered"
+  },
+  {
+    "id": "CE-01",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-02",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-05",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-08",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-09",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-14",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-15",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-30",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-09",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-15",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-28",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-30",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-32",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-59",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-08",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-09",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-32",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-35",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-62",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-13",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-14",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-15",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-16",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "ARCH-20",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DT-18",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "P06",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "P07",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "P19",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "P20",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "P25",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "SEC-02",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "SEC-27",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "SEC-35",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "T09",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "T13",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "T15",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RC-15",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-04",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RDG-34",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RDG-38",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TUB-05",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TUB-06",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-49",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-50",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-54",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-60",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-75",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-77",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-35",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-36",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-37",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-78",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-88",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PGX-12",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PGX-13",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "NAR-vanilla-4",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "U-10",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DA-11",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DA-12",
+    "test": null,
+    "status": "pending"
   }
 ]
