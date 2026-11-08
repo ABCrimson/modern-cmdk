@@ -756,23 +756,23 @@
   },
   {
     "id": "DAE-09",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::DAE-09: examples/frecency.md states the IndexedDB save flow (1000 ms debounce, visibilitychange, pagehide) and passes a module-scope storage to the React frecency prop",
+    "status": "covered"
   },
   {
     "id": "DAE-15",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::DAE-15: examples/vanilla.md declares const machine and disposes it on pagehide unless the page is persisted",
+    "status": "covered"
   },
   {
     "id": "DAE-28",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::DAE-28: api/command.md's Disabled items section says a disabled item takes part in filtering, never that it is excluded, and names both disabledItems values",
+    "status": "covered"
   },
   {
     "id": "DAE-30",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::DAE-30: api/command.md FrecencyEngine sample passes enabled: true and imports every name it uses",
+    "status": "covered"
   },
   {
     "id": "DAE-32",
@@ -781,8 +781,8 @@
   },
   {
     "id": "DAE-59",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::DAE-59: examples/frecency.md core demo declares await using storage before await using machine",
+    "status": "covered"
   },
   {
     "id": "DG-08",
@@ -791,13 +791,13 @@
   },
   {
     "id": "DG-09",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::DG-09: guide/frecency.md passes a module-scope storage with no view object and says a passed storage is yours to dispose",
+    "status": "covered"
   },
   {
     "id": "DG-32",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::DG-32: guide/shortcuts.md says the later binding wins and names getConflicts, getBindings and unregisterByItem",
+    "status": "covered"
   },
   {
     "id": "DG-35",
@@ -836,8 +836,8 @@
   },
   {
     "id": "DT-18",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::DT-18: guide/frecency.md says frecency re-ranks only non-empty queries, and none under filter={false}",
+    "status": "covered"
   },
   {
     "id": "P06",
@@ -901,8 +901,8 @@
   },
   {
     "id": "RDG-34",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::RDG-34: CONTRIBUTING.md sample test is async and waits with vi.waitFor instead of asserting synchronously after send()",
+    "status": "covered"
   },
   {
     "id": "RDG-38",
@@ -981,8 +981,8 @@
   },
   {
     "id": "NAR-vanilla-4",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/docs-1-6-0-claims.test.ts::NAR-vanilla-4: examples/vanilla.md Svelte $effect returns a cleanup that calls unsubscribe and machine[Symbol.dispose]",
+    "status": "covered"
   },
   {
     "id": "U-10",
