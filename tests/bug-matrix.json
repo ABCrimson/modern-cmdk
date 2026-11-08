@@ -1328,5 +1328,225 @@
     "id": "RA-81",
     "test": "tests/unit/dialog-open-state.test.tsx::D109: a refused close is put back even when a second request lands in the put-back frame",
     "status": "covered"
+  },
+  {
+    "id": "CE-10",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-11",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-12",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DAE-24",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DG-68",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "A11Y-01",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "A11Y-03",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "A11Y-20",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "A11Y-21",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "DT-19",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "T22",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "T26",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RC-2",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-01",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-03",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-05",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-06",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-02",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-09",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-10",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-11",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-12",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-14",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-15",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "TEB-17",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-27",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-28",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-29",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-42",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-43",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "CE-40",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-30",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-31",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-32",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-42",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-52",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-59",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "A11Y-33",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-37",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-38",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-43",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PGX-01",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-79",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-83",
+    "test": null,
+    "status": "pending"
   }
 ]
