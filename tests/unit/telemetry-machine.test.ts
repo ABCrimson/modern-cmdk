@@ -350,3 +350,68 @@ it('CE-18: one batch reports the search, then the selects, then the close', () =
 
   expect(log).toEqual(['search', 'select', 'close']);
 });
+
+it('D117: onPaletteClose reports the time since the reported open', () => {
+  let now = 0;
+  vi.spyOn(performance, 'now').mockImplementation(() => now);
+  const onPaletteClose = vi.fn();
+  using machine = createCommandMachine({ items, telemetry: { onPaletteClose } });
+  nextBatch();
+
+  now = 100;
+  machine.send({ type: 'OPEN' });
+  nextBatch();
+  now = 350;
+  machine.send({ type: 'CLOSE' });
+  nextBatch();
+  now = 400;
+  machine.send({ type: 'OPEN' });
+  nextBatch();
+  now = 450;
+  machine.send({ type: 'CLOSE' });
+  nextBatch();
+
+  expect(onPaletteClose.mock.calls).toEqual([[250], [50]]);
+});
+
+it("D117: onSearchComplete reports the time from the batch's first SEARCH_CHANGE", () => {
+  let now = 0;
+  vi.spyOn(performance, 'now').mockImplementation(() => now);
+  const onSearchComplete = vi.fn();
+  using machine = createCommandMachine({
+    items,
+    // Each handled SEARCH_CHANGE advances the clock, so the two reads of one batch differ
+    onSearchChange: () => {
+      now += 10;
+    },
+    telemetry: { onSearchComplete },
+  });
+  nextBatch();
+
+  now = 100;
+  machine.send({ type: 'SEARCH_CHANGE', query: 'a' });
+  machine.send({ type: 'SEARCH_CHANGE', query: 'ap' });
+  nextBatch();
+
+  expect(onSearchComplete).toHaveBeenCalledExactlyOnceWith('ap', 2, 20);
+});
+
+it('CE-18: one batch reports the open, then the search, then the select', () => {
+  const log: string[] = [];
+  using machine = createCommandMachine({
+    items,
+    telemetry: {
+      onPaletteOpen: () => log.push('open'),
+      onSearchComplete: () => log.push('search'),
+      onItemSelected: () => log.push('select'),
+    },
+  });
+  nextBatch();
+
+  machine.send({ type: 'OPEN' });
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  machine.send({ type: 'ITEM_SELECT', id: itemId('pineapple') });
+  nextBatch();
+
+  expect(log).toEqual(['open', 'search', 'select']);
+});
