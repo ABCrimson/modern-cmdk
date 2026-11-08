@@ -41,23 +41,25 @@ function NestedPalette() {
     <Command.Dialog open={open} onOpenChange={setOpen}>
       <Command.Input placeholder="What do you need?" />
       <Command.List>
-        <PageLink page="projects">Projects</PageLink>
-        <PageLink page="settings">Settings</PageLink>
+        <Command.Page id="root">
+          <PageLink page="projects">Projects</PageLink>
+          <PageLink page="settings">Settings</PageLink>
+        </Command.Page>
+
+        <Command.Page id="projects">
+          <Command.Item value="project-alpha">Project Alpha</Command.Item>
+          <Command.Item value="project-beta">Project Beta</Command.Item>
+        </Command.Page>
+
+        <Command.Page id="settings">
+          <Command.Item value="theme">Theme</Command.Item>
+          <Command.Item value="shortcuts">Keyboard Shortcuts</Command.Item>
+          <Command.Item value="account">Account</Command.Item>
+        </Command.Page>
       </Command.List>
-
-      <Command.Page id="projects">
-        <Command.Item value="project-alpha">Project Alpha</Command.Item>
-        <Command.Item value="project-beta">Project Beta</Command.Item>
-      </Command.Page>
-
-      <Command.Page id="settings">
-        <Command.Item value="theme">Theme</Command.Item>
-        <Command.Item value="shortcuts">Keyboard Shortcuts</Command.Item>
-        <Command.Item value="account">Account</Command.Item>
-      </Command.Page>
     </Command.Dialog>
   );
 }
 ```
 
-Pages stack — press `Backspace` on an empty input to pop back to the previous page. The page stack lives in the state machine (`state.page` / `state.pageStack`), and each `<Command.Page>` renders only when its `id` matches the active page.
+Pages stack — press `Backspace` on an empty input to pop back to the previous page. The page stack lives in the state machine (`state.page` / `state.pageStack`), and each `<Command.Page>` renders only when its `id` matches the active page. The machine starts on the page `root`, so the top-level links sit inside `<Command.Page id="root">`; every page sits inside `Command.List`, which holds the options. The dialog is controlled (`open` and `onOpenChange`): nothing else opens it.
