@@ -336,9 +336,13 @@ interface PnpmEntry {
 
 /**
  * Where to spawn pnpm without a shell. A pnpm script (`pnpm test:templates`, `pnpm test:consumers`)
- * runs this file with npm_execpath naming pnpm's own entry: an executable (the standalone pnpm, the
- * kind pnpm/action-setup installs on CI and pnpm.exe on Windows) is spawned directly, and a JavaScript
- * entry (.cjs, .mjs or .js) is spawned as the first argument of this Node. Neither goes through a
+ * runs this file with npm_execpath naming pnpm's own entry: an executable (pnpm.exe from the standalone
+ * installer on Windows) is spawned directly, and a JavaScript entry (.cjs, .mjs or .js) is spawned as
+ * the first argument of this Node. On CI pnpm/action-setup installs the npm package under ~/setup-pnpm
+ * (PNPM_HOME names its node_modules/.bin), whose bin/pnpm.mjs re-execs the native pnpm of its platform
+ * package when that is present, so either branch may run there; the CI steps run `pnpm run
+ * test:consumers` and `pnpm run test:templates`, never bare node, because outside pnpm npm_execpath is
+ * absent, this returns undefined and the script exits 2 (SEC-72). Neither branch goes through a
  * shell, so no argument is ever re-parsed (CodeQL js/shell-command-injection-from-environment).
  * An .exe is spawnable because it is not a .cmd shim: .bat and .cmd files are not executable on their
  * own on Windows (Node 28.0.0-nightly20261107a43bfb5bb2 docs, read 2026-11-07,
@@ -948,7 +952,7 @@ async function main(argv: readonly string[]): Promise<number> {
   const parsed = parseCli(argv);
   if (parsed.kind === 'usage') {
     process.stderr.write(
-      `consumer-smoke: ${parsed.message}\nusage: node scripts/consumer-smoke.ts [--app next-turbopack|next-webpack|vite|all] [--tarball <tgz>] [--expect-core-copies <n>] [--report <file>] [--keep]\n`,
+      `consumer-smoke: ${parsed.message}\nusage: pnpm test:consumers [--app next-turbopack|next-webpack|vite|all] [--tarball <tgz>] [--expect-core-copies <n>] [--report <file>] [--keep]\n`,
     );
     return parsed.exitCode;
   }

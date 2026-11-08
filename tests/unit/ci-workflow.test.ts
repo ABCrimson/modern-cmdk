@@ -1,5 +1,5 @@
 // tests/unit/ci-workflow.test.ts
-// RDG-126, RDG-127, RDG-130: the rules .github/workflows/ci.yml states in comments, pinned as tests.
+// RDG-126, RDG-127, RDG-130, SEC-72: the rules .github/workflows/ci.yml states in comments, pinned as tests.
 // Regex over the YAML as release-workflow.test.ts does: no YAML parser is a dependency of the workspace.
 // Jobs sit at two-space indentation under `jobs:`; a job block runs to the next job key or job-level comment.
 
@@ -44,7 +44,7 @@ describe('ci.yml', () => {
     expect(workflow).not.toMatch(/^\s+- run: pnpm playwright install/m);
     // The retry is for the install only: each test step after it is its own step, never inside the retry loop.
     expect(job('e2e')).toMatch(/^ {6}- run: pnpm playwright test$/m);
-    expect(job('consumers')).toMatch(/^ {6}- run: node scripts\/consumer-smoke\.ts /m);
+    expect(job('consumers')).toMatch(/^ {6}- run: pnpm run test:consumers /m);
     expect(job('docs')).toMatch(/^ {6}- run: pnpm test:docs$/m);
   });
 
@@ -52,5 +52,18 @@ describe('ci.yml', () => {
     const cacheLine = /^ +cache:[ \t]*['"]?pnpm['"]?[ \t]*(#.*)?$/m;
     expect(job('consumers')).not.toMatch(cacheLine);
     expect(job('package')).not.toMatch(cacheLine);
+  });
+
+  it('SEC-72: the consumers and templates jobs run the smoke scripts through pnpm run, so npm_execpath names the pnpm entry the scripts spawn', () => {
+    // scripts/consumer-smoke.ts and scripts/template-smoke.ts spawn pnpm without a shell through the entry
+    // npm_execpath names (SEC-70) and exit 2 with a usage line when it is absent. A bare `node scripts/…` step
+    // has no npm_execpath: that is how the runs on e6e66d9 and 4e5b933 failed all four smoke jobs.
+    expect(job('consumers')).toMatch(
+      /^ {6}- run: pnpm run test:consumers --app \$\{\{ matrix\.variant \}\} --report consumers-\$\{\{ matrix\.variant \}\}\.json$/m,
+    );
+    expect(job('templates')).toMatch(
+      /^ {6}- run: pnpm run test:templates --pack-dir "\$RUNNER_TEMP\/pack" --template all$/m,
+    );
+    expect(workflow).not.toMatch(/^ {6}- run: node scripts\/(?:consumer|template)-smoke\.ts/m);
   });
 });

@@ -400,7 +400,7 @@ async function main(argv: readonly string[]): Promise<number> {
   const parsed = parseCli(argv);
   if (parsed.kind === 'usage') {
     process.stderr.write(
-      `template-smoke: ${parsed.message}\nusage: node scripts/template-smoke.ts --pack-dir <dir> [--template react-basic|react-dialog|react-full|all] [--keep]\n`,
+      `template-smoke: ${parsed.message}\nusage: pnpm test:templates --pack-dir <dir> [--template react-basic|react-dialog|react-full|all] [--keep]\n`,
     );
     return parsed.exitCode;
   }
