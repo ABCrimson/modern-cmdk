@@ -15,7 +15,7 @@ import type {
   GroupId,
   ItemId,
 } from './types.js';
-import { createInitialState } from './types.js';
+import { createInitialState, DEFAULT_MACHINE_OPTIONS } from './types.js';
 import { TypedEmitter } from './utils/event-emitter.js';
 import { mapGroupBy } from './utils/group-by.js';
 import type { Scheduler } from './utils/scheduler.js';
@@ -222,7 +222,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
     const last = navIds.length - 1;
     if (last < 0) return;
 
-    const loop = options.loop ?? true;
+    const loop = options.loop ?? DEFAULT_MACHINE_OPTIONS.loop;
     const current = activeId ? navIds.indexOf(activeId) : -1;
     let index: number;
 
