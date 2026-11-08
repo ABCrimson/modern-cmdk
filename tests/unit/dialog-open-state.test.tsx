@@ -324,6 +324,56 @@ describe('Command.Dialog open state (C1)', () => {
     expect(probe.current.getState().open).toBe(false);
   });
 
+  it('an uncontrolled dialog shows nothing before the machine applies its opening, so no Escape can precede it', async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    const tree = (open: boolean | undefined): ReactNode => (
+      <Command.Dialog open={open} onOpenChange={onOpenChange}>
+        <probe.Probe />
+        <Command.Input />
+      </Command.Dialog>
+    );
+    // Mount open to reach the machine, then hand the dialog its own open state and close it through the machine
+    await mount(tree(true));
+    await settle();
+    await update(tree(undefined));
+    await act(async () => {
+      probe.current.send({ type: 'CLOSE' });
+    });
+    await settle();
+    expect(document.querySelector('[data-command-dialog]')).toBeNull();
+    onOpenChange.mockClear();
+
+    const frames: FrameRequestCallback[] = [];
+    using _request = vi
+      .spyOn(globalThis, 'requestAnimationFrame')
+      .mockImplementation((callback: FrameRequestCallback): number => frames.push(callback));
+    await act(async () => {
+      probe.current.send({ type: 'OPEN' });
+    });
+    // The open state is the machine's: until the frame applies the OPEN there is no dialog to press Escape on
+    expect(document.querySelector('[data-command-dialog]')).toBeNull();
+    for (let round = 0; round < 3; round++) {
+      await act(async () => {
+        for (const callback of frames.splice(0)) callback(performance.now());
+      });
+    }
+    await settle();
+    expect(document.querySelector('[data-command-dialog]')?.getAttribute('data-state')).toBe(
+      'open',
+    );
+
+    await pressEscape(inputIn(document.body));
+    for (let round = 0; round < 3; round++) {
+      await act(async () => {
+        for (const callback of frames.splice(0)) callback(performance.now());
+      });
+    }
+    await settle();
+    expect(document.querySelector('[data-command-dialog]')).toBeNull();
+    expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+  });
+
   it('RA-X3: the dialog focuses its input when the portal container is inside a shadow root', async () => {
     const host = document.createElement('div');
     document.body.appendChild(host);
