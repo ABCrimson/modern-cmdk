@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Parses the SOURCE stylesheet (packages/modern-cmdk/src/react/styles.css), not the built one:
-// the build only minifies it. Every declaration is recorded with the stack of at-rule/selector
+// Parses the SOURCE stylesheet (packages/modern-cmdk/src/react/styles.css); tsdown copies it
+// verbatim to dist/react/styles.css (byte-identical), so the built file says the same. Every declaration is recorded with the stack of at-rule/selector
 // preludes that enclose it, in source order.
 const source = readFileSync(
   resolve(import.meta.dirname, '../../packages/modern-cmdk/src/react/styles.css'),
@@ -55,6 +55,20 @@ function parse(css: string): Declaration[] {
 }
 
 const declarations = parse(source);
+// Resolves the rule's selector targets from its path of nested preludes: at-rules are skipped,
+// '&' stands for the parent targets, a nested selector without '&' is a descendant
+function targets(path: readonly string[]): string[] {
+  let parents = [''];
+  for (const prelude of path) {
+    if (prelude.startsWith('@')) continue;
+    const parts = prelude.split(',').map((p) => p.trim());
+    parents = parents.flatMap((parent) =>
+      parts.map((p) => (p.includes('&') ? p.replaceAll('&', parent) : `${parent} ${p}`.trim())),
+    );
+  }
+  return parents;
+}
+
 const SUPPORTS = '@supports (animation-timeline: scroll())';
 
 describe('styles.css at the Safari 18.4 / Firefox 131 floor', () => {
@@ -89,5 +103,20 @@ describe('styles.css at the Safari 18.4 / Firefox 131 floor', () => {
         !d.path.some((p) => p.startsWith('@keyframes')),
     );
     expect(stuck).toEqual([]);
+  });
+
+  it('RA-77: the animation shorthand precedes every animation-timeline and animation-range declaration of the same selector', () => {
+    const late = declarations.flatMap((d, i) =>
+      d.prop === 'animation-timeline' || d.prop === 'animation-range' ? [i] : [],
+    );
+    expect(late.length).toBeGreaterThanOrEqual(4);
+    for (const i of late) {
+      const mine = targets(declarations[i]?.path ?? []);
+      const resets = declarations
+        .slice(i + 1)
+        .filter((d) => d.prop === 'animation' && targets(d.path).some((t) => mine.includes(t)));
+      // A later `animation` shorthand resets the timeline and the range to their initial values
+      expect(resets, `${declarations[i]?.prop} of ${mine.join(', ')}`).toEqual([]);
+    }
   });
 });
