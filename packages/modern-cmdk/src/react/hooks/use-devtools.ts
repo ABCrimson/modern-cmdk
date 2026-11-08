@@ -1,5 +1,8 @@
 // packages/modern-cmdk/src/react/hooks/use-devtools.ts
-// Development-only devtools bridge — gated on NODE_ENV, inert in production builds
+// Development-only devtools bridge: the hook and its effect ship in every build, and the effect returns at once
+// unless process.env.NODE_ENV is not 'production'. A bundle that defines NODE_ENV as "production" folds the guard
+// and drops the registry code. In development the page-global registry and the CustomEvents carry the search query
+// raw (unless redactQuery is set), readable by any script on the page.
 // Isolated declarations: explicit return types on all exports
 
 import { use, useEffect } from 'react';
@@ -12,7 +15,8 @@ declare const process: { readonly env: { readonly NODE_ENV?: string } };
 interface DevtoolsState {
   readonly registeredItems: number;
   readonly filteredItems: number;
-  readonly searchQuery: string;
+  /** The raw query, or its length when `redactQuery` is set */
+  readonly searchQuery: string | number;
   readonly activeId: string | null;
   readonly page: string;
   readonly pageStack: readonly string[];
@@ -46,9 +50,21 @@ function registry(): DevtoolsRegistry {
 
 /**
  * Exposes command palette internals to browser devtools.
- * Development only: the effect is gated on `process.env.NODE_ENV` and returns early in
- * production builds (the hook itself still ships). Call it from a component rendered inside
+ * Development only: the hook and its effect ship in every build, and the effect returns at once unless
+ * `process.env.NODE_ENV` is not `'production'`; in a production bundle (NODE_ENV defined as `"production"`) the
+ * guard folds and the registry code leaves the bundle. Call it from a component rendered inside
  * `<Command>`: outside one there is no machine to inspect and the hook does nothing.
+ *
+ * In development the state is published on `globalThis.__MODERN_CMDK_DEVTOOLS__` (a Map keyed by label) and in a
+ * `modern-cmdk-devtools` CustomEvent on `globalThis` (`detail`: `{ label, state }`), so any script on the page can
+ * read it, the search query included. `options.redactQuery: true` publishes the query's length (a number) in place
+ * of the query, in the Map and in both events. The default is `false` in 1.x and `true` in 2.0.
+ *
+ * `globalThis.__CRIMSON_COMMAND_DEVTOOLS__` (the same Map) and the `crimson-command-devtools` event (the same
+ * `detail`) are deprecated aliases of the two names above and are removed in 2.0.
+ *
+ * @param label - The registry key of this palette
+ * @param options - `redactQuery`: publish the query's length instead of the query
  *
  * @example
  * ```tsx
@@ -63,8 +79,12 @@ function registry(): DevtoolsRegistry {
  * </Command>
  * ```
  */
-export function useCommandDevtools(label: string = 'default'): void {
+export function useCommandDevtools(
+  label: string = 'default',
+  options?: { readonly redactQuery?: boolean },
+): void {
   const stable = use(CommandStableContext);
+  const redactQuery = options?.redactQuery ?? false;
 
   useEffect(() => {
     // Guard inside effect body — hooks are always called (Rules of Hooks compliant)
@@ -79,7 +99,7 @@ export function useCommandDevtools(label: string = 'default'): void {
       const devState: DevtoolsState = {
         registeredItems: stable.machine.getRegistry().size,
         filteredItems: s.filteredIds.length,
-        searchQuery: s.search,
+        searchQuery: redactQuery ? s.search.length : s.search,
         activeId: s.activeId,
         page: s.page,
         pageStack: s.pageStack,
@@ -105,5 +125,5 @@ export function useCommandDevtools(label: string = 'default'): void {
         | undefined;
       instances?.delete(label);
     };
-  }, [stable, label]);
+  }, [stable, label, redactQuery]);
 }
