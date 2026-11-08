@@ -37,6 +37,8 @@ function SlashCommands({ onCommand }: { onCommand: (cmd: string) => void }) {
 Show the palette inline when the user types `/` in the chat input:
 
 ```tsx
+'use client';
+
 import { useState, type ReactNode } from 'react';
 
 // The SlashCommands component from the sample above

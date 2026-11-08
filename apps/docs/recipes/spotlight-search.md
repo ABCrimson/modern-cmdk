@@ -67,6 +67,8 @@ function SpotlightSearch() {
 Register `Cmd+K` / `Ctrl+K` to open from anywhere with a document-level listener (the dialog does not bind this for you):
 
 ```tsx
+'use client';
+
 import { Command } from 'modern-cmdk/react';
 import { useEffect, useState } from 'react';
 
@@ -97,17 +99,42 @@ export function GlobalSpotlight() {
 Items you use frequently appear first. The WASM engine does not work yet (see [WASM Search](/guide/wasm-search)), so this sample shows the intended API, not today's behaviour:
 
 ```tsx
+'use client';
+
+import type { SearchEngine } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
 import { createWorkerSearchEngine } from 'modern-cmdk-search-wasm';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-const engine = await createWorkerSearchEngine();
+// An engine you pass is yours to dispose: create it per mount and dispose it in the cleanup.
+function useWorkerEngine(): SearchEngine | null {
+  const [engine, setEngine] = useState<SearchEngine | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    const pending = createWorkerSearchEngine();
+    void pending.then((created) => {
+      if (current) setEngine(created);
+    });
+    return () => {
+      current = false;
+      setEngine(null);
+      void pending.then((created) => created[Symbol.dispose]());
+    };
+  }, []);
+
+  return engine;
+}
 
 export function WasmSpotlight() {
   const [open, setOpen] = useState(false);
+  const engine = useWorkerEngine();
+
+  // `searchEngine` is read once, when the palette mounts, so render it after the engine exists
+  if (engine === null) return null;
 
   return (
-    <Command.Dialog open={open} onOpenChange={setOpen} search={engine} frecency={{ enabled: true }}>
+    <Command.Dialog open={open} onOpenChange={setOpen} searchEngine={engine} frecency={{ enabled: true }}>
       {/* Command.Input and Command.List as above */}
     </Command.Dialog>
   );
