@@ -801,8 +801,8 @@
   },
   {
     "id": "DG-35",
-    "test": null,
-    "status": "pending"
+    "test": "packages/command-search-wasm/src/wasm-engine.test.ts::frees the instance once when `await using` follows a manual dispose",
+    "status": "covered"
   },
   {
     "id": "DG-62",
