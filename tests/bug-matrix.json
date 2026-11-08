@@ -708,5 +708,10 @@
     "id": "TUB-76",
     "test": "tests/dist/manifest.test.ts::function codemodChangelogVersion(): string {",
     "status": "covered"
+  },
+  {
+    "id": "SEC-72",
+    "test": "tests/unit/ci-workflow.test.ts::SEC-72: the consumers and templates jobs run the smoke scripts through pnpm run, so npm_execpath names the pnpm entry the scripts spawn",
+    "status": "covered"
   }
 ]
