@@ -52,9 +52,9 @@ export function CommandDialog({
   // The machine reads `open` once, at construction, and the effect below makes it follow the prop afterwards, so
   // the setup gets the first render's value on every render: its init-only warning for `open` stays silent here.
   const [initialOpen] = useState(controlledOpen ?? false);
-  // The open state the effect below last asked the machine for. The machine applies the request on its next frame, so
-  // a parent that changes `open` again in between sees the earlier request reported late: that report is the
-  // machine following the prop, and the next report is a request again.
+  // The open state the effect below last asked the machine for. The machine applies a request on its next batch (a
+  // frame in a browser), so when `open` changes again before then it still reports the earlier request: a report equal
+  // to the marker is the machine following the prop and is not forwarded. Every report clears the marker.
   const followed = useRef<boolean | undefined>(undefined);
   // The machine reports every change of its open state. An uncontrolled dialog hands that report to the consumer. A
   // controlled dialog hands it over only when it differs from `open` and is not the machine following the prop: the
@@ -91,14 +91,15 @@ export function CommandDialog({
     };
   }, [handleKeyDown, open]);
 
-  // A controlled dialog's machine follows the prop. The machine's state is a dependency so that a state the
-  // prop did not ask for is put back after it is reported; sending the state it already has changes nothing.
+  // A controlled dialog's machine follows the prop. Each committed machine state is a dependency, so that a state the
+  // prop did not ask for is put back after it is reported, also when another request lands in the put-back frame and
+  // the batch ends where it began; sending the state the machine already has changes nothing.
   useEffect(() => {
     if (controlledOpen !== undefined && controlledOpen !== state.open) {
       followed.current = controlledOpen;
       machine.send({ type: controlledOpen ? 'OPEN' : 'CLOSE' });
     }
-  }, [controlledOpen, state.open, machine]);
+  }, [controlledOpen, state, machine]);
 
   // Prevent Radix default focus — auto-focus the command input instead. The lookup starts at the dialog content, so
   // a portal container inside a shadow root finds the input (document.getElementById does not pierce a shadow root).

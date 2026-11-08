@@ -110,6 +110,32 @@ function Controlled({
   );
 }
 
+/** A parent that owns the dialog's `open` state, accepts every request and hands its setter to `parent`. */
+function Handle({
+  parent,
+  probe,
+  onOpenChange,
+}: {
+  readonly parent: { setOpen: (open: boolean) => void };
+  readonly probe: MachineProbe;
+  readonly onOpenChange: (open: boolean) => void;
+}): ReactNode {
+  const [open, setOpen] = useState(true);
+  parent.setOpen = setOpen;
+  return (
+    <Command.Dialog
+      open={open}
+      onOpenChange={(next: boolean): void => {
+        onOpenChange(next);
+        setOpen(next);
+      }}
+    >
+      <probe.Probe />
+      <Command.Input />
+    </Command.Dialog>
+  );
+}
+
 /** The `type` of every event a spy on `machine.send` recorded. */
 const sentTypes = (spy: { readonly mock: { readonly calls: readonly unknown[][] } }): string[] =>
   spy.mock.calls.map(([event]) => (event as { readonly type: string }).type);
@@ -322,6 +348,82 @@ describe('Command.Dialog open state (C1)', () => {
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(document.querySelector('[data-command-dialog]')).toBeNull();
     expect(probe.current.getState().open).toBe(false);
+  });
+
+  it('a controlled dialog reports a machine-originated open after its parent accepted the machine close', async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    const parent: { setOpen: (open: boolean) => void } = { setOpen: () => undefined };
+    await mount(<Handle parent={parent} probe={probe} onOpenChange={onOpenChange} />);
+    await settle();
+    // The parent closes and reopens: the effect asks the machine to open, and the machine applies it
+    await act(async () => parent.setOpen(false));
+    await settle();
+    await act(async () => parent.setOpen(true));
+    await settle();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    // The palette's own close is reported and accepted
+    await act(async () => {
+      probe.current.send({ type: 'CLOSE' });
+    });
+    await settle();
+    expect(onOpenChange.mock.calls).toEqual([[false]]);
+    expect(probe.current.getState().open).toBe(false);
+
+    // Its next request is a request again, however the parent got here
+    await act(async () => {
+      probe.current.send({ type: 'TOGGLE' });
+    });
+    await settle();
+    expect(onOpenChange.mock.calls).toEqual([[false], [true]]);
+    expect(document.querySelector('[data-command-dialog]')?.getAttribute('data-state')).toBe(
+      'open',
+    );
+  });
+
+  it('D109: a refused close is put back even when a second request lands in the put-back frame', async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    await mount(<Controlled probe={probe} onOpenChange={onOpenChange} keepOpen />);
+    await settle();
+
+    const frames: FrameRequestCallback[] = [];
+    const runFrame = (): Promise<void> =>
+      act(async () => {
+        for (const callback of frames.splice(0)) callback(performance.now());
+      });
+    {
+      using _request = vi
+        .spyOn(globalThis, 'requestAnimationFrame')
+        .mockImplementation((callback: FrameRequestCallback): number => frames.push(callback));
+      await act(async () => {
+        probe.current.send({ type: 'CLOSE' });
+      });
+      await runFrame();
+      // The close is reported and refused; the put-back OPEN waits for the next frame
+      expect(onOpenChange.mock.calls).toEqual([[false]]);
+      expect(frames).toHaveLength(1);
+
+      // A second request lands in that frame: the frame applies the OPEN, then the CLOSE
+      await act(async () => {
+        probe.current.send({ type: 'CLOSE' });
+      });
+      for (let round = 0; round < 3; round++) await runFrame();
+    }
+    await settle();
+    expect(onOpenChange.mock.calls).toEqual([[false], [false]]);
+    expect(probe.current.getState().open).toBe(true);
+
+    // The next request is reported, not dropped by a machine that stayed closed under the open dialog
+    await act(async () => {
+      probe.current.send({ type: 'CLOSE' });
+    });
+    await settle();
+    expect(onOpenChange.mock.calls).toEqual([[false], [false], [false]]);
+    expect(document.querySelector('[data-command-dialog]')?.getAttribute('data-state')).toBe(
+      'open',
+    );
   });
 
   it('an uncontrolled dialog shows nothing before the machine applies its opening, so no Escape can precede it', async () => {
