@@ -131,6 +131,17 @@ describe('CommandRegistry', () => {
     expect(diff.has(itemId('c'))).toBe(true);
   });
 
+  // D33: differenceFrom stays tested while it is public; CE-121 (1.12.0) decides whether it stays.
+  it("CE-79: differenceFrom returns the registered ids absent from the given set and none of the given set's own ids", () => {
+    using registry = new CommandRegistry();
+    registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
+
+    // 'b' is registered and shared, 'z' is not registered: a symmetric difference would add 'z'
+    const diff = registry.differenceFrom(new Set([itemId('b'), itemId('z')]));
+
+    expect([...diff].sort()).toEqual(['a', 'c']);
+  });
+
   it('should compute the union with another set', () => {
     using registry = new CommandRegistry();
     registry.registerItems([makeItem('a'), makeItem('b')]);
@@ -293,6 +304,13 @@ describe('CommandRegistry set predicates, groups and caches (TUB-26)', () => {
   it('symmetricDifferenceWith returns the ids that are in exactly one of the two sets', () => {
     using registry = abc();
     expect([...registry.symmetricDifferenceWith(ids('b', 'c', 'd'))].sort()).toEqual(['a', 'd']);
+  });
+
+  it('CE-79: differenceFrom and symmetricDifferenceWith differ on the same inputs', () => {
+    using registry = abc();
+    const given = ids('b', 'x');
+    expect([...registry.differenceFrom(given)].sort()).toEqual(['a', 'c']);
+    expect([...registry.symmetricDifferenceWith(given)].sort()).toEqual(['a', 'c', 'x']);
   });
 
   it('unregisterGroup removes the group, its count and its entry in getGroups()', () => {
