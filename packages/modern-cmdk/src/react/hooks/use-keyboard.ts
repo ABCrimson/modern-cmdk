@@ -2,6 +2,8 @@
 // Keyboard navigation — keydown handler factory; Command.Root and Command.Dialog attach it to document
 // Isolated declarations: explicit return types on all exports
 // Navigation keys dispatch through an object lookup; action keys (Enter/Backspace/Escape) through a switch
+// Escape inside Command.Dialog belongs to Radix's DismissableLayer, which handles the capture-phase keydown first
+// and calls preventDefault: the handler leaves an Escape that is already default-prevented alone
 
 import type { CommandMachine, CommandState } from 'modern-cmdk';
 
@@ -51,6 +53,8 @@ export function createKeydownHandler(
         }
         break;
       case 'Escape':
+        // Already handled (Radix's dismissable layer closes the dialog through onOpenChange): close nothing twice
+        if (event.defaultPrevented) break;
         event.preventDefault();
         machine.send({ type: 'CLOSE' });
         break;

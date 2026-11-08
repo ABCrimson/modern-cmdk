@@ -1,0 +1,255 @@
+// tests/unit/dialog-open-state.test.tsx
+// The open state of <Command.Dialog> (cluster C1): a controlled `open` prop is the source of truth and a
+// consumer that keeps it keeps the dialog open; one Escape reaches `onOpenChange` once; the input takes focus
+// through the dialog content, so a portal container inside a shadow root works.
+
+import type { CommandMachine } from 'modern-cmdk';
+import { Command, CommandStableContext } from 'modern-cmdk/react';
+import type { ReactNode } from 'react';
+import { act, use, useState } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+let container: HTMLDivElement | undefined;
+let root: Root | undefined;
+
+afterEach(async () => {
+  if (root) {
+    await act(async () => {
+      root?.unmount();
+    });
+  }
+  container?.remove();
+  root = undefined;
+  container = undefined;
+});
+
+/** Mounts `ui` in a fresh container and flushes the first render. */
+async function mount(ui: ReactNode): Promise<void> {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  const current = root;
+  await act(async () => {
+    current.render(ui);
+  });
+}
+
+/** Renders `ui` again into the mounted root (same tree position, new props). */
+async function update(ui: ReactNode): Promise<void> {
+  const current = root;
+  if (!current) throw new Error('nothing mounted');
+  await act(async () => {
+    current.render(ui);
+  });
+}
+
+/** Runs the scheduler frames, Radix's deferred listeners and the effects that follow an interaction. */
+const settle = (): Promise<void> =>
+  act(async () => {
+    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  });
+
+/** Records the machine the dialog's subtree holds. */
+class MachineProbe {
+  machine: CommandMachine | undefined;
+
+  /** Probe child: place it inside `<Command.Dialog>`. */
+  readonly Probe = (): null => {
+    const stable = use(CommandStableContext);
+    if (stable) this.machine = stable.machine;
+    return null;
+  };
+
+  /** The recorded machine; throws before the probe has rendered. */
+  get current(): CommandMachine {
+    if (!this.machine) throw new Error('probe never rendered');
+    return this.machine;
+  }
+}
+
+/** The command input inside `scope`, which the dialog renders into a portal. */
+const inputIn = (scope: ParentNode): HTMLInputElement => {
+  const input = scope.querySelector<HTMLInputElement>('[data-command-input]');
+  if (!input) throw new Error('no command input rendered');
+  return input;
+};
+
+/** Presses Escape the way a browser does: a bubbling, cancelable keydown on the focused element. */
+async function pressEscape(target: Element): Promise<KeyboardEvent> {
+  const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+  await act(async () => {
+    target.dispatchEvent(event);
+  });
+  await settle();
+  return event;
+}
+
+/** A parent that owns the dialog's `open` state; `keepOpen` makes it refuse every request to close. */
+function Controlled({
+  probe,
+  onOpenChange,
+  keepOpen = false,
+}: {
+  readonly probe: MachineProbe;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly keepOpen?: boolean;
+}): ReactNode {
+  const [open, setOpen] = useState(true);
+  return (
+    <Command.Dialog
+      open={open}
+      onOpenChange={(next: boolean): void => {
+        onOpenChange(next);
+        if (!keepOpen) setOpen(next);
+      }}
+    >
+      <probe.Probe />
+      <Command.Input />
+    </Command.Dialog>
+  );
+}
+
+/** The `type` of every event a spy on `machine.send` recorded. */
+const sentTypes = (spy: { readonly mock: { readonly calls: readonly unknown[][] } }): string[] =>
+  spy.mock.calls.map(([event]) => (event as { readonly type: string }).type);
+
+describe('Command.Dialog open state (C1)', () => {
+  it('ARCH-18: a controlled dialog mounted closed does not call onOpenChange', async () => {
+    const onOpenChange = vi.fn();
+    await mount(
+      <Command.Dialog open={false} onOpenChange={onOpenChange}>
+        <Command.Input />
+      </Command.Dialog>,
+    );
+    await settle();
+
+    expect(document.querySelector('[data-command-dialog]')).toBeNull();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it('CE-117: an open prop change does not echo onOpenChange', async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    const tree = (open: boolean): ReactNode => (
+      <Command.Dialog open={open} onOpenChange={onOpenChange}>
+        <probe.Probe />
+        <Command.Input />
+      </Command.Dialog>
+    );
+    await mount(tree(false));
+    await update(tree(true));
+    // The prop drives the dialog in the render it arrives in; the machine's state follows on its next frame
+    expect(document.querySelector('[data-command-dialog]')?.getAttribute('data-state')).toBe(
+      'open',
+    );
+    await settle();
+    expect(probe.current.getState().open).toBe(true);
+    await update(tree(false));
+    await settle();
+
+    expect(probe.current.getState().open).toBe(false);
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it('CE-118: one Escape on an uncontrolled dialog calls onOpenChange(false) once', async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    // A dialog that is open and then drops its `open` prop keeps its machine's open state and is uncontrolled
+    const tree = (open: boolean | undefined): ReactNode => (
+      <Command.Dialog open={open} onOpenChange={onOpenChange}>
+        <probe.Probe />
+        <Command.Input />
+      </Command.Dialog>
+    );
+    await mount(tree(true));
+    await update(tree(undefined));
+    await settle();
+    const input = inputIn(document.body);
+    input.focus();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    using send = vi.spyOn(probe.current, 'send');
+    const event = await pressEscape(input);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(onOpenChange.mock.calls).toEqual([[false]]);
+    expect(sentTypes(send)).toEqual(['CLOSE']);
+    expect(probe.current.getState().open).toBe(false);
+  });
+
+  it('RA-34: one Escape on a controlled dialog calls onOpenChange(false) once', async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    await mount(<Controlled probe={probe} onOpenChange={onOpenChange} />);
+    await settle();
+    const input = inputIn(document.body);
+    input.focus();
+
+    using send = vi.spyOn(probe.current, 'send');
+    await pressEscape(input);
+
+    expect(onOpenChange.mock.calls).toEqual([[false]]);
+    // One CLOSE: the machine follows the prop the parent set; the keydown handler adds none
+    expect(sentTypes(send)).toEqual(['CLOSE']);
+    expect(document.querySelector('[data-command-dialog]')).toBeNull();
+    expect(probe.current.getState().open).toBe(false);
+  });
+
+  it('RA-35: a controlled dialog whose parent keeps open stays open after Escape', async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    await mount(<Controlled probe={probe} onOpenChange={onOpenChange} keepOpen />);
+    await settle();
+    const input = inputIn(document.body);
+    input.focus();
+
+    using send = vi.spyOn(probe.current, 'send');
+    await pressEscape(input);
+
+    expect(onOpenChange.mock.calls).toEqual([[false]]);
+    expect(sentTypes(send)).not.toContain('CLOSE');
+    expect(probe.current.getState().open).toBe(true);
+    const overlay = document.querySelector('[data-command-overlay]');
+    const content = document.querySelector('[data-command-dialog]');
+    expect(overlay?.getAttribute('data-state')).toBe('open');
+    expect(content?.getAttribute('data-state')).toBe('open');
+    expect(inputIn(document.body)).toBe(input);
+
+    // A close the prop did not ask for never unmounts the dialog: the same input stays, and the machine is put back
+    await act(async () => {
+      probe.current.send({ type: 'CLOSE' });
+    });
+    await settle();
+    expect(inputIn(document.body)).toBe(input);
+    expect(probe.current.getState().open).toBe(true);
+  });
+
+  it('RA-X3: the dialog focuses its input when the portal container is inside a shadow root', async () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const shadowRoot = host.attachShadow({ mode: 'open' });
+    const portalContainer = document.createElement('div');
+    shadowRoot.appendChild(portalContainer);
+    try {
+      await mount(
+        <Command.Dialog open container={portalContainer}>
+          <Command.Input />
+        </Command.Dialog>,
+      );
+      await settle();
+
+      const input = inputIn(portalContainer);
+      expect(input.isConnected).toBe(true);
+      expect(shadowRoot.activeElement).toBe(input);
+    } finally {
+      // Unmount the dialog before its container goes away
+      const mounted = root;
+      root = undefined;
+      await act(async () => {
+        mounted?.unmount();
+      });
+      host.remove();
+    }
+  });
+});
