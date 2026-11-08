@@ -3,8 +3,10 @@
 // Regex over the YAML as release-workflow.test.ts does: no YAML parser is a dependency of the workspace.
 // Jobs sit at two-space indentation under `jobs:`; a job block runs to the next job key or job-level comment.
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { delimiter, join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(import.meta.dirname, '../..');
@@ -124,21 +126,51 @@ describe('ci.yml', () => {
     expect(workflow).toContain(`summary needs all ${needs.length} jobs`);
   });
 
-  it('TEB-100: the bench job re-runs bench:compare once on exit 2 and fails only when the second run also exits 2', () => {
+  it('TEB-100: the extracted bench:compare step, driven through six stubbed pnpm exit sequences, re-runs once on exit 2 and fails only on a second exit 2', () => {
     const block = job('bench');
     const step =
       /^ {6}- name: Compare against baseline\n[\s\S]*?(?=^ {6}- )/m.exec(block)?.[0] ?? '';
     const script = /^ {8}run: \|\n((?: {10}.*\n)+)/m.exec(step)?.[1] ?? '';
     expect(script).not.toBe('');
-    // A second invocation re-runs the comparison, and the first failure stays visible
-    expect(script.match(/^\s*pnpm bench:compare \|\| code=\$\?$/gm)).toHaveLength(2);
-    expect(script).toContain('echo "::warning title=Benchmark comparison failed once::');
-    // Exit 1 keeps its warning path and passes the step
-    expect(script).toMatch(
-      /if \[ "\$code" -eq 1 \]; then\n\s*echo "::warning title=Benchmark regression above 5%::[^\n]*\n\s*exit 0\n\s*fi/,
-    );
-    // The deciding status is re-raised: no unconditional exit 0 ends the step
-    expect(script.trimEnd().split('\n').at(-1)?.trim()).toBe('exit "$code"');
+    const dir = mkdtempSync(join(tmpdir(), 'teb-100-'));
+    try {
+      // The stub pnpm returns the exit codes of $SEQ in call order (0 once the list is spent) and counts its calls in the file $PNPM_COUNTER
+      const stub = [
+        '#!/usr/bin/env bash',
+        'n=$(($(cat "$PNPM_COUNTER") + 1))',
+        'echo "$n" > "$PNPM_COUNTER"',
+        `exit "$(awk -F, -v n="$n" '{ print ($n == "" ? 0 : $n) }' <<< "$SEQ")"`,
+        '',
+      ].join('\n');
+      writeFileSync(join(dir, 'pnpm'), stub);
+      chmodSync(join(dir, 'pnpm'), 0o755);
+      const file = join(dir, 'step.sh');
+      writeFileSync(file, script.replace(/^ {10}/gm, ''));
+      const counter = join(dir, 'calls');
+      const outcomes: Record<string, { status: number | null; calls: number }> = {};
+      for (const seq of ['2,0', '2,2', '1', '2,1', '0', '3']) {
+        writeFileSync(counter, '0');
+        const run = spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', file], {
+          env: {
+            ...process.env,
+            PATH: `${dir}${delimiter}${process.env.PATH ?? ''}`,
+            SEQ: seq,
+            PNPM_COUNTER: counter,
+          },
+        });
+        outcomes[seq] = { status: run.status, calls: Number(readFileSync(counter, 'utf8')) };
+      }
+      expect(outcomes).toEqual({
+        '2,0': { status: 0, calls: 2 },
+        '2,2': { status: 2, calls: 2 },
+        '1': { status: 0, calls: 1 },
+        '2,1': { status: 0, calls: 2 },
+        '0': { status: 0, calls: 1 },
+        '3': { status: 3, calls: 1 },
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
     // The re-run adds under a minute, so the job keeps its 10-minute timeout
     expect(block).toMatch(/^ {4}timeout-minutes: 10$/m);
   });
