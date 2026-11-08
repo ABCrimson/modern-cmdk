@@ -252,8 +252,9 @@ export interface CommandMachineOptions {
   /**
    * Telemetry hooks the machine calls at the end of each batch, after its state reports; see
    * `CommandTelemetryHooks` for when each hook fires and its arguments. With none set the machine
-   * calls no hook. The machine reads this option at each call; `<Command>` and `<Command.Dialog>`
-   * forward the latest `telemetry` prop.
+   * calls no hook. The machine reads this option at the end of each batch, so a changed value
+   * reaches it without a remount; `<Command>` and `<Command.Dialog>` forward the latest
+   * `telemetry` prop. `createTelemetryMiddleware` is a standalone helper the machine does not use.
    *
    * @example
    * ```ts

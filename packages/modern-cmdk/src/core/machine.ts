@@ -11,7 +11,6 @@ import { KeyboardShortcutRegistry } from './keyboard/index.js';
 import { CommandRegistry } from './registry.js';
 import { createSearchEngine } from './search/index.js';
 import type { SearchEngine, SearchResult } from './search/types.js';
-import { telemetryOver } from './telemetry.js';
 import type {
   CommandEvent,
   CommandItem,
@@ -149,7 +148,6 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     options.searchEngine ?? options.search ?? createOwnedEngine(options);
   const scheduler: Scheduler = createScheduler();
   const emitter = new TypedEmitter<MachineEvents>();
-  const telemetry = telemetryOver(() => options.telemetry);
   const keyboardRegistry = new KeyboardShortcutRegistry();
 
   // Sources with an outstanding load — state.loading is true while the set is non-empty
@@ -194,6 +192,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
   let reportedSearch = ''; // the query of the last commit
   let searchStart = -1; // performance.now() at the batch's first SEARCH_CHANGE, -1 when none
   let selected: ItemId[] = []; // the enabled items selected in this batch, in order
+  let openedAt = -1; // performance.now() at the reported open, -1 when closed
   let disposed = false; // set by dispose: the scheduler queues nothing for a disposed machine, a batch stops at the next event and skips its commit, and a frecency load that settles later does nothing
   let announce = false; // set after the initial filter: a controlled activeId then hears the refilter's candidate
 
@@ -364,10 +363,18 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     reportedSearch = search;
     searchStart = -1;
     selected = [];
-    if (turned && open) telemetry.onOpen();
-    if (searched) telemetry.onSearch(search, state.filteredCount, start);
-    for (const id of ids) telemetry.onSelect(id, search, filteredIdIndex.get(id) ?? -1);
-    if (turned && !open) telemetry.onClose();
+    const hooks = options.telemetry;
+    if (turned && open) {
+      openedAt = performance.now();
+      hooks?.onPaletteOpen?.();
+    }
+    if (searched) hooks?.onSearchComplete?.(search, state.filteredCount, performance.now() - start);
+    for (const id of ids) hooks?.onItemSelected?.(id, search, filteredIdIndex.get(id) ?? -1);
+    if (turned && !open && openedAt >= 0) {
+      const durationMs = performance.now() - openedAt;
+      openedAt = -1;
+      hooks?.onPaletteClose?.(durationMs);
+    }
   }
 
   /** Ends a batch: one refilter if a registry event ran, then one stateChange even if the refilter throws. */

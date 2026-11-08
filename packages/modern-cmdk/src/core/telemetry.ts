@@ -89,39 +89,29 @@ export interface TelemetryMiddleware {
  * ```
  */
 export function createTelemetryMiddleware(hooks: CommandTelemetryHooks): TelemetryMiddleware {
-  return telemetryOver(() => hooks);
-}
-
-/**
- * The middleware over a reader of the hooks: the reader runs at each call, so a hooks object that
- * changes after creation takes effect at the next call. The machine reads its `telemetry` option
- * through it.
- * Internal: not exported from the package entry.
- */
-export function telemetryOver(read: () => CommandTelemetryHooks | undefined): TelemetryMiddleware {
   let openTimestamp: number | null = null;
 
   return {
     onOpen(): void {
       openTimestamp = performance.now();
-      read()?.onPaletteOpen?.();
+      hooks.onPaletteOpen?.();
     },
 
     onClose(): void {
       if (openTimestamp != null) {
         const durationMs = performance.now() - openTimestamp;
         openTimestamp = null;
-        read()?.onPaletteClose?.(durationMs);
+        hooks.onPaletteClose?.(durationMs);
       }
     },
 
     onSearch(query: string, resultCount: number, startTime: number): void {
       const durationMs = (startTime > 1e12 ? Date.now() : performance.now()) - startTime;
-      read()?.onSearchComplete?.(query, resultCount, durationMs);
+      hooks.onSearchComplete?.(query, resultCount, durationMs);
     },
 
     onSelect(itemId: ItemId, query: string, position: number): void {
-      read()?.onItemSelected?.(itemId, query, position);
+      hooks.onItemSelected?.(itemId, query, position);
     },
   };
 }
