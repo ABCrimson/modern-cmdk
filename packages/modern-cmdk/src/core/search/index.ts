@@ -105,10 +105,17 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
         for (const item of candidateItems) {
           const entry = indexedEntries.get(item.id);
           const result = entry
-            ? scoreItemPreLowered(lowerQuery, item.id, entry.lowerValue, entry.lowerKeywords)
+            ? scoreItemPreLowered(
+                lowerQuery,
+                item.id,
+                item.value,
+                entry.lowerValue,
+                entry.lowerKeywords,
+              )
             : scoreItemPreLowered(
                 lowerQuery,
                 item.id,
+                item.value,
                 item.value.toLowerCase(),
                 item.keywords?.map((k) => k.toLowerCase()),
               );
