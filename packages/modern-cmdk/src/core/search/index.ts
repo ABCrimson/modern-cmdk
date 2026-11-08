@@ -5,6 +5,7 @@
 // Performance: pre-cached lowercase at index time, charCode comparison
 
 import type { CommandItem, ItemId } from '../types.js';
+import { dev } from '../utils/env.js';
 import { scoreItemPreLowered } from './default-scorer.js';
 import type { ScorerFn, SearchEngine, SearchResult } from './types.js';
 
@@ -13,15 +14,12 @@ declare const process: { readonly env: { readonly NODE_ENV?: string } };
 
 // Dev-only leak detection via FinalizationRegistry — warns if a search engine instance is
 // garbage collected without being explicitly disposed. Browser dev builds only: on the server machines
-// are never disposed, so a warning there would be noise. The guard compares `process.env.NODE_ENV` inline,
-// so a consumer bundler that defines it as "production" folds the branch and its minifier drops the
-// registry and the warning; `typeof process` keeps an unbundled browser import (no `process`) from throwing.
+// are never disposed, so a warning there would be noise. `dev` (utils/env.ts) is false where `process` does not
+// exist, so an unbundled browser import does not throw; the inline comparison makes a consumer bundler that defines
+// `process.env.NODE_ENV` as "production" fold the guard to `dev && false`, and its minifier drops the registry and the
+// warning. A development bundle without a `process` global (Vite's dev server) keeps both operands true.
 let leakRegistry: FinalizationRegistry<string> | undefined;
-if (
-  typeof process !== 'undefined' &&
-  process.env.NODE_ENV !== 'production' &&
-  typeof window !== 'undefined'
-) {
+if (dev && process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
   leakRegistry = new FinalizationRegistry((label) => {
     // biome-ignore lint/suspicious/noConsole: Dev-only leak detection diagnostic
     console.warn(

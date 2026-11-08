@@ -117,10 +117,12 @@ modern-cmdk/
             set-ops.ts            Set operation helpers
             group-by.ts           Object/Map groupBy helpers
             string-wellformed.ts  ensureWellFormed()
+            env.ts                `dev` flag: a try/catch around `process.env.NODE_ENV !== 'production'`, false without `process`
         react/                    React 19 adapter -- exported as "modern-cmdk/react"
           index.ts                Public exports
           command.tsx             <Command> root
           context.ts              React context (stable + state split)
+          env.ts                  `dev` flag of the adapter (same form as core/utils/env.ts)
           dialog.tsx              <Command.Dialog> (Radix)
           input.tsx               <Command.Input>
           list.tsx                <Command.List> (virtualization)
