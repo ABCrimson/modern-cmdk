@@ -21,7 +21,7 @@
 //     List spreads the caller's props after its own `aria-label` (src/react/list.tsx), so an
 //     `aria-label` passed to `<Command.List>` overrides the root label; that is the translation.
 // An intent with no counterpart renders nothing in the other library: cmdk's `forceMount` and
-// `vimBindings` have no modern-cmdk prop, and modern-cmdk's item `id` is a plain div attribute in
+// `vimBindings`, `defaultValue` and `disablePointerSelection` have no modern-cmdk prop, and modern-cmdk's item `id` is a plain div attribute in
 // cmdk, which then overwrites it. The case records the difference.
 
 import { Command as CmdkCommand } from 'cmdk';
@@ -102,6 +102,10 @@ export interface RootOptions {
   readonly filter?: 'off' | ScoreFunction;
   /** cmdk only (`vimBindings`). modern-cmdk has no vim bindings, so it renders without. */
   readonly vimBindings?: boolean;
+  /** cmdk only (`defaultValue`, the initial active value). modern-cmdk has none, so it renders without. */
+  readonly defaultValue?: string;
+  /** cmdk only (`disablePointerSelection`). modern-cmdk has none, so it renders without. */
+  readonly disablePointerSelection?: boolean;
   /** The controlled active item; see the header for the per-library props. */
   readonly active?: { readonly value: string; readonly onChange: (key: string) => void };
 }
@@ -231,6 +235,8 @@ function renderCmdk(fixture: ParityFixture): ReactNode {
     ...when('label', root?.label),
     ...when('loop', root?.loop),
     ...when('vimBindings', root?.vimBindings),
+    ...when('defaultValue', root?.defaultValue),
+    ...when('disablePointerSelection', root?.disablePointerSelection),
     ...(root?.filter === 'off' ? { shouldFilter: false } : when('filter', root?.filter)),
     ...(root?.active ? { value: root.active.value, onValueChange: root.active.onChange } : {}),
   };

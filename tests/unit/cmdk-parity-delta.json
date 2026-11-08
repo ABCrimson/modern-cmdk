@@ -645,7 +645,14 @@
     "status": "differs",
     "cmdk": ["apple", "banana", "cherry", "banana", "apple"],
     "modernCmdk": ["apple", "apple", "apple", "apple", "apple"],
-    "reason": "cmdk moves the active item with Ctrl+N and Ctrl+J (down) and Ctrl+P and Ctrl+K (up) by default, and vimBindings={false} turns that off. modern-cmdk has no vim bindings: those keys do nothing. Bind them yourself with a key handler on the root if you rely on them.",
+    "reason": "cmdk moves the active item with Ctrl+N and Ctrl+J (down) and Ctrl+P and Ctrl+K (up) by default; vimBindings={false} turns that off (see vim-bindings-off). modern-cmdk has no vim bindings: those keys do nothing. Bind them yourself with a key handler on the root if you rely on them.",
+    "ref": null
+  },
+  "vim-bindings-off": {
+    "status": "same",
+    "cmdk": ["apple", "apple", "apple", "apple", "apple"],
+    "modernCmdk": ["apple", "apple", "apple", "apple", "apple"],
+    "reason": "With vimBindings={false} cmdk stops Ctrl+N, J, P and K moving the active item. modern-cmdk has no vim bindings and no vimBindings prop, so those keys never move it; drop the prop.",
     "ref": null
   },
   "modifier-arrows": {
@@ -703,6 +710,20 @@
     "cmdk": "cherry",
     "modernCmdk": "cherry",
     "reason": "Both make an item active when the pointer moves over it.",
+    "ref": null
+  },
+  "default-value": {
+    "status": "differs",
+    "cmdk": "banana",
+    "modernCmdk": "apple",
+    "reason": "cmdk's defaultValue on the root sets the item that is active at mount. modern-cmdk has no defaultValue, so the first item is active at mount. To start on another item, control the active item with activeId and onActiveChange.",
+    "ref": null
+  },
+  "disable-pointer-selection": {
+    "status": "differs",
+    "cmdk": "apple",
+    "modernCmdk": "cherry",
+    "reason": "cmdk's disablePointerSelection stops a pointer move from making an item active. modern-cmdk has no such prop: a pointer move over an item always makes it active.",
     "ref": null
   },
   "item-id-prop": {
