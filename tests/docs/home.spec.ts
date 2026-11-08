@@ -1,6 +1,6 @@
 import { expect, test as it, type Locator, type Page } from '@playwright/test';
 
-// The redesigned home page (design-final.md 3, 5 and 8; item 8). It runs against `vitepress preview` of the built site, so
+// The redesigned home page (design-final.md 3, 5 and 8; item 8). It runs against the built site, served by scripts/serve-dist.mjs, so
 // `pnpm docs:build` comes first. The palette in the hero is the real modern-cmdk core driven from Vue.
 
 const HYDRATED = '[data-mc="palette"][data-hydrated]';
