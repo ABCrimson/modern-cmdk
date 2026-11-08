@@ -13,6 +13,7 @@ import snippets from '../../packages/vscode-modern-cmdk/src/snippets-tsx.json' w
   type: 'json',
 };
 import { expandBody } from '../../scripts/check-snippets.ts';
+import { silenceConsoleError } from '../act-guard.ts';
 
 interface Item {
   readonly id: string;
@@ -66,7 +67,7 @@ afterAll(() => {
 
 describe('cmd-optimistic snippet', () => {
   it('CV-76: selecting an item in cmd-optimistic renders one Command.Item per entry and no duplicate key', async () => {
-    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const errors = silenceConsoleError();
     const items: Item[] = [
       { id: 'a', value: 'a', label: 'Alpha' },
       { id: 'b', value: 'b', label: 'Beta' },

@@ -8,6 +8,7 @@ import { Command } from 'modern-cmdk/react';
 import { act, Component, type ErrorInfo, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { silenceConsoleError } from '../act-guard.ts';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -281,7 +282,7 @@ describe('Command.AsyncItems — Suspense + use()', () => {
 
   it('should handle promise rejection gracefully with error boundary', async () => {
     // Suppress console.error for expected errors
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
 
     const { promise, reject } = Promise.withResolvers<readonly CommandItemType[]>();
 

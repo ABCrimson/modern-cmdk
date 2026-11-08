@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { silenceConsoleError } from '../act-guard.ts';
 
 let container: HTMLDivElement;
 let root: Root;
@@ -28,7 +29,7 @@ beforeEach(() => {
   document.body.appendChild(container);
   root = createRoot(container);
   // React logs caught render errors to console.error; keep the output readable.
-  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  silenceConsoleError();
 });
 
 afterEach(async () => {
