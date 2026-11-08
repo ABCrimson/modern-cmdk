@@ -23,6 +23,9 @@ const payloads: string[] = [];
 const searchLimits: number[] = [];
 let searchReturns: unknown[] = [{ id: 'a', score: 1, matches: [[0, 1]] }];
 
+/** Makes the next `index_items` call throw, as the crate does for a payload its JSON parse rejects. */
+let failNextIndex = false;
+
 class FakeWasmInstance {
   free(): void {
     calls.free++;
@@ -33,6 +36,10 @@ class FakeWasmInstance {
   index_items(items: string): void {
     calls.indexItems++;
     payloads.push(items);
+    if (failNextIndex) {
+      failNextIndex = false;
+      throw new Error('invalid payload');
+    }
   }
   search(_query: string, max: number): unknown[] {
     calls.search++;
@@ -54,6 +61,7 @@ beforeEach(() => {
   calls.free = calls.clear = calls.indexItems = calls.search = 0;
   payloads.length = 0;
   searchLimits.length = 0;
+  failNextIndex = false;
   searchReturns = [{ id: 'a', score: 1, matches: [[0, 1]] }];
 });
 
@@ -168,6 +176,7 @@ describe('WASM engine index map', () => {
   it('CE-116: remove() deletes only the given ids and re-indexes the rest', async () => {
     const engine = await loadWasmEngine();
     engine.index([a, b, c]);
+    drain(engine);
     engine.remove(new Set(['b' as ItemId, 'missing' as ItemId]));
     drain(engine);
     expect(calls.clear).toBe(0);
@@ -175,6 +184,16 @@ describe('WASM engine index map', () => {
       ['a', 'Alpha'],
       ['c', 'Gamma'],
     ]);
+  });
+
+  it('CE-116: a sync that throws is retried by the next search', async () => {
+    const engine = await loadWasmEngine();
+    engine.index([a, b]);
+    failNextIndex = true;
+    expect(() => drain(engine)).toThrow('invalid payload');
+    expect(() => drain(engine)).not.toThrow();
+    expect(payloads).toHaveLength(2);
+    expect(JSON.parse(payloads[1] ?? '[]')).toEqual(JSON.parse(payloads[0] ?? '[]'));
   });
 
   it('CE-116: clear() empties the kept map and the crate index', async () => {
