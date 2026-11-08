@@ -225,6 +225,18 @@ describe('CommandRegistry disposers (CE-54)', () => {
     expect([...registry.getItemIds()]).toEqual(['b']);
   });
 
+  it('a registerItems handle owns the items it was given: an array the caller mutates later changes nothing', () => {
+    using registry = new CommandRegistry();
+    const list = [makeItem('a')];
+    const handle = registry.registerItems(list);
+    const b = makeItem('b');
+    list.push(b);
+    registry.registerItem(b); // another handle owns b
+    handle[Symbol.dispose]();
+    expect(registry.getItem(itemId('a'))).toBeUndefined();
+    expect(registry.getItem(itemId('b'))).toBe(b);
+  });
+
   it('a stale registerGroup handle does not remove a newer group with the same id', () => {
     using registry = new CommandRegistry();
     const stale = registry.registerGroup({ id: groupId('g'), heading: 'Old' });

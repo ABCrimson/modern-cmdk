@@ -1126,6 +1126,39 @@ describe('Command — item updates keep their position (ARCH-20)', () => {
     });
   });
 
+  it('ARCH-20: an item that a rerender disables is skipped by ArrowDown (the machine applies the UPDATE_ITEM)', async () => {
+    await render(three());
+    await render(three({ disabled: true }));
+    await vi.waitFor(() => {
+      expect(container.querySelector('#b')?.getAttribute('aria-disabled')).toBe('true');
+    });
+    await pressKey('ArrowDown');
+    await vi.waitFor(() => {
+      expect(isActive('c')).toBe(true);
+    });
+    expect(isActive('b')).toBe(false);
+  });
+
+  it('ARCH-20, CE-49: changing the shortcut prop re-binds it: the old key stops firing, the new one fires', async () => {
+    const onSelect = vi.fn();
+    const withShortcut = (shortcut: string): ReactNode => (
+      <Command>
+        <Command.Input />
+        <Command.List>
+          <Command.Item value="a" forceId="a" shortcut={shortcut} onSelect={onSelect}>
+            A
+          </Command.Item>
+        </Command.List>
+      </Command>
+    );
+    await render(withShortcut('Ctrl+K'));
+    await render(withShortcut('Ctrl+J'));
+    await pressKey('k', { ctrlKey: true });
+    expect(onSelect).not.toHaveBeenCalled();
+    await pressKey('j', { ctrlKey: true });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
   it('changing the value of the middle item keeps it between its neighbours in navigation', async () => {
     await render(three());
     await render(three({ value: 'b2' }));
