@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 import thresholds from './coverage-thresholds.json' with { type: 'json' };
+import { wasmPkgVirtual } from './tests/vitest-plugins/wasm-pkg-virtual.ts';
 
 // Source aliases for the unit and perf projects. The dist project sets none: dist/react imports
 // 'modern-cmdk' by name, and an alias to src would run built React over source core (a mixed tree).
@@ -36,6 +37,7 @@ export default defineConfig({
       {
         extends: true,
         resolve: { alias: srcAlias },
+        plugins: [wasmPkgVirtual()],
         test: {
           name: 'unit',
           expect: { requireAssertions: true },
@@ -85,8 +87,7 @@ export default defineConfig({
         // entries and excluded by packages/modern-cmdk/tsconfig.json); Vite cannot transform it,
         // so coverage-v8 cannot parse it. Deleted in the D window (ledger RA-24, ARCH-37, RDG-91).
         'packages/modern-cmdk/src/react/primitives.ts',
-        // Not measured: these import ../pkg (wasm-pack output), which the unit-test run does not
-        // build, so vitest cannot load them (ledger W13 clause 3).
+        // Not measured: wasm-engine.ts loads only with pkg/ mocked (wasm-engine.test.ts); worker.ts needs a Worker and pkg/.
         'packages/command-search-wasm/src/wasm-engine.ts',
         'packages/command-search-wasm/src/worker.ts',
         // Type declarations only, never instrumented.

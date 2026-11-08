@@ -4,40 +4,12 @@
 // gets a fake modern-cmdk engine, so nothing here loads real WASM.
 
 import type { ItemId } from 'modern-cmdk';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FallbackSearchEngine, WasmSearchEngine } from './wasm-engine.js';
 
-// Vite's import analysis resolves the literal import of pkg/command_search_wasm.js in wasm-engine.ts when it
-// transforms the file, and fails when pkg/ (gitignored wasm-pack output) is absent. vi.doMock cannot help
-// there, so the suite plants an empty placeholder when pkg/ has no module and removes it afterwards;
-// every test replaces the module through vi.doMock, so the placeholder is never executed.
-// No @types/node in this package, so node:fs comes from process.getBuiltinModule (typed locally).
-type Fs = {
-  existsSync(p: URL): boolean;
-  mkdirSync(p: URL, o: { recursive: true }): string | undefined;
-  writeFileSync(p: URL, data: string): void;
-  rmSync(p: URL, o: { recursive?: true; force: true }): void;
-};
-const fs = (
-  globalThis as unknown as { process: { getBuiltinModule(id: 'node:fs'): Fs } }
-).process.getBuiltinModule('node:fs');
-const pkgDir = new URL('../pkg/', import.meta.url);
-const placeholder = new URL('command_search_wasm.js', pkgDir);
-let plantedPkgDir = false;
-let plantedPlaceholder = false;
-
-beforeAll(() => {
-  if (fs.existsSync(placeholder)) return;
-  plantedPkgDir = !fs.existsSync(pkgDir);
-  fs.mkdirSync(pkgDir, { recursive: true });
-  fs.writeFileSync(placeholder, 'export class WasmSearchEngine {}\n');
-  plantedPlaceholder = true;
-});
-
-afterAll(() => {
-  if (plantedPkgDir) fs.rmSync(pkgDir, { recursive: true, force: true });
-  else if (plantedPlaceholder) fs.rmSync(placeholder, { force: true });
-});
+// pkg/ (gitignored wasm-pack output) may be absent. Without it the import in wasm-engine.ts is unresolvable, stays
+// root-relative at runtime, and vi.doMock keys on the resolved path, so the mock would never match.
+// tests/vitest-plugins/wasm-pkg-virtual.ts resolves that specifier to one virtual module with or without pkg/.
 
 const PKG_ID = '../pkg/command_search_wasm.js';
 
@@ -148,9 +120,13 @@ describe('fallback engine dispose', () => {
   }> {
     const tsDispose = vi.fn();
     vi.resetModules();
-    vi.doMock(PKG_ID, () => {
-      throw new Error('no wasm');
-    });
+    vi.doMock(PKG_ID, () => ({
+      WasmSearchEngine: class {
+        constructor() {
+          throw new Error('no wasm');
+        }
+      },
+    }));
     vi.doMock('modern-cmdk', () => ({
       createSearchEngine: () => ({
         index: () => {},
