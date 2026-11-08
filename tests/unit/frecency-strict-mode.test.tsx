@@ -1,7 +1,7 @@
 // tests/unit/frecency-strict-mode.test.tsx
-// CE-115, D95: under React StrictMode the dev double-mount runs the effect cleanup, which disposes the
-// machine; a storage the caller passed to <Command frecency> stays the caller's, so it is neither
-// disposed nor unable to save.
+// CE-115, D95: under React StrictMode the dev double-mount runs the layout-effect cleanup, which suspends the
+// machine, and the replay resumes it; unmount suspends it again. A storage the caller passed to
+// <Command frecency> stays the caller's: it is never disposed, and it still saves.
 
 import type { FrecencyStorage } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
@@ -63,7 +63,7 @@ describe('<Command frecency> under StrictMode', () => {
     });
     await frame();
 
-    // Unmount disposes the machine; its engine saves the dirty selection and leaves the storage alone
+    // Unmount suspends the machine; suspend starts the save of the pending selection and leaves the storage alone
     await act(async () => {
       root.unmount();
     });

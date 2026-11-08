@@ -723,10 +723,7 @@ describe('browser floor: the disposal-symbol shim of the built entries (R7, CE-2
 
   it('R7: every react file that reads Symbol.dispose or Symbol.asyncDispose imports modern-cmdk, so the core and its shim evaluate first', () => {
     const reactFiles = [...sources.keys()].filter((file) => file.startsWith('react/'));
-    const readers = reactFiles.filter((file) =>
-      readsDisposalSymbols(sources.get(file) ?? '', file),
-    );
-    expect(readers.length).toBeGreaterThan(0);
+    // The rule covers any react file that reads a disposal symbol; the built ones read none while the React root never disposes.
     for (const file of reactFiles) {
       expect(coreImportProblems(sources.get(file) ?? '', file)).toEqual([]);
     }
@@ -813,13 +810,20 @@ describe('browser floor: the disposal-symbol shim of the built entries (R7, CE-2
     expect(disposalShimProblems(wrapped, CORE)).toHaveLength(2);
   });
 
-  it('R7: a scratch copy of a react file with its modern-cmdk import renamed fails naming the file', () => {
+  it('R7: a scratch copy of a react file that reads Symbol.dispose, with its modern-cmdk import renamed, fails naming the file', () => {
     const file = [...sources.keys()].find(
-      (name) => name.startsWith('react/') && readsDisposalSymbols(sources.get(name) ?? '', name),
+      (name) =>
+        name.startsWith('react/') && (sources.get(name) ?? '').includes('from "modern-cmdk"'),
     );
     expect(file).toBeDefined();
-    const text = (sources.get(file ?? '') ?? '').replace('from "modern-cmdk"', 'from "other-lib"');
-    expect(coreImportProblems(text, file ?? '')).toEqual([
+    const original = sources.get(file ?? '') ?? '';
+    const reader = '\nexport const disposeKey = Symbol.dispose;\n';
+    const renamed = (text: string): string =>
+      text.replace('from "modern-cmdk"', 'from "other-lib"');
+    // Without the appended read there is nothing to guard: the renamed copy reports nothing, and a reader that keeps its import is clean.
+    expect(coreImportProblems(renamed(original), file ?? '')).toEqual([]);
+    expect(coreImportProblems(original + reader, file ?? '')).toEqual([]);
+    expect(coreImportProblems(renamed(original + reader), file ?? '')).toEqual([
       `${file}: reads Symbol.dispose or Symbol.asyncDispose without importing 'modern-cmdk'`,
     ]);
   });
