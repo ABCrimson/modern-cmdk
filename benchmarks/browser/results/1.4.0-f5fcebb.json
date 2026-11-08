@@ -1,13 +1,13 @@
 {
-  "date": "2026-11-08T05:21:22.394Z",
+  "date": "2026-11-08T05:32:15.744Z",
   "version": "1.4.0",
-  "sha": "6f6bff2",
+  "sha": "f5fcebb",
   "dirty": false,
   "core_source": {
     "path": null,
-    "git_sha": "6f6bff2",
+    "git_sha": "f5fcebb",
     "dirty": false,
-    "dist_mtime": "2026-11-08T05:20:52.176Z"
+    "dist_mtime": "2026-11-08T05:29:16.135Z"
   },
   "runner": {
     "os": "win32 x64",
@@ -50,7 +50,7 @@
     "cleanupStep": 30000,
     "harness_deadline": 900000
   },
-  "total_wall_ms": 22376.1735,
+  "total_wall_ms": 19380.6099,
   "metric_definitions": {
     "mount_ms": "performance.measure from the first REGISTER_ITEM sent to the machine to the first state emit whose filteredIds holds all N items",
     "filter_ms": "performance.measure from a keystroke (capturing keydown listener on the input) to the first state emit whose search equals the new query",
@@ -64,11 +64,11 @@
       "warmup": [
         {
           "run": 0,
-          "wall_ms": 1581.7655,
+          "wall_ms": 1318.9097,
           "mount": {
             "n": 1000,
-            "mount_ms": 6.5,
-            "mount_commit_ms": 11.5,
+            "mount_ms": 5.699999928474426,
+            "mount_commit_ms": 9.499999761581421,
             "mount_commit_count": 3,
             "register_sends": 1000,
             "registry_size_at_install": 0,
@@ -76,10 +76,10 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 12.600000023841858,
-            "keystroke_to_paint_ms": 27.799999952316284,
-            "filter_commit_ms": 2.799999952316284,
-            "filter_commit_count": 2,
+            "filter_ms": 15.799999952316284,
+            "keystroke_to_paint_ms": 31.700000047683716,
+            "filter_commit_ms": 3.399999976158142,
+            "filter_commit_count": 3,
             "filtered_count": 250
           }
         }
@@ -87,11 +87,11 @@
       "runs": [
         {
           "run": 1,
-          "wall_ms": 839.2645000000002,
+          "wall_ms": 1994.1680999999999,
           "mount": {
             "n": 1000,
-            "mount_ms": 11.299999952316284,
-            "mount_commit_ms": 10.400000095367432,
+            "mount_ms": 6,
+            "mount_commit_ms": 10.099999785423279,
             "mount_commit_count": 3,
             "register_sends": 1000,
             "registry_size_at_install": 0,
@@ -99,20 +99,20 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 8.5,
-            "keystroke_to_paint_ms": 23.899999976158142,
-            "filter_commit_ms": 5.300000190734863,
+            "filter_ms": 3.6999999284744263,
+            "keystroke_to_paint_ms": 19.5,
+            "filter_commit_ms": 3.600000023841858,
             "filter_commit_count": 3,
             "filtered_count": 250
           }
         },
         {
           "run": 2,
-          "wall_ms": 1693.0531,
+          "wall_ms": 395.79060000000027,
           "mount": {
             "n": 1000,
-            "mount_ms": 4.799999952316284,
-            "mount_commit_ms": 7.799999952316284,
+            "mount_ms": 5.099999904632568,
+            "mount_commit_ms": 9.399999976158142,
             "mount_commit_count": 3,
             "register_sends": 1000,
             "registry_size_at_install": 0,
@@ -120,20 +120,20 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 3.5,
-            "keystroke_to_paint_ms": 19.200000047683716,
-            "filter_commit_ms": 3.899999976158142,
+            "filter_ms": 13.200000047683716,
+            "keystroke_to_paint_ms": 28.600000023841858,
+            "filter_commit_ms": 5.300000190734863,
             "filter_commit_count": 3,
             "filtered_count": 250
           }
         },
         {
           "run": 3,
-          "wall_ms": 997.5460000000003,
+          "wall_ms": 541.1778000000004,
           "mount": {
             "n": 1000,
-            "mount_ms": 7.899999976158142,
-            "mount_commit_ms": 12.800000071525574,
+            "mount_ms": 6,
+            "mount_commit_ms": 9.600000023841858,
             "mount_commit_count": 3,
             "register_sends": 1000,
             "registry_size_at_install": 0,
@@ -141,20 +141,20 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 14.899999976158142,
-            "keystroke_to_paint_ms": 30.5,
-            "filter_commit_ms": 5,
+            "filter_ms": 2.8000000715255737,
+            "keystroke_to_paint_ms": 18.800000071525574,
+            "filter_commit_ms": 4.0000001192092896,
             "filter_commit_count": 3,
             "filtered_count": 250
           }
         },
         {
           "run": 4,
-          "wall_ms": 441.6245000000017,
+          "wall_ms": 476.34059999999954,
           "mount": {
             "n": 1000,
-            "mount_ms": 7.199999928474426,
-            "mount_commit_ms": 12.599999785423279,
+            "mount_ms": 9.700000047683716,
+            "mount_commit_ms": 7.900000095367432,
             "mount_commit_count": 3,
             "register_sends": 1000,
             "registry_size_at_install": 0,
@@ -162,20 +162,20 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 15,
-            "keystroke_to_paint_ms": 30.300000071525574,
-            "filter_commit_ms": 4.300000071525574,
+            "filter_ms": 2.600000023841858,
+            "keystroke_to_paint_ms": 18.299999952316284,
+            "filter_commit_ms": 3.8000000715255737,
             "filter_commit_count": 3,
             "filtered_count": 250
           }
         },
         {
           "run": 5,
-          "wall_ms": 437.77510000000075,
+          "wall_ms": 627.9883,
           "mount": {
             "n": 1000,
-            "mount_ms": 5.900000095367432,
-            "mount_commit_ms": 10.00000011920929,
+            "mount_ms": 5.700000047683716,
+            "mount_commit_ms": 10.799999833106995,
             "mount_commit_count": 3,
             "register_sends": 1000,
             "registry_size_at_install": 0,
@@ -183,41 +183,20 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 11.400000095367432,
-            "keystroke_to_paint_ms": 28,
-            "filter_commit_ms": 5.0000001192092896,
-            "filter_commit_count": 3,
-            "filtered_count": 250
-          }
-        },
-        {
-          "run": 6,
-          "wall_ms": 828.0020999999997,
-          "mount": {
-            "n": 1000,
-            "mount_ms": 5.300000071525574,
-            "mount_commit_ms": 10.199999928474426,
-            "mount_commit_count": 3,
-            "register_sends": 1000,
-            "registry_size_at_install": 0,
-            "sends_after_mount": 2000
-          },
-          "filter": {
-            "query": "g",
-            "filter_ms": 2.700000047683716,
-            "keystroke_to_paint_ms": 17.5,
-            "filter_commit_ms": 2.4999998807907104,
+            "filter_ms": 2.1999999284744263,
+            "keystroke_to_paint_ms": 16.600000023841858,
+            "filter_commit_ms": 2.0000001192092896,
             "filter_commit_count": 2,
             "filtered_count": 250
           }
         },
         {
-          "run": 7,
-          "wall_ms": 2493.8788999999997,
+          "run": 6,
+          "wall_ms": 1446.1697999999997,
           "mount": {
             "n": 1000,
-            "mount_ms": 5,
-            "mount_commit_ms": 8.699999928474426,
+            "mount_ms": 6.100000023841858,
+            "mount_commit_ms": 9.799999952316284,
             "mount_commit_count": 3,
             "register_sends": 1000,
             "registry_size_at_install": 0,
@@ -225,58 +204,79 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 4.199999928474426,
-            "keystroke_to_paint_ms": 20.09999990463257,
-            "filter_commit_ms": 3.5,
+            "filter_ms": 4.599999904632568,
+            "keystroke_to_paint_ms": 20.5,
+            "filter_commit_ms": 3.600000023841858,
             "filter_commit_count": 3,
+            "filtered_count": 250
+          }
+        },
+        {
+          "run": 7,
+          "wall_ms": 1578.7826999999997,
+          "mount": {
+            "n": 1000,
+            "mount_ms": 7.099999904632568,
+            "mount_commit_ms": 11.099999904632568,
+            "mount_commit_count": 3,
+            "register_sends": 1000,
+            "registry_size_at_install": 0,
+            "sends_after_mount": 2000
+          },
+          "filter": {
+            "query": "g",
+            "filter_ms": 2.4000000953674316,
+            "keystroke_to_paint_ms": 16.800000071525574,
+            "filter_commit_ms": 1.899999976158142,
+            "filter_commit_count": 2,
             "filtered_count": 250
           }
         }
       ],
       "stats": {
         "mount_ms": {
-          "median": 5.900000095367432,
-          "min": 4.799999952316284,
-          "max": 11.299999952316284,
+          "median": 6,
+          "min": 5.099999904632568,
+          "max": 9.700000047683716,
           "samples": [
-            11.299999952316284, 4.799999952316284, 7.899999976158142, 7.199999928474426,
-            5.900000095367432, 5.300000071525574, 5
+            6, 5.099999904632568, 6, 9.700000047683716, 5.700000047683716, 6.100000023841858,
+            7.099999904632568
           ]
         },
         "filter_ms": {
-          "median": 8.5,
-          "min": 2.700000047683716,
-          "max": 15,
+          "median": 2.8000000715255737,
+          "min": 2.1999999284744263,
+          "max": 13.200000047683716,
           "samples": [
-            8.5, 3.5, 14.899999976158142, 15, 11.400000095367432, 2.700000047683716,
-            4.199999928474426
+            3.6999999284744263, 13.200000047683716, 2.8000000715255737, 2.600000023841858,
+            2.1999999284744263, 4.599999904632568, 2.4000000953674316
           ]
         },
         "keystroke_to_paint_ms": {
-          "median": 23.899999976158142,
-          "min": 17.5,
-          "max": 30.5,
+          "median": 18.800000071525574,
+          "min": 16.600000023841858,
+          "max": 28.600000023841858,
           "samples": [
-            23.899999976158142, 19.200000047683716, 30.5, 30.300000071525574, 28, 17.5,
-            20.09999990463257
+            19.5, 28.600000023841858, 18.800000071525574, 18.299999952316284, 16.600000023841858,
+            20.5, 16.800000071525574
           ]
         },
         "mount_commit_ms": {
-          "median": 10.199999928474426,
-          "min": 7.799999952316284,
-          "max": 12.800000071525574,
+          "median": 9.799999952316284,
+          "min": 7.900000095367432,
+          "max": 11.099999904632568,
           "samples": [
-            10.400000095367432, 7.799999952316284, 12.800000071525574, 12.599999785423279,
-            10.00000011920929, 10.199999928474426, 8.699999928474426
+            10.099999785423279, 9.399999976158142, 9.600000023841858, 7.900000095367432,
+            10.799999833106995, 9.799999952316284, 11.099999904632568
           ]
         },
         "filter_commit_ms": {
-          "median": 4.300000071525574,
-          "min": 2.4999998807907104,
+          "median": 3.600000023841858,
+          "min": 1.899999976158142,
           "max": 5.300000190734863,
           "samples": [
-            5.300000190734863, 3.899999976158142, 5, 4.300000071525574, 5.0000001192092896,
-            2.4999998807907104, 3.5
+            3.600000023841858, 5.300000190734863, 4.0000001192092896, 3.8000000715255737,
+            2.0000001192092896, 3.600000023841858, 1.899999976158142
           ]
         }
       }
@@ -286,55 +286,11 @@
       "warmup": [
         {
           "run": 0,
-          "wall_ms": 1335.4038999999993,
+          "wall_ms": 1090.3069000000014,
           "mount": {
             "n": 10000,
-            "mount_ms": 21.399999976158142,
-            "mount_commit_ms": 54.50000023841858,
-            "mount_commit_count": 3,
-            "register_sends": 10000,
-            "registry_size_at_install": 0,
-            "sends_after_mount": 20000
-          },
-          "filter": {
-            "query": "g",
-            "filter_ms": 8.700000047683716,
-            "keystroke_to_paint_ms": 165,
-            "filter_commit_ms": 17,
-            "filter_commit_count": 2,
-            "filtered_count": 2500
-          }
-        }
-      ],
-      "runs": [
-        {
-          "run": 1,
-          "wall_ms": 1244.7344000000012,
-          "mount": {
-            "n": 10000,
-            "mount_ms": 21.200000047683716,
-            "mount_commit_ms": 43.49999964237213,
-            "mount_commit_count": 3,
-            "register_sends": 10000,
-            "registry_size_at_install": 0,
-            "sends_after_mount": 20000
-          },
-          "filter": {
-            "query": "g",
-            "filter_ms": 6.399999976158142,
-            "keystroke_to_paint_ms": 124.29999995231628,
-            "filter_commit_ms": 14.000000238418579,
-            "filter_commit_count": 2,
-            "filtered_count": 2500
-          }
-        },
-        {
-          "run": 2,
-          "wall_ms": 1864.0984000000008,
-          "mount": {
-            "n": 10000,
-            "mount_ms": 15,
-            "mount_commit_ms": 38.5,
+            "mount_ms": 19.899999976158142,
+            "mount_commit_ms": 38.10000026226044,
             "mount_commit_count": 3,
             "register_sends": 10000,
             "registry_size_at_install": 0,
@@ -343,19 +299,63 @@
           "filter": {
             "query": "g",
             "filter_ms": 5.199999928474426,
-            "keystroke_to_paint_ms": 118.59999990463257,
-            "filter_commit_ms": 13.100000262260437,
+            "keystroke_to_paint_ms": 129.79999995231628,
+            "filter_commit_ms": 13.299999952316284,
+            "filter_commit_count": 2,
+            "filtered_count": 2500
+          }
+        }
+      ],
+      "runs": [
+        {
+          "run": 1,
+          "wall_ms": 1130.178899999999,
+          "mount": {
+            "n": 10000,
+            "mount_ms": 19.5,
+            "mount_commit_ms": 39.00000035762787,
+            "mount_commit_count": 3,
+            "register_sends": 10000,
+            "registry_size_at_install": 0,
+            "sends_after_mount": 20000
+          },
+          "filter": {
+            "query": "g",
+            "filter_ms": 5.299999952316284,
+            "keystroke_to_paint_ms": 118,
+            "filter_commit_ms": 14.599999904632568,
+            "filter_commit_count": 2,
+            "filtered_count": 2500
+          }
+        },
+        {
+          "run": 2,
+          "wall_ms": 2310.9784999999993,
+          "mount": {
+            "n": 10000,
+            "mount_ms": 26.799999952316284,
+            "mount_commit_ms": 50.39999997615814,
+            "mount_commit_count": 3,
+            "register_sends": 10000,
+            "registry_size_at_install": 0,
+            "sends_after_mount": 20000
+          },
+          "filter": {
+            "query": "g",
+            "filter_ms": 5.399999976158142,
+            "keystroke_to_paint_ms": 133.39999997615814,
+            "filter_commit_ms": 17.600000023841858,
             "filter_commit_count": 2,
             "filtered_count": 2500
           }
         },
         {
           "run": 3,
-          "wall_ms": 1762.2320999999974,
+          "wall_ms": 1003.417300000001,
           "mount": {
             "n": 10000,
-            "mount_ms": 19.700000047683716,
-            "mount_commit_ms": 39.40000009536743,
+            "mount_ms": 14.700000047683716,
+            "mount_commit_ms": 38.5,
             "mount_commit_count": 3,
             "register_sends": 10000,
             "registry_size_at_install": 0,
@@ -363,20 +363,20 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 5.600000023841858,
-            "keystroke_to_paint_ms": 117,
-            "filter_commit_ms": 16.100000023841858,
+            "filter_ms": 5.100000023841858,
+            "keystroke_to_paint_ms": 113.5,
+            "filter_commit_ms": 14.299999952316284,
             "filter_commit_count": 2,
             "filtered_count": 2500
           }
         },
         {
           "run": 4,
-          "wall_ms": 2436.2019999999975,
+          "wall_ms": 1518.0560999999998,
           "mount": {
             "n": 10000,
-            "mount_ms": 18.5,
-            "mount_commit_ms": 46.5999995470047,
+            "mount_ms": 15.399999976158142,
+            "mount_commit_ms": 38.40000021457672,
             "mount_commit_count": 3,
             "register_sends": 10000,
             "registry_size_at_install": 0,
@@ -384,20 +384,20 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 6.400000095367432,
-            "keystroke_to_paint_ms": 126.40000009536743,
-            "filter_commit_ms": 17.100000143051147,
+            "filter_ms": 8.399999976158142,
+            "keystroke_to_paint_ms": 144.10000002384186,
+            "filter_commit_ms": 17.49999976158142,
             "filter_commit_count": 2,
             "filtered_count": 2500
           }
         },
         {
           "run": 5,
-          "wall_ms": 949.3284999999996,
+          "wall_ms": 1119.2538000000022,
           "mount": {
             "n": 10000,
-            "mount_ms": 22.299999952316284,
-            "mount_commit_ms": 38.49999976158142,
+            "mount_ms": 18.899999976158142,
+            "mount_commit_ms": 38.99999964237213,
             "mount_commit_count": 3,
             "register_sends": 10000,
             "registry_size_at_install": 0,
@@ -405,20 +405,20 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 5.799999952316284,
-            "keystroke_to_paint_ms": 127.89999997615814,
-            "filter_commit_ms": 16.5,
+            "filter_ms": 11,
+            "keystroke_to_paint_ms": 121.89999997615814,
+            "filter_commit_ms": 14.200000047683716,
             "filter_commit_count": 2,
             "filtered_count": 2500
           }
         },
         {
           "run": 6,
-          "wall_ms": 1048.2854999999981,
+          "wall_ms": 1307.3379999999997,
           "mount": {
             "n": 10000,
-            "mount_ms": 19.799999952316284,
-            "mount_commit_ms": 39.800000071525574,
+            "mount_ms": 18.799999952316284,
+            "mount_commit_ms": 38.59999990463257,
             "mount_commit_count": 3,
             "register_sends": 10000,
             "registry_size_at_install": 0,
@@ -426,20 +426,20 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 5.5,
-            "keystroke_to_paint_ms": 117.5,
-            "filter_commit_ms": 14.799999952316284,
+            "filter_ms": 5.899999976158142,
+            "keystroke_to_paint_ms": 120.5,
+            "filter_commit_ms": 15.399999976158142,
             "filter_commit_count": 2,
             "filtered_count": 2500
           }
         },
         {
           "run": 7,
-          "wall_ms": 2305.575100000002,
+          "wall_ms": 1417.9902000000002,
           "mount": {
             "n": 10000,
-            "mount_ms": 16.5,
-            "mount_commit_ms": 41.09999990463257,
+            "mount_ms": 15,
+            "mount_commit_ms": 37.10000014305115,
             "mount_commit_count": 3,
             "register_sends": 10000,
             "registry_size_at_install": 0,
@@ -447,9 +447,9 @@
           },
           "filter": {
             "query": "g",
-            "filter_ms": 9.299999952316284,
-            "keystroke_to_paint_ms": 136.29999995231628,
-            "filter_commit_ms": 15.700000166893005,
+            "filter_ms": 5.700000047683716,
+            "keystroke_to_paint_ms": 115.60000002384186,
+            "filter_commit_ms": 14.299999833106995,
             "filter_commit_count": 2,
             "filtered_count": 2500
           }
@@ -457,48 +457,48 @@
       ],
       "stats": {
         "mount_ms": {
-          "median": 19.700000047683716,
-          "min": 15,
-          "max": 22.299999952316284,
+          "median": 18.799999952316284,
+          "min": 14.700000047683716,
+          "max": 26.799999952316284,
           "samples": [
-            21.200000047683716, 15, 19.700000047683716, 18.5, 22.299999952316284,
-            19.799999952316284, 16.5
+            19.5, 26.799999952316284, 14.700000047683716, 15.399999976158142, 18.899999976158142,
+            18.799999952316284, 15
           ]
         },
         "filter_ms": {
-          "median": 5.799999952316284,
-          "min": 5.199999928474426,
-          "max": 9.299999952316284,
+          "median": 5.700000047683716,
+          "min": 5.100000023841858,
+          "max": 11,
           "samples": [
-            6.399999976158142, 5.199999928474426, 5.600000023841858, 6.400000095367432,
-            5.799999952316284, 5.5, 9.299999952316284
+            5.299999952316284, 5.399999976158142, 5.100000023841858, 8.399999976158142, 11,
+            5.899999976158142, 5.700000047683716
           ]
         },
         "keystroke_to_paint_ms": {
-          "median": 124.29999995231628,
-          "min": 117,
-          "max": 136.29999995231628,
+          "median": 120.5,
+          "min": 113.5,
+          "max": 144.10000002384186,
           "samples": [
-            124.29999995231628, 118.59999990463257, 117, 126.40000009536743, 127.89999997615814,
-            117.5, 136.29999995231628
+            118, 133.39999997615814, 113.5, 144.10000002384186, 121.89999997615814, 120.5,
+            115.60000002384186
           ]
         },
         "mount_commit_ms": {
-          "median": 39.800000071525574,
-          "min": 38.49999976158142,
-          "max": 46.5999995470047,
+          "median": 38.59999990463257,
+          "min": 37.10000014305115,
+          "max": 50.39999997615814,
           "samples": [
-            43.49999964237213, 38.5, 39.40000009536743, 46.5999995470047, 38.49999976158142,
-            39.800000071525574, 41.09999990463257
+            39.00000035762787, 50.39999997615814, 38.5, 38.40000021457672, 38.99999964237213,
+            38.59999990463257, 37.10000014305115
           ]
         },
         "filter_commit_ms": {
-          "median": 15.700000166893005,
-          "min": 13.100000262260437,
-          "max": 17.100000143051147,
+          "median": 14.599999904632568,
+          "min": 14.200000047683716,
+          "max": 17.600000023841858,
           "samples": [
-            14.000000238418579, 13.100000262260437, 16.100000023841858, 17.100000143051147, 16.5,
-            14.799999952316284, 15.700000166893005
+            14.599999904632568, 17.600000023841858, 14.299999952316284, 17.49999976158142,
+            14.200000047683716, 15.399999976158142, 14.299999833106995
           ]
         }
       }
@@ -508,8 +508,8 @@
     "metric": "mount",
     "n": 10000,
     "threshold_ms": 50,
-    "median_ms": 19.700000047683716,
+    "median_ms": 18.799999952316284,
     "verdict": "pass",
-    "message": "gate PASS: mount N=10000 median 19.70 ms <= 50 ms"
+    "message": "gate PASS: mount N=10000 median 18.80 ms <= 50 ms"
   }
 }
