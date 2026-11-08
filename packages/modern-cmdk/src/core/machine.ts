@@ -76,8 +76,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Comma
               const score = (
                 options.filter as (item: CommandItem, query: string) => number | false
               )(item, query);
-              if (score === false) return null;
-              return { id: item.id, score, matches: [] };
+              // false and scores <= 0 exclude the item
+              return score && score > 0 ? { id: item.id, score, matches: [] } : null;
             },
           }
         : undefined,
