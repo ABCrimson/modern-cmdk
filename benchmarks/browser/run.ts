@@ -289,10 +289,14 @@ async function main(): Promise<number> {
     const baseUrl = server.resolvedUrls?.local[0];
     if (baseUrl === undefined) throw new Error('vite preview is not listening on any URL');
 
-    browser = await chromium.launch({ headless: true });
+    // channel 'chromium' is Playwright's new headless mode on the full Chromium build, the binary
+    // chromium.executablePath() names (the default headless launch runs chromium_headless_shell instead)
+    browser = await chromium.launch({ channel: 'chromium', headless: true });
     const chromiumVersion = browser.version();
     const executable = chromium.executablePath();
-    console.log(`Chromium ${chromiumVersion} (headless; ${executable}), ${baseUrl}`);
+    console.log(
+      `Chromium ${chromiumVersion} (new headless, channel chromium; ${executable}), ${baseUrl}`,
+    );
 
     const results: SizeResult[] = [];
     const wallStart = performance.now();
@@ -349,6 +353,8 @@ async function main(): Promise<number> {
         name: 'chromium',
         version: chromiumVersion,
         headless: true,
+        headless_mode:
+          'new (channel chromium: the full Chromium build, not chromium_headless_shell)',
         executable: path.basename(path.dirname(path.dirname(executable))),
       },
       build: BUILD_DESCRIPTION,
