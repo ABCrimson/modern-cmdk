@@ -186,6 +186,8 @@ export interface CommandMachineOptions {
   /**
    * Custom filter function, or `false` to disable filtering entirely. It returns a score: above 0 keeps the item
    * (higher ranks first); 0, a negative score or `false` excludes it.
+   * In `<Command>`, a new function refilters the current query once; pass a stable function (module scope or
+   * `useCallback`) so a parent render does not refilter.
    */
   readonly filter?: ((item: CommandItem, query: string) => number | false) | false | undefined;
   /** Accessible label for the command palette */
