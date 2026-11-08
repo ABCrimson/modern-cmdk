@@ -63,10 +63,9 @@ export function CommandItem({
 
   const handlePointerMove = useCallback((): void => {
     if (!disabled && activeIdRef.current !== id) {
-      stable.setOptimisticActiveId(id);
       stable.machine.send({ type: 'ITEM_ACTIVATE', id });
     }
-  }, [stable.machine, stable.setOptimisticActiveId, id, disabled]);
+  }, [stable.machine, id, disabled]);
 
   // Items must still register (useRegisterItem above) but don't render DOM if filtered out or off-screen
   if (!isFiltered || !isVisible) return null;

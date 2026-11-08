@@ -13,9 +13,16 @@ export type CommandRootId = string & { readonly __brand: 'CommandRootId' };
 export interface CommandContextValue {
   readonly machine: CommandMachine;
   readonly state: CommandState;
-  /** True while an optimistic active-item transition is in flight (search updates never set it). */
+  /**
+   * Always `false`: the active item is the machine's own, so no render is pending on it.
+   * @deprecated Read `state.loading` for the machine's loading state. Removed in 2.0.
+   */
   readonly isPending: boolean;
   readonly updateSearch: (query: string) => void;
+  /**
+   * Sends `ITEM_ACTIVATE` for a non-null `id` and does nothing for `null`: no core event clears the active item.
+   * @deprecated Send `ITEM_ACTIVATE` through the machine. Removed in 2.0.
+   */
   readonly setOptimisticActiveId: (id: ItemId | null) => void;
   /** O(1) membership check for filtered items — avoids O(n) Array.includes per item */
   readonly filteredIdSet: ReadonlySet<ItemId>;
@@ -37,13 +44,20 @@ export interface CommandStableContextValue {
   readonly inputId: string;
   readonly label: string;
   readonly updateSearch: (query: string) => void;
+  /**
+   * Sends `ITEM_ACTIVATE` for a non-null `id` and does nothing for `null`: no core event clears the active item.
+   * @deprecated Send `ITEM_ACTIVATE` through the machine. Removed in 2.0.
+   */
   readonly setOptimisticActiveId: (id: ItemId | null) => void;
 }
 
 /** State context — values that change on every search/navigation */
 export interface CommandStateContextValue {
   readonly state: CommandState;
-  /** True while an optimistic active-item transition is in flight (search updates never set it). */
+  /**
+   * Always `false`: the active item is the machine's own, so no render is pending on it.
+   * @deprecated Read `state.loading` for the machine's loading state. Removed in 2.0.
+   */
   readonly isPending: boolean;
   readonly filteredIdSet: ReadonlySet<ItemId>;
   /** IDs currently visible in virtual viewport + overscan. null = not virtualizing (render all filtered). */
