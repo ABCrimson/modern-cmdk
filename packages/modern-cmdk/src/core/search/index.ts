@@ -6,7 +6,6 @@
 
 import type { CommandItem, ItemId } from '../types.js';
 import { isDev } from '../utils/env.js';
-import { setDifference } from '../utils/set-ops.js';
 import { scoreItemPreLowered } from './default-scorer.js';
 import type { ScorerFn, SearchEngine, SearchResult } from './types.js';
 
@@ -140,12 +139,11 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
     },
 
     remove(ids: ReadonlySet<ItemId>): void {
-      // O(k) deletes instead of O(n) Map rebuild
+      // O(k): one delete per id from the index and from the incremental cache, no copy of either
       for (const id of ids) {
         indexedEntries.delete(id);
+        previousResults.delete(id);
       }
-      // Prune incremental cache
-      previousResults = setDifference(previousResults, ids);
     },
 
     clear(): void {
