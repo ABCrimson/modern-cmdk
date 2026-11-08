@@ -1,7 +1,10 @@
 import { expect, test as it } from '@playwright/test';
 
 // Judge finding 4 (second round): the API tables clip instead of squeeze. A `.vp-doc table` is its own scroll container
-// (display: block; overflow-x: auto under the edge fade), so a table that scrolls cuts a description mid-word.
+// (display: block; overflow-x: auto under the edge fade), so a table that scrolls cuts a description mid-word. What holds
+// (doc.css, "API tables squeeze instead of clip"): no table of the three API pages scrolls, none has a row over 160 px, and no
+// code span of theirs is split across lines in any column; on the migration guide, whose tables are prose, no table
+// scrolls and the code of a first column is never split (its other columns wrap at hyphens and slashes).
 // Run `pnpm docs:build` first: this serves apps/docs/.vitepress/dist like the other docs specs.
 
 const MAX_ROW_HEIGHT = 160;
@@ -14,9 +17,20 @@ interface TableReport {
   readonly tallestRowText: string;
 }
 
-for (const route of ['api/command-react', 'api/command']) {
+const PAGES = [
+  { route: 'api/command-react', codeSelector: '.vp-doc td code', rowLimit: MAX_ROW_HEIGHT },
+  { route: 'api/command', codeSelector: '.vp-doc td code', rowLimit: MAX_ROW_HEIGHT },
+  { route: 'api/command-search-wasm', codeSelector: '.vp-doc td code', rowLimit: MAX_ROW_HEIGHT },
+  {
+    route: 'guide/migration-from-cmdk',
+    codeSelector: '.vp-doc td:first-child code',
+    rowLimit: Number.POSITIVE_INFINITY,
+  },
+] as const;
+
+for (const { route, codeSelector, rowLimit } of PAGES) {
   for (const width of [1280, 1440, 1920]) {
-    it(`${route}: no table scrolls and no row exceeds ${MAX_ROW_HEIGHT} px at ${width} px`, async ({
+    it(`${route}: no table scrolls and no row exceeds ${rowLimit} px at ${width} px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -48,11 +62,11 @@ for (const route of ['api/command-react', 'api/command']) {
       expect(report.tables, 'tables found').toBeGreaterThan(0);
       expect(report.overflowing, 'tables that scroll').toEqual([]);
       expect(report.tallestRow, `tallest row (${report.tallestRowText})`).toBeLessThanOrEqual(
-        MAX_ROW_HEIGHT,
+        rowLimit,
       );
     });
 
-    it(`${route}: no identifier in a Type or Default cell breaks across lines at ${width} px`, async ({
+    it(`${route}: no word of "${codeSelector}" breaks across lines at ${width} px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -60,10 +74,10 @@ for (const route of ['api/command-react', 'api/command']) {
       await page.goto(`${route}.html`);
       await page.evaluate(() => document.fonts.ready);
       // A word of a code span (text between whitespace; the cell may wrap between words) laid out on two lines has two client
-      // rects: that is a break inside an identifier, which overflow-wrap: anywhere allows as a last resort.
-      const broken = await page.evaluate((): string[] => {
+      // rects: that is a break inside an identifier, which a hyphen, a slash or a bracket allows when the span may wrap.
+      const broken = await page.evaluate((selector): string[] => {
         const found: string[] = [];
-        const cells = document.querySelectorAll('.vp-doc td:not(:first-child, :last-child) code');
+        const cells = document.querySelectorAll(selector);
         for (const code of cells) {
           const walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT);
           for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
@@ -76,7 +90,7 @@ for (const route of ['api/command-react', 'api/command']) {
           }
         }
         return found;
-      });
+      }, codeSelector);
       expect(broken, 'identifiers split across lines').toEqual([]);
     });
   }
