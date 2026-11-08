@@ -524,6 +524,34 @@ describe('docs rows of 1.7.0', () => {
     ).toEqual([]);
   });
 
+  it('DAE-85: api/command.md getGroups() row says groups are sorted by priority, not in insertion order', () => {
+    // The code anchor: getGroups() sorts the registered groups with toSorted by `priority`
+    // (core/registry.ts), while getItems() returns the items Map in insertion order. The false
+    // claim: the groups come back in insertion (registration) order.
+    const registry: string = sectionOf(`${DOCS}api/command.md`, /^`CommandRegistry`$/);
+    const row: string = tableRow(registry, /^\| `getItems\(\)` \/ `getGroups\(\)` \|/);
+    expect(row, 'DAE-85: the row names the priority that orders the groups').toContain(
+      '`priority`',
+    );
+    const description: string = row.split('|')[3] ?? '';
+    const clauses: string[] = description
+      .split(/[;,]/)
+      .map((c) => c.trim())
+      .filter((c) => c !== '');
+    expect(clauses.length, 'DAE-85: the row has a description cell').toBeGreaterThan(0);
+    expect(
+      clauses.filter(
+        (c) =>
+          /\bgroups?\b|\bgetGroups\b/i.test(c) &&
+          /\b(?:insertion|registration)\b|\b(?:registered|added) order\b|\border (?:in which )?(?:they|it) (?:were|was) (?:added|registered)\b|\bin the order\b[^.]*\b(?:added|registered)\b/i.test(
+            c,
+          ) &&
+          !/`?priority`?/i.test(c),
+      ),
+      'DAE-85: no clause says the groups are returned in insertion order without naming priority',
+    ).toEqual([]);
+  });
+
   it('DAE-38: api/command-react.md Dialog open row states the controlled contract and a closed uncontrolled start', () => {
     const dialog: string = sectionOf(`${DOCS}api/command-react.md`, /^`<Command\.Dialog>`$/);
     const row: string = tableRow(dialog, /^\| `open` \|/);
