@@ -8,22 +8,21 @@
 //                       The constructor registers, indexes and refilters synchronously, so that state
 //                       exists when the call returns; the bench asserts it and times the creation.
 //   REGISTER_ITEM x N   an empty machine, N sends of { type: 'REGISTER_ITEM', item }, then the state
-//                       emit (through subscribeState) whose filteredIds holds all N. Every send is a
-//                       scheduled event that refilters the whole registry, so this path grows
-//                       quadratically until the core batches the refilter.
+//                       emit (through subscribeState) whose filteredIds holds all N. Each send queues one
+//                       scheduler closure; the N closures of one microtask run as one batch, registry
+//                       events only mark the results dirty, and the batch's last event refilters once and
+//                       emits once. The path is linear in N (the pre-1.6.0 core refiltered on every send
+//                       and took ~9-10 s at 10K; benchmarks/registration.bench.ts guards the growth).
 //
 // Machine creation of the second path and every dispose happen in beforeEach/afterEach, outside the
-// timed window; every machine either path creates is disposed in afterEach. The slow case (REGISTER_ITEM x N at 10K takes seconds per iteration) gets an exact,
-// small iteration count (time: 0 turns off tinybench's time budget, so the count alone decides the run
-// length), which keeps `pnpm bench --run` well inside the CI bench job's 10 minute timeout.
+// timed window; every machine either path creates is disposed in afterEach. Both paths take a few
+// milliseconds per iteration even at 10K (measured 2026-11-08, two runs: 4.2-4.8 ms for registerItems,
+// 5.1-8.2 ms for REGISTER_ITEM x N, mean), so tinybench's defaults apply to every case.
 
 import type { CommandEvent, CommandItem, CommandMachine } from 'modern-cmdk';
 import { createCommandMachine, itemId } from 'modern-cmdk';
 import { describe, test } from 'vitest';
 import { generateItems } from './fixtures.ts';
-
-/** tinybench run options: exactly `iterations` timed calls after exactly `warmupIterations` warm-up calls. */
-const SLOW_RUN = { warmupIterations: 1, warmupTime: 0, iterations: 4, time: 0 } as const;
 
 function registerItemsBench(items: readonly CommandItem[]) {
   let machine: CommandMachine | undefined;
@@ -102,6 +101,6 @@ describe('Mount — 10K items', () => {
 
   test('REGISTER_ITEM x N — 10K', async ({ bench }) => {
     const { options, fn } = registerEventsBench(items);
-    await bench('REGISTER_ITEM x N — 10K', options, fn).run(SLOW_RUN);
+    await bench('REGISTER_ITEM x N — 10K', options, fn).run();
   });
 });
