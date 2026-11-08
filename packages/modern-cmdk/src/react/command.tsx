@@ -127,7 +127,11 @@ function CommandRoot({
   );
 }
 
-/** Compound component namespace */
+/**
+ * Compound component namespace. The `Object.assign` call below carries a pure annotation: its only effect is on
+ * `CommandRoot`, which is reachable only through `Command`, so a bundle that imports one part (such as
+ * `CommandSeparator`) drops the root and every other component the statics reference.
+ */
 export const Command: typeof CommandRoot & {
   readonly Input: typeof CommandInput;
   readonly List: typeof CommandList;
@@ -143,7 +147,7 @@ export const Command: typeof CommandRoot & {
   readonly Page: typeof CommandPage;
   readonly AsyncItems: typeof CommandAsyncItems;
   readonly Activity: typeof CommandActivity;
-} = Object.assign(CommandRoot, {
+} = /* @__PURE__ */ Object.assign(CommandRoot, {
   Input: CommandInput,
   List: CommandList,
   Item: CommandItem,
