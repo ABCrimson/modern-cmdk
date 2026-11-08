@@ -352,7 +352,7 @@ test.describe('Virtualization — Large Item Set', () => {
 
     const elapsed = Date.now() - startTime;
 
-    // Initial render should complete within 5 seconds (CI uses 2K items, local uses 10K)
+    // Initial render should complete within 5 seconds (the page loads 2,000 items: virtualizationUrl sets count=2000 in every run)
     expect(elapsed).toBeLessThan(5_000);
   });
 
