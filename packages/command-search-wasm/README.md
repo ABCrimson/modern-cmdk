@@ -51,12 +51,18 @@ const largeDataset = Array.from({ length: 10_000 }, (_, i) => ({
   value: `Item ${i}`,
 }));
 
-const wasmEngine = await createWasmSearchEngine();
+export async function main(): Promise<void> {
+  const wasmEngine = await createWasmSearchEngine();
 
-using machine = createCommandMachine({
-  search: wasmEngine,
-  items: largeDataset,
-});
+  // The machine lives as long as this scope; `using` disposes it, and the engine it was given, when
+  // the function returns.
+  using machine = createCommandMachine({
+    search: wasmEngine,
+    items: largeDataset,
+  });
+
+  // ... use the machine here
+}
 ```
 
 ### Web Worker
@@ -72,12 +78,17 @@ const massiveDataset = Array.from({ length: 100_000 }, (_, i) => ({
   value: `Item ${i}`,
 }));
 
-const workerEngine = await createWorkerSearchEngine();
+export async function main(): Promise<void> {
+  const workerEngine = await createWorkerSearchEngine();
 
-using machine = createCommandMachine({
-  search: workerEngine,
-  items: massiveDataset, // 100K items
-});
+  // `using` disposes the machine, and the engine it was given, when the function returns.
+  using machine = createCommandMachine({
+    search: workerEngine,
+    items: massiveDataset, // 100K items
+  });
+
+  // ... call `await workerEngine.searchAsync(query)` before the machine filters
+}
 ```
 
 ## Architecture
