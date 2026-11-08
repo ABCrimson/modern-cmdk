@@ -41,6 +41,8 @@ export default defineConfig({
         test: {
           name: 'unit',
           expect: { requireAssertions: true },
+          // tests/unit/memory-leak.test.ts calls gc() to prove that WeakRef targets are released.
+          execArgv: ['--expose-gc'],
           include: ['packages/*/src/**/*.test.ts', 'tests/unit/**/*.test.{ts,tsx}'],
           benchmark: { include: [] },
         },
