@@ -555,3 +555,24 @@ describe('CommandMachine batching', () => {
     });
   });
 });
+
+describe('CommandMachine custom filter scores (ARCH-14)', () => {
+  it('a custom filter returning 0, a negative score or false excludes the item; a positive score keeps it', async () => {
+    const scores: Record<string, number | false> = {
+      zero: 0,
+      negative: -1,
+      no: false,
+      tiny: 0.01,
+      big: 2,
+    };
+    using machine = createCommandMachine({
+      items: Object.keys(scores).map((id) => ({ id: itemId(id), value: id })),
+      filter: (item: CommandItem) => scores[item.id] as number | false,
+    });
+    machine.send({ type: 'SEARCH_CHANGE', query: 'q' });
+    await vi.waitFor(() => {
+      expect(machine.getState().search).toBe('q');
+    });
+    expect([...machine.getState().filteredIds].sort()).toEqual(['big', 'tiny']);
+  });
+});
