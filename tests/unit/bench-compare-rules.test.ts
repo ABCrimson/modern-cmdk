@@ -4,7 +4,9 @@
 // TEB-33: the 'basic' 10K dataset behind benchmarks/baseline.json is pinned by hash.
 // R5: the browser bench's pure stats and 10K mount gate rules.
 
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { resolve } from 'node:path';
 import { itemId } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 import {
@@ -237,5 +239,20 @@ describe('R5: the /bench page settle rule', () => {
         { sends: 0, emittedSinceLastSend: true },
       ]),
     ).toBe(3);
+  });
+});
+
+// R5: a diagnostic run on another tree's core must never take this tree's results name.
+describe('R5: the browser bench harness refuses a diagnostic run without --out', () => {
+  it('R5: --modern-cmdk without --out exits 2 with a message, before any build starts', () => {
+    const run = spawnSync(
+      process.execPath,
+      [resolve(import.meta.dirname, '../../benchmarks/browser/run.ts'), '--modern-cmdk', 'x'],
+      { encoding: 'utf-8', timeout: 60_000 },
+    );
+    expect(run.status).toBe(2);
+    expect(run.stderr).toContain('--modern-cmdk needs --out');
+    expect(run.stderr).toContain('never take this tree');
+    expect(run.stdout).not.toContain('building the playground');
   });
 });

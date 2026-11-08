@@ -91,8 +91,11 @@ describe('ci.yml', () => {
     expect(block.slice(upload)).toMatch(/^ {8}if: always\(\)$/m);
     // The harness writes outside the checkout, so a committed results file can never stand in for this run:
     // when the harness dies before writing, the upload finds nothing and if-no-files-found fails it
-    const outPath = '"$RUNNER_TEMP/browser-bench/results.json"';
-    expect(block).toContain(`- run: node benchmarks/browser/run.ts --out ${outPath}`);
+    expect(block).toMatch(
+      /^ {6}- run: node benchmarks\/browser\/run\.ts --out "\$RUNNER_TEMP\/browser-bench\/results\.json"$/m,
+    );
+    // --modern-cmdk is a diagnostic for measuring another tree's core, never part of the gate
+    expect(block).not.toContain('--modern-cmdk');
     expect(block.slice(upload)).toContain(`path: \${{ runner.temp }}/browser-bench/`);
     expect(block.slice(upload)).toContain('if-no-files-found: error');
     expect(block).not.toContain('path: benchmarks/browser/results');
