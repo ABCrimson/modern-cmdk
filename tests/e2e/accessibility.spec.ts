@@ -371,9 +371,10 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     await expect(disabled).toContainText('Disabled Item');
     await expect(disabled).not.toHaveAttribute('data-active', /.*/);
 
-    // Under forced-colors the stylesheet sets `color: GrayText` for [data-disabled]: compare
-    // with the system colour resolved by the browser itself. Opacity is not asserted: the
-    // playground's own unlayered rule (opacity: 0.6) overrides the library's layered one
+    // Under forced-colors the library's stylesheet sets `color: GrayText` and `opacity: 1` for
+    // [data-disabled]; the playground adds no disabled-item rule of its own there (PGX-15), so
+    // both come from the library: compare the colour with the system colour resolved by the
+    // browser itself
     const grayText = await page.evaluate(() => {
       const probe = document.createElement('span');
       probe.style.color = 'GrayText';
@@ -383,6 +384,8 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
       return resolved;
     });
     await expect(disabled).toHaveCSS('color', grayText);
+    // PGX-15: the playground's disabled opacity (0.6) is scoped to forced-colors: none
+    await expect(disabled).toHaveCSS('opacity', '1');
   });
 
   // ---------- Empty State ----------
