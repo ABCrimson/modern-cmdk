@@ -55,14 +55,25 @@ runs:
         [ "$(uname -m)" = x86_64 ] || { echo "::error::install-release-binary supports Linux x86_64 only, not $(uname -m)"; exit 1; }
         [[ "$SHA256" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::sha256 must be 64 lowercase hex digits"; exit 1; }
         tarball="$RUNNER_TEMP/$ASSET"
-        # Each attempt tries gh release download (GitHub API), then curl with its own retries: the two reach the release host by
-        # different routes, and a 5xx on one run did not stop the other.
+        # Each attempt tries three routes in turn: gh release download; the API asset route (the release's asset id from
+        # api.github.com, then the asset from api.github.com/repos/.../releases/assets/<id>); and the direct github.com release URL.
+        # The routes reach GitHub through different hosts, and the direct host answered 504 for 20 minutes while the API served the file.
+        fetch() {
+          gh release download "$TAG" -R "$REPO" -p "$ASSET" -O "$tarball" --clobber && return 0
+          local id
+          id="$(curl --fail --silent --show-error --location --connect-timeout 15 --max-time 60 -H "Accept: application/vnd.github+json" ${GH_TOKEN:+-H "Authorization: Bearer $GH_TOKEN"} "https://api.github.com/repos/$REPO/releases/tags/$TAG" | jq -r --arg name "$ASSET" '.assets[] | select(.name == $name) | .id')" || id=
+          if [ -n "$id" ]; then
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --connect-timeout 15 --max-time 120 \
+              -H "Accept: application/octet-stream" ${GH_TOKEN:+-H "Authorization: Bearer $GH_TOKEN"} \
+              --output "$tarball" "https://api.github.com/repos/$REPO/releases/assets/$id" && return 0
+          fi
+          curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --connect-timeout 15 --max-time 120 \
+            --output "$tarball" \
+            "https://github.com/$REPO/releases/download/$TAG/$ASSET"
+        }
         for attempt in 1 2 3 4 5 6 7 8; do
           rm -f "$tarball"
-          gh release download "$TAG" -R "$REPO" -p "$ASSET" -O "$tarball" --clobber && break
-          curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 --connect-timeout 15 --max-time 120 \
-            --output "$tarball" \
-            "https://github.com/$REPO/releases/download/$TAG/$ASSET" && break
+          fetch && break
           [ "$attempt" -lt 8 ] || { echo "::error::could not download $ASSET from $REPO $TAG"; exit 1; }
           sleep $((attempt * 5))
         done
