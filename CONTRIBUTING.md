@@ -242,7 +242,7 @@ modern-cmdk/
     wasm-search.bench.ts          Excluded from `vitest bench` (browser-target WASM)
     browser/
       run.ts                      The browser bench and its 10K mount tripwire (`node benchmarks/browser/run.ts`, Chromium)
-      stats.ts                    Its pure rules: the median of 7 runs, the gate verdict and the threshold (`MOUNT_GATE_THRESHOLD_MS`, 75 ms after D94)
+      stats.ts                    Its pure rules: the median of 7 runs, the gate verdict and the threshold (`MOUNT_GATE_THRESHOLD_MS`, 75 ms after D94: 1.5x the 47.80 ms median, rounded up to the next 5 ms; re-measured at the RC)
       results/                    Committed results of local runs, one JSON per manifest version and commit
     standalone/
       compare-baseline.ts          The one CI benchmark harness (`pnpm bench:compare`; optional `--baseline <file>` and `--current <file>`)
