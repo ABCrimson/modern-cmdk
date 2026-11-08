@@ -89,16 +89,16 @@ export function PersistentFrecencyExample() {
       <Command.Input placeholder="Your history persists across reloads..." />
       <Command.List>
         <Command.Empty>No results.</Command.Empty>
-        <Command.Item value="settings" onSelect={() => console.log('Settings')}>
+        <Command.Item id="settings" value="settings" onSelect={() => console.log('Settings')}>
           Settings
         </Command.Item>
-        <Command.Item value="profile" onSelect={() => console.log('Profile')}>
+        <Command.Item id="profile" value="profile" onSelect={() => console.log('Profile')}>
           Profile
         </Command.Item>
-        <Command.Item value="billing" onSelect={() => console.log('Billing')}>
+        <Command.Item id="billing" value="billing" onSelect={() => console.log('Billing')}>
           Billing
         </Command.Item>
-        <Command.Item value="analytics" onSelect={() => console.log('Analytics')}>
+        <Command.Item id="analytics" value="analytics" onSelect={() => console.log('Analytics')}>
           Analytics
         </Command.Item>
       </Command.List>
@@ -106,6 +106,8 @@ export function PersistentFrecencyExample() {
   );
 }
 ```
+
+Persisted frecency is keyed by item id: the machine records a selection under the id of the selected item. Every item in this sample passes a stable `id`, so its history survives a reload and a change of the tree. An item without an `id` registers under a `useId()` id, which depends on the item's position in the tree, so a history stored under it does not match the item once the tree changes.
 
 What persists, and when:
 
