@@ -1,7 +1,8 @@
 // packages/modern-cmdk/src/core/search/index.ts
 // Search engine factory with pluggable scorer — Iterator Helpers (ES2025) for result pipelines
-// Incremental filtering: when the query extends the previous one, only the previous matches are re-scored
-// Performance: pre-cached lowercase at index time, charCode comparison, zero redundant allocation
+// Incremental filtering (default scorer only): when the lowercased query extends the previous
+// lowercased query, only the previous matches are re-scored; custom scorers rescan every item on every non-empty query
+// Performance: pre-cached lowercase at index time, charCode comparison
 
 import type { CommandItem, ItemId } from '../types.js';
 import { isDev } from '../utils/env.js';
@@ -35,9 +36,10 @@ interface IndexedEntry {
 }
 
 /**
- * Creates a search engine with pluggable scorer and incremental filtering.
- * When the query extends the previous one, only prior matches are re-scored.
- * Pre-caches lowercase at index time — zero toLowerCase() calls during search.
+ * Creates a search engine with pluggable scorer.
+ * With the default scorer, a query that extends the previous one (compared lowercased) re-scores
+ * only the prior matches; a custom scorer is called for every item on every non-empty query.
+ * Pre-caches lowercase at index time; indexed items are not re-lowered during search.
  * Uses Iterator Helpers (ES2025) for result pipelines.
  */
 export function createSearchEngine(options?: SearchEngineOptions): SearchEngine {
@@ -67,7 +69,7 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
       }
       // Invalidate incremental cache — new items may match the current query
       // Without this, dynamically registered items are excluded from the
-      // incremental path and remain invisible until the user modifies the query
+      // incremental path and remain invisible until the query no longer extends the previous one
       previousQuery = '';
       previousResults = new Set();
     },
@@ -87,8 +89,10 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
       // Lowercase query ONCE for the entire search — not per-item
       const lowerQuery = query.toLowerCase();
 
-      // Incremental filtering: if new query extends previous, only re-score previous matches
-      const isIncremental = query.startsWith(previousQuery) && previousQuery.length > 0;
+      // Incremental filtering (default scorer only: a custom scorer need not be monotone, so it
+      // rescans every item): if the lowered query extends the previous one, re-score only its matches
+      const isIncremental =
+        useDefaultScorer && previousQuery.length > 0 && lowerQuery.startsWith(previousQuery);
       const candidateItems: Iterable<CommandItem> = isIncremental
         ? items.values().filter((item) => previousResults.has(item.id))
         : items;
@@ -97,7 +101,7 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
       const results: SearchResult[] = [];
 
       if (useDefaultScorer) {
-        // Fast path: use pre-cached lowercase + internal scorer (no toLowerCase per item)
+        // Fast path: internal scorer on pre-cached lowercase; unindexed items are lowered here
         for (const item of candidateItems) {
           const entry = indexedEntries.get(item.id);
           const result = entry
@@ -121,7 +125,7 @@ export function createSearchEngine(options?: SearchEngineOptions): SearchEngine 
       results.sort((a, b) => b.score - a.score);
 
       // Update tracking for incremental filtering
-      previousQuery = query;
+      previousQuery = lowerQuery;
       previousResults = new Set(results.values().map((r) => r.id));
 
       // Return sorted results as an iterator
