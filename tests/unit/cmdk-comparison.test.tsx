@@ -949,27 +949,48 @@ describe('9. useCommandState Hook', () => {
 // ============================================================================
 // 10. DISABLED ITEMS
 // ============================================================================
-// cmdk: <Command.Item disabled> — skipped during navigation
-// modern-cmdk: identical prop, items filtered out
+// cmdk: <Command.Item disabled> — rendered with aria-disabled, skipped during navigation, never selected
+// modern-cmdk: identical prop and rendering; the disabledItems option ('show' by default, 'hide' to drop them) is a superset
 // ============================================================================
 
 describe('10. Disabled Items', () => {
+  async function click(el: Element): Promise<void> {
+    await act(async () => {
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise<void>((r) => queueMicrotask(r));
+    });
+  }
+
   it('should not fire onSelect on disabled items (same as cmdk)', async () => {
     const onSelect = vi.fn();
+    const onEnabled = vi.fn();
 
     await render(
       <Command>
         <Command.Input />
         <Command.List>
-          <Command.Item value="disabled" disabled onSelect={onSelect}>
+          <Command.Item value="disabled" forceId="disabled" disabled onSelect={onSelect}>
             Disabled
+          </Command.Item>
+          <Command.Item value="enabled" forceId="enabled" onSelect={onEnabled}>
+            Enabled
           </Command.Item>
         </Command.List>
       </Command>,
     );
 
-    // Disabled items are filtered out by the machine
+    // The disabled item is rendered with aria-disabled; clicking it and pressing Enter must not select it
+    const disabled = container.querySelector('#disabled') as Element;
+    expect(disabled.getAttribute('aria-disabled')).toBe('true');
+    await click(disabled);
+    await pressKey('ArrowUp');
+    await pressKey('Enter');
+
     expect(onSelect).not.toHaveBeenCalled();
+    // Enter selected the active item, the enabled one
+    expect(onEnabled).toHaveBeenCalledTimes(1);
   });
 
   it('should skip disabled items during keyboard navigation', async () => {
@@ -995,13 +1016,19 @@ describe('10. Disabled Items', () => {
       expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
     });
 
-    // Arrow down should skip disabled item and go to "three"
+    // Arrow down skips the disabled item and lands on "three"
     await pressKey('ArrowDown');
 
     await vi.waitFor(() => {
-      // Disabled items are filtered out, so "three" becomes the second visible item
-      expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(false);
+      expect(container.querySelector('#three')?.hasAttribute('data-active')).toBe(true);
     });
+    expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(false);
+    expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(false);
+
+    // Arrow down again wraps to "one"; the disabled item was never active
+    await pressKey('ArrowDown');
+    expect(container.querySelector('#one')?.hasAttribute('data-active')).toBe(true);
+    expect(container.querySelector('#two')?.hasAttribute('data-active')).toBe(false);
   });
 });
 
