@@ -493,16 +493,32 @@ jobs:
         run: tar -xf "$RUNNER_TEMP/dist.tar"
       - name: Compare against baseline
         # compare-baseline.ts exits 1 for a regression above 5% (a warning by the documented
-        # contract) and 2 for a regression above 15%, a median above its target_ms or a harness error; only
-        # exit 2 fails the job. A baseline median below floor_ms (0.01 ms; today only stateUpdate:navigate,
-        # 0.75 microseconds) is reported, not compared, because runner noise at that scale exceeds 5%/15%.
-        # `|| code=$?` is not a mask: it records the status so exit 1 can become a warning, and
-        # every other non-zero status is re-raised by `exit "$code"`.
+        # contract) and 2 for a regression above 15%, a median above its target_ms or a harness error.
+        # Exit 2 fails the job only when a second run also exits 2 (two consecutive fails): a single run
+        # of a shared runner and a Node nightly is noisy (CI run 42452131225, measured 2026-11-08: +16.1% and
+        # +19.0% with no reproducible code change; an A/B on a local host gave -2.4% / -3.8%). The first
+        # failure is surfaced as a warning annotation, so a flaky pass stays visible. A baseline median
+        # below floor_ms (0.01 ms; today only stateUpdate:navigate, 0.75 microseconds) is reported, not
+        # compared, because runner noise at that scale exceeds 5%/15%.
+        # `|| code=$?` is not a mask: it records the status of the deciding run, so exit 1 can become a
+        # warning and exit 2 can trigger the one re-run; every other non-zero status is re-raised by
+        # `exit "$code"`.
+        # Time: one run is about 20 s (RUNS 5), so both runs add under a minute to the 10-minute job.
         run: |
           code=0
           pnpm bench:compare || code=$?
+          if [ "$code" -eq 2 ]; then
+            first=$code
+            code=0
+            pnpm bench:compare || code=$?
+            if [ "$code" -eq 2 ]; then
+              echo "::error title=Benchmark comparison failed twice::The re-run of pnpm bench:compare also exited 2; the job fails."
+            else
+              echo "::warning title=Benchmark comparison failed once::The first pnpm bench:compare exited $first; the re-run exited $code, so the job does not fail on the first. See both comparison tables in this step."
+            fi
+          fi
           if [ "$code" -eq 1 ]; then
-            echo "::warning title=Benchmark regression above 5%::See the comparison table in this step; a regression above 15% or a median above its target fails the job; baselines below the 0.01 ms floor are reported, not compared."
+            echo "::warning title=Benchmark regression above 5%::See the comparison table in this step; a regression above 15% or a median above its target fails the job (after one re-run); baselines below the 0.01 ms floor are reported, not compared."
             exit 0
           fi
           exit "$code"

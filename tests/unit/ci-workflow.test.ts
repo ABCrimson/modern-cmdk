@@ -1,5 +1,5 @@
 // tests/unit/ci-workflow.test.ts
-// RDG-126, RDG-127, RDG-130, SEC-72, R5: the rules .github/workflows/ci.yml states in comments, pinned as tests.
+// RDG-126, RDG-127, RDG-130, SEC-72, R5, TEB-100: the rules .github/workflows/ci.yml states in comments, pinned as tests.
 // Regex over the YAML as release-workflow.test.ts does: no YAML parser is a dependency of the workspace.
 // Jobs sit at two-space indentation under `jobs:`; a job block runs to the next job key or job-level comment.
 
@@ -122,5 +122,24 @@ describe('ci.yml', () => {
     expect(block).toMatch(/^ {12}"browser-bench\|.*Chromium.*"$/m);
     // The header comment states the job count the needs list really has
     expect(workflow).toContain(`summary needs all ${needs.length} jobs`);
+  });
+
+  it('TEB-100: the bench job re-runs bench:compare once on exit 2 and fails only when the second run also exits 2', () => {
+    const block = job('bench');
+    const step =
+      /^ {6}- name: Compare against baseline\n[\s\S]*?(?=^ {6}- )/m.exec(block)?.[0] ?? '';
+    const script = /^ {8}run: \|\n((?: {10}.*\n)+)/m.exec(step)?.[1] ?? '';
+    expect(script).not.toBe('');
+    // A second invocation re-runs the comparison, and the first failure stays visible
+    expect(script.match(/^\s*pnpm bench:compare \|\| code=\$\?$/gm)).toHaveLength(2);
+    expect(script).toContain('echo "::warning title=Benchmark comparison failed once::');
+    // Exit 1 keeps its warning path and passes the step
+    expect(script).toMatch(
+      /if \[ "\$code" -eq 1 \]; then\n\s*echo "::warning title=Benchmark regression above 5%::[^\n]*\n\s*exit 0\n\s*fi/,
+    );
+    // The deciding status is re-raised: no unconditional exit 0 ends the step
+    expect(script.trimEnd().split('\n').at(-1)?.trim()).toBe('exit "$code"');
+    // The re-run adds under a minute, so the job keeps its 10-minute timeout
+    expect(block).toMatch(/^ {4}timeout-minutes: 10$/m);
   });
 });
