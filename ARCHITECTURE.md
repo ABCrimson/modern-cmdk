@@ -594,9 +594,9 @@ Five custom properties are registered with `@property` (`--command-list-height`,
 
 | Metric | Target | Enforcement |
 |---|---|---|
-| Core bundle | ≤ 7.35 kB | **Enforced**: `size-limit` (`pnpm size`, CI "Bundle Size" job), `packages/modern-cmdk/dist/core/index.mjs`, gzip. Measured 6399 B |
+| Core bundle | ≤ 7.4 kB | **Enforced**: `size-limit` (`pnpm size`, CI "Bundle Size" job), `packages/modern-cmdk/dist/core/index.mjs`, gzip. Measured 6399 B |
 | React adapter only | ≤ 5.7 kB | **Enforced**: `dist/react/index.mjs`, gzip, with `modern-cmdk`, `react`, `react-dom`, `react/jsx-runtime` and `radix-ui` ignored (the core is not counted). Measured 5539 B |
-| Core + React adapter | ≤ 10.75 kB | **Enforced**: `dist/react/index.mjs`, gzip, `modern-cmdk` not ignored, so the one core is counted once. Measured 10003 B (1.4 measured 9830 B; 1.3 inlined the core in the adapter: 6355 B + 9844 B = 16199 B) |
+| Core + React adapter | ≤ 10.85 kB | **Enforced**: `dist/react/index.mjs`, gzip, `modern-cmdk` not ignored, so the one core is counted once. Measured 10003 B (1.4 measured 9830 B; 1.3 inlined the core in the adapter: 6355 B + 9844 B = 16199 B) |
 | `modern-cmdk/react/dialog` only | ≤ 1.5 kB | **Enforced**: `dist/react/dialog.mjs`, gzip, same ignore list. Measured 1422 B |
 | `CommandSeparator` only | ≤ 5 kB | **Enforced**: `import { CommandSeparator }` from `dist/react/index.mjs`, gzip, same ignore list. Measured 4812 B; the bundle still contains `CommandDialog`, `CommandRoot` and the `radix-ui` import (the compound), so this entry is a regression tripwire and not a tree-shaking claim |
 | `modern-cmdk/styles.css` | ≤ 4 kB | **Enforced**: `dist/react/styles.css`, gzip. Measured 3959 B |
