@@ -6,7 +6,7 @@
 import type { ComponentPropsWithRef, CSSProperties, ReactNode } from 'react';
 import { useId, useMemo } from 'react';
 import type { CommandGroupContextValue } from './context.js';
-import { CommandGroupContext, useStateContext } from './context.js';
+import { CommandGroupContext, useStableContext, useStateContext } from './context.js';
 import { useRegisterGroup } from './hooks/use-register.js';
 
 /** Module-level constant — avoids allocating a new object on every render of hidden groups */
@@ -31,6 +31,7 @@ export function CommandGroup({
   ...props
 }: CommandGroupProps): ReactNode {
   const stateCtx = useStateContext('Command.Group');
+  const stable = useStableContext('Command.Group');
 
   const headingId: string = useId();
   const groupId = useRegisterGroup(heading, {
@@ -38,9 +39,13 @@ export function CommandGroup({
     ...(forceId !== undefined && { forceId }),
   });
 
-  // Check if any items in this group are visible
-  const groupItems = stateCtx.state.groupedIds.get(groupId);
-  const hasVisibleItems: boolean = groupItems !== undefined && groupItems.length > 0;
+  // Check if any of this group's own items are visible: a group whose id is the ungrouped bucket's
+  // (forceId="__ungrouped") would otherwise count every ungrouped item, including those outside it
+  const registry = stable.machine.getRegistry();
+  const hasVisibleItems: boolean =
+    stateCtx.state.groupedIds
+      .get(groupId)
+      ?.some((id) => registry.getItem(id)?.groupId === groupId) ?? false;
 
   const groupContext = useMemo<CommandGroupContextValue>(
     () => ({ groupId: groupId as string, headingId }) satisfies CommandGroupContextValue,

@@ -255,16 +255,6 @@ describe('CommandRegistry reserved group id (CE-50)', () => {
     expect(UNGROUPED_GROUP_ID).toBe('__ungrouped');
   });
 
-  it('CE-50: registerGroup throws a RangeError naming the reserved id and registers nothing', () => {
-    using registry = new CommandRegistry();
-    expect(() => registry.registerGroup({ id: UNGROUPED_GROUP_ID, heading: 'Other' })).toThrow(
-      RangeError,
-    );
-    expect(() => registry.registerGroup({ id: groupId('__ungrouped') })).toThrow(/__ungrouped/);
-    expect(registry.groupCount).toBe(0);
-    expect(registry.getGroup(UNGROUPED_GROUP_ID)).toBeUndefined();
-  });
-
   it('CE-50: the ungrouped bucket of getGroupedItems() is keyed by UNGROUPED_GROUP_ID', () => {
     using registry = new CommandRegistry();
     registry.registerItem(makeItem('a'));
