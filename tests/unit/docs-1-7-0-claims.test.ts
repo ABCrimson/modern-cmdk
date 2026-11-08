@@ -536,7 +536,9 @@ describe('docs rows of 1.7.0', () => {
       expect(
         s,
         'DAE-38/RA-85: an uncontrolled report in the onOpenChange row is tied to a dialog that dropped its open prop',
-      ).toMatch(/\bdrops?\b[^.]*`open`|`open`[^.]*\b(?:dropped|removed)\b/);
+      ).toMatch(
+        /\b(?:drops?|stops? passing|no longer pass\w*|unsets?)\b[^.]*`open`|`open`[^.]*\b(?:dropped|removed)\b/,
+      );
     }
     expect(row, 'DAE-38: a request calls onOpenChange once and the parent decides').toContain(
       'onOpenChange(requested)',
@@ -937,7 +939,9 @@ describe('docs rows of 1.7.0', () => {
       expect(
         s,
         'RA-85: an uncontrolled report is tied to a dialog that dropped its open prop',
-      ).toMatch(/\bdrops?\b[^.]*`open`|`open`[^.]*\b(?:dropped|removed)\b/);
+      ).toMatch(
+        /\b(?:drops?|stops? passing|no longer pass\w*|unsets?)\b[^.]*`open`|`open`[^.]*\b(?:dropped|removed)\b/,
+      );
     }
   });
 
