@@ -58,6 +58,8 @@ const DEV_ONLY_STRINGS: readonly string[] = [
   'was garbage collected without being disposed',
   // react/hooks/use-devtools.ts: the global devtools registry key
   '__CRIMSON_COMMAND_DEVTOOLS__',
+  // react/hooks/use-command-setup.ts: the init-only prop warning
+  'is read once, when the component mounts',
 ];
 
 const ENTRIES: readonly {

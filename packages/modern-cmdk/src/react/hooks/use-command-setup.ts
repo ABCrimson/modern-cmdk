@@ -13,16 +13,6 @@ import { createKeydownHandler } from './use-keyboard.js';
 // Module-scoped declaration: no @types/node needed, nothing global leaks.
 declare const process: { readonly env: { readonly NODE_ENV?: string } };
 
-// Same semantics as use-devtools.ts: true unless NODE_ENV is 'production'; an unbundled browser module
-// (no `process`) counts as production.
-const isDev: boolean = (() => {
-  try {
-    return process.env.NODE_ENV !== 'production';
-  } catch {
-    return false;
-  }
-})();
-
 /** The props the machine reads once, at construction, as values to compare; `INIT_ONLY` names them in order. */
 const initOnlyValues = (o: CommandMachineOptions): unknown[] => [
   o.shortcutAction,
@@ -184,7 +174,10 @@ export function useCommandSetup(
   // same arrays, so the diff sends nothing. A `disabledItems` change refilters (the machine reads it in its refilter;
   // upserting an unchanged item triggers one).
   useLayoutEffect(() => {
-    if (isDev) {
+    // Inline comparison, so a consumer minifier that defines NODE_ENV as "production" folds the branch and drops the
+    // warning below; `typeof process` keeps an unbundled browser import (no `process`) from throwing, and there the
+    // hook counts as production.
+    if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') {
       const was = initOnlyValues(first);
       const now = initOnlyValues(options);
       INIT_ONLY.forEach((name, i) => {
