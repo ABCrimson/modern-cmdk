@@ -176,3 +176,85 @@ describe('Command.List ref prop (C2)', () => {
     expect(first.current).toBeNull();
   });
 });
+
+describe('Command.List --command-list-height (C2)', () => {
+  it('CE-123: the property does not take the virtual total after the list crosses 100 matches', async () => {
+    // A ResizeObserver whose callbacks the test fires by hand
+    const observers: { readonly callback: ResizeObserverCallback; readonly targets: Element[] }[] =
+      [];
+    class ManualResizeObserver {
+      readonly #entry: (typeof observers)[number];
+      constructor(callback: ResizeObserverCallback) {
+        this.#entry = { callback, targets: [] };
+        observers.push(this.#entry);
+      }
+      observe(target: Element): void {
+        this.#entry.targets.push(target);
+      }
+      unobserve(): void {}
+      disconnect(): void {}
+    }
+    vi.stubGlobal('ResizeObserver', ManualResizeObserver);
+    try {
+      const probe = new MachineProbe();
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      root = createRoot(container);
+      const current = root;
+      await act(async () => {
+        current.render(
+          <Command>
+            <probe.Probe />
+            <Command.Input />
+            <Command.List>
+              {[...values('common', COMMON), ...values('rare', RARE)].map((value) => (
+                <Command.Item key={value} value={value} forceId={value}>
+                  {value}
+                </Command.Item>
+              ))}
+            </Command.List>
+          </Command>,
+        );
+      });
+      await settle();
+
+      const list = container.querySelector<HTMLElement>('[data-command-list]');
+      expect(list).not.toBeNull();
+      /** Reports `height` for the inner element, as its ResizeObserver would. */
+      const report = async (height: number): Promise<void> => {
+        const inner = container?.querySelector(
+          '[data-command-list-inner], [data-command-list-virtual]',
+        );
+        const watcher = observers.find((observer) => inner && observer.targets.includes(inner));
+        if (!inner || !watcher) throw new Error('no observer watches the inner element');
+        await act(async () => {
+          watcher.callback(
+            [{ target: inner, contentRect: { height } } as ResizeObserverEntry],
+            watcher as unknown as ResizeObserver,
+          );
+        });
+      };
+      const height = (): string => list?.style.getPropertyValue('--command-list-height') ?? '';
+
+      // 30 matches: the inner element reports its natural height
+      const machine = probe.current;
+      await act(async () => {
+        machine.send({ type: 'SEARCH_CHANGE', query: 'rare' });
+      });
+      await settle();
+      await report(300);
+      expect(height()).toBe('300.0px');
+
+      // 150 matches: the list virtualizes and its inner element is as tall as all the rows; the property keeps 300
+      await act(async () => {
+        machine.send({ type: 'SEARCH_CHANGE', query: '' });
+      });
+      await settle();
+      expect(container.querySelector('[data-command-list-virtual]')).not.toBeNull();
+      await report(6600);
+      expect(height()).toBe('300.0px');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
