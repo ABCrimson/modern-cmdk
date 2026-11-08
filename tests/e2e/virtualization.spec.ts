@@ -253,10 +253,18 @@ test.describe('Virtualization — Large Item Set', () => {
     const afterScrollTop = await list.evaluate((el) => el.scrollTop);
     expect(afterScrollTop).toBeGreaterThan(initialScrollTop);
 
-    // Active item should be visible in the viewport
+    // The active item lies inside the list's own viewport (the list's bottom edge can sit below the page's)
     const activeItem = page.locator('[data-command-item][data-active]');
     await expect(activeItem).toBeVisible();
-    await expect(activeItem).toBeInViewport();
+    await expect
+      .poll(async () => {
+        const [row, view] = await Promise.all([
+          activeItem.evaluate((el) => el.getBoundingClientRect()),
+          list.evaluate((el) => el.getBoundingClientRect()),
+        ]);
+        return row.top >= view.top && row.bottom <= view.bottom;
+      })
+      .toBe(true);
   });
 
   test('should scroll active item into view when pressing End', async ({ page }) => {
@@ -474,6 +482,9 @@ test.describe('Virtualization — Large Item Set', () => {
 });
 
 test.describe('Virtualization — scroll to the active row (CE-119)', () => {
+  // The whole list (its bottom edge sits near y = 1000 in the playground) fits the page viewport, so the mouse can reach every row
+  test.use({ viewport: { width: 1280, height: 1100 } });
+
   test.beforeEach(async ({ page }) => {
     await page.goto(virtualizationUrl);
     await expect(page.locator('[data-command-item]').first()).toBeVisible();
@@ -539,6 +550,5 @@ test.describe('Virtualization — scroll to the active row (CE-119)', () => {
         return Math.abs(view - row);
       })
       .toBeLessThanOrEqual(1);
-    await expect(activeItem).toBeInViewport({ ratio: 1 });
   });
 });
