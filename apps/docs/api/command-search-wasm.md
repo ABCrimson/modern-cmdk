@@ -42,9 +42,9 @@ await using engine = await createWasmSearchEngine();
 | Property / Method | Type | Description |
 |---|---|---|
 | `isWasm` | `true` | Discriminant -- `false` on the TypeScript fallback engine |
-| `index(items)` | `(items: CommandItem[]) => void` | Index items for search. Serializes and sends to WASM trigram index |
-| `search(query, items)` | `(query: string, items: CommandItem[]) => IteratorObject<SearchResult>` | Synchronous fuzzy search returning scored results |
-| `remove(ids)` | `(ids: Set<ItemId>) => void` | The WASM index is rebuilt whole. On the main-thread engine `remove` clears it, and the remaining items stay out until an `index()` call passes them again (every `index()` call replaces the index with the items it is given); the worker engine clears and re-indexes the remaining items |
+| `index(items)` | `(items: CommandItem[]) => void` | Index items for search. The main-thread engine upserts the items by id into the values it keeps (an id that is already indexed is replaced, other ids stay) and sends them to the WASM trigram index once, before the next search |
+| `search(query, items)` | `(query: string, items: CommandItem[]) => IteratorObject<SearchResult>` | Synchronous fuzzy search returning scored results; a result names an id among the `items` you pass, so an empty `items` array yields nothing |
+| `remove(ids)` | `(ids: Set<ItemId>) => void` | Deletes only the given ids; every other indexed id stays searchable. The WASM index is rebuilt whole before the next search. The worker engine clears and re-indexes the remaining items |
 | `clear()` | `() => void` | Clear the entire index |
 | `[Symbol.dispose]()` | `() => void` | Free WASM memory (synchronous) |
 | `[Symbol.asyncDispose]()` | `() => Promise<void>` | Free WASM memory (async, for `await using`) |
@@ -77,8 +77,14 @@ async function search() {
     { id: itemId('item-2'), value: 'User Profile', keywords: ['account'] },
   ]);
 
-  const results = engine.search('applcation', []);
-  // Intended: trigram overlap tolerates the dropped letter and matches "Application Settings". Today the fallback engine runs and returns no results for an empty items array
+  // `search` returns only ids among the items you pass
+  const items = [
+    { id: itemId('item-1'), value: 'Application Settings' },
+    { id: itemId('item-2'), value: 'User Profile' },
+  ];
+  const results = [...engine.search('applcation', items)];
+  // Intended: trigram overlap tolerates the dropped letter and matches "Application Settings". Today the TypeScript fallback engine runs and its scorer ranks the results
+  console.log(results.length);
 }
 // WASM memory freed automatically
 ```
@@ -105,11 +111,11 @@ await using engine = await createWorkerSearchEngine({
 
 ### Returns
 
-`Promise<WorkerSearchEngine>` -- extends `WasmSearchEngine` with async search and worker properties.
+`Promise<WorkerSearchEngine | MainThreadSearchEngine>` -- a `SearchEngine` and `AsyncDisposable` with async search and worker properties. When the Worker cannot be created or fails before it signals ready, the factory returns the main-thread engine instead (`isWorker: false`, `useSharedMemory: false`; its `isWasm` is `false` when that engine is itself the TypeScript fallback); check `isWorker` if you need to know which you got.
 
 ### WorkerSearchEngine Interface
 
-Inherits all `WasmSearchEngine` methods, plus:
+Has the `SearchEngine` methods and `isWasm: true` of `WasmSearchEngine`, plus:
 
 | Property / Method | Type | Description |
 |---|---|---|
@@ -209,7 +215,7 @@ export default nextConfig;
 
 ## Plugging into the State Machine
 
-Both engine types implement the `SearchEngine` interface from `modern-cmdk`. The machine uses the engine's results as returned: a `filter` function is not consulted when `search` is given (`filter: false` still lists every item), and frecency, when enabled, re-ranks the engine's results. The machine disposes the engine it was given when it is itself disposed, so the engine's own `await using` is a safety net; do not reuse an engine after its machine is disposed:
+Both engine types implement the `SearchEngine` interface from `modern-cmdk`. The machine uses the engine's results as returned: a `filter` function is not consulted when `searchEngine` is given (`filter: false` still lists every item), and frecency, when enabled, re-ranks the engine's results. The machine disposes only a search engine it created itself: an engine you pass as `searchEngine` (or the deprecated `search`) is yours to dispose, and it survives the machine's dispose, suspend and resume. Dispose it when you are done with it, after the machine; the `await using` below does so, because `await using` disposes in reverse order of declaration. A worker engine's synchronous `search()` reads the cache of the last `searchAsync()` call and the machine never calls `searchAsync()`, so a machine over a worker engine searches only what you have already fetched with `searchAsync()`:
 
 ```typescript
 import type { CommandItem } from 'modern-cmdk';
@@ -225,11 +231,11 @@ export async function main(): Promise<void> {
   await using searchEngine = await createWasmSearchEngine();
 
   using machine = createCommandMachine({
-    search: searchEngine,
+    searchEngine,
     items: largeDataset,
   });
 
-  // ... use the machine here; both are disposed when the function returns
+  // ... use the machine here; when the function returns, the machine is disposed first, then the engine, which is yours to dispose
 }
 ```
 
@@ -241,7 +247,7 @@ import { Command } from 'modern-cmdk/react';
 
 function Palette({ wasmEngine }: { wasmEngine: SearchEngine }) {
   return (
-    <Command search={wasmEngine}>
+    <Command searchEngine={wasmEngine}>
       {/* Intended: items indexed and searched via WASM; today the TypeScript fallback runs */}
     </Command>
   );
