@@ -3,9 +3,11 @@
 Build a macOS Spotlight-style global search across your entire app.
 
 ```tsx
+'use client';
+
 import type { CommandItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 // App-owned actions and data source
 declare function createDoc(): void;
@@ -19,6 +21,8 @@ function navigate(path: string): void {
 
 function SpotlightSearch() {
   const [open, setOpen] = useState(false);
+  // The promise is created once per mount, never in JSX: a new promise on every render suspends again
+  const recent = useMemo(fetchRecentItems, []);
 
   return (
     <Command.Dialog open={open} onOpenChange={setOpen}>
@@ -35,11 +39,11 @@ function SpotlightSearch() {
 
         <Command.Group heading="Recent">
           <Command.AsyncItems
-            items={fetchRecentItems()}
+            items={recent}
             fallback={<Command.Loading loading>Loading recents...</Command.Loading>}
           >
             {(items) => items.map((item) => (
-              <Command.Item key={item.id} value={item.value} onSelect={() => console.log(item)}>
+              <Command.Item key={item.id} id={item.id} value={item.value} onSelect={() => console.log(item)}>
                 {item.value}
               </Command.Item>
             ))}
