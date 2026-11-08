@@ -6,14 +6,12 @@
 import { formatShortcut, parseShortcut } from 'modern-cmdk';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { useSyncExternalStore } from 'react';
+import { subscribeNever } from './hooks/use-hydrated.js';
 
 export interface CommandShortcutProps extends ComponentPropsWithRef<'kbd'> {
   /** Shortcut string to display (e.g., "Mod+K"). If not provided, reads from nearest Command.Item. */
   readonly shortcut?: string;
 }
-
-/** The platform never changes while the page is open, so there is nothing to subscribe to */
-const subscribe = (): (() => void) => (): void => {};
 
 /** Keyboard shortcut display with platform-aware formatting (e.g., Cmd vs Ctrl). */
 export function CommandShortcut({
@@ -25,7 +23,7 @@ export function CommandShortcut({
   // The server and the hydration pass render the neutral platform's text; the client then re-renders
   // with the detected platform's, so hydration matches the server HTML on every platform.
   const formattedShortcut: string | null = useSyncExternalStore(
-    subscribe,
+    subscribeNever,
     () => (shortcut ? formatShortcut(parseShortcut(shortcut)) : null),
     () => (shortcut ? formatShortcut(parseShortcut(shortcut, 'other'), 'other') : null),
   );

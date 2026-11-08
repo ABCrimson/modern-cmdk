@@ -8,6 +8,7 @@ import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use } from 'react';
 import { createPortal } from 'react-dom';
 import { CommandListStatusContext, useStateContext } from './context.js';
+import { useHydrated } from './hooks/use-hydrated.js';
 
 export interface CommandEmptyProps extends ComponentPropsWithRef<'div'> {}
 
@@ -16,9 +17,11 @@ export function CommandEmpty({ ref, children, ...props }: CommandEmptyProps): Re
   const stateCtx = useStateContext('Command.Empty');
 
   const statusContainerRef = use(CommandListStatusContext);
+  const hydrated: boolean = useHydrated();
 
-  // Only show when there's a search query but no results
-  if (stateCtx.state.filteredCount > 0 || stateCtx.state.loading) return null;
+  // Only show when there's a search query but no results. Before hydration the registry is empty because
+  // items register in layout effects, which says nothing about the query, so the server and the hydration pass render nothing.
+  if (!hydrated || stateCtx.state.filteredCount > 0 || stateCtx.state.loading) return null;
 
   const content = (
     <div ref={ref} data-command-empty="" role="status" aria-live="polite" {...props}>

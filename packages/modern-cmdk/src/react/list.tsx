@@ -21,6 +21,7 @@ import {
   useStableContext,
   useStateContext,
 } from './context.js';
+import { useHydrated } from './hooks/use-hydrated.js';
 import { useVirtualizer } from './hooks/use-virtualizer.js';
 
 export interface CommandListProps extends ComponentPropsWithRef<'div'> {
@@ -48,6 +49,8 @@ export function CommandList({
 }: CommandListProps): ReactNode {
   const stable = useStableContext('Command.List');
   const stateCtx = useStateContext('Command.List');
+  // The live-region text waits for hydration: the registry is empty in the server and hydration passes
+  const hydrated: boolean = useHydrated();
 
   const innerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -232,9 +235,11 @@ export function CommandList({
         data-command-aria-live=""
         className="sr-only"
       >
-        {announceResults
-          ? announceResults(stateCtx.state.filteredCount)
-          : `${stateCtx.state.filteredCount} result${stateCtx.state.filteredCount !== 1 ? 's' : ''} available.`}
+        {hydrated
+          ? announceResults
+            ? announceResults(stateCtx.state.filteredCount)
+            : `${stateCtx.state.filteredCount} result${stateCtx.state.filteredCount !== 1 ? 's' : ''} available.`
+          : ''}
       </div>
     </CommandListStatusContext>
   );
