@@ -162,6 +162,7 @@ export interface FrecencyDecayConfig {
 export interface FrecencyOptions {
   /** Turns frecency tracking and re-ranking on. Default false. */
   readonly enabled?: boolean | undefined;
+  /** Where the history persists; a storage you pass is yours to dispose, the engine disposes only the in-memory one it creates when you pass none. */
   readonly storage?: FrecencyStorage | undefined;
   readonly namespace?: string | undefined;
   readonly decayConfig?: FrecencyDecayConfig | undefined;

@@ -147,7 +147,9 @@ describe('machine frecency persistence', () => {
     expect(persisted.records.get(target)?.frequency).toBe(selections);
 
     a[Symbol.dispose]();
-    expect(await until(() => storageA.disposed)).toBe(true);
+    await settle();
+    expect(storageA.disposed).toBe(false);
+    storageA[Symbol.dispose]();
 
     const storageB = new SpyStorage(db);
     const b = track(
@@ -368,7 +370,7 @@ describe('machine frecency persistence', () => {
     expect(machine.getState().filteredIds[0]).toBe(six);
   });
 
-  it('P07: the machine disposes the storage the caller passed in, after its last save', async () => {
+  it('CE-115, D95: the machine leaves the storage the caller passed in undisposed, after its last save', async () => {
     const db = uniqueDb();
     const storage = new SpyStorage(db);
     const target = itemId('app two');
@@ -378,19 +380,31 @@ describe('machine frecency persistence', () => {
     });
     machine.send({ type: 'ITEM_SELECT', id: target });
     await settle();
-    expect(storage.disposed).toBe(false);
     machine[Symbol.dispose]();
 
-    expect(await until(() => storage.disposed)).toBe(true);
-    expect(storage.saved).toBe(true);
-    // The disposed instance loads empty and saves nothing; the data the machine saved is
-    // readable through a new instance
-    expect((await storage.load('default')).records.size).toBe(0);
+    expect(await until(() => storage.saved)).toBe(true);
+    await settle();
+    expect(storage.disposed).toBe(false);
+    // The storage still works: the caller's later save lands next to the machine's
     await storage.save('default', {
       records: new Map([[itemId('late'), { frequency: 9, lastUsed: Date.now() }]]),
     });
     const persisted = await readDb(db);
-    expect([...persisted.records.keys()]).toEqual([target]);
+    expect([...persisted.records.keys()]).toEqual([itemId('late')]);
+    storage[Symbol.dispose]();
+  });
+
+  it('CE-115, D95: a machine that created its own storage disposes it', async () => {
+    const dispose = vi.spyOn(MemoryFrecencyStorage.prototype, Symbol.dispose);
+    const machine = createCommandMachine({
+      items: items('app one'),
+      frecency: { enabled: true },
+    });
+    machine.send({ type: 'ITEM_SELECT', id: itemId('app one') });
+    await settle();
+    await machine[Symbol.asyncDispose]();
+    await settle();
+    expect(dispose).toHaveBeenCalledTimes(1);
   });
 
   it('LD-05: CommandMachine stays implementable without Symbol.asyncDispose and the machine still has one', () => {
