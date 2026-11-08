@@ -206,7 +206,7 @@ importers:
         version: 0.18.5
       '@axe-core/playwright':
         specifier: 4.14.1-b609be2.0.sha-b609be2
-        version: 4.14.1-b609be2.0.sha-b609be2(playwright-core@1.66.0-alpha-2026-11-07)
+        version: 4.14.1-b609be2.0.sha-b609be2(playwright-core@1.66.0-alpha-2026-11-08)
       '@biomejs/biome':
         specifier: 2.6.6
         version: 2.6.6
@@ -220,8 +220,8 @@ importers:
         specifier: 0.5.1
         version: 0.5.1
       '@playwright/test':
-        specifier: 1.66.0-alpha-2026-11-07
-        version: 1.66.0-alpha-2026-11-07
+        specifier: 1.66.0-alpha-2026-11-08
+        version: 1.66.0-alpha-2026-11-08
       '@size-limit/preset-small-lib':
         specifier: 14.3.0
         version: 14.3.0(size-limit@14.3.0)
@@ -266,7 +266,7 @@ importers:
         version: 2.2.2
       next:
         specifier: 16.5.0-canary.44
-        version: 16.5.0-canary.44(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.66.0-alpha-2026-11-07)(@types/node@26.6.6)(react-dom@0.0.0-experimental-5b610964-20261106(react@0.0.0-experimental-5b610964-20261106))(react@0.0.0-experimental-5b610964-20261106)
+        version: 16.5.0-canary.44(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.66.0-alpha-2026-11-08)(@types/node@26.6.6)(react-dom@0.0.0-experimental-5b610964-20261106(react@0.0.0-experimental-5b610964-20261106))(react@0.0.0-experimental-5b610964-20261106)
       publint:
         specifier: 0.3.25
         version: 0.3.25
@@ -1384,8 +1384,8 @@ packages:
   '@oxc-project/types@0.157.0':
     resolution: {integrity: sha512-95iTox1qdt6WGWce3xwNOVayByOfLaYAq+qGPpub6NWbBh9sv0GG3+zyfh9ZBCO/jVu5A0EWI+qQI7g6fevjxg==}
 
-  '@playwright/test@1.66.0-alpha-2026-11-07':
-    resolution: {integrity: sha512-tiCbjoBBAhSx19pBAgwdWvSZVCH6N33EymbGbZJfbwORoEPXHOIE0FIQxNmabMgOjaKAiNCEz72IpEkPcxYtgQ==}
+  '@playwright/test@1.66.0-alpha-2026-11-08':
+    resolution: {integrity: sha512-SkvT+IQRGLW+oonyXpXRRnu1Cx6forFfzlW0IgsptL33mrH1S4jehPDyX2KlWnuIIKW+b/J5uTxvVXyFRG9G6Q==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4205,13 +4205,13 @@ packages:
     resolution: {integrity: sha512-/E57AYkoeQ25qkxMj5PBOVgF8Kiu/h7cYS30Z5+R7WaiCCBfLq58ZI/dSeaEKb9WVJV5n/03QwrN3IeWIFllvw==}
     engines: {node: '>=6'}
 
-  playwright-core@1.66.0-alpha-2026-11-07:
-    resolution: {integrity: sha512-cuXFyatNVK9l/u/IGmUPLyZ8x/eXp47SvKmcgMjetKU+9JZlXKt8qNnKud64f1bboALJCM3gHWZF7DyTj6Ye4Q==}
+  playwright-core@1.66.0-alpha-2026-11-08:
+    resolution: {integrity: sha512-AsApVncpyi/BhpgxB3xY718J6zLniCmyup3EUc0M3QwIdMaB2tTmOAyX26h9xNiE5zxA1Fc/4sOsaGY8W58Jtg==}
     engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.66.0-alpha-2026-11-07:
-    resolution: {integrity: sha512-Gyg7Gii9tuzKh3bo8OwI09CnazJHhE5xOXVTERARZ63alOAAr7/xVsmFcbOLBzF87rd9DW9V4Ukm4U0/0rIBsQ==}
+  playwright@1.66.0-alpha-2026-11-08:
+    resolution: {integrity: sha512-yTCLE4jnR0z79tBglUst1Cc/3HRKemThP0yscusPGjgH6HE+7Keym6qo+Um0T9i3Zd5ptRTomgCyGfXNka4MEw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4970,10 +4970,10 @@ snapshots:
       typescript: 5.6.1-rc
       validate-npm-package-name: 5.0.1
 
-  '@axe-core/playwright@4.14.1-b609be2.0.sha-b609be2(playwright-core@1.66.0-alpha-2026-11-07)':
+  '@axe-core/playwright@4.14.1-b609be2.0.sha-b609be2(playwright-core@1.66.0-alpha-2026-11-08)':
     dependencies:
       axe-core: 4.14.0
-      playwright-core: 1.66.0-alpha-2026-11-07
+      playwright-core: 1.66.0-alpha-2026-11-08
 
   '@azure/abort-controller@2.2.0':
     dependencies:
@@ -5873,9 +5873,9 @@ snapshots:
 
   '@oxc-project/types@0.157.0': {}
 
-  '@playwright/test@1.66.0-alpha-2026-11-07':
+  '@playwright/test@1.66.0-alpha-2026-11-08':
     dependencies:
-      playwright: 1.66.0-alpha-2026-11-07
+      playwright: 1.66.0-alpha-2026-11-08
 
   '@pnpm/deps.graph-sequencer@1100.0.1': {}
 
@@ -8597,7 +8597,7 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  next@16.5.0-canary.44(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.66.0-alpha-2026-11-07)(@types/node@26.6.6)(react-dom@0.0.0-experimental-5b610964-20261106(react@0.0.0-experimental-5b610964-20261106))(react@0.0.0-experimental-5b610964-20261106):
+  next@16.5.0-canary.44(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.66.0-alpha-2026-11-08)(@types/node@26.6.6)(react-dom@0.0.0-experimental-5b610964-20261106(react@0.0.0-experimental-5b610964-20261106))(react@0.0.0-experimental-5b610964-20261106):
     dependencies:
       '@next/env': 16.5.0-canary.44
       '@swc/helpers': 0.5.24
@@ -8616,7 +8616,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.5.0-canary.44
       '@next/swc-win32-arm64-msvc': 16.5.0-canary.44
       '@next/swc-win32-x64-msvc': 16.5.0-canary.44
-      '@playwright/test': 1.66.0-alpha-2026-11-07
+      '@playwright/test': 1.66.0-alpha-2026-11-08
       sharp: 0.35.5(@types/node@26.6.6)
     transitivePeerDependencies:
       - '@babel/core'
@@ -8705,11 +8705,11 @@ snapshots:
     dependencies:
       find-up: 3.0.0
 
-  playwright-core@1.66.0-alpha-2026-11-07: {}
+  playwright-core@1.66.0-alpha-2026-11-08: {}
 
-  playwright@1.66.0-alpha-2026-11-07:
+  playwright@1.66.0-alpha-2026-11-08:
     dependencies:
-      playwright-core: 1.66.0-alpha-2026-11-07
+      playwright-core: 1.66.0-alpha-2026-11-08
 
   points-on-curve@0.2.0: {}
 
