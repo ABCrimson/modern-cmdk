@@ -210,9 +210,9 @@ describe('useVirtualizer scrollToIndex', () => {
 
   it("CE-119: scrollToIndex with 'nearest' leaves a row in view alone and scrolls a row below just into view", async () => {
     const { current, scrollTo } = await mountHook(100);
-    (current().scrollToIndex as (index: number, align: string) => void)(1, 'nearest');
+    current().scrollToIndex(1, 'nearest');
     expect(scrollTo).not.toHaveBeenCalled();
-    (current().scrollToIndex as (index: number, align: string) => void)(5, 'nearest');
+    current().scrollToIndex(5, 'nearest');
     expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 164, behavior: 'instant' });
   });
 });
