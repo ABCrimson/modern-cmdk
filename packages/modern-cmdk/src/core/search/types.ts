@@ -23,7 +23,8 @@ export interface SearchEngine extends Disposable {
   /**
    * Index items for fast lookup. The machine calls it on registration (the initial items, ITEMS_LOADED,
    * REGISTER_ITEM) and again on UPDATE_ITEM with the updated item, so an id that is already indexed must
-   * be replaced by the new item, not appended to the index.
+   * be replaced by the new item, not appended to the index. Indexing is incremental: ids not in `items`
+   * stay indexed.
    */
   index(items: readonly CommandItem[]): void;
   /** Search items by query, return ordered results — uses Iterator pipeline */

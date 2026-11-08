@@ -201,6 +201,27 @@ describe('machine frecency persistence', () => {
     expect(machine.getState().filteredIds).toEqual([itemId('app one'), itemId('app two')]);
   });
 
+  it('CE-109: hydration under filter: false emits no stateChange and keeps registration order', async () => {
+    const { storage, resolve } = deferredStorage();
+    const machine = track(
+      createCommandMachine({
+        items: items('app one', 'app two'),
+        filter: false,
+        frecency: { enabled: true, storage },
+      }),
+    );
+    machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+    await settle();
+    const listener = vi.fn();
+    machine.subscribe(listener);
+
+    resolve(new Map([[itemId('app two'), { frequency: 50, lastUsed: Date.now() }]]));
+    await settle();
+
+    expect(listener).not.toHaveBeenCalled();
+    expect(machine.getState().filteredIds).toEqual([itemId('app one'), itemId('app two')]);
+  });
+
   it('CE-14: a load that settles after dispose does not search or emit', async () => {
     const two = itemId('app two');
     const { storage, resolve } = deferredStorage();
