@@ -3,9 +3,9 @@
 // Helpers (`mount`, `update`, `settle`, `Spy`) are shared by the tests of this file.
 
 import { fireEvent } from '@testing-library/react';
-import type { CommandMachine } from 'modern-cmdk';
+import type { CommandItem, CommandMachine } from 'modern-cmdk';
 import { groupId, itemId } from 'modern-cmdk';
-import { Command, CommandStableContext } from 'modern-cmdk/react';
+import { Command, CommandStableContext, useRegisterItem } from 'modern-cmdk/react';
 import type { MouseEvent, ReactNode } from 'react';
 import { act, use } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -289,5 +289,45 @@ describe('Command.Item propsMerge', () => {
     expect(beta.getAttribute('style')).toContain('translate');
     expect(alpha.getAttribute('style')).not.toContain('translate');
     expect(alpha.style.color).toBe('red');
+  });
+});
+
+/** Registers one item with `data` through the hook, so the data object can change between renders. */
+function DataItem({ data }: { readonly data: Readonly<Record<string, unknown>> }): null {
+  useRegisterItem('alpha', { data, id: 'data-item' });
+  return null;
+}
+
+describe('Command.Item data', () => {
+  it('RA-39: a new data object with the same value reaches the custom filter', async () => {
+    const seen: (Readonly<Record<string, unknown>> | undefined)[] = [];
+    const filter = (item: CommandItem): number => {
+      seen.push(item.data);
+      return 1;
+    };
+    const spy = new Spy();
+    const tree = (data: Readonly<Record<string, unknown>>): ReactNode => (
+      <Command filter={filter}>
+        <spy.Probe />
+        <Command.Input />
+        <Command.List>
+          <DataItem data={data} />
+        </Command.List>
+      </Command>
+    );
+    await mount(tree({ generation: 1 }));
+    await settle();
+
+    // Same value, new data object: the registration does not run again.
+    await update(tree({ generation: 2 }));
+    await settle();
+    seen.length = 0;
+    await act(async () => {
+      spy.machine?.send({ type: 'SEARCH_CHANGE', query: 'a' });
+    });
+    await settle();
+
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.at(-1)).toEqual({ generation: 2 });
   });
 });
