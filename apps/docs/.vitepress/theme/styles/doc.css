@@ -148,17 +148,26 @@ html .vp-doc td {
    column (1440 and 1920; 622 px at 1280) cut every Description mid-word under the edge fade. Measured at e54dad3, with a 15rem
    td:last-child floor and every cell nowrap: api/command-react had 5 of 29 tables overflowing at 1440 (widest 235 px, the
    first Props table 106 px) and 10 at 1280 (widest 299 px); api/command had 10 of 19 at 1440 (widest 453 px) and 12 at 1280
-   (widest 517 px). The next try let code spans break inside an identifier (overflow-wrap: anywhere): no overflow, but
-   "FrecencyOption/s" at 1440 and 17 to 23 identifiers split at 1280. The rule now: cells and their code spans wrap at spaces
-   only, so an identifier is never split; the description keeps an 8rem (128 px) floor; cells pad 0.75rem inline, not 1rem. The
-   one wide row, `enabled` of api/command's FrecencyOptions table, was cut from 6 lines to 2 in the markdown. Measured
-   with this rule at 1280, 1440 and 1920: no table scrolls, no identifier splits, and the tallest row is 125 px at 1280 (both
-   pages), 82 px (api/command-react) and 104 px (api/command) at 1440 and 1920; tests/docs/api-tables.spec.ts allows 160. With
-   1rem padding one of the six page and width pairs still splits or scrolls; a 10rem floor leaves table 11 of api/command 14 px
-   too wide at 1280, so 8rem is the largest that fits. */
+   (widest 517 px). What holds now: a cell wraps at spaces, and breaks after a hyphen, a slash or a bracket where it must, but
+   the code in a FIRST column never wraps (a selector, a signature or a path there is a name: [data-command-list-inner],
+   [Symbol.dispose](), --command-dialog-translate), so on api/command-react, api/command and api/command-search-wasm no code
+   span is split in any column at 1280, 1440 and 1920 and no table scrolls (without the first-column rule: 15 split words
+   at 1280 and 11 at 1440 and 1920 on command-react, [Symbol.dispose]() at 1280 on command, [Symbol.asyncDispose]() at all
+   widths on command-search-wasm). Code in the other columns still breaks after a hyphen or a slash on the guide pages
+   (modern-cmdk-codemod in guide/installation, 3 split words at 1280 and 2 at 1440 and 1920): nowrap on every code span makes
+   tables scroll at 1280 (api/command-react 4 tables, api/command 7, api/command-search-wasm 2, guide/migration-from-cmdk 2,
+   guide/theming 2, guide/installation, guide/architecture and guide/wasm-search 1 each), so those spans stay breakable. The
+   description keeps an 8rem (128 px) floor and cells pad 0.75rem inline, not 1rem; the one wide row, `enabled` of
+   api/command's FrecencyOptions table, was cut from 6 lines to 2 in the markdown. The tallest row on the three API pages is
+   125 px at 1280 and at most 104 px at 1440 and 1920; tests/docs/api-tables.spec.ts allows 160. A 10rem floor leaves table 11 of
+   api/command 14 px too wide at 1280, so 8rem is the largest that fits. */
 html .vp-doc td,
 html .vp-doc td code {
   white-space: normal;
+}
+
+html .vp-doc td:first-child code {
+  white-space: nowrap;
 }
 
 html .vp-doc td:last-child {
