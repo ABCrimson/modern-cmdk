@@ -712,3 +712,143 @@ describe('CommandMachine frecency ranking (DT-18)', () => {
     expect(machine.getState().filteredIds).toEqual(['settings', 'alpha']);
   });
 });
+
+describe('CommandMachine shortcuts (CE-09, ARCH-16, ARCH-15)', () => {
+  const item = (id: string, value: string, extra?: Partial<CommandItem>): CommandItem => ({
+    id: itemId(id),
+    value,
+    ...extra,
+  });
+  /** Events run in order: once OPEN has been handled, everything sent before it has been too */
+  async function settle(machine: CommandMachine): Promise<void> {
+    machine.send({ type: 'OPEN' });
+    await vi.waitFor(() => {
+      expect(machine.getState().open).toBe(true);
+    });
+  }
+  const press = (key: string): void => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, cancelable: true }));
+  };
+
+  it('ARCH-16: the shortcut of an item delivered by ITEMS_LOADED fires its onSelect', async () => {
+    const onSelect = vi.fn();
+    using machine = createCommandMachine();
+    machine.send({
+      type: 'ITEMS_LOADED',
+      items: [item('a', 'Apple', { shortcut: 'Ctrl+J', onSelect })],
+    });
+    await settle(machine);
+    press('j');
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("CE-09: shortcutAction 'direct' (the default) calls the item onSelect and not options.onSelect", async () => {
+    const itemSelect = vi.fn();
+    const optionsSelect = vi.fn();
+    using machine = createCommandMachine({
+      items: [item('a', 'Apple', { shortcut: 'Ctrl+J', onSelect: itemSelect })],
+      onSelect: optionsSelect,
+    });
+    press('j');
+    await settle(machine);
+    expect(itemSelect).toHaveBeenCalledTimes(1);
+    expect(optionsSelect).not.toHaveBeenCalled();
+  });
+
+  it("CE-09: shortcutAction 'select' dispatches ITEM_SELECT: item onSelect and options.onSelect", async () => {
+    const itemSelect = vi.fn();
+    const optionsSelect = vi.fn();
+    using machine = createCommandMachine({
+      items: [item('a', 'Apple', { shortcut: 'Ctrl+J', onSelect: itemSelect })],
+      onSelect: optionsSelect,
+      shortcutAction: 'select',
+    });
+    press('j');
+    await settle(machine);
+    expect(itemSelect).toHaveBeenCalledTimes(1);
+    expect(optionsSelect).toHaveBeenCalledExactlyOnceWith(itemId('a'));
+  });
+
+  it("CE-09: shortcutAction 'select' records frecency: the item selected by shortcut ranks first", async () => {
+    using machine = createCommandMachine({
+      items: [
+        item('alpha', 'Alpha item'),
+        item('settings', 'Settings item', { shortcut: 'Ctrl+J', onSelect: () => {} }),
+      ],
+      frecency: { enabled: true },
+      shortcutAction: 'select',
+    });
+    press('j');
+    machine.send({ type: 'SEARCH_CHANGE', query: 'item' });
+    await vi.waitFor(() => {
+      expect(machine.getState().search).toBe('item');
+    });
+    expect(machine.getState().filteredIds).toEqual(['settings', 'alpha']);
+  });
+
+  it("CE-09: shortcutAction 'direct' does not record frecency", async () => {
+    using machine = createCommandMachine({
+      items: [
+        item('alpha', 'Alpha item'),
+        item('settings', 'Settings item', { shortcut: 'Ctrl+J', onSelect: () => {} }),
+      ],
+      frecency: { enabled: true },
+    });
+    press('j');
+    machine.send({ type: 'SEARCH_CHANGE', query: 'item' });
+    await vi.waitFor(() => {
+      expect(machine.getState().search).toBe('item');
+    });
+    expect(machine.getState().filteredIds).toEqual(['alpha', 'settings']);
+  });
+
+  it.for(['direct', 'select'] as const)(
+    "CE-09: shortcutAction '%s': the shortcut of a disabled item fires nothing, also after UPDATE_ITEM disables it",
+    async (shortcutAction) => {
+      const disabledSelect = vi.fn();
+      const toggledSelect = vi.fn();
+      const optionsSelect = vi.fn();
+      using machine = createCommandMachine({
+        items: [
+          item('off', 'Off', { shortcut: 'Ctrl+J', onSelect: disabledSelect, disabled: true }),
+          item('toggled', 'Toggled', { shortcut: 'Ctrl+L', onSelect: toggledSelect }),
+        ],
+        onSelect: optionsSelect,
+        shortcutAction,
+      });
+      machine.send({
+        type: 'UPDATE_ITEM',
+        item: item('toggled', 'Toggled', {
+          shortcut: 'Ctrl+L',
+          onSelect: toggledSelect,
+          disabled: true,
+        }),
+      });
+      await settle(machine);
+      press('j');
+      press('l');
+      await settle(machine);
+      expect(disabledSelect).not.toHaveBeenCalled();
+      expect(toggledSelect).not.toHaveBeenCalled();
+      expect(optionsSelect).not.toHaveBeenCalled();
+    },
+  );
+
+  it("CE-09: shortcutAction 'select' binds an item that has a shortcut but no onSelect and fires options.onSelect", async () => {
+    const optionsSelect = vi.fn();
+    using machine = createCommandMachine({
+      items: [item('a', 'Apple', { shortcut: 'Ctrl+J' })],
+      onSelect: optionsSelect,
+      shortcutAction: 'select',
+    });
+    expect(machine.getKeyboardRegistry().getBindings().size).toBe(1);
+    press('j');
+    await settle(machine);
+    expect(optionsSelect).toHaveBeenCalledExactlyOnceWith(itemId('a'));
+  });
+
+  it("CE-09: shortcutAction 'direct' binds only items that have an onSelect", () => {
+    using machine = createCommandMachine({ items: [item('a', 'Apple', { shortcut: 'Ctrl+J' })] });
+    expect(machine.getKeyboardRegistry().getBindings().size).toBe(0);
+  });
+});

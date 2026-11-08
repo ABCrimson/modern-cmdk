@@ -196,6 +196,13 @@ export interface CommandMachineOptions {
    * from `filteredIds` in every branch (default: `'show'`)
    */
   readonly disabledItems?: 'hide' | 'show' | undefined;
+  /**
+   * What an item's keyboard shortcut does. `'direct'` (the default through 1.x) calls the item's `onSelect`
+   * and binds only items that have one; `'select'` dispatches `ITEM_SELECT` for the item, so the disabled guard,
+   * frecency, the select event and `options.onSelect` apply, and binds every item with a shortcut. 2.0 flips
+   * the default to `'select'`. Under both, the shortcut of a disabled item does nothing.
+   */
+  readonly shortcutAction?: 'select' | 'direct' | undefined;
   /** Accepted but not read yet: Command.List uses fixed thresholds (on above 100 matches, off at 50 or fewer) (default: 100) */
   readonly virtualizeThreshold?: number | undefined;
 }
