@@ -254,3 +254,40 @@ it("D107: a subscriber that disposes the machine stops that batch's telemetry", 
   expect(onPaletteOpen).not.toHaveBeenCalled();
   expect(onSearchComplete).not.toHaveBeenCalled();
 });
+
+it("D112: a refilter that throws at the commit still reports that batch's telemetry", () => {
+  const errors: unknown[] = [];
+  // The scheduler rethrows a failing commit through queueMicrotask: collect it, do not fail the run
+  vi.stubGlobal('queueMicrotask', (run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      errors.push(error);
+    }
+  });
+  const failure = new Error('filter down');
+  const onPaletteOpen = vi.fn();
+  const onSearchComplete = vi.fn();
+  const onItemSelected = vi.fn();
+  using machine = createCommandMachine({
+    items,
+    filter: (item, query) => {
+      if (item.value === 'Applet') throw failure;
+      return item.value.toLowerCase().includes(query.toLowerCase()) ? 1 : false;
+    },
+    telemetry: { onPaletteOpen, onSearchComplete, onItemSelected },
+  });
+  nextBatch();
+
+  machine.send({ type: 'OPEN' });
+  machine.send({ type: 'ITEM_SELECT', id: itemId('apple') });
+  machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
+  // Registered after the query: the commit's refilter runs over it and throws
+  machine.send({ type: 'REGISTER_ITEM', item: { id: itemId('applet'), value: 'Applet' } });
+  nextBatch();
+
+  expect(errors).toEqual([failure]);
+  expect(onPaletteOpen).toHaveBeenCalledTimes(1);
+  expect(onSearchComplete).toHaveBeenCalledTimes(1);
+  expect(onItemSelected).toHaveBeenCalledTimes(1);
+});
