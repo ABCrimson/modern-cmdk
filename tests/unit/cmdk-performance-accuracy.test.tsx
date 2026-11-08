@@ -288,8 +288,11 @@ describe('5. React Render Performance', () => {
     await act(async () => {
       root.render(ui);
     });
+    // One rAF frame: the machine's scheduler batches with requestAnimationFrame (happy-dom's is
+    // setImmediate-backed), so this waits for modern-cmdk's batch; cmdk is not rAF-batched and has
+    // rendered by the act() above. The frame sits inside the timed region on purpose
     await act(async () => {
-      await new Promise<void>((r) => queueMicrotask(r));
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
     });
     return performance.now() - start;
   }

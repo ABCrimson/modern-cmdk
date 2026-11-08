@@ -12,8 +12,8 @@ const ITEMS = [
 
 type Machine = ReturnType<typeof createCommandMachine>;
 
-/** Let the machine's microtask scheduler flush */
-const tick = (): Promise<void> => new Promise<void>((r) => setTimeout(r, 0));
+/** Let the machine's rAF-batched scheduler flush: a frame queued after machine.send() runs after the batch */
+const tick = (): Promise<void> => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
 async function searchOrder(machine: Machine): Promise<readonly string[]> {
   machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
