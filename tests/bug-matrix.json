@@ -1046,8 +1046,8 @@
   },
   {
     "id": "CE-13",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/ssr-render.test.tsx::CE-13: formatShortcut resolves Mod for the platform it is given",
+    "status": "covered"
   },
   {
     "id": "DAE-08",
@@ -1121,8 +1121,8 @@
   },
   {
     "id": "ARCH-12",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/async-registration.test.tsx::ARCH-12: a loaded item rendered as Command.Item with its id counts once",
+    "status": "covered"
   },
   {
     "id": "ARCH-17",
@@ -1156,13 +1156,13 @@
   },
   {
     "id": "RA-05",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/group-remount.test.tsx::RA-05: a group toggling between no match and match keeps its items mounted",
+    "status": "covered"
   },
   {
     "id": "RA-13",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/item-props.test.tsx::RA-13: propsMerge compose calls the consumer onClick and still selects",
+    "status": "covered"
   },
   {
     "id": "RA-16",
@@ -1171,18 +1171,18 @@
   },
   {
     "id": "RA-17",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/async-registration.test.tsx::RA-17: a promise held stable across renders suspends once",
+    "status": "covered"
   },
   {
     "id": "RA-18",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/async-registration.test.tsx::RA-18: unmounting AsyncItems unregisters every item it loaded",
+    "status": "covered"
   },
   {
     "id": "RA-19",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/ssr-render.test.tsx::RA-19: Command.Shortcut hydrates under a macOS client with no recoverable error",
+    "status": "covered"
   },
   {
     "id": "RA-21",
@@ -1236,18 +1236,18 @@
   },
   {
     "id": "RA-39",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/item-props.test.tsx::RA-39: a new data object with the same value reaches the custom filter",
+    "status": "covered"
   },
   {
     "id": "RA-45",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/separator-search.test.tsx::RA-45: alwaysRender false hides the separator while the search is non-empty",
+    "status": "covered"
   },
   {
     "id": "RA-46",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/error-boundary.test.tsx::ARCH-58: fallback(error, reset) retries the children when Retry is clicked",
+    "status": "covered"
   },
   {
     "id": "RA-X3",
@@ -1256,8 +1256,8 @@
   },
   {
     "id": "DGX-ASYNC-4",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/async-registration.test.tsx::DGX-ASYNC-4: a new items promise replaces the previous batch in the registry and the search index",
+    "status": "covered"
   },
   {
     "id": "DGX-CD-5",
@@ -1306,8 +1306,8 @@
   },
   {
     "id": "CE-119",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/virtualization.spec.ts::CE-119: hovering a row already in view does not scroll the virtual list",
+    "status": "covered"
   },
   {
     "id": "CE-124",
