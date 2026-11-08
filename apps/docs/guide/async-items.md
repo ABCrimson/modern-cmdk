@@ -342,6 +342,8 @@ export function ResettableSearch({ tenant }: { tenant: string }) {
 
 ::: tip
 `<Command.AsyncItems>` uses React 19's `use()` hook internally. The promise passed to `items` is consumed directly by `use()`, triggering Suspense while pending. No additional state management is needed.
+
+Once the promise resolves, the items are also sent to the machine in an `ITEMS_LOADED` event (from a layout effect). Like every `send()` it is scheduled, not synchronous: the machine registers the items, binds their `shortcut`s (the shortcut of a `disabled` item is not bound) and refilters once with the rest of the batch, so `machine.getState()` shows them on the next frame, not in the same call.
 :::
 
 ::: warning

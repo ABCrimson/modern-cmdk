@@ -38,7 +38,7 @@ const machine = createCommandMachine({
 
 ## Disposable Pattern
 
-The machine implements `Disposable` for the `using` keyword (ESNext explicit resource management):
+`createCommandMachine` returns `CommandMachine & AsyncDisposable`. The machine implements `Disposable` for the `using` keyword (ESNext explicit resource management), and `AsyncDisposable` for `await using`, which first awaits the pending frecency save:
 
 ```ts
 import { createCommandMachine, itemId } from 'modern-cmdk';
@@ -69,7 +69,7 @@ state.filteredIds.push(itemId('x'));
 
 ## isolatedDeclarations
 
-All packages are built with `isolatedDeclarations: true`, ensuring `.d.ts` files are generated without full type inference — faster builds and compatible with any bundler.
+`modern-cmdk` is built with `isolatedDeclarations: true` (`tsconfig.base.json`; the codemod and scaffolder packages set it to `false`), ensuring `.d.ts` files are generated without full type inference — faster builds and compatible with any bundler.
 
 ## erasableSyntaxOnly
 

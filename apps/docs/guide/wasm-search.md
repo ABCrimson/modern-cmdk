@@ -242,6 +242,8 @@ using machine = createCommandMachine({
 // The machine now uses WASM-accelerated fuzzy search for all queries
 ```
 
+The machine disposes the search engine it is given when it is itself disposed, so the engine's own `await using` is a safety net (disposing twice frees once); do not reuse an engine after its machine is disposed. A disposed WASM engine throws from `index`, `search`, `remove` and `clear`.
+
 Or via the React adapter's `search` prop:
 
 ```tsx
