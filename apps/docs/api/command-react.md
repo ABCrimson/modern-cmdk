@@ -527,7 +527,7 @@ Create the promise outside render (at module scope for static data, or in a per-
 
 ## `<Command.Activity>`
 
-Wraps content in React's Activity API (stable since React 19.2) for state preservation. When `mode="hidden"`, the component tree is preserved in memory without rendering. Falls back to conditional rendering if the Activity API is unavailable.
+Wraps content in React's Activity API (stable since React 19.2) for state preservation. When `mode="hidden"`, React keeps the children mounted with their state and DOM, hides the DOM with `display: none` and cleans up their effects until the mode is visible again. Falls back to conditional rendering if the Activity API is unavailable.
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
