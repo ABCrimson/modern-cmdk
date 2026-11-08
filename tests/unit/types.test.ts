@@ -244,6 +244,61 @@ describe('Type Foundation', () => {
     });
   });
 
+  describe('Exported defaults are what the machine reads (CE-72)', () => {
+    type Writable = { -readonly [K in keyof CommandMachineOptions]: CommandMachineOptions[K] };
+    const defaults = DEFAULT_MACHINE_OPTIONS as Writable;
+    const items = [
+      { id: itemId('a'), value: 'A' },
+      { id: itemId('b'), value: 'B' },
+    ];
+
+    it('CE-72: DEFAULT_MACHINE_OPTIONS.loop = false makes a machine without a loop option stop at the end', async () => {
+      const saved = defaults.loop;
+      try {
+        defaults.loop = false;
+        using machine = createCommandMachine({ items });
+        machine.send({ type: 'NAVIGATE', direction: 'next' });
+        machine.send({ type: 'NAVIGATE', direction: 'next' });
+        machine.send({ type: 'OPEN' }); // handled after the two events above
+        await vi.waitFor(() => {
+          expect(machine.getState().open).toBe(true);
+        });
+        expect(machine.getState().activeId).toBe('b');
+      } finally {
+        defaults.loop = saved;
+      }
+    });
+
+    it('CE-72: an explicit loop option still wins over the default', async () => {
+      const saved = defaults.loop;
+      try {
+        defaults.loop = false;
+        using machine = createCommandMachine({ items, loop: true });
+        machine.send({ type: 'NAVIGATE', direction: 'next' });
+        machine.send({ type: 'NAVIGATE', direction: 'next' });
+        machine.send({ type: 'OPEN' });
+        await vi.waitFor(() => {
+          expect(machine.getState().open).toBe(true);
+        });
+        expect(machine.getState().activeId).toBe('a');
+      } finally {
+        defaults.loop = saved;
+      }
+    });
+
+    it('CE-72: DEFAULT_MACHINE_OPTIONS.open = true is the initial open state when the option is absent', () => {
+      const saved = defaults.open;
+      try {
+        defaults.open = true;
+        expect(createInitialState().open).toBe(true);
+        expect(createInitialState({}).open).toBe(true);
+        expect(createInitialState({ open: false }).open).toBe(false);
+      } finally {
+        defaults.open = saved;
+      }
+    });
+  });
+
   describe('createInitialState', () => {
     it('should return a valid CommandState', () => {
       const state = createInitialState();

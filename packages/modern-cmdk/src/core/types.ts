@@ -162,7 +162,7 @@ export const DEFAULT_FRECENCY_DECAY: Required<FrecencyDecayConfig> = {
   weekWeight: 1.5,
   monthWeight: 1.0,
   olderWeight: 0.5,
-} as const satisfies Required<FrecencyDecayConfig>;
+};
 
 /** Options for creating a command machine */
 export interface CommandMachineOptions {
@@ -207,12 +207,15 @@ export interface CommandMachineOptions {
   readonly virtualizeThreshold?: number | undefined;
 }
 
-/** Default machine options */
+/**
+ * Default machine options. The machine reads `loop` and `open` from here when its options leave them out
+ * (the other options are opt-ins whose absence is their default); `virtualizeThreshold` is not read yet.
+ */
 export const DEFAULT_MACHINE_OPTIONS: Partial<CommandMachineOptions> = {
   loop: true,
   virtualizeThreshold: 100,
   open: false,
-} as const satisfies Partial<CommandMachineOptions>;
+};
 
 /** Initial state factory */
 export function createInitialState(options?: CommandMachineOptions): CommandState {
@@ -225,7 +228,7 @@ export function createInitialState(options?: CommandMachineOptions): CommandStat
     loading: false,
     page: 'root',
     pageStack: [],
-    open: options?.open ?? false,
+    open: options?.open ?? DEFAULT_MACHINE_OPTIONS.open ?? false,
     lastUpdated: Date.now(),
   };
 }
