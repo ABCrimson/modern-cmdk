@@ -48,6 +48,16 @@ describe('ci.yml', () => {
     expect(job('docs')).toMatch(/^ {6}- run: pnpm test:docs$/m);
   });
 
+  it('the docs job uploads test-results/ whatever the test step did, so a flaky run leaves its trace (failOnFlakyTests fails the job)', () => {
+    // playwright.docs.config.ts keeps a trace of every failed attempt under test-results/docs-runs, retried ones included
+    const block = job('docs');
+    const step = block.slice(block.indexOf('      - uses: actions/upload-artifact@'));
+    expect(step).toMatch(/^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40} # v\d/m);
+    expect(step).toMatch(/^ {8}if: always\(\)$/m);
+    expect(step).toMatch(/^ {10}path: test-results\/$/m);
+    expect(block.indexOf('pnpm test:docs')).toBeLessThan(block.indexOf('upload-artifact'));
+  });
+
   it('RDG-126, RDG-130: the consumers and package jobs take no pnpm store cache', () => {
     const cacheLine = /^ +cache:[ \t]*['"]?pnpm['"]?[ \t]*(#.*)?$/m;
     expect(job('consumers')).not.toMatch(cacheLine);
