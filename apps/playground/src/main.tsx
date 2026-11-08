@@ -9,8 +9,14 @@ if (!root) throw new Error('Missing #root element — ensure index.html has <div
 
 applyOsThemeDefault();
 
-createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+if (location.pathname === '/bench') {
+  // Browser bench page (benchmarks/browser/run.ts): loaded on demand so no other route ships it
+  const { renderBench } = await import('./bench/bench-page.js');
+  renderBench(root);
+} else {
+  createRoot(root).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
