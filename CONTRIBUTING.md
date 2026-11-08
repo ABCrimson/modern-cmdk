@@ -188,10 +188,21 @@ modern-cmdk/
       .vitepress/
         config.ts
         theme/
-          index.ts
+          index.ts                theme entry: wires the fonts, the stylesheets and the layouts
+          Layout.vue              default layout with the 404 and appearance-toggle hooks
+          view-transitions.ts     route and appearance view transitions
           styles/
-            vars.css              OKLCH color variables
-            custom.css
+            tokens.css            OKLCH colour tokens (--mc-*), the --vp-* bridge, motion tokens
+            fonts.css             fallback faces, font stacks, measure
+            doc.css               doc-page typography, code blocks, containers
+            chrome.css            nav, sidebar, outline, search
+            motion.css            view-transition and scroll-driven rules
+            a11y.css              focus ring, forced colours, scroll padding
+          components/             HomeLayout, InstallBlock, HomeStats, EntryPoints, NotFound,
+                                  PaletteDemo, MermaidDiagram
+            palette/              palette types, hero items, page-href helper
+          composables/            usePalette.ts
+          data/                   records.data.ts (build-time loader for the home numbers)
       guide/                      15 guides (getting-started, installation, basic-usage,
                                   migration-from-cmdk, wasm-search, frecency, shortcuts,
                                   virtualization, ssr, theming, accessibility, async-items,

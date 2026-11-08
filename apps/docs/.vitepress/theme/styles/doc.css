@@ -11,7 +11,7 @@
  * rules that must win start with `html` (and `html:root` for variables, the same specificity as tokens.css).
  */
 
-/* Variables of the default theme that this file points at the tokens (documented in vars.css) */
+/* Variables of the default theme that this file points at the tokens (defined in the default theme's styles/vars.css and styles/components, under vitepress/dist/client/theme-default) */
 html:root {
   /* the language label and the copy button key cap */
   --vp-code-lang-color: var(--mc-text-3);
