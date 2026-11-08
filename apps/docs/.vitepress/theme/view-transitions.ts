@@ -4,9 +4,9 @@
 // transitionAppearance() from the 'toggle-appearance' provider in Layout.vue. The styling is styles/motion.css,
 // keyed on the data-mc-transition attribute this file sets on <html> for the lifetime of a transition.
 //
-// The module has no top-level document or window access, and the router hooks also run during SSR
-// (vitepress/dist/client/app/ssr.js:6 calls createApp(), which runs enhanceApp({ router })), where they touch neither
-// window, document nor location; only the browser-only paths (canTransition() true, the toggle) reach the DOM.
+// The module has no top-level document or window access beyond one guarded popstate listener, and the router hooks also run during SSR
+// (vitepress/dist/client/app/ssr.js:5 calls createApp(), which runs enhanceApp({ router }), and :6 calls router.go(path)),
+// where they touch neither window, document nor location; only the browser-only paths (canTransition() true, the toggle) reach the DOM.
 
 import type { Router } from 'vitepress';
 import type { Ref } from 'vue';
@@ -59,6 +59,22 @@ function pathnameOf(href: string): string {
   return new URL(href, FAKE_HOST).pathname;
 }
 
+// History traversals (back, forward) get a hard cut. VitePress drops a page load that a later one overtakes
+// (router.js:42, latestPendingPath), and holding the popstate load open inside a transition widens that race: rapid
+// back, back, forward then ends at the wrong scroll position. navigation.activation.navigationType is no substitute: it
+// stays constant during same-document navigations (https://developer.mozilla.org/en-US/docs/Web/API/Navigation/activation,
+// read 2026-11-07). Popstate is counted by a listener registered when this module is evaluated, which is when the theme
+// entry is imported, before createApp() creates the router and registers its own popstate listener (router.js:104):
+// listeners on the window run in registration order, so a listener added in enhanceApp would run after VitePress's. It
+// applies VitePress's own test, a null state is ignored (:105). Each counted popstate is consumed by the page load it
+// starts, because router.js calls onBeforePageLoad synchronously from that listener. The typeof guard keeps SSR clean.
+let pendingTraversals = 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', (event) => {
+    if (event.state !== null) pendingTraversals++;
+  });
+}
+
 /**
  * Wraps the router's page swap in a view transition, chaining any hook that is already installed.
  *
@@ -83,15 +99,22 @@ export function installRouteTransitions(router: Router): void {
   // Resolvers of the transition in flight: `captured` opens when the browser has the old page, `swapped` when the new one is in.
   let swapped: PromiseWithResolvers<void> | undefined;
   let captured: PromiseWithResolvers<void> | undefined;
+  // The path the transition in flight is swapping to; onAfterRouteChange releases `swapped` only for that path.
+  let swappedPath: string | undefined;
+
+  let traversing = false;
 
   const settle = (): void => {
     captured?.resolve();
     swapped?.resolve();
     captured = undefined;
     swapped = undefined;
+    swappedPath = undefined;
   };
 
   router.onBeforePageLoad = async (to: string): Promise<boolean | undefined> => {
+    traversing = pendingTraversals > 0;
+    if (traversing) pendingTraversals--;
     if ((await previous.onBeforePageLoad?.(to)) === false) return false;
     // A navigation that starts mid-flight ends the running transition; its pending promises are released with it.
     if (active) {
@@ -107,12 +130,13 @@ export function installRouteTransitions(router: Router): void {
     const from = currentPath;
     currentPath = nextPath;
     // Guards: not the initial load, the pathname differs (hash-only moves skip), and the browser allows it now.
-    if (from === undefined || from === nextPath || !canTransition()) return;
+    if (from === undefined || from === nextPath || traversing || !canTransition()) return;
 
     const pairCaptured = Promise.withResolvers<void>();
     const pairSwapped = Promise.withResolvers<void>();
     captured = pairCaptured;
     swapped = pairSwapped;
+    swappedPath = nextPath;
 
     // The timeout releases both pairs of this navigation if the browser or the router stalls.
     const timer = setTimeout(() => {
@@ -135,12 +159,17 @@ export function installRouteTransitions(router: Router): void {
 
   router.onAfterRouteChange = async (to: string): Promise<void> => {
     await previous.onAfterRouteChange?.(to);
-    currentPath = pathnameOf(to);
+    // A go() whose page load was overtaken by a later one still calls this hook (router.js:30), and route.path is then
+    // still the page on screen: only the navigation that owns `swapped` may release it. route.path has the form of
+    // pathnameOf (router.js:37 and :46 use new URL(href, fakeHost).pathname).
+    currentPath = router.route.path;
+    if (swapped === undefined || router.route.path !== swappedPath) return;
     // The new component is set; let Vue render it, then tell the browser to capture the new state.
     await nextTick();
     swapped?.resolve();
     swapped = undefined;
     captured = undefined;
+    swappedPath = undefined;
   };
 }
 
