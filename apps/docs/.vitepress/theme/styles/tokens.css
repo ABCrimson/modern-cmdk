@@ -71,13 +71,13 @@ html:root {
   ); /* #2a3259 / #cfd7ef  inline code is ink, not brand */
   --mc-code-bg: light-dark(oklch(0.235 0.045 273 / 6%), oklch(0.945 0.012 273 / 8%));
 
-  /* containers: -1 ink, -2 is -1 at L - 0.05, -3 equals -1, soft fill */
+  /* containers: -1 ink, -2 is -1 at L - 0.05 (light chroma cut to the sRGB edge for tip, warning and note), -3 equals -1, soft fill */
   --mc-tip-1: light-dark(oklch(0.47 0.11 155), oklch(0.8 0.14 155)); /* #106c3e / #6ad895 */
-  --mc-tip-2: light-dark(oklch(0.42 0.11 155), oklch(0.75 0.14 155));
+  --mc-tip-2: light-dark(oklch(0.42 0.103 155), oklch(0.75 0.14 155));
   --mc-tip-3: light-dark(oklch(0.47 0.11 155), oklch(0.8 0.14 155));
   --mc-tip-soft: light-dark(oklch(0.47 0.11 155 / 8%), oklch(0.8 0.14 155 / 12%));
   --mc-warning-1: light-dark(oklch(0.5 0.105 65), oklch(0.84 0.13 80)); /* #8b5511 / #f7c15f */
-  --mc-warning-2: light-dark(oklch(0.45 0.105 65), oklch(0.79 0.13 80));
+  --mc-warning-2: light-dark(oklch(0.45 0.101 65), oklch(0.79 0.13 80));
   --mc-warning-3: light-dark(oklch(0.5 0.105 65), oklch(0.84 0.13 80));
   --mc-warning-soft: light-dark(oklch(0.5 0.105 65 / 8%), oklch(0.84 0.13 80 / 12%));
   --mc-important-1: light-dark(oklch(0.48 0.2 293), oklch(0.76 0.13 293)); /* #6738c1 / #b4a1fc */
@@ -85,7 +85,7 @@ html:root {
   --mc-important-3: light-dark(oklch(0.48 0.2 293), oklch(0.76 0.13 293));
   --mc-important-soft: light-dark(oklch(0.48 0.2 293 / 8%), oklch(0.76 0.13 293 / 12%));
   --mc-note-1: light-dark(oklch(0.47 0.13 250), oklch(0.78 0.11 245)); /* #065da0 / #78bff9 */
-  --mc-note-2: light-dark(oklch(0.42 0.13 250), oklch(0.73 0.11 245));
+  --mc-note-2: light-dark(oklch(0.42 0.119 250), oklch(0.73 0.11 245));
   --mc-note-3: light-dark(oklch(0.47 0.13 250), oklch(0.78 0.11 245));
   --mc-note-soft: light-dark(oklch(0.47 0.13 250 / 8%), oklch(0.78 0.11 245 / 12%));
 
@@ -297,17 +297,21 @@ html:root {
   inherits: false;
 }
 
-/* prefers-contrast: more (8): the divider becomes border-strong, text-2 and text-3 become text-1, soft fills go to 20% */
+/*
+ * prefers-contrast: more (8): the divider becomes border-strong, text-2 and text-3 become text-1, soft fills go to 20%.
+ * The two light crimson fills stop at 16%: brand-1 text on a 20% fill is 4.39:1 (sidebar pill) and 4.49:1 (danger title),
+ * under the 4.5 floor (tests/unit/docs-contrast.test.ts).
+ */
 @media (prefers-contrast: more) {
   html:root {
     --mc-divider: var(--mc-border-strong);
     --mc-text-2: var(--mc-text-1);
     --mc-text-3: var(--mc-text-1);
-    --mc-brand-soft: light-dark(oklch(0.577 0.215 27.3 / 20%), oklch(0.72 0.165 22 / 20%));
+    --mc-brand-soft: light-dark(oklch(0.577 0.215 27.3 / 16%), oklch(0.72 0.165 22 / 20%));
     --mc-tip-soft: light-dark(oklch(0.47 0.11 155 / 20%), oklch(0.8 0.14 155 / 20%));
     --mc-warning-soft: light-dark(oklch(0.5 0.105 65 / 20%), oklch(0.84 0.13 80 / 20%));
     --mc-important-soft: light-dark(oklch(0.48 0.2 293 / 20%), oklch(0.76 0.13 293 / 20%));
     --mc-note-soft: light-dark(oklch(0.47 0.13 250 / 20%), oklch(0.78 0.11 245 / 20%));
-    --mc-danger-soft: light-dark(oklch(0.505 0.19 27.5 / 20%), oklch(0.72 0.165 22 / 20%));
+    --mc-danger-soft: light-dark(oklch(0.505 0.19 27.5 / 16%), oklch(0.72 0.165 22 / 20%));
   }
 }
