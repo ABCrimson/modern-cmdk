@@ -4,8 +4,9 @@
 //
 // Every entry that @size-limit/rolldown bundles gets `process.env.NODE_ENV` defined as "production" through
 // `modifyRolldownConfig` (size-limit/index.d.ts) and rolldown's `transform.define`, because that is the bundle every
-// consumer bundler produces: the development guards (`typeof process !== 'undefined' && process.env.NODE_ENV !==
-// 'production'`) fold away. Entries with `rolldown: false` measure their files as they are.
+// consumer bundler produces: the development guards (`dev && process.env.NODE_ENV !== 'production'`, where `dev` is
+// a module-scope flag that is false where `process` does not exist) fold to `dev && false` and are dropped.
+// Entries with `rolldown: false` measure their files as they are.
 // `pnpm size` and the Bundle Size job (.github/workflows/ci.yml) both run `size-limit` and read this file.
 
 /** Defines `process.env.NODE_ENV` as "production" in rolldown's transform options, keeping any other define. */

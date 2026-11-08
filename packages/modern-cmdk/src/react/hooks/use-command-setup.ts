@@ -7,6 +7,7 @@ import type { CommandMachine, CommandMachineOptions, CommandState, ItemId } from
 import { createCommandMachine } from 'modern-cmdk';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CommandStableContextValue, CommandStateContextValue } from '../context.js';
+import { dev } from '../env.js';
 import { useCommand } from './use-command.js';
 import { createKeydownHandler } from './use-keyboard.js';
 
@@ -237,10 +238,10 @@ export function useCommandSetup(
   // unmounted in this commit (their layout cleanups run in the mutation phase, before this effect). Its refilter
   // therefore sees the final registry, and it reports no candidate: the prop is the caller's own change.
   useLayoutEffect(() => {
-    // Inline comparison, so a consumer minifier that defines NODE_ENV as "production" folds the branch and drops the
-    // warning below; `typeof process` keeps an unbundled browser import (no `process`) from throwing, and there the
-    // hook counts as production.
-    if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') {
+    // `dev` (env.ts) is false where `process` does not exist, so an unbundled browser import does not throw and counts
+    // as production; the inline comparison makes a consumer bundler that defines NODE_ENV as "production" fold the
+    // guard to `dev && false` and drop the warning below.
+    if (dev && process.env.NODE_ENV !== 'production') {
       const was = initOnlyValues(first);
       const now = initOnlyValues(options);
       INIT_ONLY.forEach((name, i) => {

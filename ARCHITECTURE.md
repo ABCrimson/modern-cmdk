@@ -812,11 +812,13 @@ packages/modern-cmdk/src/core/
     set-ops.ts           -- Plain-loop Set operation helpers
     group-by.ts          -- mapGroupBy / objectGroupBy helpers
     string-wellformed.ts -- ensureWellFormed()
+    env.ts               -- `dev` flag: try/catch around `process.env.NODE_ENV !== 'production'`, false without `process`
 
 packages/modern-cmdk/src/react/
   index.ts               -- Public API exports
   command.tsx            -- <Command> root component
   context.ts             -- React context definitions
+  env.ts                 -- `dev` flag of the adapter (same form as core/utils/env.ts)
   dialog.tsx             -- <Command.Dialog> (Radix)
   input.tsx              -- <Command.Input> (urgent local draft value)
   list.tsx               -- <Command.List> (virtualization, ResizeObserver)

@@ -4,6 +4,7 @@
 
 import { use, useEffect, useRef } from 'react';
 import { CommandStableContext, CommandStateContext } from '../context.js';
+import { dev } from '../env.js';
 
 // Module-scoped declaration: no @types/node needed, nothing global leaks.
 declare const process: { readonly env: { readonly NODE_ENV?: string } };
@@ -46,10 +47,10 @@ export function useCommandDevtools(label: string = 'default'): void {
 
   useEffect(() => {
     // Guard inside effect body — hooks are always called (Rules of Hooks compliant)
-    // Inline comparison, so a consumer minifier that defines NODE_ENV as "production" folds the branch
-    // and drops the registry code below; `typeof process` keeps an unbundled browser import (no `process`)
-    // from throwing, and there the hook counts as production.
-    if (typeof process === 'undefined' || process.env.NODE_ENV === 'production') return;
+    // `dev` (env.ts) is false where `process` does not exist, so an unbundled browser import does not throw and counts
+    // as production; the inline comparison makes a consumer bundler that defines NODE_ENV as "production" fold the
+    // guard to `!dev || true` and drop the registry code below.
+    if (!dev || process.env.NODE_ENV === 'production') return;
     if (!stable || !stateCtx) return;
 
     const update = (): void => {
