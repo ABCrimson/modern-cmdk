@@ -80,6 +80,6 @@ export function gateVerdict(
     threshold_ms,
     median_ms,
     verdict,
-    message: `gate ${verdict.toUpperCase()}: ${metric} N=${n} median ${median_ms} ms ${relation} ${threshold_ms} ms`,
+    message: `gate ${verdict.toUpperCase()}: ${metric} N=${n} median ${median_ms.toFixed(2)} ms ${relation} ${threshold_ms} ms`,
   };
 }

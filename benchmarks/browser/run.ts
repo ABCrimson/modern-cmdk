@@ -26,7 +26,7 @@
 // production build. The build goes to a fresh temp directory, never apps/playground/dist.
 
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
@@ -77,9 +77,11 @@ const TIMEOUT_MS = {
 } as const;
 
 /**
- * The worst case of the named bounds above is far past any real run (an 8-run 10K series alone could
- * add up to ~30 minutes), so a hang is bounded by this overall deadline instead: it fails loudly (exit 2)
- * naming where the harness was, before the CI job's own timeout. 5x the 185 s a full run takes here.
+ * The worst case of the named bounds above is far past any real run: one 10K run can wait context 30 +
+ * route 30 + page 30 + load 30 + mounted 120 + frames 10 + focus 10 + press 10 + filtered 30 + result 10 +
+ * close 30 = 340 s, so an 8-run 10K series alone is ~45 minutes. A hang is bounded by this overall deadline
+ * instead: it fails loudly (exit 2) naming where the harness was, before the CI job's own timeout. 5x the
+ * 185 s a full run takes here.
  */
 const HARNESS_DEADLINE_MS = 15 * 60_000;
 
@@ -141,6 +143,10 @@ interface CoreSource {
   readonly path: string | null;
   /** `git rev-parse --short HEAD` of that directory when it is a git checkout. */
   readonly git_sha: string | null;
+  /** That checkout has uncommitted changes (null when it is not a git checkout): its dist may differ from its source. */
+  readonly dirty: boolean | null;
+  /** ISO mtime of <dir>/dist/core/index.mjs, to compare with the source it was built from. */
+  readonly dist_mtime: string;
 }
 
 interface Options {
@@ -394,13 +400,15 @@ function printTable(results: readonly SizeResult[]): void {
 
 async function main(): Promise<number> {
   const options = parseOptions(process.argv.slice(2));
+  if (options.modernCmdk !== null && options.out === null) {
+    throw new Error(
+      "--modern-cmdk needs --out: a diagnostic result measured on another tree's core must never take this tree's results name",
+    );
+  }
   const vite = await loadVite();
   // HEAD and dirty as the build sees them; re-read after the runs, and the run is void if either moved
   const before = repoState();
-  const coreSource: CoreSource =
-    options.modernCmdk === null
-      ? { path: null, git_sha: before.sha }
-      : { path: options.modernCmdk, git_sha: gitShaOf(options.modernCmdk) };
+  const coreSource = await describeCore(options.modernCmdk);
   const alias = [
     { find: /^react-dom\/client$/, replacement: 'react-dom/profiling' },
     ...(options.modernCmdk === null ? [] : await coreAliases(options.modernCmdk)),
@@ -536,20 +544,28 @@ async function main(): Promise<number> {
     printTable(results);
     console.log(gate.message);
     console.log(
-      `core: ${coreSource.path ?? 'workspace packages/modern-cmdk'} @ ${coreSource.git_sha ?? 'not a git checkout'}`,
+      `core: ${coreSource.path ?? 'workspace packages/modern-cmdk'} @ ${coreSource.git_sha ?? 'not a git checkout'}${coreSource.dirty ? ' (dirty)' : ''}, dist built ${coreSource.dist_mtime}`,
     );
     console.log(`results: ${outPath}`);
     return gate.verdict === 'pass' ? 0 : 1;
   }
 }
 
-function gitShaOf(dir: string): string | null {
+/** Where the core under test comes from: the workspace package (dir null) or another tree's package directory. */
+async function describeCore(dir: string | null): Promise<CoreSource> {
+  const root = dir ?? path.join(repoRoot, 'packages/modern-cmdk');
+  const distMtime = (await stat(path.join(root, 'dist/core/index.mjs'))).mtime.toISOString();
   try {
-    return execFileSync('git', ['-C', dir, 'rev-parse', '--short', 'HEAD'], {
-      encoding: 'utf-8',
-    }).trim();
+    const gitIn = (...args: string[]): string =>
+      execFileSync('git', ['-C', root, ...args], { encoding: 'utf-8' }).trim();
+    return {
+      path: dir,
+      git_sha: gitIn('rev-parse', '--short', 'HEAD'),
+      dirty: gitIn('status', '--porcelain') !== '',
+      dist_mtime: distMtime,
+    };
   } catch {
-    return null;
+    return { path: dir, git_sha: null, dirty: null, dist_mtime: distMtime };
   }
 }
 
