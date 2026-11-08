@@ -677,6 +677,23 @@ const cases: readonly ParityCase[] = [
     },
   },
   {
+    id: 'vim-bindings-off',
+    title: 'with vimBindings false Ctrl+N, J, P and K do not move the active item',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        root: { vimBindings: false },
+        children: plain('apple', 'banana', 'cherry'),
+      });
+      const ctrl = { ctrlKey: true };
+      return activeAfter(session, [
+        ['n', ctrl],
+        ['j', ctrl],
+        ['p', ctrl],
+        ['k', ctrl],
+      ]);
+    },
+  },
+  {
     id: 'modifier-arrows',
     title: 'Alt and Meta with the arrow keys jump between groups and to the ends',
     run: async (adapter: ParityAdapter): Promise<Json> => {
@@ -753,6 +770,29 @@ const cases: readonly ParityCase[] = [
     title: 'moving the pointer over an item makes it active',
     run: async (adapter: ParityAdapter): Promise<Json> => {
       const session = await mountParity(adapter, { children: plain('apple', 'banana', 'cherry') });
+      await session.hover('cherry');
+      return session.activeValue();
+    },
+  },
+  {
+    id: 'default-value',
+    title: 'a defaultValue on the root makes that item active at mount',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        root: { defaultValue: 'banana' },
+        children: plain('apple', 'banana', 'cherry'),
+      });
+      return session.activeValue();
+    },
+  },
+  {
+    id: 'disable-pointer-selection',
+    title: 'disablePointerSelection stops a pointer move from making an item active',
+    run: async (adapter: ParityAdapter): Promise<Json> => {
+      const session = await mountParity(adapter, {
+        root: { disablePointerSelection: true },
+        children: plain('apple', 'banana', 'cherry'),
+      });
       await session.hover('cherry');
       return session.activeValue();
     },
