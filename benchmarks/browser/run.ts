@@ -7,6 +7,8 @@
 // Exit codes: 0 = the 10K mount median is at or below the threshold, 1 = it is above (the gate
 // failed), 2 = harness error (build, server, browser or page error, timeout, a rejected page result,
 // an unwritable results file). Nothing is retried.
+// The results file is written unformatted: run `pnpm exec biome format --write <file>` before committing it
+// (the repository lint formats every JSON file).
 // Runs under Node's native type stripping, no loader: `node benchmarks/browser/run.ts [--out <path>]`.
 // Requires: pnpm build (the playground bundles packages/modern-cmdk/dist), the Playwright Chromium
 // (`pnpm exec playwright install chromium`).
