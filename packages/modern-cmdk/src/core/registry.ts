@@ -1,6 +1,6 @@
 // packages/modern-cmdk/src/core/registry.ts
 // Command/item registration — set operations (union/intersection/difference) for ID management
-// Performance: O(1) registration/lookup via Map + Set, O(1) order tracking via array + Set guard
+// Performance: O(1) registration/lookup via Map + Set, O(1) unregistration; order is the Map insertion order
 
 import type { CommandGroup, CommandItem, GroupId, ItemId } from './types.js';
 import { mapGroupBy } from './utils/group-by.js';
@@ -22,8 +22,7 @@ import {
 export class CommandRegistry implements Disposable {
   #items = new Map<ItemId, CommandItem>();
   #groups = new Map<GroupId, CommandGroup>();
-  #itemOrder: ItemId[] = [];
-  #itemOrderSet = new Set<ItemId>(); // O(1) duplicate check during registration
+  #itemOrderSet = new Set<ItemId>(); // the id Set behind getItemIds() and the set operations
   #cachedItems: readonly CommandItem[] | null = null; // Invalidated on mutation
   #cachedGroups: readonly CommandGroup[] | null = null; // Invalidated on group mutation
 
@@ -38,10 +37,7 @@ export class CommandRegistry implements Disposable {
   /** Register an item — returns Disposable for `using` auto-deregister */
   registerItem(item: CommandItem): Disposable {
     this.#items.set(item.id, item);
-    if (!this.#itemOrderSet.has(item.id)) {
-      this.#itemOrder.push(item.id);
-      this.#itemOrderSet.add(item.id);
-    }
+    this.#itemOrderSet.add(item.id);
     this.#invalidateCache();
 
     return {
@@ -55,10 +51,7 @@ export class CommandRegistry implements Disposable {
   registerItems(items: readonly CommandItem[]): Disposable {
     for (const item of items) {
       this.#items.set(item.id, item);
-      if (!this.#itemOrderSet.has(item.id)) {
-        this.#itemOrder.push(item.id);
-        this.#itemOrderSet.add(item.id);
-      }
+      this.#itemOrderSet.add(item.id);
     }
     this.#invalidateCache();
 
@@ -71,15 +64,10 @@ export class CommandRegistry implements Disposable {
     };
   }
 
-  /** Unregister a single item — O(1) Map/Set delete, indexOf+toSpliced for order */
+  /** Unregister a single item — O(1) Map/Set delete */
   unregisterItem(id: ItemId): void {
-    if (!this.#items.has(id)) return;
-    this.#items.delete(id);
+    if (!this.#items.delete(id)) return;
     this.#itemOrderSet.delete(id);
-    const idx = this.#itemOrder.indexOf(id);
-    if (idx !== -1) {
-      this.#itemOrder = this.#itemOrder.toSpliced(idx, 1);
-    }
     this.#invalidateCache();
   }
 
@@ -87,9 +75,8 @@ export class CommandRegistry implements Disposable {
   unregisterItems(ids: ReadonlySet<ItemId>): void {
     for (const id of ids) {
       this.#items.delete(id);
+      this.#itemOrderSet.delete(id);
     }
-    this.#itemOrderSet = setDifference(this.#itemOrderSet, ids);
-    this.#itemOrder = this.#itemOrder.filter((id) => !ids.has(id));
     this.#invalidateCache();
   }
 
@@ -124,11 +111,7 @@ export class CommandRegistry implements Disposable {
   /** Get all registered items in insertion order — cached between mutations */
   getItems(): readonly CommandItem[] {
     if (this.#cachedItems !== null) return this.#cachedItems;
-    this.#cachedItems = this.#itemOrder
-      .values()
-      .map((id) => this.#items.get(id))
-      .filter((item): item is CommandItem => item != null)
-      .toArray();
+    this.#cachedItems = this.#items.values().toArray();
     return this.#cachedItems;
   }
 
@@ -220,7 +203,6 @@ export class CommandRegistry implements Disposable {
   clear(): void {
     this.#items.clear();
     this.#groups.clear();
-    this.#itemOrder = [];
     this.#itemOrderSet.clear();
     this.#invalidateCache();
     this.#invalidateGroupCache();

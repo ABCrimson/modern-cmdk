@@ -1,6 +1,6 @@
 import type { CommandItem } from 'modern-cmdk';
 import { CommandRegistry, groupId, itemId } from 'modern-cmdk';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 function makeItem(id: string, value?: string, gid?: string): CommandItem {
   return {
@@ -148,5 +148,50 @@ describe('CommandRegistry', () => {
     registry.clear();
     expect(registry.size).toBe(0);
     expect(registry.groupCount).toBe(0);
+  });
+});
+
+describe('CommandRegistry order (CE-56, P40)', () => {
+  const ids = (registry: CommandRegistry): string[] => registry.getItems().map((i) => i.id);
+
+  it('unregister then register appends the item at the end', () => {
+    using registry = new CommandRegistry();
+    registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
+    registry.unregisterItem(itemId('a'));
+    registry.registerItem(makeItem('a'));
+    expect(ids(registry)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('re-registering an existing id keeps its position and replaces the item', () => {
+    using registry = new CommandRegistry();
+    registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
+    const next = makeItem('b', 'Bravo');
+    registry.registerItem(next);
+    expect(ids(registry)).toEqual(['a', 'b', 'c']);
+    expect(registry.getItem(itemId('b'))).toBe(next);
+    expect(registry.size).toBe(3);
+  });
+
+  it('unregisterItems keeps the order of the remaining items and of later registrations', () => {
+    using registry = new CommandRegistry();
+    registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c'), makeItem('d')]);
+    registry.unregisterItems(new Set([itemId('b'), itemId('c')]));
+    expect(ids(registry)).toEqual(['a', 'd']);
+    registry.registerItem(makeItem('b'));
+    expect(ids(registry)).toEqual(['a', 'd', 'b']);
+    expect([...registry.getItemIds()]).toEqual(['a', 'd', 'b']);
+  });
+
+  it('unregisterItem copies no order array per item', () => {
+    using registry = new CommandRegistry();
+    registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
+    const toSpliced = vi.spyOn(Array.prototype, 'toSpliced');
+    try {
+      registry.unregisterItem(itemId('b'));
+      expect(toSpliced).not.toHaveBeenCalled();
+    } finally {
+      toSpliced.mockRestore();
+    }
+    expect(ids(registry)).toEqual(['a', 'c']);
   });
 });
