@@ -35,6 +35,10 @@ export interface PaletteGroupView {
   readonly key: string;
   readonly headingId: string;
   readonly heading: string;
+  /** Position among the visible groups, and the number of visible rows in the groups before it: the
+   * component positions the group from these with `translate`. */
+  readonly index: number;
+  readonly rowsBefore: number;
   readonly rows: readonly PaletteRowView[];
 }
 
@@ -122,6 +126,8 @@ export interface PaletteApi {
   readonly groups: Readonly<Ref<readonly PaletteGroupView[]>>;
   readonly activeOptionId: Readonly<Ref<string | undefined>>;
   readonly resultCount: Readonly<Ref<number>>;
+  /** Rows currently rendered, across all groups. */
+  readonly rowCount: Readonly<Ref<number>>;
   readonly showEmpty: Readonly<Ref<boolean>>;
   readonly shownQuery: Readonly<Ref<string>>;
   readonly liveMessage: Readonly<Ref<string>>;
@@ -185,6 +191,7 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
     const current = state.value;
     if (current === null) return [];
     const views: PaletteGroupView[] = [];
+    let rowsBefore = 0;
     for (const ids of current.groupedIds.values()) {
       const rows: PaletteRowView[] = [];
       for (const id of ids) {
@@ -203,8 +210,11 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
         key: first.entry.group,
         headingId: `${uid}-g${views.length}`,
         heading: first.entry.group,
+        index: views.length,
+        rowsBefore,
         rows,
       });
+      rowsBefore += rows.length;
     }
     return views;
   });
@@ -221,6 +231,7 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
     return undefined;
   });
 
+  const rowCount = computed(() => groups.value.reduce((sum, group) => sum + group.rows.length, 0));
   const resultCount = computed(() => state.value?.filteredCount ?? 0);
   const showEmpty = computed(
     () =>
@@ -604,7 +615,9 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
     const row = list?.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
     const scroller = list;
     if (!row || !scroller) return;
-    const top = row.offsetTop;
+    // Rows are placed with `translate`, which offsetTop ignores: measure with the boxes.
+    const top =
+      row.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
     const bottom = top + row.offsetHeight;
     if (state.value?.activeId === visualIds.value[0]) scroller.scrollTop = 0;
     else if (top < scroller.scrollTop) scroller.scrollTop = top;
@@ -725,6 +738,7 @@ export function usePalette(options: UsePaletteOptions): PaletteApi {
     groups,
     activeOptionId,
     resultCount,
+    rowCount,
     showEmpty,
     shownQuery,
     liveMessage,

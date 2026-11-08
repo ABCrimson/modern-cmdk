@@ -104,16 +104,19 @@ onMounted(() => {
 
       <!-- The scrolling region is the listbox itself once the engine runs. axe 4.14.0 (installed) reports
            scrollable-region-focusable (https://dequeuniversity.com/rules/axe/4.14/scrollable-region-focusable, read
-           2026-11-07) for a scrolling div that is not a listbox; with the region as the listbox, axe passes in the hydrated
-           and empty states. The combobox input keeps focus and points at the listbox with aria-controls and
-           aria-activedescendant, so Tab still leaves the palette in one step and no tabindex is added. Before mount the
-           region holds real links, which are focusable. -->
+           2026-11-07) for a scrolling div that is not a listbox. The combobox input keeps focus and points at the listbox
+           with aria-controls and aria-activedescendant. Chromium makes a scroller with no focusable child keyboard-focusable,
+           which would put a second Tab stop between the input and the page; tabindex="-1" removes it from the Tab order,
+           and mousedown is prevented so a click on a heading or the padding leaves focus in the input (wheel and
+           touch scrolling are unaffected). Before mount the region holds real links, which are focusable. -->
       <div
         ref="list"
         class="mc-scroller"
         :id="palette.ready ? palette.listId : undefined"
         :role="palette.ready && !palette.showEmpty ? 'listbox' : undefined"
         :aria-labelledby="palette.ready && !palette.showEmpty ? palette.headingId : undefined"
+        :tabindex="palette.ready ? -1 : undefined"
+        @mousedown="palette.ready && $event.preventDefault()"
       >
         <template v-if="!palette.ready">
           <!-- The same heading the mounted list opens with, so the first row keeps its y through hydration. -->
@@ -128,10 +131,18 @@ onMounted(() => {
         </ul>
         </template>
         <template v-else>
-            <div v-for="group in palette.groups" :key="group.key" class="mc-group" role="group" :aria-labelledby="group.headingId">
+            <div class="mc-track" :style="{ '--groups': palette.groups.length, '--rows': palette.rowCount }">
+            <div
+              v-for="group in palette.groups"
+              :key="group.key"
+              class="mc-group"
+              role="group"
+              :aria-labelledby="group.headingId"
+              :style="{ '--g': group.index, '--r': group.rowsBefore, '--n': group.rows.length }"
+            >
               <div :id="group.headingId" class="mc-group-heading">{{ group.heading }}</div>
               <div
-                v-for="row in group.rows"
+                v-for="(row, slot) in group.rows"
                 :id="row.optionId"
                 :key="row.id"
                 class="mc-row"
@@ -140,6 +151,7 @@ onMounted(() => {
                 :aria-keyshortcuts="row.entry.shortcut"
                 :data-active="row.active ? 'true' : undefined"
                 :data-mc-entry="row.id"
+                :style="{ '--i': slot }"
                 @pointermove="palette.activate(row.id)"
                 @mousedown.prevent
                 @click="palette.select(row.id, $event)"
@@ -150,6 +162,7 @@ onMounted(() => {
                 </span>
                 <span class="mc-kind">{{ palette.copiedId === row.id ? 'Copied' : row.entry.kind }}</span>
               </div>
+            </div>
             </div>
           <p v-if="palette.showEmpty" class="mc-empty">No command matches “{{ palette.shownQuery }}”. Try ‘frecency’ or ‘dark’.</p>
         </template>
@@ -314,6 +327,8 @@ onMounted(() => {
 
 .mc-scroller {
   position: relative;
+  /* The scrollbar's width is reserved, so a list that stops overflowing does not move the right-aligned kinds. */
+  scrollbar-gutter: stable;
   flex: 1 1 0;
   min-block-size: 0;
   padding-block: var(--mc-space-2);
@@ -365,6 +380,44 @@ onMounted(() => {
   inset-inline-start: 0;
   inline-size: 3px;
   background: var(--mc-brand-3);
+}
+
+/* Filtering must not move boxes the Layout Instability API counts as a layout shift (design-final.md 8: CLS <= 0.02),
+   and rows leave and join as the query changes. So groups and rows are absolutely placed and moved with `translate`:
+   transform-based movement is not a layout shift (https://web.dev/articles/cls, "Animations and transitions" and
+   the transform advice, read 2026-11-07). Row and heading heights are the two lengths below; --g, --r, --n and --i are
+   set inline from usePalette.ts (group index, rows before it, rows in it, slot in the group). */
+.mc-frame {
+  --_row-h: 40px;
+  --_head-h: 32px;
+}
+
+.mc-track {
+  position: relative;
+  block-size: calc(var(--groups, 0) * var(--_head-h) + var(--rows, 0) * var(--_row-h));
+}
+
+.mc-group {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: calc(var(--_head-h) + var(--n, 0) * var(--_row-h));
+  translate: 0 calc(var(--g, 0) * var(--_head-h) + var(--r, 0) * var(--_row-h));
+}
+
+.mc-group .mc-group-heading {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: var(--_head-h);
+}
+
+.mc-group .mc-row {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: var(--_row-h);
+  translate: 0 calc(var(--_head-h) + var(--i, 0) * var(--_row-h));
 }
 
 .mc-label {
