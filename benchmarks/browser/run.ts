@@ -63,8 +63,9 @@ const DATASET_VARIANT = 'basic';
  * benchmarks/browser/results/1.4.0-8362840.json) a measured run's wall was 1764 to 1974 ms at 10K and
  * 493 to 528 ms at 1K (the warm-up runs 1784 and 592 ms). The mounted wait is bounded at 120 s at
  * 10K (about 60x the slowest 10K run's wall) and 30 s at 1K (about 57x the slowest 1K run's wall);
- * the page load, key press and filter waits are 10 to 30 s against sub-second steps. Lowering a bound
- * buys nothing and risks a false failure on a slower runner.
+ * the page load, key press and filter waits are 10 to 30 s; the same run's 10K medians are 15.5 ms for
+ * the filter and 244.1 ms from keystroke to paint (the page load is not timed). Lowering a bound buys
+ * nothing and risks a false failure on a slower runner.
  */
 const TIMEOUT_MS = {
   build: 300_000,
