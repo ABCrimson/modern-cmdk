@@ -514,7 +514,7 @@ function CommandPalette() {
 | `defaultValue` on the root | Removed | Breaking change 9; no equivalent |
 | `forceMount` on `Item` and `Group` | Removed | Breaking change 9; no equivalent |
 | `progress` on `Command.Loading` | Removed | Breaking change 9; no equivalent |
-| Root div props | Forwarded | The root forwards every `div` attribute and its `ref`; its `data-command-root`, `data-command-state`, `role` and `aria-label` win |
+| Root `div` props | Forwarded | The root forwards every `div` attribute and its `ref`; its `data-command-root`, `data-command-state`, `role` and `aria-label` win |
 | `alwaysRender` on `Command.Separator` | Accepted; the 1.x default is `true` | Pass `alwaysRender={false}` for cmdk's behaviour; the default becomes `false` in 2.0 |
 | `label` on `Command.Loading` and `Command.List` | Not accepted | Breaking change 9; no equivalent |
 | `value` on `Command.Group` | Not accepted | Breaking change 9; no equivalent |
@@ -523,7 +523,7 @@ function CommandPalette() {
 | `role` on `Command.Input` | Not accepted | Breaking change 9; the input is always `combobox` |
 | `defaultValue` on `CommandDialog` | Not accepted | Breaking change 9; no equivalent |
 | `defaultOpen` and `modal` on `CommandDialog` | Not accepted | Breaking change 9; no equivalent |
-| `CommandDialog` div props | Not forwarded | Breaking change 9; tsc rejects the unhyphenated ones, a `data-*` or `aria-*` attribute compiles and is dropped |
+| `CommandDialog` `div` props | Not forwarded | Breaking change 9; tsc rejects the unhyphenated ones, a `data-*` or `aria-*` attribute compiles and is dropped |
 | Item `onSelect(value)` | `onSelect()` (no argument; the value arrives in 2.0) | Breaking change 10 (D66, ARCH-62) |
 | `id` on `Command.Item` is overwritten by cmdk's generated id | `id` is the item's DOM id and registration id; `forceId` is deprecated, removed in 2.0 | Delta row `item-id-prop` (D29) |
 
