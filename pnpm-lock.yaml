@@ -291,6 +291,9 @@ importers:
       vitest:
         specifier: 5.1.0
         version: 5.1.0(@types/node@26.6.6)(@vitest/coverage-v8@5.1.0)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+      web-features:
+        specifier: 3.45.0-dev-20261103105955-64427e2
+        version: 3.45.0-dev-20261103105955-64427e2
 
   apps/docs:
     devDependencies:
@@ -4856,6 +4859,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  web-features@3.45.0-dev-20261103105955-64427e2:
+    resolution: {integrity: sha512-sQai8vzLAZySTgO+QJUTtZtti++9StG4vKron8OMzeVKmQ8AdBfqNUNiz4VUfk0k+v2D1PXuCdeiK66XMT0rLA==}
 
   whatwg-mimetype@3.0.0:
     resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
@@ -9438,6 +9444,8 @@ snapshots:
       '@vue/shared': 3.6.0-rc.14
     optionalDependencies:
       typescript: 6.0.3
+
+  web-features@3.45.0-dev-20261103105955-64427e2: {}
 
   whatwg-mimetype@3.0.0: {}
 

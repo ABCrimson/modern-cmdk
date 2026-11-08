@@ -1,0 +1,105 @@
+{
+  "$comment": "CE-29 / R4: the browser floor of modern-cmdk's JavaScript, read by tests/unit/browser-floor.test.ts. 'features' lists the web-features ids (node_modules/web-features, pinned in the root package.json) that the built core and react entries (dist/core/index.mjs, dist/react/index.mjs, dist/react/dialog.mjs, dist/react/chunk-*.mjs) rely on without feature detection; every pattern is an AST pattern that must match the built code at least once, so a listed feature that leaves the code fails the test, and every listed feature must be Baseline (low or high). 'floor' is the per-browser maximum of the listed features' status.support, as the test computes it; the docs publish these numbers. 'deny' lists newer APIs, each with its web-features id, that must not appear in the built code: adding a use turns the test red, and 'seed' is the line the test appends to a copy of dist/core/index.mjs to prove that pattern bites. Pattern kinds: call (a call of .method(), optionally on the result of a call to one of receiverCall), member (a property access, optionally on the identifier or globalThis-style property named object), identifier (any identifier of that name), using (a using or await using declaration). Feature-detected uses are not listed (requestIdleCallback in globalThis, the 'Activity' in React check, navigator.scheduling.isInputPending, globalThis.scheduler.yield, navigator.userAgentData). Symbol.dispose and Symbol.asyncDispose are not listed either (explicit-resource-management is not Baseline; ruling R7 makes the core install them with a shim). When web-features is bumped, update webFeaturesVersion after re-reading the data: the test fails until it matches the installed version.",
+  "webFeaturesVersion": "3.45.0-dev-20261103105955-64427e2",
+  "browsers": [
+    "chrome",
+    "chrome_android",
+    "edge",
+    "firefox",
+    "firefox_android",
+    "safari",
+    "safari_ios"
+  ],
+  "floor": {
+    "chrome": "122",
+    "chrome_android": "122",
+    "edge": "122",
+    "firefox": "131",
+    "firefox_android": "131",
+    "safari": "18.4",
+    "safari_ios": "18.4"
+  },
+  "features": [
+    {
+      "id": "iterator-methods",
+      "note": "Iterator helpers on Map/Set iterators: core/registry.ts, core/search/index.ts and core/machine.ts (values().map/filter, entries().map, .toArray()), core/keyboard/matcher.ts (values().find, entries().filter)",
+      "patterns": [
+        { "kind": "call", "method": "toArray" },
+        { "kind": "call", "method": "map", "receiverCall": ["values", "entries", "keys"] },
+        { "kind": "call", "method": "filter", "receiverCall": ["values", "entries", "keys"] },
+        { "kind": "call", "method": "find", "receiverCall": ["values", "entries", "keys"] }
+      ]
+    },
+    {
+      "id": "array-by-copy",
+      "note": "Array.prototype.toSorted and toSpliced: core/machine.ts, core/registry.ts, core/search/fuzzy-scorer.ts, react/highlight.tsx",
+      "patterns": [
+        { "kind": "call", "method": "toSorted" },
+        { "kind": "call", "method": "toSpliced" }
+      ]
+    }
+  ],
+  "deny": [
+    {
+      "id": "promise-try",
+      "patterns": [
+        {
+          "kind": "member",
+          "object": "Promise",
+          "property": "try",
+          "seed": "Promise.try(() => 0);"
+        }
+      ]
+    },
+    {
+      "id": "math-sum-precise",
+      "patterns": [
+        {
+          "kind": "member",
+          "object": "Math",
+          "property": "sumPrecise",
+          "seed": "Math.sumPrecise([0.1, 0.2]);"
+        }
+      ]
+    },
+    {
+      "id": "regexp-escape",
+      "patterns": [
+        {
+          "kind": "member",
+          "object": "RegExp",
+          "property": "escape",
+          "seed": "RegExp.escape('a.b');"
+        }
+      ]
+    },
+    {
+      "id": "iterator-concat",
+      "patterns": [
+        {
+          "kind": "member",
+          "object": "Iterator",
+          "property": "concat",
+          "seed": "Iterator.concat([1], [2]);"
+        }
+      ]
+    },
+    {
+      "id": "explicit-resource-management",
+      "patterns": [
+        { "kind": "using", "seed": "using seeded = null;" },
+        { "kind": "using", "seed": "await using seeded = null;" },
+        { "kind": "identifier", "name": "DisposableStack", "seed": "new DisposableStack();" },
+        {
+          "kind": "identifier",
+          "name": "AsyncDisposableStack",
+          "seed": "new AsyncDisposableStack();"
+        },
+        { "kind": "identifier", "name": "SuppressedError", "seed": "new SuppressedError(1, 2);" },
+        { "kind": "identifier", "name": "__using", "seed": "__using([], null);" },
+        { "kind": "identifier", "name": "__callDispose", "seed": "__callDispose([], 0);" },
+        { "kind": "identifier", "name": "_usingCtx", "seed": "_usingCtx();" }
+      ]
+    }
+  ]
+}
