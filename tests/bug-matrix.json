@@ -461,7 +461,7 @@
   },
   {
     "id": "DT-67",
-    "test": "lefthook.yml::glob: \"{packages/*/src/**,packages/*/tsdown.config.ts,package.json}\"",
+    "test": "lefthook.yml::glob: \"{packages/*/src/**,packages/*/tsdown.config.ts,.size-limit.mjs,package.json}\"",
     "status": "gate"
   },
   {
