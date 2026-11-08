@@ -501,29 +501,45 @@ test.describe('Virtualization — scroll to the active row (CE-119)', () => {
     const scrollTop = await list.evaluate((el) => el.scrollTop);
     expect(scrollTop).toBeGreaterThan(900);
 
-    // Rows with at least one visible pixel, as the viewport sees them: the first and last may be partial
-    const visible = await list.evaluate((el) => {
-      const view = el.getBoundingClientRect();
-      return [...el.querySelectorAll<HTMLElement>('[data-command-item]')]
-        .map((row) => {
-          const box = row.getBoundingClientRect();
-          return { id: row.id, top: box.top, bottom: box.bottom, x: box.left + box.width / 2 };
-        })
-        .filter((row) => row.bottom > view.top && row.top < view.bottom)
-        .map((row) => ({
-          ...row,
-          // A point of the row that lies inside the viewport
-          y: (Math.max(row.top, view.top) + Math.min(row.bottom, view.bottom)) / 2,
-          partial: row.top < view.top || row.bottom > view.bottom,
-        }));
-    });
-    expect(visible.length).toBeGreaterThan(3);
+    // Rows with at least one visible pixel, as the viewport sees them: the first and last may be partial.
+    // The list re-renders its rows after the scroll event, so wait until two reads agree.
+    const read = (): Promise<
+      { id: string; top: number; bottom: number; x: number; y: number; partial: boolean }[]
+    > =>
+      list.evaluate((el) => {
+        const view = el.getBoundingClientRect();
+        return [...el.querySelectorAll<HTMLElement>('[data-command-item]')]
+          .map((row) => {
+            const box = row.getBoundingClientRect();
+            return { id: row.id, top: box.top, bottom: box.bottom, x: box.left + box.width / 2 };
+          })
+          .filter((row) => row.bottom > view.top && row.top < view.bottom)
+          .map((row) => ({
+            ...row,
+            // A point of the row that lies inside the viewport
+            y: (Math.max(row.top, view.top) + Math.min(row.bottom, view.bottom)) / 2,
+            partial: row.top < view.top || row.bottom > view.bottom,
+          }));
+      });
+
+    let visible = await read();
+    await expect
+      .poll(async () => {
+        const next = await read();
+        const settled = JSON.stringify(next) === JSON.stringify(visible);
+        visible = next;
+        return settled && next.length > 3;
+      })
+      .toBe(true);
     // The viewport's offset into the rows is not a multiple of the row height: an edge row is partial
     expect(visible.some((row) => row.partial)).toBe(true);
 
-    for (const row of visible) {
+    for (const { id } of visible) {
+      // Read the row again: the page can still shift a few pixels after the first reads agree
+      const row = (await read()).find((candidate) => candidate.id === id);
+      if (!row) throw new Error(`row ${id} left the viewport`);
       await page.mouse.move(row.x, row.y);
-      await expect(page.locator(`[data-command-item][data-active][id="${row.id}"]`)).toHaveCount(1);
+      await expect(page.locator(`[data-command-item][data-active][id="${id}"]`)).toHaveCount(1);
       expect(await list.evaluate((el) => el.scrollTop)).toBe(scrollTop);
     }
   });
