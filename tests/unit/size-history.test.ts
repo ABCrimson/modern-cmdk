@@ -1,10 +1,11 @@
 // tests/unit/size-history.test.ts
-// RDG-128: the 1.5.0 size record (benchmarks/size-history/1.5.0.json) and every sentence and table that cites it.
-// The Sizes paragraphs are read from .changeset/modern-cmdk-1-5-0.md while that changeset is pending and from the CHANGELOG
-// 1.5.0 entry once the Version PR has consumed it (TUB-75; DT-74's rule for the bug-report template).
-// Every number below is read from the record (or from the 1.4.0 record for the "1.4" comparison figures); none is a
-// literal. The blob id the docs cite is computed from the record's bytes and asserted; the commit in the blob links is
-// not (the orchestrator fills it after the record commit), only the record's path inside those links is.
+// RDG-128: the 1.7.0 size record (benchmarks/size-history/1.7.0.json) and every sentence and table that cites it.
+// The Sizes paragraphs of the 1.5.0 release are history: they are read from .changeset/modern-cmdk-1-5-0.md while that
+// changeset is pending and from the CHANGELOG 1.5.0 entry once the Version PR has consumed it (TUB-75; DT-74's rule for
+// the bug-report template), and they quote the 1.5.0 record against the 1.4.0 record.
+// Every number below is read from the record (or from the 1.6.0 record for the "1.6" comparison figures); none is a
+// literal. The blob id the docs cite is computed from the record's bytes and asserted, and so is the commit that added
+// the record to the repository (b42c483), which the blob links name.
 
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -40,9 +41,12 @@ interface SizeRecord {
   readonly tarballs: Readonly<Record<string, Tarball>>;
 }
 
-const RECORD = 'benchmarks/size-history/1.5.0.json';
+const RECORD = 'benchmarks/size-history/1.7.0.json';
+const PREVIOUS = 'benchmarks/size-history/1.6.0.json';
+const RECORD_1_5 = 'benchmarks/size-history/1.5.0.json';
+const RECORD_1_4 = 'benchmarks/size-history/1.4.0.json';
 const record = JSON.parse(read(RECORD)) as SizeRecord;
-const previous = JSON.parse(read('benchmarks/size-history/1.4.0.json')) as SizeRecord;
+const previous = JSON.parse(read(PREVIOUS)) as SizeRecord;
 const day = record.date.slice(0, 10);
 const recordBytes = readFileSync(join(root, RECORD));
 const blob = createHash('sha1')
@@ -50,14 +54,16 @@ const blob = createHash('sha1')
   .update(recordBytes)
   .digest('hex')
   .slice(0, 7);
+/** The commit that added the record to the repository; the blob links of the docs name it. */
+const COMMIT = 'b42c483';
 
 function entry(source: SizeRecord, name: string): Entry {
   const found = source.entries.find((candidate) => candidate.name === name);
   if (found === undefined) throw new Error(`no entry named ${name}`);
   return found;
 }
-function tarball(key: string): Tarball {
-  const found = record.tarballs[key];
+function tarball(key: string, source: SizeRecord = record): Tarball {
+  const found = source.tarballs[key];
   if (found === undefined) throw new Error(`no tarball block ${key}`);
   return found;
 }
@@ -88,18 +94,19 @@ const old = {
   dialog: entry(previous, 'modern-cmdk/react/dialog (adapter only)'),
   both: entry(previous, 'modern-cmdk + modern-cmdk/react'),
   styles: entry(previous, 'modern-cmdk/styles.css'),
+  bin: entry(previous, 'modern-cmdk codemod bin (installed size)'),
 };
-const rc = tarball('modern-cmdk@1.5-rc');
-const one4 = tarball('modern-cmdk@1.4');
-const codemodPack = tarball('modern-cmdk-codemod@1.5-rc');
+const rc = tarball('modern-cmdk@1.7-rc');
+const prior = tarball('modern-cmdk@1.6-rc', previous);
+const codemodPack = tarball('modern-cmdk-codemod@1.7-rc');
 
-describe('benchmarks/size-history/1.5.0.json: the record', () => {
+describe('benchmarks/size-history/1.7.0.json: the record', () => {
   it('names a commit sha of 7 or more hex characters', () => {
     expect(record.sha).toMatch(/^[0-9a-f]{7,40}$/);
     for (const key of [
-      'modern-cmdk@1.5-rc',
-      'modern-cmdk-codemod@1.5-rc',
-      'create-modern-cmdk@1.5-rc',
+      'modern-cmdk@1.7-rc',
+      'modern-cmdk-codemod@1.7-rc',
+      'create-modern-cmdk@1.7-rc',
     ]) {
       expect(tarball(key).sha).toBe(record.sha);
     }
@@ -126,10 +133,9 @@ describe('benchmarks/size-history/1.5.0.json: the record', () => {
 
   it('has a tarball block for each of the three packages', () => {
     expect(Object.keys(record.tarballs).sort()).toEqual([
-      'create-modern-cmdk@1.5-rc',
-      'modern-cmdk-codemod@1.5-rc',
-      'modern-cmdk@1.4',
-      'modern-cmdk@1.5-rc',
+      'create-modern-cmdk@1.7-rc',
+      'modern-cmdk-codemod@1.7-rc',
+      'modern-cmdk@1.7-rc',
     ]);
   });
 
@@ -157,7 +163,9 @@ describe('packages/modern-cmdk/README.md: the Sizes section', () => {
   ];
 
   it('cites the record file, the measured sha, the date and the size-limit version', () => {
-    expect(sizes).toContain(`benchmarks/size-history/1.5.0.json`);
+    expect(sizes).toContain(`benchmarks/size-history/1.7.0.json`);
+    expect(sizes).toContain(`blob/${COMMIT}/benchmarks/size-history/1.7.0.json`);
+    expect(sizes).toContain(`committed in \`${COMMIT}\``);
     expect(sizes).toContain(
       `measured at \`${record.sha}\` on ${day} with size-limit ${record.sizeLimit}`,
     );
@@ -169,12 +177,13 @@ describe('packages/modern-cmdk/README.md: the Sizes section', () => {
     });
   }
 
-  it('quotes the packed tarballs of 1.4, modern-cmdk 1.5 and modern-cmdk-codemod', () => {
+  it('quotes the packed tarballs of the 1.6 release candidate, modern-cmdk 1.7 and modern-cmdk-codemod', () => {
+    expect(sizes).toContain(`(measured at \`${prior.sha}\`)`);
     expect(sizes).toContain(
-      `is ${one4.tarballSize} B packed and ${one4.unpackedSize} B unpacked in ${one4.entryCount} entries`,
+      `is ${prior.tarballSize} B packed and ${prior.unpackedSize} B unpacked in ${prior.entryCount} entries`,
     );
     expect(sizes).toContain(
-      `${one4.runtimeUnpackedSize} B is runtime and ${one4.codemodUnpackedSize} B is the codemod`,
+      `${prior.runtimeUnpackedSize} B is runtime and ${prior.codemodUnpackedSize} B is the codemod`,
     );
     expect(sizes).toContain(
       `${rc.tarballSize} B packed and ${rc.unpackedSize} B unpacked in ${rc.entryCount} entries`,
@@ -208,7 +217,8 @@ describe('apps/docs/benchmarks.md: the bundle-size table', () => {
   ];
 
   it('cites the record, the measured sha, the date, size-limit and Node', () => {
-    expect(bundle).toContain('benchmarks/size-history/1.5.0.json');
+    expect(bundle).toContain('benchmarks/size-history/1.7.0.json');
+    expect(bundle).toContain(`blob/${COMMIT}/benchmarks/size-history/1.7.0.json`);
     expect(bundle).toContain(
       `measured at commit \`${record.sha}\` on ${day} with size-limit ${record.sizeLimit} on Node ${record.node}`,
     );
@@ -224,10 +234,9 @@ describe('apps/docs/benchmarks.md: the bundle-size table', () => {
     });
   }
 
-  it('names the 1.4.0 whole-bin codemod figure and the 1.4.0 and 1.5.0 adapter figures', () => {
-    expect(bundle).toContain(`${one4.codemodUnpackedSize} B for the whole bin`);
+  it('names the 1.6.0 and 1.7.0 adapter figures', () => {
     expect(bundle).toContain(
-      `the adapter alone was ${old.adapter.size} B and the core plus the adapter together ${old.both.size} B (1.4.0 record), and 1.5.0 measures ${adapter.size} B and ${both.size} B`,
+      `the adapter alone was ${old.adapter.size} B and the core plus the adapter together ${old.both.size} B (1.6.0 record), and 1.7.0 measures ${adapter.size} B and ${both.size} B`,
     );
   });
 });
@@ -239,26 +248,30 @@ describe('ARCHITECTURE.md: the targets table and the lines that cite the record'
     expect(line(text, '| Core bundle |')).toContain(`Measured ${core.size} B`);
     expect(line(text, '| React adapter only |')).toContain(`Measured ${adapter.size} B`);
     expect(line(text, '| Core + React adapter |')).toContain(
-      `Measured ${both.size} B (1.4 measured ${old.both.size} B; 1.3 inlined`,
+      `Measured ${both.size} B (1.6 measured ${old.both.size} B; 1.3 inlined`,
     );
     expect(line(text, '| `modern-cmdk/react/dialog` only |')).toContain(
       `Measured ${dialog.size} B`,
     );
-    expect(line(text, '| `CommandSeparator` only |')).toContain(`Measured ${separator.size} B;`);
+    const separatorRow = line(text, '| `CommandSeparator` only |');
+    expect(separatorRow).toContain(`Measured ${separator.size} B;`);
+    expect(separatorRow).toContain('D116');
+    expect(separatorRow).not.toContain('still contains');
+    expect(separatorRow).not.toContain('not a tree-shaking claim');
     expect(line(text, '| `modern-cmdk/styles.css` |')).toContain(`Measured ${styles.size} B`);
   });
 
   it('quotes the three codemod rows', () => {
     const binRow = line(text, '| Codemod bin (`modern-cmdk`, deprecated)');
     expect(binRow).toContain(
-      `benchmarks/size-history/1.5.0.json\` (${record.sha}, measured ${day} with size-limit ${record.sizeLimit}) holds ${bin.size} B`,
+      `benchmarks/size-history/1.7.0.json\` (${record.sha}, measured ${day} with size-limit ${record.sizeLimit}) holds ${bin.size} B`,
     );
-    expect(binRow).toContain(`the 1.4 value was ${one4.codemodUnpackedSize} B`);
+    expect(binRow).toContain(`the 1.6 value was ${old.bin.size} B`);
     expect(line(text, '| Codemod shim (`bin.mjs`)')).toContain(
-      `Measured ${shim.size} B (\`benchmarks/size-history/1.5.0.json\`)`,
+      `Measured ${shim.size} B (\`benchmarks/size-history/1.7.0.json\`)`,
     );
     const ownRow = line(text, '| `modern-cmdk-codemod` own files');
-    expect(ownRow).toContain(`Measured ${own.size} B (\`benchmarks/size-history/1.5.0.json\`)`);
+    expect(ownRow).toContain(`Measured ${own.size} B (\`benchmarks/size-history/1.7.0.json\`)`);
     expect(ownRow).toContain(
       `the tarball is ${codemodPack.unpackedSize} B unpacked, ${codemodPack.tarballSize} B packed`,
     );
@@ -267,16 +280,18 @@ describe('ARCHITECTURE.md: the targets table and the lines that cite the record'
   it('cites the record with its sha, date and size-limit version', () => {
     const cite = line(text, 'Bundle sizes are checked on every CI run');
     expect(cite).toContain(
-      '[`benchmarks/size-history/1.5.0.json`](benchmarks/size-history/1.5.0.json)',
+      '[`benchmarks/size-history/1.7.0.json`](benchmarks/size-history/1.7.0.json)',
     );
+    expect(cite).toContain(`committed in \`${COMMIT}\``);
     expect(cite).toContain(`size-limit ${record.sizeLimit}, measured ${day} at \`${record.sha}\``);
   });
 
-  it('gives the CommandSeparator sentence the 1.5.0 figures and record', () => {
+  it('gives the CommandSeparator sentence the 1.7.0 figures and record', () => {
     const sentence = line(text, 'The `modern-cmdk/react` side gets nothing from `sideEffects`');
     expect(sentence).toContain(
-      `(${separator.size} B gzip against ${adapter.size} B for the whole adapter, \`benchmarks/size-history/1.5.0.json\`)`,
+      `(${separator.size} B gzip against ${adapter.size} B for the whole adapter, \`benchmarks/size-history/1.7.0.json\`)`,
     );
+    expect(sentence).not.toContain('1.5.0.json');
     expect(sentence).not.toContain('1.4.0.json');
   });
 });
@@ -290,13 +305,13 @@ describe('CONTRIBUTING.md: the size-limit paragraph', () => {
 
   it('cites the record, the measured sha, the date and size-limit', () => {
     expect(paragraph).toContain(
-      `benchmarks/size-history/1.5.0.json\` (${record.sha}, measured ${day} with size-limit ${record.sizeLimit})`,
+      `benchmarks/size-history/1.7.0.json\` (${record.sha}, measured ${day} with size-limit ${record.sizeLimit})`,
     );
   });
 
   it('quotes the codemod bin, the shim and the own files', () => {
     expect(paragraph).toContain(
-      `the bundled codemod bin is ${bin.size} B (${one4.codemodUnpackedSize} B in 1.4)`,
+      `the bundled codemod bin is ${bin.size} B, as in the 1.6 record (${old.bin.size} B)`,
     );
     expect(paragraph).toContain(`the shim ${shim.size} B`);
     expect(paragraph).toContain(`own files ${own.size} B`);
@@ -316,6 +331,24 @@ function sizesText(): string {
 }
 
 describe('the Sizes paragraphs: .changeset/modern-cmdk-1-5-0.md while it is pending, the CHANGELOG 1.5.0 entry once consumed', () => {
+  // History: these paragraphs quote the 1.5.0 record against the 1.4.0 record, not the current record.
+  const record = JSON.parse(read(RECORD_1_5)) as SizeRecord;
+  const previous = JSON.parse(read(RECORD_1_4)) as SizeRecord;
+  const core = entry(record, 'modern-cmdk (core)');
+  const adapter = entry(record, 'modern-cmdk/react (adapter only)');
+  const dialog = entry(record, 'modern-cmdk/react/dialog (adapter only)');
+  const separator = entry(record, 'modern-cmdk/react: CommandSeparator only');
+  const both = entry(record, 'modern-cmdk + modern-cmdk/react');
+  const styles = entry(record, 'modern-cmdk/styles.css');
+  const old = {
+    core: entry(previous, 'modern-cmdk (core)'),
+    adapter: entry(previous, 'modern-cmdk/react (adapter only)'),
+    dialog: entry(previous, 'modern-cmdk/react/dialog (adapter only)'),
+    both: entry(previous, 'modern-cmdk + modern-cmdk/react'),
+    styles: entry(previous, 'modern-cmdk/styles.css'),
+  };
+  const rc = tarball('modern-cmdk@1.5-rc', record);
+  const one4 = tarball('modern-cmdk@1.4', record);
   const text = sizesText();
   const recorded = line(text, 'Recorded in `benchmarks/size-history/1.5.0.json`');
   const packed = line(text, 'The packed `modern-cmdk@1.5` release candidate');
@@ -352,13 +385,21 @@ describe('the Sizes paragraphs: .changeset/modern-cmdk-1-5-0.md while it is pend
 
 describe('apps/docs/guide/ssr.md: the Tree-Shaking figures', () => {
   const text = read('apps/docs/guide/ssr.md');
-  const paragraph = line(
-    text,
-    "`import { Command } from 'modern-cmdk/react'` pulls every subcomponent",
-  );
+  const paragraph = line(text, 'A bundle that imports only individual components from');
 
-  it('cites the 1.5.0 record at its measured sha', () => {
-    expect(paragraph).toContain('benchmarks/size-history/1.5.0.json');
+  it('states the D116 property and drops the claim that the compound cannot be shaken', () => {
+    expect(paragraph).toContain('/* @__PURE__ */ Object.assign');
+    expect(paragraph).toContain('D116');
+    expect(paragraph).toContain('Importing `Command` keeps every static');
+    expect(paragraph).not.toContain('pulls every subcomponent');
+    expect(paragraph).not.toContain('out of 1.x');
+    expect(paragraph).not.toContain('still contains');
+  });
+
+  it('cites the 1.7.0 record at its measured sha', () => {
+    expect(paragraph).toContain('benchmarks/size-history/1.7.0.json');
+    expect(paragraph).toContain(`blob/${COMMIT}/benchmarks/size-history/1.7.0.json`);
+    expect(paragraph).not.toContain('1.5.0.json');
     expect(paragraph).not.toContain('1.4.0.json');
     expect(paragraph).toContain(
       `measured at \`${record.sha}\` with size-limit ${record.sizeLimit}`,
