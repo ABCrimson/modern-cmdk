@@ -262,3 +262,25 @@ html .vp-doc .vp-code-group .tabs {
   scrollbar-width: thin;
   scrollbar-color: var(--mc-border-strong) transparent;
 }
+
+/*
+ * The 404 <noscript> fallback (config.ts transformHtml) is plain markup after #app: NotFound.vue's scoped styles do not reach it
+ * and it is not inside VitePress's layout. It gets the page's own column (4.8: centred, 40rem).
+ */
+html noscript > main[data-mc="not-found"] {
+  box-sizing: border-box;
+  max-inline-size: 40rem;
+  margin-inline: auto;
+  padding: var(--mc-space-8) var(--mc-space-5) var(--mc-space-9);
+  text-align: center;
+}
+
+html noscript > main[data-mc="not-found"] :is(h1, p, ul) {
+  margin-inline: auto;
+}
+
+html noscript > main[data-mc="not-found"] ul {
+  margin-block: var(--mc-space-5) 0;
+  padding: 0;
+  list-style: none;
+}
