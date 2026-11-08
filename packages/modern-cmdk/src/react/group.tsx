@@ -3,14 +3,11 @@
 // React 19: use() for context, ref as prop
 // Isolated declarations: explicit return types on all exports
 
-import type { ComponentPropsWithRef, CSSProperties, ReactNode } from 'react';
+import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { useId, useMemo } from 'react';
 import type { CommandGroupContextValue } from './context.js';
 import { CommandGroupContext, useStableContext, useStateContext } from './context.js';
 import { useRegisterGroup } from './hooks/use-register.js';
-
-/** Module-level constant — avoids allocating a new object on every render of hidden groups */
-const HIDDEN_STYLE: CSSProperties = { display: 'none' } as const;
 
 export interface CommandGroupProps extends ComponentPropsWithRef<'div'> {
   /** Heading text displayed above the group */
@@ -34,6 +31,7 @@ export function CommandGroup({
   priority,
   id,
   forceId,
+  style,
   ...props
 }: CommandGroupProps): ReactNode {
   const stateCtx = useStateContext('Command.Group');
@@ -59,16 +57,9 @@ export function CommandGroup({
     [groupId, headingId],
   );
 
-  // Always render children so items can register via useLayoutEffect.
-  // Hide the group visually when no items match — but keep children mounted.
-  if (!hasVisibleItems) {
-    return (
-      <CommandGroupContext value={groupContext}>
-        <div style={HIDDEN_STYLE}>{children}</div>
-      </CommandGroupContext>
-    );
-  }
-
+  // One element tree in both states, so the children keep their identity (no remount, no unregister and register
+  // round trip) when the group toggles between no match and match. Items register through layout effects, so the
+  // children render even while no item matches; a group without a match is hidden with `display: none`.
   return (
     <CommandGroupContext value={groupContext}>
       <div
@@ -78,6 +69,7 @@ export function CommandGroup({
         role="group"
         aria-labelledby={heading ? headingId : undefined}
         {...props}
+        style={hasVisibleItems ? style : { ...style, display: 'none' }}
       >
         {heading && (
           <div data-command-group-heading="" id={headingId} aria-hidden>
