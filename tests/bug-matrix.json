@@ -1023,5 +1023,15 @@
     "id": "DA-13",
     "test": "tests/unit/codemod-data-attrs.test.ts::DA-13: group-, peer-, in- data variants on an element that is not cmdk-bound, in a file that references cmdk, are reported and left unchanged",
     "status": "covered"
+  },
+  {
+    "id": "RA-76",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-77",
+    "test": null,
+    "status": "pending"
   }
 ]
