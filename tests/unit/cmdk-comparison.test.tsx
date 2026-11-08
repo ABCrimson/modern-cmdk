@@ -31,6 +31,7 @@
 //  18. API surface comparison summary
 // ============================================================================
 
+import { Command as CmdkCommand } from 'cmdk';
 import {
   type CommandItem as CoreCommandItem,
   computeFrecencyBonus,
@@ -1238,6 +1239,101 @@ describe('13. Keywords Filtering', () => {
 // ============================================================================
 
 describe('14. Custom Filter / Disable Filtering', () => {
+  // CMP-9. The function form's signature differs between the libraries (installed types):
+  //   cmdk:        filter?: (value: string, search: string, keywords?: string[]) => number
+  //                (CommandFilter: a number between 0 and 1, 0 hides the item)
+  //   modern-cmdk: filter?: ((item: CommandItem, query: string) => number | false) | false
+  //                (CommandMachineOptions.filter: above 0 keeps the item, higher ranks first;
+  //                0, a negative score or false excludes it; false as the option disables filtering)
+  // So the same predicate needs a thin adapter: ours receives the whole item (item.value,
+  // item.keywords) where cmdk receives the value and keywords as separate arguments.
+  const FRUITS = ['banana', 'pineapple', 'apple', 'cherry'] as const;
+  // Contains the search, and the shorter the value the higher the score (1/length stays in (0, 1))
+  const scoreByLength = (value: string, search: string): number =>
+    value.includes(search) ? 1 / value.length : 0;
+  const scoreItemByLength = (item: CoreCommandItem, query: string): number =>
+    scoreByLength(item.value, query);
+
+  it('CMP-9: a custom filter function keeps the matches and ranks them by score, in both libraries', async () => {
+    // cmdk
+    await render(
+      <CmdkCommand filter={scoreByLength}>
+        <CmdkCommand.Input />
+        <CmdkCommand.List>
+          {FRUITS.map((f) => (
+            <CmdkCommand.Item key={f} value={f}>
+              {f}
+            </CmdkCommand.Item>
+          ))}
+        </CmdkCommand.List>
+      </CmdkCommand>,
+    );
+    await typeInInput(container.querySelector('input') as HTMLInputElement, 'e');
+    const cmdkOrder = [...container.querySelectorAll('[cmdk-item]')].map((el) => el.textContent);
+    expect(cmdkOrder).toEqual(['apple', 'cherry', 'pineapple']);
+
+    await act(async () => {
+      root.render(null);
+    });
+
+    // modern-cmdk
+    await render(
+      <Command filter={scoreItemByLength}>
+        <Command.Input />
+        <Command.List>
+          {FRUITS.map((f) => (
+            <Command.Item key={f} value={f}>
+              {f}
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command>,
+    );
+    await typeInInput(container.querySelector('input') as HTMLInputElement, 'e');
+    await vi.waitFor(() => {
+      expect(getItems().length).toBe(3);
+    });
+    // The set matches cmdk's. The DOM order does not: cmdk re-sorts its items by score, modern-cmdk
+    // renders them in source order and ranks them in the machine (filteredIds), which keyboard
+    // navigation follows: the best match is active first, then the next best.
+    expect([...getItems()].map((el) => el.textContent)).toEqual(['pineapple', 'apple', 'cherry']);
+    expect(getActiveItem()?.textContent).toBe('apple');
+    await pressKey('ArrowDown');
+    expect(getActiveItem()?.textContent).toBe('cherry');
+    await pressKey('ArrowDown');
+    expect(getActiveItem()?.textContent).toBe('pineapple');
+  });
+
+  it('CMP-9: a modern-cmdk filter excludes an item by returning false, 0 or a negative score', async () => {
+    const calls: Array<readonly [string, string]> = [];
+    const filter = (item: CoreCommandItem, query: string): number | false => {
+      calls.push([item.value, query]);
+      if (item.value === 'banana') return false;
+      if (item.value === 'pineapple') return 0;
+      if (item.value === 'apple') return -1;
+      return 0.5;
+    };
+    await render(
+      <Command filter={filter}>
+        <Command.Input />
+        <Command.List>
+          {FRUITS.map((f) => (
+            <Command.Item key={f} value={f}>
+              {f}
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command>,
+    );
+    await typeInInput(container.querySelector('input') as HTMLInputElement, 'x');
+    await vi.waitFor(() => {
+      expect(getItems().length).toBe(1);
+    });
+    expect(getItems()[0]?.textContent).toBe('cherry');
+    // the function received the item and the raw query (cmdk passes value, search and keywords)
+    expect(calls).toContainEqual(['cherry', 'x']);
+  });
+
   it('should render all items when filtering is disabled (same as cmdk shouldFilter={false})', async () => {
     await render(
       <Command filter={false}>
