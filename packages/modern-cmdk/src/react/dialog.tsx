@@ -1,7 +1,10 @@
 // packages/modern-cmdk/src/react/dialog.tsx
 // <Command.Dialog> — Radix Dialog.Root + Dialog.Portal + Dialog.Overlay + Dialog.Content
-// @starting-style CSS animations, transition-behavior: allow-discrete, background hidden with aria-hidden through Radix hideOthers
-// Focus trap via Radix built-in focus management
+// The dialog is modal (Radix's default): while it is open Radix hides the rest of the page from
+// assistive technology with aria-hidden on the content's siblings (hideOthers), traps focus in the
+// content and locks scroll (RemoveScroll)
+// styles.css declares @starting-style entries for the overlay and the content; they are inert
+// until DT-19
 // Isolated declarations: explicit return types on all exports
 
 import type { CommandMachineOptions } from 'modern-cmdk';

@@ -8,6 +8,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 export interface VirtualizerOptions {
   readonly count: number;
   readonly estimateSize: number;
+  /**
+   * Rows rendered beyond the viewport (default 8). Before it the count is rows: the window starts
+   * this many rows before the first row that ends at or after the viewport's top edge. After it
+   * the allowance is `overscan * estimateSize` pixels, whatever the rows measure: the window runs
+   * on until a row ends beyond the viewport's bottom edge plus that allowance, and that row is
+   * its last. Both edges are inclusive: a row that ends exactly at the top edge is kept, and so is
+   * a row that starts exactly at the bottom edge plus the allowance.
+   */
   readonly overscan?: number | undefined;
   readonly scrollElement: HTMLElement | null;
   readonly enabled?: boolean | undefined;

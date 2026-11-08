@@ -1,5 +1,5 @@
 // packages/modern-cmdk/src/react/command.tsx
-// <Command.Root> — compound component root, delegates setup to useCommandSetup
+// <Command> — compound component root, delegates setup to useCommandSetup
 // Keyboard navigation is attached to document by the root element's ref callback, and handles only events
 // that originate inside the root. The caller's div props and ref reach the root element.
 // Isolated declarations: explicit return types on all exports
