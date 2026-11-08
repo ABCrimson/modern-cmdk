@@ -84,9 +84,10 @@ export function scoreItemPreLowered(
 
 /**
  * Maps ranges found in `lowerValue` back onto `value`. Under toLowerCase() only U+0130
- * ('İ' → 'i' + U+0307) changes the UTF-16 length of any code point, which shifts every later index, so when the lengths differ each
- * lowered unit is traced to the character it came from: a range starts at the start of the
- * character holding its first unit and ends at the end of the character holding its last.
+ * ('İ' → 'i' + U+0307) changes the UTF-16 length of any code point, which shifts every later
+ * index, so when the lengths differ each lowered unit is traced to the character it came from:
+ * a range starts at the start of the character holding its first unit and ends at the end of
+ * the character holding its last.
  * Equal lengths (the common case; the final sigma lowers to 'ς' or 'σ', both one unit) need no map.
  */
 function toOriginalRanges(

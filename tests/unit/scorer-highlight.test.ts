@@ -50,6 +50,7 @@ describe('Highlight ranges index the original value', () => {
     const item = { id: itemId('two'), value: 'İzmir İstanbul' };
     const result = scoreItem('stan', item);
     expect(result?.matches).toEqual([[7, 11]]);
+    expect(scoreItem('zmir', item)?.matches).toEqual([[1, 5]]);
   });
 
   it('P20: a final sigma at the end of the matched span keeps the slice', () => {
