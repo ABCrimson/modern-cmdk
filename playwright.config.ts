@@ -4,6 +4,8 @@ const isCI = !!process.env.CI;
 const baseURL = 'http://localhost:5173';
 
 export default defineConfig({
+  // Failure reports carry the commit and the working-tree diff
+  captureGitInfo: { commit: true, diff: true },
   testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: isCI,
@@ -19,6 +21,8 @@ export default defineConfig({
   },
   use: {
     baseURL,
+    // Motion-free by default; a test about motion sets test.use({ reducedMotion: 'no-preference' })
+    reducedMotion: 'reduce',
     trace: 'retain-on-failure',
     actionTimeout: isCI ? 30_000 : 10_000,
   },
