@@ -37,10 +37,7 @@ html .vp-doc h1 {
   letter-spacing: var(--mc-step-3-tracking);
 }
 
-/* The rule above the h2 is gone, so the heading needs its own scroll margin (the theme zeroes it because of the padding) */
 html .vp-doc h2 {
-  --vp-extra-scroll-margin: 1.5rem;
-
   margin-block: var(--mc-space-7) var(--mc-space-4);
   border-top: 0;
   padding-top: 0;
