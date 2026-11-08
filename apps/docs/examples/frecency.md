@@ -72,15 +72,15 @@ Persist frecency data across browser sessions with `IdbFrecencyStorage`:
 import { Command } from 'modern-cmdk/react';
 import { IdbFrecencyStorage } from 'modern-cmdk';
 
-// Create storage once (singleton)
-const storage = new IdbFrecencyStorage('my-app-db', 'frecency');
-
 export function PersistentFrecencyExample() {
   return (
     <Command
       frecency={{
         enabled: true,
-        storage,
+        // The machine owns this storage: it saves pending data and then disposes it when the
+        // Command unmounts. Create it here, not once at module level, so a later mount
+        // does not receive a disposed storage.
+        storage: new IdbFrecencyStorage('my-app-db', 'frecency'),
         namespace: 'command-palette',
       }}
       label="Persistent Frecency"
@@ -105,6 +105,12 @@ export function PersistentFrecencyExample() {
   );
 }
 ```
+
+What persists, and when:
+
+- A selection is saved 1000 ms after the last selection (a trailing debounce), so a burst of selections is one write.
+- The data is also saved at once when the page becomes hidden (`visibilitychange`) or is hidden for good (`pagehide`), and when the machine is disposed (the `Command` unmounts).
+- On the next mount the machine loads the stored data in the background and merges it into the new session's selections (frequencies add, the later `lastUsed` wins). If a search is in progress when the load finishes, the results re-rank once; an empty search is unaffected, because frecency only re-ranks non-empty queries.
 
 ::: tip
 `IdbFrecencyStorage` uses `idb-keyval@6.3.0` under the hood. It is included as a direct dependency of `modern-cmdk`, so no separate install is needed.
@@ -146,18 +152,18 @@ Frecency works at the core state machine level, independent of React:
 import { createCommandMachine, itemId } from 'modern-cmdk';
 import type { CommandState } from 'modern-cmdk';
 import { IdbFrecencyStorage } from 'modern-cmdk';
-
 async function demo() {
-  await using storage = new IdbFrecencyStorage();
-
-  using machine = createCommandMachine({
+  // `await using` awaits the pending frecency save, then disposes the machine, which in turn
+  // disposes the storage it was given. Do not also declare the storage with `using`: it would be
+  // disposed right after the machine starts that save, and the save would be skipped.
+  await using machine = createCommandMachine({
     items: [
       { id: itemId('settings'), value: 'Settings' },
       { id: itemId('profile'), value: 'Profile' },
     ],
     frecency: {
       enabled: true,
-      storage,
+      storage: new IdbFrecencyStorage(),
       namespace: 'my-app',
     },
   });
@@ -170,8 +176,9 @@ async function demo() {
   machine.send({ type: 'SEARCH_CHANGE', query: 'set' });
 
   // send() is batched: both events run on the machine's next scheduler tick
-  // (requestAnimationFrame in browsers). Wait for that tick before the `using`
-  // scope ends, because disposing the machine drops events that have not run.
+  // (requestAnimationFrame in browsers, a microtask where it is absent). Subscribe
+  // instead of reading getState() right after send(), which still returns the previous state,
+  // and wait for that tick before the scope ends: disposing drops events that have not run.
   const state = await new Promise<CommandState>((resolve) => {
     const sub = machine.subscribeState((next) => {
       if (next.search !== 'set') return;
