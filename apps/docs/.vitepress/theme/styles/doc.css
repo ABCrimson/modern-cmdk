@@ -267,6 +267,13 @@ html .vp-doc [class*="language-"] > button.copy:hover.copied::before {
   border-block-end-width: 2px;
 }
 
+/* Code-group tabs: keyboard focus. The radio is visually hidden (opacity 0, position fixed), so the ring goes on its label (WCAG 2.4.7). */
+html .vp-doc .vp-code-group .tabs input:focus-visible + label {
+  outline: 2px solid var(--mc-brand-3);
+  outline-offset: -4px;
+  border-radius: var(--mc-radius-sm);
+}
+
 /* Code-group tabs: the 2 px active bar is --vp-code-tab-active-bar-color (brand-3, tokens.css). Edge fades are motion.css. */
 html .vp-doc .vp-code-group .tabs {
   scrollbar-width: thin;
