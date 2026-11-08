@@ -222,7 +222,7 @@ for (const result of results) {
 |---|---|---|
 | `id` | `ItemId` | Matched item ID |
 | `score` | `number` | Match quality (0–1, higher = better) |
-| `matches` | `Array<[number, number]>` | Character ranges for highlighting |
+| `matches` | `ReadonlyArray<readonly [number, number]>` | Character ranges for highlighting |
 
 ### `ScorerFn`
 
