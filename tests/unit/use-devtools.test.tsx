@@ -8,8 +8,15 @@ import { act, use } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const DEVTOOLS_KEY = '__CRIMSON_COMMAND_DEVTOOLS__';
-const DEVTOOLS_EVENT = 'crimson-command-devtools';
+const DEVTOOLS_KEY = '__MODERN_CMDK_DEVTOOLS__';
+const DEPRECATED_KEY = '__CRIMSON_COMMAND_DEVTOOLS__';
+const DEVTOOLS_EVENT = 'modern-cmdk-devtools';
+const DEPRECATED_EVENT = 'crimson-command-devtools';
+
+function clearRegistries(): void {
+  Reflect.deleteProperty(globalThis, DEVTOOLS_KEY);
+  Reflect.deleteProperty(globalThis, DEPRECATED_KEY);
+}
 
 function Probe({ devtools, label }: { devtools: (label: string) => void; label: string }): null {
   devtools(label);
@@ -60,9 +67,7 @@ async function mountDevtools(label: string): Promise<Mounted> {
 describe('useCommandDevtools', () => {
   let cleanup: (() => Promise<void>) | undefined;
 
-  beforeEach(() => {
-    Reflect.deleteProperty(globalThis, DEVTOOLS_KEY);
-  });
+  beforeEach(clearRegistries);
 
   afterEach(async () => {
     await cleanup?.();
@@ -70,7 +75,7 @@ describe('useCommandDevtools', () => {
     vi.unstubAllEnvs();
     vi.useRealTimers();
     vi.resetModules();
-    Reflect.deleteProperty(globalThis, DEVTOOLS_KEY);
+    clearRegistries();
   });
 
   it('SEC-52: registers the label when NODE_ENV is development', async () => {
@@ -84,6 +89,25 @@ describe('useCommandDevtools', () => {
     vi.stubEnv('NODE_ENV', 'production');
     ({ cleanup } = await mountDevtools('unit-prod'));
     expect(Reflect.has(globalThis, DEVTOOLS_KEY)).toBe(false);
+    expect(Reflect.has(globalThis, DEPRECATED_KEY)).toBe(false);
+  });
+
+  it('D30: the new and the deprecated global hold the same registry', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    ({ cleanup } = await mountDevtools('unit-alias'));
+    const registry = Reflect.get(globalThis, DEVTOOLS_KEY) as Map<string, unknown> | undefined;
+    expect(registry?.has('unit-alias')).toBe(true);
+    expect(Reflect.get(globalThis, DEPRECATED_KEY)).toBe(registry);
+
+    // Another copy of the library may have created the old Map first: the hook reuses it under both names.
+    await cleanup();
+    cleanup = undefined;
+    clearRegistries();
+    const existing = new Map<string, unknown>();
+    Reflect.set(globalThis, DEPRECATED_KEY, existing);
+    ({ cleanup } = await mountDevtools('unit-existing'));
+    expect(Reflect.get(globalThis, DEVTOOLS_KEY)).toBe(existing);
+    expect(existing.has('unit-existing')).toBe(true);
   });
 
   it('RA-48: one state change dispatches one event per name with the new state', async () => {
@@ -92,21 +116,32 @@ describe('useCommandDevtools', () => {
     vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
     const mounted = await mountDevtools('unit-events');
     cleanup = mounted.cleanup;
-    const events: CustomEvent<{ label: string; state: { searchQuery: string } }>[] = [];
-    const listener = (event: Event): void => {
-      events.push(event as CustomEvent<{ label: string; state: { searchQuery: string } }>);
-    };
-    globalThis.addEventListener(DEVTOOLS_EVENT, listener);
+    type Detail = { label: string; state: { searchQuery: string } };
+    const names = [DEVTOOLS_EVENT, DEPRECATED_EVENT] as const;
+    const events = new Map<string, CustomEvent<Detail>[]>(names.map((name) => [name, []]));
+    const listeners = names.map((name) => {
+      const listener = (event: Event): void => {
+        events.get(name)?.push(event as CustomEvent<Detail>);
+      };
+      globalThis.addEventListener(name, listener);
+      return [name, listener] as const;
+    });
     try {
       await act(async () => {
         mounted.machine.send({ type: 'SEARCH_CHANGE', query: 'alp' });
         vi.advanceTimersToNextFrame();
       });
     } finally {
-      globalThis.removeEventListener(DEVTOOLS_EVENT, listener);
+      for (const [name, listener] of listeners) globalThis.removeEventListener(name, listener);
     }
-    expect(events).toHaveLength(1);
-    expect(events[0]?.detail.label).toBe('unit-events');
-    expect(events[0]?.detail.state.searchQuery).toBe('alp');
+    for (const name of names) {
+      const received = events.get(name) ?? [];
+      expect(received, name).toHaveLength(1);
+      expect(received[0]?.detail.label, name).toBe('unit-events');
+      expect(received[0]?.detail.state.searchQuery, name).toBe('alp');
+    }
+    expect(events.get(DEVTOOLS_EVENT)?.[0]?.detail).toEqual(
+      events.get(DEPRECATED_EVENT)?.[0]?.detail,
+    );
   });
 });
