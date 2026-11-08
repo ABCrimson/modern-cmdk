@@ -2,11 +2,18 @@
 // SEC-52 (telemetry half): createTelemetryMiddleware (packages/modern-cmdk/src/core/telemetry.ts).
 // The other halves of SEC-52: the devtools hook is covered by tests/unit/use-devtools.test.tsx
 // ('SEC-52: registers the label when NODE_ENV is development' and 'SEC-52: leaves the registry uncreated
-// when NODE_ENV is production'); the create-modern-cmdk CLI by tests/dist/cli-exec.test.ts. What remains
-// open is the frecency flush-on-dispose test, which belongs to SEC-02 (1.6.0).
+// when NODE_ENV is production'); the create-modern-cmdk CLI by tests/dist/cli-exec.test.ts. The frecency
+// flush-on-dispose half of SEC-02 is covered by tests/unit/frecency-machine.test.ts ('CE-02: await using flushes the
+// pending save before the block ends' and 'CE-02: a synchronous dispose of a dirty machine still persists the selection').
+// T11 (exports without tests): the sorted runtime export list is pinned by tests/dist/exports.test.ts.
 
-import { createTelemetryMiddleware, itemId } from 'modern-cmdk';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  type CommandTelemetryHooks,
+  createTelemetryMiddleware,
+  itemId,
+  type TelemetryMiddleware,
+} from 'modern-cmdk';
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -130,5 +137,28 @@ describe('SEC-52: createTelemetryMiddleware', () => {
     b.onClose();
     expect(first).toHaveBeenCalledExactlyOnceWith(20);
     expect(second).toHaveBeenCalledExactlyOnceWith(10);
+  });
+
+  it('T11: the middleware exposes exactly onOpen, onClose, onSearch and onSelect', () => {
+    const telemetry = createTelemetryMiddleware({});
+    expect(Object.keys(telemetry).sort()).toEqual(['onClose', 'onOpen', 'onSearch', 'onSelect']);
+  });
+
+  it('T11: the exported hook and middleware types describe the factory', () => {
+    expectTypeOf(createTelemetryMiddleware).parameter(0).toEqualTypeOf<CommandTelemetryHooks>();
+    expectTypeOf(createTelemetryMiddleware).returns.toEqualTypeOf<TelemetryMiddleware>();
+    expectTypeOf<CommandTelemetryHooks['onPaletteClose']>().toEqualTypeOf<
+      ((durationMs: number) => void) | undefined
+    >();
+    expectTypeOf<CommandTelemetryHooks['onSearchComplete']>().toEqualTypeOf<
+      ((query: string, resultCount: number, durationMs: number) => void) | undefined
+    >();
+    expectTypeOf<TelemetryMiddleware['onSearch']>().toEqualTypeOf<
+      (query: string, resultCount: number, startTime: number) => void
+    >();
+    expectTypeOf<Partial<CommandTelemetryHooks>>().toEqualTypeOf<CommandTelemetryHooks>();
+    // The runtime half: a bare factory result is usable under those types.
+    const telemetry: TelemetryMiddleware = createTelemetryMiddleware({});
+    expect(telemetry.onOpen).toBeTypeOf('function');
   });
 });
