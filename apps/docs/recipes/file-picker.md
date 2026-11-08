@@ -82,6 +82,8 @@ export function FrecentFilePicker() {
 ## With Keyboard Shortcut
 
 ```tsx
+'use client';
+
 import { Command } from 'modern-cmdk/react';
 import { useEffect, useState } from 'react';
 
