@@ -401,33 +401,22 @@ jobs:
           persist-credentials: false
           # Full history: scripts/check-repo-links.ts resolves blob/<abbreviated hash>/ links with git, and a shallow clone lacks those commits
           fetch-depth: 0
-      # lychee comes from its release tarball, fetched with up to eight attempts (gh release download, then curl with retries, per
-      # attempt) and checked against a pinned sha256: lychee-action v2.9.0 downloads it with one curl -sfLO and no retry, which failed
-      # this job on a GitHub release-host error (run 42464306876, curl exit 22). Newest release: lychee v0.24.2 (re-resolve with: gh release list -R lycheeverse/lychee -L 3;
-      # the rolling "nightly" pre-release is not pinnable). The sha is the tarball's GitHub asset digest (re-resolve with:
+      # lychee comes from its release tarball through the local install-release-binary action: up to eight attempts (gh release
+      # download, then curl with retries, per attempt) and a pinned sha256. lychee-action v2.9.0 downloads it with one curl -sfLO and
+      # no retry, which failed this job on a GitHub release-host error (run 42464306876, curl exit 22), and it has no input that skips
+      # that download. Newest release: lychee v0.24.2 (re-resolve with: gh release list -R lycheeverse/lychee -L 3; the rolling
+      # "nightly" pre-release is not pinnable). The sha256 is the tarball's GitHub asset digest (re-resolve with:
       # gh release view lychee-v0.24.2 -R lycheeverse/lychee --json assets --jq '.assets[] | select(.name == "lychee-x86_64-unknown-linux-gnu.tar.gz") | .digest').
-      # Bump the version in the URL, the digest and the lychee.toml header together.
+      # Bump the tag, the digest and the lychee.toml header together.
       - name: Install lychee
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          tarball="$RUNNER_TEMP/lychee.tar.gz"
-          for attempt in 1 2 3 4 5 6 7 8; do
-            rm -f "$tarball"
-            gh release download lychee-v0.24.2 -R lycheeverse/lychee -p lychee-x86_64-unknown-linux-gnu.tar.gz -O "$tarball" --clobber && break
-            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 \
-              --output "$tarball" \
-              https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz && break
-            [ "$attempt" -lt 8 ] || { echo "::error::could not download lychee-x86_64-unknown-linux-gnu.tar.gz from lycheeverse/lychee lychee-v0.24.2"; exit 1; }
-            sleep $((attempt * 5))
-          done
-          echo "1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a  $tarball" | sha256sum --check
-          mkdir -p "$RUNNER_TEMP/lychee/bin"
-          tar -xzf "$tarball" -C "$RUNNER_TEMP/lychee/bin" --strip-components=1 lychee-x86_64-unknown-linux-gnu/lychee
-          echo "$RUNNER_TEMP/lychee/bin" >> "$GITHUB_PATH"
-          "$RUNNER_TEMP/lychee/bin/lychee" --version
+        uses: ./.github/actions/install-release-binary
+        with:
+          repo: lycheeverse/lychee
+          tag: lychee-v0.24.2
+          asset: lychee-x86_64-unknown-linux-gnu.tar.gz
+          sha256: 1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
+          path-in-archive: lychee-x86_64-unknown-linux-gnu/lychee
+          tool: lychee
       # The run lychee-action v2.9.0 performs (its entrypoint.sh with fail, failIfEmpty and checkbox on, format markdown): a task-list
       # Markdown report, the report in the job summary, and a failure on any lychee error or when no link was found.
       # The repository's own github.com pages are excluded here (lychee 0.24.2 chains CLI --exclude onto lychee.toml's
@@ -696,42 +685,33 @@ jobs:
             tar -xzf "$tarball" -C "$RUNNER_TEMP/sbom-src/$name"
           done
           printf 'select-catalogers:\n  - "+javascript-package-cataloger"\n' > "$RUNNER_TEMP/syft.yaml"
-      # syft comes from its release tarball, fetched with up to eight attempts (gh release download, then curl with retries, per
-      # attempt) and checked against a pinned sha256: sbom-action v0.24.3
-      # downloads syft's install.sh and the release's checksums file without a retry, and a GitHub release-host HTTP 504 on the
-      # checksums file failed this job on four of five attempts. Newest release: syft v1.57.0 (re-resolve with:
-      # gh release list -R anchore/syft -L 1). The sha is the tarball's GitHub asset digest (re-resolve with:
-      # gh release view v1.57.0 -R anchore/syft --json assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest').
-      # Bump the version in the URL, the file name and the digest together.
-      - name: Install syft
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          tarball="$RUNNER_TEMP/syft.tar.gz"
-          for attempt in 1 2 3 4 5 6 7 8; do
-            rm -f "$tarball"
-            gh release download v1.57.0 -R anchore/syft -p syft_1.57.0_linux_amd64.tar.gz -O "$tarball" --clobber && break
-            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 \
-              --output "$tarball" \
-              https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz && break
-            [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.0_linux_amd64.tar.gz from anchore/syft v1.57.0"; exit 1; }
-            sleep $((attempt * 5))
-          done
-          echo "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704  $tarball" | sha256sum --check
-          mkdir -p "$RUNNER_TEMP/syft/bin"
-          tar -xzf "$tarball" -C "$RUNNER_TEMP/syft/bin" syft
-          echo "$RUNNER_TEMP/syft/bin" >> "$GITHUB_PATH"
-          "$RUNNER_TEMP/syft/bin/syft" --version
-      # The scan sbom-action v0.24.3 runs (syft scan dir:<path> -o spdx-json -c <config>, update check off), written to the SBOM file.
-      - name: Generate the SBOM
-        shell: bash
-        env:
-          SYFT_CHECK_FOR_APP_UPDATE: 'false'
-        run: |
-          set -euo pipefail
-          syft scan "dir:$RUNNER_TEMP/sbom-src" -o "spdx-json=$RUNNER_TEMP/sbom/sbom.spdx.json" -c "$RUNNER_TEMP/syft.yaml"
+      # sbom-action v0.24.3 looks for syft in the runner tool cache (actions/tool-cache find('syft', '1.57.0'), the folder
+      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and downloads syft's install.sh and checksums file, with no
+      # retry, only on a miss; a GitHub release-host HTTP 504 on the checksums file failed this job on four of five attempts. The local
+      # install-release-binary action seeds that folder from the release tarball (up to eight attempts, gh release download then curl
+      # with retries, and a pinned sha256), so the action finds syft and skips its download. The sha256 is the tarball's GitHub asset
+      # digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest').
+      # Bump the tag, the digest and the syft-version below together.
+      - name: Install syft into the tool cache
+        uses: ./.github/actions/install-release-binary
+        with:
+          repo: anchore/syft
+          tag: v1.57.0
+          asset: syft_1.57.0_linux_amd64.tar.gz
+          sha256: 9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704
+          path-in-archive: syft
+          tool: syft
+          tool-cache: true
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: ${{ runner.temp }}/sbom-src
+          format: spdx-json
+          config: ${{ runner.temp }}/syft.yaml
+          output-file: ${{ runner.temp }}/sbom/sbom.spdx.json
+          upload-artifact: 'false'
+          upload-release-assets: 'false'
+          # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
+          syft-version: v1.57.0
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom

@@ -1,0 +1,85 @@
+name: Install a release binary
+description: >-
+  Downloads one tar.gz release asset of a GitHub repository with retries, checks its pinned sha256, and installs one
+  executable from it, either on PATH or in the runner tool cache where actions/tool-cache finds it. Linux x86_64 only.
+
+inputs:
+  repo:
+    description: "The repository that published the release, as owner/name"
+    required: true
+  tag:
+    description: "The release tag"
+    required: true
+  asset:
+    description: "The name of the tar.gz release asset"
+    required: true
+  sha256:
+    description: "The expected sha256 of the asset (the release asset digest; re-resolve with: gh release view <tag> -R <repo> --json assets)"
+    required: true
+  path-in-archive:
+    description: "The path of the executable inside the archive"
+    required: true
+  tool:
+    description: "The name the executable is installed under"
+    required: true
+  version:
+    description: "The tool-cache version folder (default: the tag without a leading v)"
+    required: false
+    default: ""
+  tool-cache:
+    description: "true places the executable at $RUNNER_TOOL_CACHE/<tool>/<version>/x64 with its x64.complete marker, the layout actions/tool-cache find() reads; false adds it to PATH"
+    required: false
+    default: "false"
+  github-token:
+    description: "The token gh release download uses"
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Download, verify and install ${{ inputs.tool }}
+      shell: bash
+      env:
+        REPO: ${{ inputs.repo }}
+        TAG: ${{ inputs.tag }}
+        ASSET: ${{ inputs.asset }}
+        SHA256: ${{ inputs.sha256 }}
+        PATH_IN_ARCHIVE: ${{ inputs.path-in-archive }}
+        TOOL: ${{ inputs.tool }}
+        VERSION: ${{ inputs.version }}
+        TOOL_CACHE: ${{ inputs.tool-cache }}
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        set -euo pipefail
+        [ "$(uname -m)" = x86_64 ] || { echo "::error::install-release-binary supports Linux x86_64 only, not $(uname -m)"; exit 1; }
+        [[ "$SHA256" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::sha256 must be 64 lowercase hex digits"; exit 1; }
+        tarball="$RUNNER_TEMP/$ASSET"
+        # Each attempt tries gh release download (GitHub API), then curl with its own retries: the two reach the release host by
+        # different routes, and a 5xx on one run did not stop the other.
+        for attempt in 1 2 3 4 5 6 7 8; do
+          rm -f "$tarball"
+          gh release download "$TAG" -R "$REPO" -p "$ASSET" -O "$tarball" --clobber && break
+          curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 \
+            --output "$tarball" \
+            "https://github.com/$REPO/releases/download/$TAG/$ASSET" && break
+          [ "$attempt" -lt 8 ] || { echo "::error::could not download $ASSET from $REPO $TAG"; exit 1; }
+          sleep $((attempt * 5))
+        done
+        echo "$SHA256  $tarball" | sha256sum --check
+        extract="$(mktemp -d "$RUNNER_TEMP/extract.XXXXXX")"
+        tar -xzf "$tarball" -C "$extract" "$PATH_IN_ARCHIVE"
+        if [ "$TOOL_CACHE" = true ]; then
+          version="${VERSION:-${TAG#v}}"
+          version="${version#v}"
+          dest="$RUNNER_TOOL_CACHE/$TOOL/$version/x64"
+          rm -rf "$dest" "$dest.complete"
+          install -D -m 0755 "$extract/$PATH_IN_ARCHIVE" "$dest/$TOOL"
+          touch "$dest.complete"
+        else
+          dest="$RUNNER_TEMP/$TOOL/bin"
+          install -D -m 0755 "$extract/$PATH_IN_ARCHIVE" "$dest/$TOOL"
+          echo "$dest" >> "$GITHUB_PATH"
+        fi
+        rm -rf "$extract" "$tarball"
+        "$dest/$TOOL" --version

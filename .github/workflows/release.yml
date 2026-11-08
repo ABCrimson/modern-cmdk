@@ -416,7 +416,7 @@ jobs:
         run: node scripts/codemod-tarball-smoke.ts --codemod "first-publish/$TARBALL"
 
   # D62: signs what first-publish-tarball built and hashed and first-publish-smoke tested, and nothing else. It checks out nothing
-  # (actions/attest and anchore/sbom-action read only the files named in their inputs), installs nothing and runs none of this
+  # (actions/attest and anchore/sbom-action read only the files named in their inputs), installs no dependency (it fetches only the syft binary, checked against a pinned sha256) and runs none of this
   # repository's code, so the Sigstore credential never meets a freshly resolved npm tree. It refuses any tarball whose sha256
   # differs from the digest first-publish-tarball recorded, taken before any freshly resolved npm code ran, and it needs
   # first-publish-smoke, so a failed smoke blocks the attestation.
@@ -472,6 +472,39 @@ jobs:
           mkdir sbom-src
           tar -xzf "$TGZ" -C sbom-src
           printf 'select-catalogers:\n  - "+javascript-package-cataloger"\n' > syft.yaml
+      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', '1.57.0'): the folder
+      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and otherwise downloads syft's install.sh and checksums file
+      # with no retry; a GitHub release-host HTTP 504 failed CI's SBOM scan on four of five attempts. This job checks out nothing, so
+      # it cannot use the local install-release-binary action CI uses; it seeds the same folder from syft's release tarball (up to
+      # eight attempts, gh release download then curl with retries, and a pinned sha256) and the action finds syft and skips its
+      # download. The sha256 is the tarball's GitHub asset digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json
+      # assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest'). Bump the tag, the digest and every
+      # syft-version below together with ci.yml.
+      - name: Install syft into the tool cache
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tarball="$RUNNER_TEMP/syft.tar.gz"
+          for attempt in 1 2 3 4 5 6 7 8; do
+            rm -f "$tarball"
+            gh release download v1.57.0 -R anchore/syft -p syft_1.57.0_linux_amd64.tar.gz -O "$tarball" --clobber && break
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 \
+              --output "$tarball" \
+              https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz && break
+            [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.0_linux_amd64.tar.gz from anchore/syft v1.57.0"; exit 1; }
+            sleep $((attempt * 5))
+          done
+          echo "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704  $tarball" | sha256sum --check
+          extract="$(mktemp -d "$RUNNER_TEMP/extract.XXXXXX")"
+          tar -xzf "$tarball" -C "$extract" syft
+          dest="$RUNNER_TOOL_CACHE/syft/1.57.0/x64"
+          rm -rf "$dest" "$dest.complete"
+          install -D -m 0755 "$extract/syft" "$dest/syft"
+          touch "$dest.complete"
+          rm -rf "$extract" "$tarball"
+          "$dest/syft" --version
       - name: SBOM for modern-cmdk-codemod
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
@@ -601,6 +634,40 @@ jobs:
             tar -xzf "pack/$tarball" -C "sbom-src/$key"
             echo "$key=pack/$tarball" >> "$GITHUB_OUTPUT"
           done
+      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', '1.57.0'): the folder
+      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and otherwise downloads syft's install.sh and checksums file
+      # with no retry; a GitHub release-host HTTP 504 failed CI's SBOM scan on four of five attempts. This job checks out nothing, so
+      # it cannot use the local install-release-binary action CI uses; it seeds the same folder from syft's release tarball (up to
+      # eight attempts, gh release download then curl with retries, and a pinned sha256) and the action finds syft and skips its
+      # download. The sha256 is the tarball's GitHub asset digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json
+      # assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest'). Bump the tag, the digest and every
+      # syft-version below together with ci.yml.
+      - name: Install syft into the tool cache
+        if: steps.tarballs.outputs.count != '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tarball="$RUNNER_TEMP/syft.tar.gz"
+          for attempt in 1 2 3 4 5 6 7 8; do
+            rm -f "$tarball"
+            gh release download v1.57.0 -R anchore/syft -p syft_1.57.0_linux_amd64.tar.gz -O "$tarball" --clobber && break
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 \
+              --output "$tarball" \
+              https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz && break
+            [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.0_linux_amd64.tar.gz from anchore/syft v1.57.0"; exit 1; }
+            sleep $((attempt * 5))
+          done
+          echo "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704  $tarball" | sha256sum --check
+          extract="$(mktemp -d "$RUNNER_TEMP/extract.XXXXXX")"
+          tar -xzf "$tarball" -C "$extract" syft
+          dest="$RUNNER_TOOL_CACHE/syft/1.57.0/x64"
+          rm -rf "$dest" "$dest.complete"
+          install -D -m 0755 "$extract/syft" "$dest/syft"
+          touch "$dest.complete"
+          rm -rf "$extract" "$tarball"
+          "$dest/syft" --version
       - name: SBOM for modern-cmdk
         if: steps.tarballs.outputs.modern_cmdk != ''
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
