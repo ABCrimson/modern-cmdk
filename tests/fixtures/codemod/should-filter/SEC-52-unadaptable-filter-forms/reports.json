@@ -1,0 +1,6 @@
+[
+  "<Command> at line 10 has a filter expression that is computed where it stands (a call or other computed value), which the adapter would re-evaluate on every item outside render; left unchanged for manual migration: hoist it to a const and pass the name",
+  "<Command> at line 11 has a filter expression that is computed where it stands (a call or other computed value), which the adapter would re-evaluate on every item outside render; left unchanged for manual migration: hoist it to a const and pass the name",
+  "<Command> at line 12 has a filter expression that is computed where it stands (a call or other computed value), which the adapter would re-evaluate on every item outside render; left unchanged for manual migration: hoist it to a const and pass the name",
+  "<Command> at line 15 has a filter expression that is computed where it stands (a call or other computed value), which the adapter would re-evaluate on every item outside render; left unchanged for manual migration: hoist it to a const and pass the name"
+]
