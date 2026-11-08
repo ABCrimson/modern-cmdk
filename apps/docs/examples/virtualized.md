@@ -5,7 +5,9 @@ description: Virtualization with 10K items, estimateSize, overscan configuration
 
 # Virtualized List
 
-Demonstrates smooth 60fps scrolling with 10,000 items using the built-in virtualizer. No configuration is required -- virtualization activates automatically when filtered results exceed 100 items.
+Demonstrates the built-in virtualizer with 10,000 items. No configuration is required -- virtualization activates automatically when filtered results exceed 100 items.
+
+Virtualization limits the DOM, not the React tree. Every `<Command.Item>` still mounts and registers with the machine, and each one re-renders when the state changes (it reads the active id and the filtered set from context); only the items in the viewport plus `overscan` render DOM. The 10,000 registrations arrive in one scheduler batch, so they cost one refilter and one `stateChange`, not 10,000. The adapter has no data-driven path that skips the per-item components, so for far larger lists render fewer `<Command.Item>` elements (search on the server, or page the data) instead of relying on virtualization. No benchmark in this repository measures scrolling frame rate, so this page makes no fps claim.
 
 ## 10K Items
 

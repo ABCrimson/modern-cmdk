@@ -39,7 +39,7 @@ function EmojiPicker({ onSelect }: { onSelect: (emoji: string) => void }) {
 }
 ```
 
-Virtualization activates automatically when more than 100 items match (a fixed threshold). With 5000+ emojis, only visible items render.
+Virtualization activates automatically when more than 100 items match (a fixed threshold). With 5000+ emojis, every `<Command.Item>` still mounts and registers with the machine (in one scheduler batch, so one refilter); virtualization only skips the off-screen DOM, so only the rows in the viewport plus `overscan` render elements.
 
 ## With WASM Search
 
