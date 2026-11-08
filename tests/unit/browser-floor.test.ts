@@ -9,6 +9,8 @@
 // comments that mention `await using` or `Map.groupBy` are not code) and checks the list, the deny list and the computed floor
 // against the installed web-features.
 
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -498,4 +500,118 @@ describe('browser floor: the exit gate, a newer API turns the test red (CE-29, R
       'explicit-resource-management: Baseline is false',
     ]);
   });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Biome's useBaseline over the shipped stylesheet (R4)
+// ---------------------------------------------------------------------------------------------------------------------
+
+const ROOT: string = join(import.meta.dirname, '..', '..');
+const BIOME_BIN: string = join(ROOT, 'node_modules', '@biomejs', 'biome', 'bin', 'biome');
+const STYLES_PATH = 'packages/modern-cmdk/src/react/styles.css';
+
+interface BiomeOverride {
+  readonly includes?: readonly string[];
+  readonly linter?: {
+    readonly rules?: {
+      readonly suspicious?: {
+        readonly useBaseline?: {
+          readonly level: string;
+          readonly options: { available: string; allowProperties: string[] };
+        };
+      };
+    };
+  };
+}
+
+interface BiomeConfig {
+  overrides: BiomeOverride[];
+}
+
+const biomeConfigText = readFileSync(join(ROOT, 'biome.json'), 'utf8');
+const stylesheet = readFileSync(join(ROOT, STYLES_PATH), 'utf8');
+
+function stylesheetOverride(config: BiomeConfig): BiomeOverride {
+  const override = config.overrides.find((entry) => entry.includes?.includes(STYLES_PATH));
+  if (override === undefined) {
+    throw new Error(`biome.json has no override for ${STYLES_PATH}`);
+  }
+  return override;
+}
+
+/**
+ * Runs the installed Biome (no shell) over `css` placed at the stylesheet's repository path in a scratch tree that holds a copy
+ * of biome.json, so the real override applies to it; `biome lint --stdin-file-path` reports no diagnostics at all in Biome 2.6.6
+ * (it answers "The contents aren't fixed" for every input, even `debugger;` in a .js file), and the stylesheet's path is
+ * CORE's file, not written here. --vcs-use-ignore-file=false because the scratch tree has no ignore file.
+ */
+function lintStylesheet(
+  css: string,
+  configText: string = biomeConfigText,
+): { status: number | null; output: string } {
+  const scratch = mkdtempSync(join(tmpdir(), 'modern-cmdk-baseline-'));
+  try {
+    mkdirSync(dirname(join(scratch, STYLES_PATH)), { recursive: true });
+    writeFileSync(join(scratch, 'biome.json'), configText);
+    writeFileSync(join(scratch, STYLES_PATH), css);
+    const result = spawnSync(
+      process.execPath,
+      [
+        BIOME_BIN,
+        'lint',
+        STYLES_PATH,
+        '--colors=off',
+        '--vcs-use-ignore-file=false',
+        '--max-diagnostics=100',
+      ],
+      { cwd: scratch, encoding: 'utf8' },
+    );
+    return { status: result.status, output: `${result.stdout}${result.stderr}` };
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+const ALLOWED_PROPERTIES: readonly string[] = stylesheetOverride(
+  JSON.parse(biomeConfigText) as BiomeConfig,
+).linter?.rules?.suspicious?.useBaseline?.options.allowProperties ?? ['<missing>'];
+
+describe('browser floor: Biome useBaseline over styles.css (R4)', () => {
+  it('R4: the override enables suspicious/useBaseline as an error at the "newly" level for the stylesheet', () => {
+    const rule = stylesheetOverride(JSON.parse(biomeConfigText) as BiomeConfig).linter?.rules
+      ?.suspicious?.useBaseline;
+    expect(rule?.level).toBe('error');
+    expect(rule?.options.available).toBe('newly');
+  });
+
+  it('R4: the unmodified styles.css passes biome lint', () => {
+    const result = lintStylesheet(stylesheet);
+    expect(result.output).not.toContain('useBaseline');
+    expect(result.status).toBe(0);
+  });
+
+  it.each([
+    ['a Limited selector', 'a::scroll-marker { color: red; }'],
+    ['a Limited media condition', '@media (inverted-colors: inverted) { a { color: red; } }'],
+    ['a Limited property', 'a { anchor-name: --seeded; }'],
+  ])('R4: appending %s to styles.css fails with lint/suspicious/useBaseline', (_name, rule) => {
+    const result = lintStylesheet(`${stylesheet}\n${rule}\n`);
+    expect(result.output).toContain('lint/suspicious/useBaseline');
+    expect(result.status).not.toBe(0);
+  });
+
+  it.each(ALLOWED_PROPERTIES)(
+    'R4: the allowed property %s is used by styles.css and reported once its allow entry is removed',
+    (property) => {
+      const config = JSON.parse(biomeConfigText) as BiomeConfig;
+      const options = stylesheetOverride(config).linter?.rules?.suspicious?.useBaseline?.options;
+      expect(options?.allowProperties).toContain(property);
+      if (options !== undefined) {
+        options.allowProperties = options.allowProperties.filter((allowed) => allowed !== property);
+      }
+      const result = lintStylesheet(stylesheet, JSON.stringify(config));
+      expect(result.output).toContain(`CSS property ${property} isn't part of the chosen Baseline`);
+      expect(result.status).not.toBe(0);
+    },
+  );
 });
