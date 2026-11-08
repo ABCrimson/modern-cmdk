@@ -8,7 +8,6 @@ import type { ItemId } from 'modern-cmdk';
 import type {
   ComponentPropsWithRef,
   CSSProperties,
-  PointerEvent,
   ReactNode,
   RefCallback,
   RefObject,
@@ -44,7 +43,6 @@ export function CommandList({
   overscan = 8,
   announceResults,
   style,
-  onPointerMove,
   ...props
 }: CommandListProps): ReactNode {
   const stable = useStableContext('Command.List');
@@ -101,38 +99,23 @@ export function CommandList({
     enabled: shouldVirtualize,
   });
 
-  // The row under the pointer at its latest move. A hovered row is already in view, and the item sends
-  // ITEM_ACTIVATE for it, so the scroll effect below skips that activation. The handler writes the ref and
-  // the effect clears it as soon as it reads it: a later keyboard activation finds no mark and scrolls.
-  const pointerItemId = useRef<string | null>(null);
-  const handlePointerMove = useCallback(
-    (event: PointerEvent<HTMLDivElement>): void => {
-      const target = event.target;
-      pointerItemId.current =
-        target instanceof Element ? (target.closest('[data-command-item]')?.id ?? null) : null;
-      onPointerMove?.(event);
-    },
-    [onPointerMove],
-  );
-
-  // Scroll-to-active on keyboard navigation (the active row scrolls only as far as it needs to)
+  // Scroll-to-active on keyboard navigation. A row the pointer activates is the hovered row, which is in
+  // view, so an active row under the pointer is not scrolled to; keyboard navigation moves the active row
+  // away from the hovered one and scrolls it just into view ('nearest'). A row the virtualizer does not
+  // render cannot be hovered, so it is scrolled to by index.
   const prevActiveId = useRef<string | null>(stateCtx.state.activeId);
   useEffect(() => {
-    if (stateCtx.state.activeId && stateCtx.state.activeId !== prevActiveId.current) {
-      prevActiveId.current = stateCtx.state.activeId;
-      const fromPointer = pointerItemId.current === stateCtx.state.activeId;
-      pointerItemId.current = null;
-      if (fromPointer) return;
+    const activeId = stateCtx.state.activeId;
+    if (activeId && activeId !== prevActiveId.current) {
+      prevActiveId.current = activeId;
+      const el = scrollRef.current?.querySelector(`[id="${CSS.escape(activeId)}"]`);
+      if (el?.matches(':hover')) return;
 
       if (shouldVirtualize) {
         // Virtual mode: O(1) index lookup via machine's filteredIdIndex Map
-        const idx = stable.machine.getFilteredIdIndex().get(stateCtx.state.activeId) ?? -1;
+        const idx = stable.machine.getFilteredIdIndex().get(activeId) ?? -1;
         if (idx >= 0) virtualizer.scrollToIndex(idx, 'nearest');
       } else {
-        // DOM mode: scrollIntoView on the active element
-        const el = scrollRef.current?.querySelector(
-          `[id="${CSS.escape(stateCtx.state.activeId)}"]`,
-        );
         el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     }
@@ -208,7 +191,6 @@ export function CommandList({
         aria-busy={stateCtx.state.loading}
         id={stable.listId}
         style={mergedStyle}
-        onPointerMove={handlePointerMove}
         {...props}
       >
         {/* One element tree in both modes: the mode changes this element's props only, so the items stay mounted when the match count crosses the threshold. */}
