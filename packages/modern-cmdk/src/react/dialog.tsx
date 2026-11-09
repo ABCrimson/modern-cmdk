@@ -96,8 +96,6 @@ export function CommandDialog({
   // One value for Dialog.Root, both data-state attributes and the focus record
   const open = controlledOpen ?? state.open;
 
-  const contentRef = useRef<HTMLDivElement>(null);
-
   // The element that had focus when the dialog opened, found through open shadow roots. Radix has no
   // trigger to restore focus to, so onCloseAutoFocus does it.
   const opener = useRef<HTMLElement | null>(null);
@@ -124,19 +122,19 @@ export function CommandDialog({
   }, [controlledOpen, state, machine]);
 
   // Radix's mount event, dispatched only while nothing inside the content has focus: focus the
-  // command input instead of Radix's default. The lookup starts at the dialog content, so a portal
-  // container inside a shadow root finds the input (document.getElementById does not pierce a shadow
-  // root).
+  // command input instead of Radix's default. The lookup starts at the event's target, the dialog
+  // content, so a portal container inside a shadow root finds the input (document.getElementById
+  // does not pierce a shadow root).
   const handleOpenAutoFocus = useCallback((e: Event): void => {
     e.preventDefault();
-    contentRef.current?.querySelector<HTMLElement>('[data-command-input]')?.focus();
+    (e.target as HTMLElement).querySelector<HTMLElement>('[data-command-input]')?.focus();
   }, []);
 
-  // Focus returns to the opener when it is still connected; Radix's own restore targets a trigger this
-  // dialog does not have
+  // Focus returns to the opener; focus() on an element no longer in the document does nothing.
+  // Radix's own restore targets a trigger this dialog does not have
   const handleCloseAutoFocus = useCallback((e: Event): void => {
     e.preventDefault();
-    if (opener.current?.isConnected) opener.current.focus();
+    opener.current?.focus();
   }, []);
 
   // Radix reports the user's request to open or close the dialog. A controlled dialog hands it to the consumer and
@@ -171,7 +169,6 @@ export function CommandDialog({
         />
         {/* Content — focus trap via Radix; its @starting-style entry is inert until DT-19 */}
         <Dialog.Content
-          ref={contentRef}
           data-command-dialog=""
           data-state={open ? 'open' : 'closed'}
           className={className}
