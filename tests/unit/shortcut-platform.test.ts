@@ -55,7 +55,8 @@ describe('formatShortcut labels', () => {
   });
 
   it('CE-42: a key named like an Object.prototype member renders capitalised', () => {
-    // parseShortcut lower-cases and resolves modifiers by table, so build the parsed shapes directly
+    // parseShortcut lower-cases and resolves modifiers by table, so build the parsed shapes
+    // directly
     for (const key of ['constructor', 'toString', '__proto__', 'valueOf', 'hasOwnProperty']) {
       const p = { ...parseShortcut('k', 'other'), key };
       const want = key.charAt(0).toUpperCase() + key.slice(1);

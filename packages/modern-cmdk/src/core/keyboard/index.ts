@@ -16,8 +16,8 @@ interface ShortcutBinding {
 }
 
 /**
- * True while an input method composes text: `isComposing`, or the legacy `keyCode` 229 some engines
- * report instead
+ * True while an input method composes text: `isComposing`, or `keyCode` 229, which the keydowns
+ * that open and close a composition carry while `isComposing` is still false (MDN, keydown event)
  */
 export function isImeComposition(event: KeyboardEvent): boolean {
   return event.isComposing || event.keyCode === 229;

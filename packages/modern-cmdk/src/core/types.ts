@@ -262,7 +262,8 @@ export interface CommandMachineOptions {
    * Whether item shortcuts fire from an editable target (an `input`, `textarea`, `select` or
    * contenteditable element). `true` (the default) fires them; `false` leaves a keydown in any
    * editable target other than the palette's own input (`data-command-input`) to the page, so the
-   * browser's copy and paste keys keep working.
+   * browser's copy and paste keys keep working. An editable element inside a closed shadow root is
+   * seen as its host and still fires.
    */
   readonly shortcutsInEditable?: boolean | undefined;
   /** Accepted but not read yet: Command.List uses fixed thresholds (on above 100 matches, off at 50 or fewer) (default: 100) */

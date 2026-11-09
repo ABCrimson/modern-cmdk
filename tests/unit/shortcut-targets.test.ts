@@ -1,5 +1,6 @@
-// Which keydowns reach the shortcut registry (IME, default-prevented, editable targets, scope), when it holds a
-// document listener, and how a keydown matches a shortcut across keyboard layouts.
+// Which keydowns reach the shortcut registry (IME, default-prevented, editable targets, scope),
+// when it holds a document listener, and how a keydown matches a shortcut across keyboard
+// layouts.
 
 import type { CommandItem, CommandMachine } from 'modern-cmdk';
 import {
@@ -28,7 +29,10 @@ function altGraph(init: KeyboardEventInit): KeyboardEvent {
   return event;
 }
 
-/** The `keydown` listener registrations a spy on `document.addEventListener` or `removeEventListener` saw */
+/**
+ * The `keydown` listener registrations a spy on `document.addEventListener` or
+ * `removeEventListener` saw
+ */
 function keydownCalls(spy: { readonly mock: { readonly calls: readonly unknown[][] } }): number {
   return spy.mock.calls.filter(([type]) => type === 'keydown').length;
 }
@@ -371,7 +375,8 @@ describe('matching through event.code', () => {
   });
 
   it('CE-11: a binding matched through event.key wins over one matched only through event.code', () => {
-    // AZERTY, no modifier: the key is '&' and the code is Digit1, so '1' matches through the code only
+    // AZERTY, no modifier: the key is '&' and the code is Digit1, so '1' matches through the code
+    // only
     const event = keydown({ key: '&', code: 'Digit1' });
     const byKey = parseShortcut('&', 'other');
     const byCode = parseShortcut('1', 'other');
