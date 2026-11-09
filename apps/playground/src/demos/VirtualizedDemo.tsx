@@ -2,7 +2,7 @@
 
 // apps/playground/src/demos/VirtualizedDemo.tsx
 // 10K items for virtualization testing
-// React 19: useId, useMemo
+// React 19: useId, useMemo, useState
 // ES2025: Iterator Helpers for item rendering
 
 import { Command } from 'modern-cmdk/react';
@@ -37,10 +37,10 @@ const DEFAULT_ITEM_COUNT = 10_000;
 /** Upper bound for ?count= so a huge value cannot hang the tab */
 const MAX_ITEM_COUNT = 100_000;
 
-/** ?count= when it is a positive safe integer (capped at MAX_ITEM_COUNT), else the default */
+/** ?count= when it is a positive decimal integer (capped at MAX_ITEM_COUNT), else the default */
 function getItemCount(): number {
-  const params = new URLSearchParams(globalThis.location?.search ?? '');
-  const count = Number.parseInt(params.get('count') ?? '', 10);
+  const raw = new URLSearchParams(globalThis.location?.search ?? '').get('count') ?? '';
+  const count = /^\d+$/.test(raw) ? Number.parseInt(raw, 10) : Number.NaN;
   return Number.isSafeInteger(count) && count > 0
     ? Math.min(count, MAX_ITEM_COUNT)
     : DEFAULT_ITEM_COUNT;
@@ -49,6 +49,7 @@ function getItemCount(): number {
 export function VirtualizedDemo(): React.ReactNode {
   const headingId = useId();
   const itemCount = useMemo(getItemCount, []);
+  const itemsLabel = `${itemCount.toLocaleString()} ${itemCount === 1 ? 'item' : 'items'}`;
   const [lastSelected, setLastSelected] = useState('');
 
   // Generate items using Array.from
@@ -96,20 +97,19 @@ export function VirtualizedDemo(): React.ReactNode {
     <div className="demo-container" role="region" aria-labelledby={headingId}>
       <h2 className="demo-title" id={headingId}>
         Virtualized
-        <span className="demo-badge demo-badge--beta">{itemCount.toLocaleString()} items</span>
+        <span className="demo-badge demo-badge--beta">{itemsLabel}</span>
       </h2>
       <p className="demo-description">
-        Rendering {itemCount.toLocaleString()} items with automatic virtualization. The list
-        auto-virtualizes when the filtered count exceeds 100 items. Uses{' '}
-        <code>content-visibility: auto</code> for GPU-optimized rendering and{' '}
-        <code>contain-intrinsic-size</code> for stable scroll height.
+        Rendering {itemsLabel} with automatic virtualization. The list auto-virtualizes when the
+        filtered count exceeds 100 items. Uses <code>content-visibility: auto</code> for
+        GPU-optimized rendering and <code>contain-intrinsic-size</code> for stable scroll height.
       </p>
 
       <Command
         className="command-palette command-palette--tall"
         label="Virtualized command palette"
       >
-        <Command.Input placeholder={`Search ${itemCount.toLocaleString()} items...`} />
+        <Command.Input placeholder={`Search ${itemsLabel}...`} />
         <Command.List virtualize estimateSize={44} overscan={12}>
           <Command.Empty>No results found.</Command.Empty>
           {renderedItems}

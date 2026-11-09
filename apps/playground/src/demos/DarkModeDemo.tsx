@@ -25,7 +25,7 @@ export function DarkModeDemo(): React.ReactNode {
       <p className="demo-description">
         Toggle between dark and light themes. The palette uses OKLCH color tokens, and the preview
         below re-themes through its <code>data-theme-preview</code> attribute. "System Default"
-        follows the <code>prefers-color-scheme</code> media query.
+        applies the current <code>prefers-color-scheme</code> value when you select it.
       </p>
 
       <button
