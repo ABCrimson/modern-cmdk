@@ -10,7 +10,8 @@ import { expect, open, test } from './fixtures';
  */
 async function bodyLuminance(page: Page): Promise<number> {
   const rgb = await page.evaluate(() => {
-    const ctx = new OffscreenCanvas(1, 1).getContext('2d', { willReadFrequently: true });
+    // A DOM canvas: Playwright's WebKit 27.2 build for Windows has no OffscreenCanvas.
+    const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
     if (!ctx) throw new Error('2d canvas unavailable');
     ctx.fillStyle = getComputedStyle(document.body).backgroundColor;
     ctx.fillRect(0, 0, 1, 1);
