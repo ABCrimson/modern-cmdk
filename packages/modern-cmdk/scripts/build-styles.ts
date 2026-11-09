@@ -21,8 +21,9 @@ const version = (major: number, minor = 0): number => (major << 16) | (minor << 
 /**
  * The browser floor: Chrome and Edge 123 (the first with light-dark()), Firefox 131, Safari and
  * iOS Safari 18.4. Without targets lightningcss folds animation-timeline into the animation
- * shorthand and text-decoration-thickness into text-decoration, which engines below the floor drop
- * whole; at the floor neither merge happens and light-dark() needs no lowering.
+ * shorthand, which no engine accepts, and text-decoration-thickness into text-decoration, which
+ * Safari before 26.2 drops whole; at the floor neither merge happens and light-dark() needs no
+ * lowering.
  */
 export const targets: Targets = {
   chrome: version(123),
