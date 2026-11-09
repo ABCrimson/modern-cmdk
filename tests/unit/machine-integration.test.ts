@@ -21,7 +21,7 @@ describe('Machine Integration', () => {
     vi.useRealTimers();
   });
 
-  it('should support full flow: register → search → navigate → select → frecency', () => {
+  it('T43: should support full flow: register → search → navigate → select → frecency', () => {
     const onSelect = vi.fn();
     using machine = createCommandMachine({
       items: [
@@ -57,6 +57,12 @@ describe('Machine Integration', () => {
     machine.send({ type: 'SEARCH_CHANGE', query: '' });
     nextFrame();
     expect(machine.getState().filteredCount).toBe(3);
+
+    // Frecency re-ranks a non-empty query: 'e' lists Cherry before Apple by score alone, and the
+    // selected Apple first only through its boost
+    machine.send({ type: 'SEARCH_CHANGE', query: 'e' });
+    nextFrame();
+    expect(machine.getState().filteredIds[0]).toBe(itemId('apple'));
   });
 
   it('should handle dynamic item registration and deregistration', () => {
@@ -166,7 +172,7 @@ describe('Machine Integration', () => {
     expect(machine.getState().open).toBe(false);
   });
 
-  it('should handle keyboard shortcut registration via items', () => {
+  it('TUB-38: an item shortcut fires its onSelect once on a document keydown', () => {
     const handler = vi.fn();
     using machine = createCommandMachine({
       items: [makeItem('copy', 'Copy', { shortcut: 'Ctrl+C', onSelect: handler })],
@@ -175,6 +181,24 @@ describe('Machine Integration', () => {
     const registry = machine.getKeyboardRegistry();
     const bindings = registry.getBindings();
     expect(bindings.size).toBe(1);
+
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true, cancelable: true }),
+    );
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('RA-83: a machine created open reports its open at its first event', () => {
+    const onPaletteOpen = vi.fn();
+    using machine = createCommandMachine({ open: true, telemetry: { onPaletteOpen } });
+    machine.suspend();
+    machine.resume();
+    nextFrame();
+    expect(onPaletteOpen).toHaveBeenCalledTimes(1);
+
+    machine.send({ type: 'SEARCH_CHANGE', query: 'a' });
+    nextFrame();
+    expect(onPaletteOpen).toHaveBeenCalledTimes(1);
   });
 
   it('should support custom filter function', () => {
