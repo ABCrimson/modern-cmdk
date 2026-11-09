@@ -522,6 +522,13 @@ test.describe('Stylesheet — bare page', { tag: '@styles' }, () => {
       expect(closed.animations, 'CSSAnimations of the closed overlay').toContain(
         'command-overlay-exit',
       );
+      const ended = await page.evaluate(() => {
+        const overlay = document.querySelector('[data-command-overlay]');
+        if (overlay === null) throw new Error('no overlay');
+        for (const animation of overlay.getAnimations()) animation.finish();
+        return getComputedStyle(overlay).backgroundColor;
+      });
+      expect(alphaOf(ended), 'the tint once the exit ends').toBeCloseTo(0, 5);
     });
 
     test('A11Y-40: the loading status text stays at opacity 1 while its indicator pulses', async ({
