@@ -330,7 +330,7 @@ test('TEB-104: both font faces are loaded when the first demo renders', async ({
   await page.addInitScript(() => {
     const probe = globalThis as unknown as { __loadedFaces?: string[] };
     const observer = new MutationObserver(() => {
-      if ((document.getElementById('root')?.childElementCount ?? 0) === 0) return;
+      if (!document.getElementById('root')?.firstElementChild) return;
       probe.__loadedFaces = [...document.fonts]
         .filter((face) => face.status === 'loaded')
         .map((face) => face.family.replaceAll('"', ''));

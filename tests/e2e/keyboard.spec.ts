@@ -21,10 +21,10 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
   test('T22: the keyboard and basic specs assert their item count instead of returning early', () => {
     // Each pattern keeps one character in a class so that this file never matches itself
     const earlyReturns = [
-      /\bi[f] \(.*\bcount\b.*\) return\b/,
+      /\bi[f] \(.*[cC]ount\b.*\) return\b/,
       /has[T]rigger/,
       /count [>] 0/,
-      /isVisible\(\)\)\) retur[n]/,
+      /isVisible\(\)\)+ retur[n]/,
     ];
     const offenders: string[] = [];
     for (const file of ['basic.spec.ts', 'keyboard.spec.ts']) {
