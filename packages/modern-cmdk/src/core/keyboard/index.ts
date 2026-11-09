@@ -2,7 +2,7 @@
 // Keyboard shortcut registry — `using` for listener cleanup
 
 import type { ItemId } from '../types.js';
-import { detectConflicts, matchShortcut } from './matcher.js';
+import { detectConflicts, findMatchingShortcut } from './matcher.js';
 import type { ParsedShortcut } from './parser.js';
 import { parseShortcut } from './parser.js';
 
@@ -155,7 +155,9 @@ export class KeyboardShortcutRegistry implements Disposable {
       return;
 
     this.#globalListener = (event: KeyboardEvent): void => {
-      if (!this.#enabled || isImeComposition(event) || event.defaultPrevented) return;
+      // The IME test is isImeComposition's, inlined
+      if (!this.#enabled || event.isComposing || event.keyCode === 229 || event.defaultPrevented)
+        return;
       const path = event.composedPath();
       // The path's first entry is the real target, also inside an open shadow root (event.target
       // is the host there); a closed shadow root shows the listener its host
@@ -171,10 +173,11 @@ export class KeyboardShortcutRegistry implements Disposable {
       if (this.#options.shortcutScope === 'root' && !path.includes(this.#root as Element)) return;
 
       // The later binding of every key competes; a key match beats a code match
-      const winners = [...this.#bindings.values()].map((stack) => stack.at(-1) as ShortcutBinding);
-      const pick = (byCode: boolean): ShortcutBinding | undefined =>
-        winners.find((b) => matchShortcut(event, b.shortcut, byCode));
-      const binding = pick(false) ?? pick(true);
+      const hit = findMatchingShortcut(
+        event,
+        [...this.#bindings.values()].map((stack) => (stack.at(-1) as ShortcutBinding).shortcut),
+      );
+      const binding = hit && this.#bindings.get(hit.normalized)?.at(-1);
       if (binding) {
         event.preventDefault();
         event.stopPropagation();
@@ -204,7 +207,7 @@ export class KeyboardShortcutRegistry implements Disposable {
   }
 
   #detachGlobalListener(): void {
-    if (this.#globalListener && typeof document !== 'undefined') {
+    if (this.#globalListener) {
       document.removeEventListener('keydown', this.#globalListener);
       this.#globalListener = null;
     }
