@@ -57,6 +57,8 @@ function CommandRoot({
   loop,
   disabledItems,
   shortcutAction,
+  shortcutScope,
+  shortcutsInEditable,
   virtualizeThreshold,
   telemetry,
   ...divProps
@@ -79,6 +81,8 @@ function CommandRoot({
     loop,
     disabledItems,
     shortcutAction,
+    shortcutScope,
+    shortcutsInEditable,
     virtualizeThreshold,
     telemetry,
   } satisfies Record<Exclude<keyof CommandMachineOptions, 'label'>, unknown>;

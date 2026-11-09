@@ -250,6 +250,18 @@ export interface CommandMachineOptions {
    * the default to `'select'`. Under both, a disabled item is not bound: its shortcut does nothing and leaves the key to the page.
    */
   readonly shortcutAction?: 'select' | 'direct' | undefined;
+  /**
+   * Where item shortcuts fire. `'document'` (the default) listens to every keydown of the document; `'root'`
+   * fires a shortcut only for a keydown whose event path includes the `<Command>` root element. A machine with
+   * no root element (one made by `createCommandMachine`) fires nothing under `'root'`.
+   */
+  readonly shortcutScope?: 'document' | 'root' | undefined;
+  /**
+   * Whether item shortcuts fire from an editable target (an `input`, `textarea`, `select` or contenteditable
+   * element). `true` (the default) fires them; `false` leaves a keydown in any editable target other than the
+   * palette's own input (`data-command-input`) to the page, so the browser's copy and paste keys keep working.
+   */
+  readonly shortcutsInEditable?: boolean | undefined;
   /** Accepted but not read yet: Command.List uses fixed thresholds (on above 100 matches, off at 50 or fewer) (default: 100) */
   readonly virtualizeThreshold?: number | undefined;
   /**
