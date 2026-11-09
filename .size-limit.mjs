@@ -78,7 +78,7 @@ const checks = [
   {
     name: 'modern-cmdk/styles.css',
     path: 'packages/modern-cmdk/dist/react/styles.css',
-    limit: '4 kB',
+    limit: '2.5 kB',
     gzip: true,
     rolldown: false,
   },
