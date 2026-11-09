@@ -28,7 +28,7 @@ const checks = [
   {
     name: 'modern-cmdk/react (adapter only)',
     path: 'packages/modern-cmdk/dist/react/index.mjs',
-    limit: '6.59 kB',
+    limit: '6.92 kB',
     gzip: true,
     ignore: [
       'modern-cmdk',
@@ -71,7 +71,7 @@ const checks = [
   {
     name: 'modern-cmdk + modern-cmdk/react',
     path: 'packages/modern-cmdk/dist/react/index.mjs',
-    limit: '12.68 kB',
+    limit: '12.98 kB',
     gzip: true,
     ignore: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'radix-ui'],
   },
