@@ -219,6 +219,13 @@
     content-visibility: auto;
     contain-intrinsic-size: auto var(--command-item-height);
 
+    /* The active option is never focused (the input keeps focus), so the indicator keys on
+       [data-active]; currentColor is the item's text colour, which already has text contrast */
+    &[data-active] {
+      outline: 2px solid currentColor;
+      outline-offset: -2px;
+    }
+
     &[data-disabled] {
       cursor: not-allowed;
       opacity: 0.5;
@@ -490,12 +497,6 @@
 
   /* ─── Focus Indicators ─── */
 
-  [data-command-item]:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: -2px;
-    border-radius: 4px;
-  }
-
   [data-command-input]:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
@@ -591,10 +592,6 @@
         outline: 3px solid currentColor;
         outline-offset: -3px;
       }
-
-      &:focus-visible {
-        outline-width: 3px;
-      }
     }
 
     [data-command-input]:focus-visible {
@@ -624,11 +621,6 @@
         background-color: Highlight;
         color: HighlightText;
         forced-color-adjust: none;
-      }
-
-      &:focus-visible {
-        outline-color: ButtonText;
-        outline-style: solid;
       }
 
       &[data-disabled] {
