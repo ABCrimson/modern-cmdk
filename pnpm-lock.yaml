@@ -383,6 +383,9 @@ importers:
         specifier: 0.0.0-experimental-5b610964-20261106
         version: 0.0.0-experimental-5b610964-20261106(react@0.0.0-experimental-5b610964-20261106)
     devDependencies:
+      lightningcss:
+        specifier: 1.33.0
+        version: 1.33.0
       radix-ui:
         specifier: 'catalog:'
         version: 1.8.2-rc.1791984254107(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@0.0.0-experimental-5b610964-20261106(react@0.0.0-experimental-5b610964-20261106))(react@0.0.0-experimental-5b610964-20261106)

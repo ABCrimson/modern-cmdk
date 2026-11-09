@@ -62,6 +62,7 @@
     "idb-keyval": "6.3.0"
   },
   "devDependencies": {
+    "lightningcss": "1.33.0",
     "radix-ui": "catalog:"
   },
   "keywords": [
