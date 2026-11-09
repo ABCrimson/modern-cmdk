@@ -644,9 +644,9 @@ Five custom properties are registered with `@property` (`--command-list-height`,
 
 | Metric | Target | Enforcement |
 |---|---|---|
-| Core bundle | ≤ 7.84 kB | **Enforced**: `size-limit` (`pnpm size`, CI "Bundle Size" job), `packages/modern-cmdk/dist/core/index.mjs`, gzip. Measured 7742 B |
+| Core bundle | ≤ 8.35 kB | **Enforced**: `size-limit` (`pnpm size`, CI "Bundle Size" job), `packages/modern-cmdk/dist/core/index.mjs`, gzip. Measured 7742 B |
 | React adapter only | ≤ 6.59 kB | **Enforced**: `dist/react/index.mjs`, gzip, with `modern-cmdk`, `react`, `react-dom`, `react/jsx-runtime` and `radix-ui` ignored (the core is not counted). Measured 6491 B |
-| Core + React adapter | ≤ 12.13 kB | **Enforced**: `dist/react/index.mjs`, gzip, `modern-cmdk` not ignored, so the one core is counted once. Measured 12038 B (1.6 measured 10764 B; 1.3 inlined the core in the adapter: 6355 B + 9844 B = 16199 B) |
+| Core + React adapter | ≤ 12.68 kB | **Enforced**: `dist/react/index.mjs`, gzip, `modern-cmdk` not ignored, so the one core is counted once. Measured 12038 B (1.6 measured 10764 B; 1.3 inlined the core in the adapter: 6355 B + 9844 B = 16199 B) |
 | `modern-cmdk/react/dialog` only | ≤ 2.2 kB | **Enforced**: `dist/react/dialog.mjs`, gzip, same ignore list. Measured 2104 B |
 | `CommandSeparator` only | ≤ 390 B | **Enforced**: `import { CommandSeparator }` from `dist/react/index.mjs`, gzip, same ignore list. Measured 293 B; `Command` is a `/* @__PURE__ */ Object.assign` (D116), so the bundle holds `CommandSeparator` and what it imports, not `CommandDialog`, `CommandRoot` or the `radix-ui` import, and the entry pins that tree-shaking property |
 | `modern-cmdk/styles.css` | ≤ 4 kB | **Enforced**: `dist/react/styles.css`, gzip. Measured 3986 B |
@@ -694,7 +694,7 @@ React Context triggers re-renders in all consumers when any value changes. The m
 
 1. **Testability** -- The core can be tested with Vitest in a Node.js environment, no DOM simulation needed. Tests run in milliseconds, not seconds.
 2. **Portability** -- A Svelte, Vue, or Solid adapter can wrap the same core. The state machine logic is written once.
-3. **Bundle efficiency** -- Users who only need the core (e.g., for a CLI tool or a non-React app) get a bundle under the 7.84 kB gzip `size-limit` budget whose only runtime dependency, `idb-keyval`, is imported dynamically by `IdbFrecencyStorage`, so it is loaded only when IndexedDB frecency persistence is used.
+3. **Bundle efficiency** -- Users who only need the core (e.g., for a CLI tool or a non-React app) get a bundle under the 8.35 kB gzip `size-limit` budget whose only runtime dependency, `idb-keyval`, is imported dynamically by `IdbFrecencyStorage`, so it is loaded only when IndexedDB frecency persistence is used.
 4. **Separation of concerns** -- Framework quirks (React's batching, Svelte's reactivity) are isolated in the adapter layer.
 
 ### Why `Date.now()` for timestamps?

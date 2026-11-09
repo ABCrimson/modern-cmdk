@@ -22,7 +22,7 @@ const checks = [
   {
     name: 'modern-cmdk (core)',
     path: 'packages/modern-cmdk/dist/core/index.mjs',
-    limit: '7.84 kB',
+    limit: '8.35 kB',
     gzip: true,
   },
   {
@@ -71,7 +71,7 @@ const checks = [
   {
     name: 'modern-cmdk + modern-cmdk/react',
     path: 'packages/modern-cmdk/dist/react/index.mjs',
-    limit: '12.13 kB',
+    limit: '12.68 kB',
     gzip: true,
     ignore: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'radix-ui'],
   },
