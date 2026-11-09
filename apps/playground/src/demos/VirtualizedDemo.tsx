@@ -102,7 +102,7 @@ export function VirtualizedDemo(): React.ReactNode {
       <p className="demo-description">
         Rendering {itemsLabel} with automatic virtualization. The list auto-virtualizes when the
         filtered count exceeds 100 items. Uses <code>content-visibility: auto</code> so the browser
-        skips rendering off-screen items and<code>contain-intrinsic-size</code> for stable scroll
+        skips rendering off-screen items and <code>contain-intrinsic-size</code> for stable scroll
         height.
       </p>
 
