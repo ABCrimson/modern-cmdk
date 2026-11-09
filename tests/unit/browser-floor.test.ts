@@ -540,8 +540,8 @@ beforeAll(async () => {
   outDir = await mkdtemp(join(tmpdir(), 'modern-cmdk-floor-'));
   const started = performance.now();
   for (const config of configs) {
-    // A fresh outDir (clean: false, so the second config does not delete the first one's output), no declaration files and
-    // no `copy` (the react config copies src/react/styles.css into dist/react, relative to cwd).
+    // A fresh outDir (clean: false, so the second config does not delete the first one's output)
+    // and no declaration files.
     const handle = await build({
       ...config,
       config: false,
@@ -549,7 +549,6 @@ beforeAll(async () => {
       outDir,
       clean: false,
       dts: false,
-      copy: [],
       report: false,
       logLevel: 'error',
     });
