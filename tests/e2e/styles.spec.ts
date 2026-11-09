@@ -190,6 +190,22 @@ async function pauseAtStart(page: Page): Promise<void> {
   });
 }
 
+/**
+ * Waits for the running transitions. The reduced-motion clamp gives every descendant of the root a
+ * 0.01 ms transition on all properties, so a computed colour that follows a media change reads its
+ * old value until that transition ends.
+ */
+async function settleTransitions(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => animation instanceof CSSTransition)
+        .map((animation) => animation.finished),
+    ),
+  );
+}
+
 /** Relative luminance (WCAG) of an `rgb()`/`rgba()` computed colour; throws on any other format. */
 function luminance(color: string): number {
   const match =
@@ -366,6 +382,7 @@ test.describe('Stylesheet — bare page', { tag: '@styles' }, () => {
     });
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme });
+      await settleTransitions(page);
       const background = await computed(page, 'body', 'background-color');
       expect(
         await computed(page, '#active', 'outline-style'),
@@ -472,6 +489,7 @@ test.describe('Stylesheet — bare page', { tag: '@styles' }, () => {
     // restriction (playwright-core types.d.ts:2809), and the driver implements it for Chromium,
     // Firefox and WebKit, so no engine is skipped
     await page.emulateMedia({ forcedColors: 'active' });
+    await settleTransitions(page);
     expect(await computed(page, '#match', 'background-color')).toBe(
       await computed(page, '#probe', 'background-color'),
     );
