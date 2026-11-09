@@ -6,8 +6,9 @@
 // `keyboardScope="combobox"`, only for `Command.Input`.
 // Navigation keys dispatch through an object lookup; action keys (Enter, Backspace, Escape)
 // through a switch.
-// Escape inside `Command.Dialog` is Radix's: its capture-phase listener default-prevents first, so
-// the handler leaves it alone (a default-prevented key is never handled).
+// A cancelable Escape inside `Command.Dialog` is Radix's: its capture-phase listener
+// default-prevents it first, so the handler leaves it alone (a default-prevented key is never
+// handled).
 // Isolated declarations: explicit return types on all exports
 
 import type { CommandMachine, CommandState } from 'modern-cmdk';
