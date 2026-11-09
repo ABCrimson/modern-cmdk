@@ -197,6 +197,46 @@ describe('shortcutScope', () => {
     });
   });
 
+  it("A11Y-06: shortcutScope 'root' fires inside Command.Dialog's content", async () => {
+    const onSelect = vi.fn();
+    const outside = append(document.createElement('button'));
+    const container = append(document.createElement('div'));
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(
+        createElement(
+          Command.Dialog,
+          { open: true, shortcutScope: 'root' },
+          createElement(Command.Input),
+          createElement(
+            Command.List,
+            null,
+            createElement(
+              Command.Item,
+              { value: 'a', forceId: 'a', shortcut: 'Ctrl+K', onSelect },
+              'A',
+            ),
+          ),
+        ),
+      );
+    });
+    await act(async () => {
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    });
+
+    const blocked = keydown({ key: 'k', ctrlKey: true });
+    outside.dispatchEvent(blocked);
+    expect(onSelect).not.toHaveBeenCalled();
+
+    const input = document.querySelector('[data-command-input]') as HTMLInputElement;
+    input.dispatchEvent(keydown({ key: 'k', ctrlKey: true }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
   it("A11Y-06: shortcutScope 'root' with no root element fires nothing, and the default 'document' scope fires from anywhere", () => {
     const items = (onSelect: () => void): CommandItem[] => [
       { id: itemId('a'), value: 'A', shortcut: 'Ctrl+K', onSelect },
