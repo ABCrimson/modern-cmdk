@@ -19,9 +19,8 @@ test.describe('Command.Dialog keys and focus', () => {
 
     // A group heading has no focusable element of its own, so a click on it moves focus off the
     // input to its nearest focusable ancestor, Dialog.Content (FocusScope renders it with tabIndex
-    // -1). `force` skips only Playwright's visibility wait: the playground's dialog content
-    // currently renders at zero inline size; the click still hit-tests at the element's centre.
-    await page.locator('[data-command-group-heading]').first().click({ force: true });
+    // -1).
+    await page.locator('[data-command-group-heading]').first().click();
     await expect(dialog).toBeFocused();
 
     await page.keyboard.press('ArrowDown');
