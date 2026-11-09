@@ -4,7 +4,8 @@
 // default-prevented, or an Enter with no active item, changes nothing and is not default-prevented.
 
 import type { CommandMachine } from 'modern-cmdk';
-import { Command, CommandStableContext } from 'modern-cmdk/react';
+import { createCommandMachine, itemId } from 'modern-cmdk';
+import { Command, CommandStableContext, createKeydownHandler } from 'modern-cmdk/react';
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { act, use } from 'react';
 import { createPortal } from 'react-dom';
@@ -369,6 +370,71 @@ describe('keymap composition and scope', () => {
       });
       host.remove();
     }
+  });
+  it('C3: a consumer preventDefault on a non-cancelable key is left to it', async () => {
+    const onSelect = vi.fn();
+    await mount(
+      <Command
+        onKeyDown={(event: ReactKeyboardEvent<HTMLDivElement>): void => event.preventDefault()}
+      >
+        <Command.Input />
+        <Command.List>
+          {['a', 'b', 'c'].map((id) => (
+            <Command.Item key={id} value={id} forceId={id} onSelect={(): void => onSelect(id)}>
+              {id}
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command>,
+    );
+    const input = inputOf();
+    input.focus();
+    expect(activeItem()).toBe('a');
+
+    // A non-cancelable event ignores the native `preventDefault()`, so only the synthetic event
+    // remembers the consumer's call: the root's own guard is the one that leaves the key alone
+    const event = await press(input, 'ArrowDown', { cancelable: false });
+    expect(event.defaultPrevented).toBe(false);
+    expect(activeItem()).toBe('a');
+  });
+
+  it('C3: createKeydownHandler sends nothing for a default-prevented ArrowDown, Enter or Backspace', async () => {
+    const frame = (): Promise<void> =>
+      new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    using machine = createCommandMachine({
+      items: ['a', 'b', 'c'].map((id) => ({ id: itemId(id), value: id })),
+    });
+    const handler = createKeydownHandler(machine, machine.getState);
+    machine.send({ type: 'PAGE_PUSH', page: 'sub' });
+    await frame();
+    // Each key would act: an item is active, and the query is empty on a pushed page
+    expect(machine.getState().activeId).not.toBeNull();
+    expect(machine.getState().search).toBe('');
+    expect(machine.getState().pageStack.length).toBeGreaterThan(0);
+    const send = vi.spyOn(machine, 'send');
+
+    const keydown = (key: string, prevented: boolean): KeyboardEvent => {
+      const event = new KeyboardEvent('keydown', { key, cancelable: true });
+      if (prevented) event.preventDefault();
+      return event;
+    };
+    for (const key of ['ArrowDown', 'Enter', 'Backspace']) {
+      handler(keydown(key, true));
+    }
+    await frame();
+    expect(send).not.toHaveBeenCalled();
+
+    // The same events, not prevented, act
+    for (const key of ['ArrowDown', 'Enter', 'Backspace']) {
+      const event = keydown(key, false);
+      handler(event);
+      expect(event.defaultPrevented, key).toBe(true);
+    }
+    expect(send.mock.calls.map(([event]) => event.type)).toEqual([
+      'NAVIGATE',
+      'ITEM_SELECT',
+      'PAGE_POP',
+    ]);
   });
 });
 
