@@ -27,7 +27,7 @@
       "package": "lightningcss",
       "license": "MPL-2.0",
       "ships": false,
-      "reason": "Build-time CSS transformer pulled in by the tooling (vite); not a dependency of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk and absent from every built dist file (checked 2026-11-04)."
+      "reason": "Build-time CSS transformer: a devDependency of modern-cmdk (scripts/build-styles.ts builds dist/react/styles.css with it) and a tooling dependency (vite); a runtime dependency of none of modern-cmdk, modern-cmdk-codemod or create-modern-cmdk, and its code is absent from every built dist file (checked 2026-11-08)."
     },
     {
       "package": "lightningcss-*",

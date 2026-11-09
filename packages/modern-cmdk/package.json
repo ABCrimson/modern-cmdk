@@ -38,8 +38,8 @@
     "THIRD-PARTY-NOTICES.md"
   ],
   "scripts": {
-    "build": "tsdown",
-    "dev": "tsdown --watch",
+    "build": "tsdown && node scripts/build-styles.ts",
+    "dev": "tsdown --watch src/react/styles.css --on-success \"node scripts/build-styles.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "sideEffects": [

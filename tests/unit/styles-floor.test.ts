@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Parses the SOURCE stylesheet (packages/modern-cmdk/src/react/styles.css); tsdown copies it
-// verbatim to dist/react/styles.css (byte-identical), so the built file says the same. Every declaration is recorded with the stack of at-rule/selector
-// preludes that enclose it, in source order.
+// Parses the SOURCE stylesheet (packages/modern-cmdk/src/react/styles.css); the built file is its
+// lightningcss build (tests/dist/styles-build.test.ts), which keeps these floor properties. Every declaration is
+// recorded with the stack of at-rule/selector preludes that enclose it, in source order.
 const source = readFileSync(
   resolve(import.meta.dirname, '../../packages/modern-cmdk/src/react/styles.css'),
   'utf8',
