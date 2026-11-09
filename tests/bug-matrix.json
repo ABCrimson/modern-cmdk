@@ -1331,18 +1331,18 @@
   },
   {
     "id": "CE-10",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/shortcut-targets.test.ts::CE-10: the shortcut registry skips composing and default-prevented keydowns",
+    "status": "covered"
   },
   {
     "id": "CE-11",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/shortcut-targets.test.ts::CE-11: a shortcut matches through event.code when event.key is layout-dependent",
+    "status": "covered"
   },
   {
     "id": "CE-12",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/shortcut-platform.test.ts::CE-12: formatShortcut labels meta as Meta and ctrl as Ctrl off macOS",
+    "status": "covered"
   },
   {
     "id": "DAE-24",
@@ -1351,8 +1351,8 @@
   },
   {
     "id": "DG-68",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/shortcut-platform.test.ts::DG-68: Meta+K is labelled Meta+K off macOS",
+    "status": "covered"
   },
   {
     "id": "A11Y-01",
@@ -1366,13 +1366,13 @@
   },
   {
     "id": "A11Y-20",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/shortcut-platform.test.ts::A11Y-20: a Cmd+K item is labelled Meta+K off macOS, not Ctrl+K",
+    "status": "covered"
   },
   {
     "id": "A11Y-21",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/shortcut-targets.test.ts::A11Y-21: Alt+K matches the macOS Option+K keydown (key '˚', code KeyK) and Mod+` matches through event.code",
+    "status": "covered"
   },
   {
     "id": "DT-19",
@@ -1471,18 +1471,18 @@
   },
   {
     "id": "CE-42",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/shortcut-platform.test.ts::CE-42: formatShortcut labels named keys (↑, PageDown, Esc)",
+    "status": "covered"
   },
   {
     "id": "CE-43",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/keyboard.test.ts::CE-08: disposing the earlier binding leaves the later one bound",
+    "status": "covered"
   },
   {
     "id": "CE-40",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/shortcut-platform.test.ts::CE-40: Ctrl++ and Ctrl+Plus bind the plus key",
+    "status": "covered"
   },
   {
     "id": "PG-30",
@@ -1545,19 +1545,14 @@
     "status": "pending"
   },
   {
-    "id": "RA-83",
-    "test": null,
-    "status": "pending"
-  },
-  {
     "id": "RA-88",
     "test": null,
     "status": "pending"
   },
   {
     "id": "RA-89",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/shortcut-platform.test.ts::RA-89: parseShortcut treats constructor and __proto__ as plain keys",
+    "status": "covered"
   },
   {
     "id": "PG-76",
