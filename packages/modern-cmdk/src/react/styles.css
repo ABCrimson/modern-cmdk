@@ -39,69 +39,6 @@
   initial-value: 8px;
 }
 
-/* ─── User-Customizable Animation Properties ─── */
-/* Override these with unlayered CSS on [data-command-root] loaded after this file, or on a more specific unlayered selector; this block sits outside every @layer, so a normal (non-!important) value set inside a layer loses here whatever its selector, and a :root value is shadowed by this declaration */
-
-[data-command-root] {
-  --command-spring-easing: linear(
-    0,
-    0.006,
-    0.025,
-    0.058,
-    0.104,
-    0.163,
-    0.234,
-    0.315,
-    0.404,
-    0.499,
-    0.596,
-    0.693,
-    0.784,
-    0.867,
-    0.939,
-    0.998,
-    1
-  );
-  --command-spring-easing-bouncy: linear(
-    0,
-    0.009,
-    0.035,
-    0.078,
-    0.138,
-    0.213,
-    0.303,
-    0.404,
-    0.511,
-    0.621,
-    0.726,
-    0.822,
-    0.905,
-    0.971,
-    1.015,
-    1.033,
-    1.026,
-    1
-  );
-  --command-easing-exit: cubic-bezier(0.4, 0, 1, 1);
-  --command-duration-enter: 200ms;
-  --command-duration-enter-scale: 250ms;
-  --command-duration-exit: 150ms;
-  --command-duration-item: 120ms;
-  --command-duration-list: 200ms;
-  --command-duration-page: 200ms;
-  --command-duration-loading: 1.5s;
-  --command-scale-from: 0.96;
-  --command-translate-from: 8px;
-  --command-overlay-blur: 4px;
-  --command-dialog-radius: 12px;
-  --command-dialog-max-width: 640px;
-  --command-dialog-max-height: 480px;
-  --command-item-height: 44px;
-  --command-fade-edge-size: 16px;
-  --command-highlight-color: oklch(0.85 0.15 90 / 0.3);
-  --command-muted-color: light-dark(oklch(0.45 0.015 260), oklch(0.75 0.015 260));
-}
-
 /* ─── Spring Easing ─── */
 /* linear() spring approximations: --command-spring-easing settles without overshoot; --command-spring-easing-bouncy peaks at 1.033 before settling */
 /* Generated from spring physics: x(t) = 1 - e^(-zt)(cos(wd*t) + (zw/wd)sin(wd*t)) */
@@ -109,6 +46,72 @@
 @layer command.base, command.layout, command.animation, command.a11y;
 
 @layer command.base {
+  /* ─── User-Customizable Animation Properties ─── */
+  /* The tokens sit on :where(:root, :host), at zero specificity, so the dialog content and overlay,
+     which render outside [data-command-root], inherit them. Override one on [data-command-root] or
+     on any element between it and :root: an element's own declaration beats an inherited value in
+     every layer. A :root value wins when it is unlayered or sits in a layer declared after
+     command.*. */
+  :where(:root, :host) {
+    --command-spring-easing: linear(
+      0,
+      0.006,
+      0.025,
+      0.058,
+      0.104,
+      0.163,
+      0.234,
+      0.315,
+      0.404,
+      0.499,
+      0.596,
+      0.693,
+      0.784,
+      0.867,
+      0.939,
+      0.998,
+      1
+    );
+    --command-spring-easing-bouncy: linear(
+      0,
+      0.009,
+      0.035,
+      0.078,
+      0.138,
+      0.213,
+      0.303,
+      0.404,
+      0.511,
+      0.621,
+      0.726,
+      0.822,
+      0.905,
+      0.971,
+      1.015,
+      1.033,
+      1.026,
+      1
+    );
+    --command-easing-exit: cubic-bezier(0.4, 0, 1, 1);
+    --command-duration-enter: 200ms;
+    --command-duration-enter-scale: 250ms;
+    --command-duration-exit: 150ms;
+    --command-duration-item: 120ms;
+    --command-duration-list: 200ms;
+    --command-duration-page: 200ms;
+    --command-duration-loading: 1.5s;
+    --command-scale-from: 0.96;
+    --command-translate-from: 8px;
+    --command-overlay-blur: 4px;
+    --command-dialog-radius: 12px;
+    --command-dialog-max-width: 640px;
+    --command-dialog-max-height: 480px;
+    --command-item-height: 44px;
+    --command-fade-edge-size: 16px;
+    --command-highlight-color: oklch(0.85 0.15 90 / 0.3);
+    --command-muted-color: light-dark(oklch(0.45 0.015 260), oklch(0.75 0.015 260));
+  }
+
   /* ─── Screen Reader Only (for Radix Title/Description) ─── */
 
   .sr-only {
