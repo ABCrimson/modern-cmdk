@@ -87,32 +87,35 @@ function CommandRoot({
     telemetry,
   } satisfies Record<Exclude<keyof CommandMachineOptions, 'label'>, unknown>;
 
-  const { state, handleKeyDown, stableContextValue, stateContextValue } = useCommandSetup(
+  const { machine, state, handleKeyDown, stableContextValue, stateContextValue } = useCommandSetup(
     machineOptions,
     label,
   );
 
   // The root element's ref: attaches the scoped keyboard listener (only events originating within the root are
-  // handled) and forwards the element to the caller's `ref`. A ref callback may return a cleanup function
-  // (node_modules/@types/react/index.d.ts, `RefCallback`, line 176); React then skips the `null` call, so the cleanup
-  // detaches the listener and releases the caller's ref: an object ref gets `null`, a function ref runs its own cleanup or,
-  // returning none, is called with `null`.
+  // handled), gives the element to the shortcut registry (the bound of `shortcutScope="root"`) and forwards it
+  // to the caller's `ref`. A ref callback may return a cleanup function
+  // (node_modules/@types/react/index.d.ts, `RefCallback`, line 176); React then skips the `null` call, so the
+  // cleanup detaches the listener, clears the registry's root and releases the caller's ref: an object ref gets
+  // `null`, a function ref runs its own cleanup or, returning none, is called with `null`.
   const rootRef = useCallback(
     (root: HTMLDivElement): (() => void) => {
       const scopedHandler = (e: KeyboardEvent): void => {
         if (root.contains(e.target as Node)) handleKeyDown(e);
       };
       document.addEventListener('keydown', scopedHandler);
+      machine.getKeyboardRegistry().setRoot(root);
       const release = typeof ref === 'function' ? ref(root) : undefined;
       if (ref && typeof ref === 'object') ref.current = root;
       return (): void => {
         document.removeEventListener('keydown', scopedHandler);
+        machine.getKeyboardRegistry().setRoot(null);
         if (typeof release === 'function') release();
         else if (typeof ref === 'function') ref(null);
         else if (ref) ref.current = null;
       };
     },
-    [handleKeyDown, ref],
+    [handleKeyDown, machine, ref],
   );
 
   return (

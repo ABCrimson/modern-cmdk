@@ -148,7 +148,7 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     options.searchEngine ?? options.search ?? createOwnedEngine(options);
   const scheduler: Scheduler = createScheduler();
   const emitter = new TypedEmitter<MachineEvents>();
-  const keyboardRegistry = new KeyboardShortcutRegistry();
+  const keyboardRegistry = new KeyboardShortcutRegistry(options);
 
   // Sources with an outstanding load — state.loading is true while the set is non-empty
   const pendingSources = new Set<string>();
@@ -572,6 +572,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     resume(): void {
       keyboardRegistry.resume();
       frecencyEngine?.resume();
+      // A machine created open reports that open at the first batch after it resumes, without waiting for an event
+      if (!disposed && state.open !== reportedOpen) enqueue(() => undefined);
     },
 
     [Symbol.dispose](): void {
