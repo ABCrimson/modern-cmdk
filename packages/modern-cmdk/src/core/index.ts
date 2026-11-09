@@ -9,7 +9,7 @@ export { detectConflicts, findMatchingShortcut, matchesShortcut } from './keyboa
 export type { ParsedShortcut, ShortcutPlatform } from './keyboard/parser.js';
 export { formatShortcut, parseShortcut } from './keyboard/parser.js';
 export type { CommandMachine } from './machine.js';
-export { createCommandMachine } from './machine.js';
+export { createCommandMachine, getDisplayIds } from './machine.js';
 export { CommandRegistry } from './registry.js';
 export { scoreItem } from './search/default-scorer.js';
 export { batchScoreItems, scoreItemAsync } from './search/fuzzy-scorer.js';

@@ -114,6 +114,16 @@ function createOwnedEngine(options: CommandMachineOptions): SearchEngine {
 }
 
 /**
+ * The display order: the values of `state.groupedIds` flattened in key order. The groups come in
+ * ascending `priority` (ungrouped items and unregistered group ids count as 0), ties in
+ * first-appearance order in `filteredIds`; the items of a group keep their `filteredIds` order,
+ * disabled ones included. `NAVIGATE` walks its enabled items, and the React adapter renders it.
+ */
+export function getDisplayIds(state: Pick<CommandState, 'groupedIds'>): readonly ItemId[] {
+  return [...state.groupedIds.values()].flat();
+}
+
+/**
  * Creates a headless command palette state machine with search, frecency,
  * and keyboard shortcut support. Implements Disposable and AsyncDisposable for
  * `using` and `await using` cleanup (the latter awaits the pending frecency save). `suspend()` and `resume()`
@@ -268,10 +278,11 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
       ].sort((x, y) => priority(x[0]) - priority(y[0])),
     );
 
-    // Navigation list: disabled items are listed but never active
-    navIds = filteredIds.filter(isEnabled);
+    // Navigation list: the enabled items of the display order (disabled ones are never active)
+    navIds = getDisplayIds({ groupedIds }).filter(isEnabled);
 
-    // Keep the active item while it is still listed and enabled, else the first enabled one
+    // Keep the active item while it is still listed and enabled, else the first enabled one in the
+    // display order (the first enabled item of the best match's group when that match is disabled)
     const current = currentActiveId();
     const candidate =
       current && filteredIdSet.has(current) && isEnabled(current) ? current : (navIds[0] ?? null);

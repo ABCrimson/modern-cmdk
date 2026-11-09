@@ -708,7 +708,7 @@ describe('CommandMachine frecency ranking (DT-18)', () => {
     machine.send({ type: 'OPEN' }); // handled after the two events above
     nextBatch();
     expect(machine.getState().open).toBe(true);
-    // The empty query is not re-ranked (the React adapter renders in JSX order, so arrow keys must match it)
+    // The empty query is not re-ranked: filteredIds keeps registration order
     expect(machine.getState().filteredIds).toEqual(['alpha', 'settings']);
 
     machine.send({ type: 'SEARCH_CHANGE', query: 'item' });

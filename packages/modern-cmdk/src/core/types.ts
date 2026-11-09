@@ -66,7 +66,9 @@ export interface CommandItem {
 
 /**
  * A command group for categorizing items.
- * Groups are rendered with headings; React renders `<Command.Group>` elements in JSX order.
+ * Groups are rendered with headings. `priority` orders the keys of `CommandState.groupedIds` and
+ * `getGroups()`; `getDisplayIds` flattens `groupedIds` into the order `NAVIGATE` walks and the
+ * React adapter renders.
  */
 export interface CommandGroup {
   /** Unique identifier (branded type) */
@@ -75,7 +77,8 @@ export interface CommandGroup {
   readonly heading?: string | undefined;
   /**
    * Orders the keys of `CommandState.groupedIds` and `getGroups()`: lower first, stable for equal
-   * values (default: 0). The React adapter renders groups in JSX order.
+   * values (default: 0). The display order (`getDisplayIds`), `NAVIGATE` and the React adapter show
+   * the groups in this order.
    */
   readonly priority?: number | undefined;
 }
@@ -93,10 +96,10 @@ export interface CommandState {
   /** Ordered list of item IDs that pass the current filter */
   readonly filteredIds: readonly ItemId[];
   /**
-   * Map of group IDs to their visible item IDs. The keys are in group priority order (lower first; ungrouped
-   * items and unregistered group ids count as 0, in first-appearance order), while `filteredIds` and
-   * `NAVIGATE` keep the search order: a renderer that draws by `groupedIds` shows the groups in this order,
-   * so arrow-key order and display order can differ when group priorities differ.
+   * Map of group IDs to their visible item IDs. The keys are in group priority order (lower first;
+   * ungrouped items and unregistered group ids count as 0; ties in first-appearance order in
+   * `filteredIds`), while `filteredIds` keeps the search (score) order. `getDisplayIds` (the
+   * flattened values) is the order `NAVIGATE` walks and the React adapter renders.
    */
   readonly groupedIds: ReadonlyMap<GroupId, readonly ItemId[]>;
   /** Count of visible items (shortcut for `filteredIds.length`) */

@@ -1,5 +1,5 @@
 import type { CommandItem, CommandMachine, ItemId } from 'modern-cmdk';
-import { createCommandMachine, groupId, itemId } from 'modern-cmdk';
+import { createCommandMachine, getDisplayIds, groupId, itemId } from 'modern-cmdk';
 import { describe, expect, it } from 'vitest';
 
 // The refilter is scheduled on an animation frame; real timers and a short wait let it run
@@ -75,6 +75,7 @@ describe('C4 display order: core', () => {
     expect(state.filteredIds).toEqual(ids('b1', 'u2', 'a1', 'a2', 'u1'));
     const display = [...state.groupedIds.values()].flat();
     expect(display).toEqual(ids('b1', 'u2', 'u1', 'a1', 'a2'));
+    expect(getDisplayIds(state)).toEqual(display);
     expect(await walk(m, 4)).toEqual(display);
     expect(await walkBack(m, 4)).toEqual([...display].reverse());
   });
@@ -134,5 +135,45 @@ describe('C4 display order: core', () => {
       expect(m.getState().filteredIds).toEqual(ids('u1', 'a1', 'a2', 'b1', 'u2'));
       expect(await walk(m, 4)).toEqual(ids('b1', 'u1', 'u2', 'a1', 'a2'));
     }
+  });
+
+  it('C4: getDisplayIds returns the values of groupedIds flattened in key order', async () => {
+    using m = createCommandMachine({
+      items: itemsOf([['u1'], ['a1', 'gA'], ['a2', 'gA'], ['b1', 'gB'], ['b2', 'gB'], ['u2']]),
+      groups: [{ id: groupId('gA') }, { id: groupId('gB') }],
+      filter: scoring({ b1: 9, u2: 8, a1: 7, a2: 6, u1: 5 }),
+    });
+    await flush();
+    // The empty query keeps registration order; the keys are first appearances
+    let state = m.getState();
+    expect(state.filteredIds).toEqual(ids('u1', 'a1', 'a2', 'b1', 'b2', 'u2'));
+    expect([...state.groupedIds.keys()]).toEqual(['__ungrouped', 'gA', 'gB']);
+    expect(getDisplayIds(state)).toEqual(ids('u1', 'u2', 'a1', 'a2', 'b1', 'b2'));
+    expect(getDisplayIds(state)).toEqual([...state.groupedIds.values()].flat());
+
+    // A search: filteredIds keeps the score order, the keys and the display order group it
+    await searchScored(m);
+    state = m.getState();
+    expect(state.filteredIds).toEqual(ids('b1', 'u2', 'a1', 'a2', 'u1'));
+    expect([...state.groupedIds.keys()]).toEqual(['gB', '__ungrouped', 'gA']);
+    expect(getDisplayIds(state)).toEqual(ids('b1', 'u2', 'u1', 'a1', 'a2'));
+    expect(getDisplayIds(state)).toEqual([...state.groupedIds.values()].flat());
+  });
+
+  it('C4: a group whose members are all disabled is placed by first appearance', async () => {
+    using m = createCommandMachine({
+      items: itemsOf([
+        ['a1', 'gA'],
+        ['d1', 'gD', true],
+      ]),
+      groups: [{ id: groupId('gA') }, { id: groupId('gD') }],
+      filter: scoring({ d1: 9, a1: 5 }),
+    });
+    await searchScored(m);
+    const state = m.getState();
+    expect(state.filteredIds).toEqual(ids('d1', 'a1'));
+    expect(getDisplayIds(state)).toEqual(ids('d1', 'a1'));
+    // The disabled item is listed but never reached: the walk skips it
+    expect(await walk(m, 1)).toEqual(ids('a1', 'a1'));
   });
 });

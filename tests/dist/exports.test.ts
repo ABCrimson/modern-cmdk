@@ -55,6 +55,7 @@ describe('package exports', () => {
       'detectConflicts',
       'findMatchingShortcut',
       'formatShortcut',
+      'getDisplayIds',
       'groupId',
       'itemId',
       'matchesShortcut',
