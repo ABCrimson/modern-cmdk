@@ -1,6 +1,6 @@
 // tests/unit/keymap.test.tsx
-// The palette's keydown handler on an inline <Command> (cluster C3): modified Home and End belong to the
-// input, an inline root that is not open leaves Escape alone, and a key that another handler
+// The palette's keydown handler on an inline <Command> (cluster C3): modified Home and End belong
+// to the input, an inline root that is not open leaves Escape alone, and a key that another handler
 // default-prevented, or an Enter with no active item, changes nothing and is not default-prevented.
 
 import type { CommandMachine } from 'modern-cmdk';

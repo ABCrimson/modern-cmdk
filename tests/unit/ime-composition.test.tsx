@@ -1,6 +1,7 @@
 // tests/unit/ime-composition.test.tsx
-// Keys pressed while an input method composes text (cluster C3): the palette neither selects, moves,
-// pops a page nor closes, and an item shortcut fires nothing, until the composition has ended.
+// Keys pressed while an input method composes text (cluster C3): the palette neither selects,
+// moves, pops a page nor closes, and an item shortcut fires nothing, until the composition
+// has ended.
 
 import type { CommandState } from 'modern-cmdk';
 import { createCommandMachine, itemId } from 'modern-cmdk';
