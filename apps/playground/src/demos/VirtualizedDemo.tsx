@@ -100,10 +100,10 @@ export function VirtualizedDemo(): React.ReactNode {
         <span className="demo-badge demo-badge--beta">{itemsLabel}</span>
       </h2>
       <p className="demo-description">
-        Rendering {itemsLabel} with automatic virtualization. The list auto-virtualizes when the
-        filtered count exceeds 100 items. Uses <code>content-visibility: auto</code> so the browser
-        skips rendering off-screen items and <code>contain-intrinsic-size</code> for stable scroll
-        height.
+        Rendering {itemsLabel} in a list that its <code>virtualize</code> prop keeps virtual at
+        every count (without the prop, a list turns virtual above 100 matches). Uses{' '}
+        <code>content-visibility: auto</code> so the browser skips rendering off-screen items and{' '}
+        <code>contain-intrinsic-size</code> for stable scroll height.
       </p>
 
       <Command
