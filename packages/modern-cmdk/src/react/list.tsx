@@ -36,7 +36,8 @@ export interface CommandListProps extends ComponentPropsWithRef<'div'> {
   readonly announceResults?: ((count: number) => string) | undefined;
 }
 
-// Each child's index in the JSX order, the order React renders; the layout effect keeps it current
+// Each child's index in the JSX order, renewed on each run; a child React moves by a keyed
+// reorder keeps its earlier index until it remounts (D145 Risks)
 const jsxKey = new WeakMap<ChildNode, number>();
 
 /** Scrollable list container with auto-virtualization and aria-live announcements. */

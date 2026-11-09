@@ -247,7 +247,8 @@
 
     /* WebKit sizes a row it has not laid out at contain-intrinsic-size plus the row padding, off
        the virtualizer pitch (RA-88). The virtualizer already windows the rows, so they render with
-       content-visibility: visible and every engine sizes them at the pitch */
+       content-visibility: visible and every engine sizes them at their laid-out height, the pitch
+       when estimateSize is the row height (44 px by default) */
     & [data-command-item] {
       content-visibility: visible;
     }

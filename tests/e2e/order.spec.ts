@@ -166,8 +166,10 @@ test.describe('A11Y-03, RA-02: the listbox order is the order the arrow keys wal
     const active = page.locator('[data-command-item][data-active]');
     await expect(active).toHaveId('item-apple');
 
-    // Apple does not match `us`; Settings leads (User Profile first) and Extensions, not the first
-    // displayed option, is the first ranked one
+    // Apple does not match `us`, so the kept item drops out: Settings leads (User Profile, the
+    // best match), then Suggestions and Actions. With default priorities the first displayed
+    // option is also the first ranked (C4R-4); the unit test "C4: the active item after a filter
+    // is the first displayed enabled item" pins the case where they differ
     await input.fill('us');
     await expect.poll(() => groupHeadings(page)).toEqual(['Settings', 'Suggestions', 'Actions']);
     await expect(page.locator('#item-apple')).toHaveCount(0);
