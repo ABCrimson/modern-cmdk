@@ -376,6 +376,14 @@
       overlay var(--command-duration-exit) allow-discrete;
   }
 
+  /* ─── Smooth Scroll ─── */
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-command-list] {
+      scroll-behavior: smooth;
+    }
+  }
+
   /* ─── Fading Edge Indicators (Scroll-Driven) ─── */
 
   [data-command-list] {
@@ -515,14 +523,21 @@
 @layer command.a11y {
   /* ─── Reduced Motion ─── */
 
+  /* The clamp reaches the three library surfaces, their descendants and the pseudo-elements of
+     both, at zero specificity, and nothing else on the host page. */
   @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms;
-      animation-iteration-count: 1;
-      transition-duration: 0.01ms;
-      scroll-behavior: auto;
+    :where([data-command-root], [data-command-dialog], [data-command-overlay]) {
+      &,
+      & *,
+      &::before,
+      &::after,
+      & *::before,
+      & *::after {
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
+        scroll-behavior: auto;
+      }
     }
 
     [data-command-dialog],
