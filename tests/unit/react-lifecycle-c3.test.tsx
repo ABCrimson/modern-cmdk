@@ -6,7 +6,7 @@ import type { CommandMachine, ItemId } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
-import { Activity, act, use } from 'react';
+import { Activity, act, use, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -54,6 +54,18 @@ const Probe = (): null => {
   return null;
 };
 
+/** When armed, the next mount of `Poke` activates `fixed-a` from a passive effect. */
+const poke = { armed: false };
+
+const Poke = (): null => {
+  useEffect(() => {
+    if (!poke.armed) return;
+    poke.armed = false;
+    held.machine?.send({ type: 'ITEM_ACTIVATE', id: itemId('fixed-a') });
+  }, []);
+  return null;
+};
+
 describe('Activity re-activation of a held item (RA-79)', () => {
   const tree = (
     mode: 'visible' | 'hidden',
@@ -63,6 +75,7 @@ describe('Activity re-activation of a held item (RA-79)', () => {
     <Activity mode={mode}>
       <Command onActiveChange={onActiveChange}>
         <Probe />
+        <Poke />
         <Command.Input />
         <Command.List>
           {values.map((value) => (
@@ -100,6 +113,32 @@ describe('Activity re-activation of a held item (RA-79)', () => {
       });
       await settle();
 
+      expect(onActiveChange.mock.calls).toEqual([['fixed-a']]);
+    },
+  );
+
+  itWithActivity(
+    'RA-79: a show that re-adds the held item and an activation of it in one batch report it once',
+    async () => {
+      const onActiveChange = vi.fn();
+      await render(tree('visible', ['fixed-a'], onActiveChange));
+      await settle();
+      await render(tree('hidden', ['fixed-a'], onActiveChange));
+      await settle();
+      await render(tree('hidden', [], onActiveChange));
+      await settle();
+      expect(onActiveChange).not.toHaveBeenCalled();
+
+      // The show and the item's re-mount commit together. Their sends (the item's registration,
+      // then the setup's re-activation in the layout phase) wait in the machine's batch, and the
+      // poke's passive effect queues the consumer's own activation of the item behind them in the
+      // same commit, before the batch runs
+      poke.armed = true;
+      await render(tree('visible', ['fixed-a'], onActiveChange));
+      await settle();
+
+      expect(poke.armed).toBe(false);
+      expect(held.machine?.getState().activeId).toBe('fixed-a');
       expect(onActiveChange.mock.calls).toEqual([['fixed-a']]);
     },
   );
