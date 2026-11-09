@@ -23,10 +23,10 @@ export interface CommandTelemetryHooks {
   /**
    * Called when a batch ends with the committed open state turned open since the last report, which
    * starts closed (`OPEN`, or `TOGGLE` of a closed palette). A machine created with `open: true`
-   * reports one `onPaletteOpen` at its first commit (for a React root, its first item registration
-   * or input; with neither, its first event). A plain `<Command>` constructs `open` from its
-   * `open` prop, so it starts closed unless that prop is true. A batch that opens and closes again
-   * reports nothing.
+   * reports one `onPaletteOpen` at its first commit (for a React root, the batch its mount
+   * schedules when it resumes the machine; for a machine never suspended, its first event). A
+   * plain `<Command>` constructs `open` from its `open` prop, so it starts closed unless that prop
+   * is true. A batch that opens and closes again reports nothing.
    */
   readonly onPaletteOpen?: (() => void) | undefined;
   /**
