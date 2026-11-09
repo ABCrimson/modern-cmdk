@@ -1,6 +1,6 @@
 /* modern-cmdk — Playground Styles */
-/* @layer architecture, OKLCH color tokens, GPU-composited animations */
-/* CSS nesting, container queries, @starting-style entry animations */
+/* @layer architecture, OKLCH color tokens written once with light-dark(), CSS nesting */
+/* container queries, @keyframes entry and tab animations */
 /* forced-colors + prefers-reduced-motion + prefers-contrast support */
 
 @import "modern-cmdk/styles.css";
@@ -25,41 +25,41 @@
 @layer tokens {
   :root {
     /* Surface palette */
-    --bg-primary: oklch(0.13 0.012 260);
-    --bg-secondary: oklch(0.17 0.016 260);
-    --bg-elevated: oklch(0.2 0.02 260);
-    --bg-hover: oklch(0.25 0.025 260);
-    --bg-active: oklch(0.3 0.03 250);
-    --bg-surface: oklch(0.15 0.014 260);
+    --bg-primary: light-dark(oklch(0.98 0.003 260), oklch(0.13 0.012 260));
+    --bg-secondary: light-dark(oklch(0.96 0.005 260), oklch(0.17 0.016 260));
+    --bg-elevated: light-dark(oklch(1 0 0), oklch(0.2 0.02 260));
+    --bg-hover: light-dark(oklch(0.94 0.008 260), oklch(0.25 0.025 260));
+    --bg-active: light-dark(oklch(0.91 0.012 260), oklch(0.3 0.03 250));
+    --bg-surface: light-dark(oklch(0.97 0.004 260), oklch(0.15 0.014 260));
 
-    /* Text palette — ordered ramp (lightness primary 0.95 > secondary 0.86 > muted 0.78), WCAG 2.1 AA:
-       measured minimum 6.80:1 (muted on --bg-active), 2026-11-04 */
-    --text-primary: oklch(0.95 0.008 260);
-    --text-secondary: oklch(0.86 0.014 260);
-    --text-muted: oklch(0.78 0.012 260);
+    /* Text palette — the dark values form an ordered ramp (lightness primary 0.95 > secondary 0.86
+       > muted 0.78), WCAG 2.1 AA: measured minimum 6.80:1 (muted on --bg-active), 2026-11-04 */
+    --text-primary: light-dark(oklch(0.2 0.015 260), oklch(0.95 0.008 260));
+    --text-secondary: light-dark(oklch(0.38 0.02 260), oklch(0.86 0.014 260));
+    --text-muted: light-dark(oklch(0.46 0.015 260), oklch(0.78 0.012 260));
     --text-inverse: oklch(0.13 0.012 260);
 
     /* Border palette */
-    --border-default: oklch(0.32 0.02 260);
-    --border-subtle: oklch(0.25 0.015 260);
-    --border-focus: oklch(0.65 0.2 250);
+    --border-default: light-dark(oklch(0.82 0.012 260), oklch(0.32 0.02 260));
+    --border-subtle: light-dark(oklch(0.88 0.008 260), oklch(0.25 0.015 260));
+    --border-focus: light-dark(oklch(0.5 0.22 250), oklch(0.65 0.2 250));
 
     /* Accent palette */
-    --accent: oklch(0.7 0.2 250);
-    --accent-hover: oklch(0.76 0.22 250);
-    --accent-subtle: oklch(0.7 0.2 250 / 0.12);
+    --accent: light-dark(oklch(0.45 0.22 250), oklch(0.7 0.2 250));
+    --accent-hover: light-dark(oklch(0.4 0.24 250), oklch(0.76 0.22 250));
+    --accent-subtle: light-dark(oklch(0.45 0.22 250 / 0.1), oklch(0.7 0.2 250 / 0.12));
     --accent-muted: oklch(0.7 0.2 250 / 0.06);
 
     /* Feedback palette */
-    --success: oklch(0.72 0.19 155);
-    --warning: oklch(0.8 0.16 80);
-    --error: oklch(0.7 0.19 25);
+    --success: light-dark(oklch(0.45 0.14 155), oklch(0.72 0.19 155));
+    --warning: light-dark(oklch(0.45 0.12 80), oklch(0.8 0.16 80));
+    --error: light-dark(oklch(0.5 0.2 25), oklch(0.7 0.19 25));
 
     /* Shadow palette */
-    --shadow-sm: oklch(0 0 0 / 0.15);
-    --shadow-md: oklch(0 0 0 / 0.3);
-    --shadow-lg: oklch(0 0 0 / 0.5);
-    --shadow-glow: oklch(0.7 0.2 250 / 0.08);
+    --shadow-sm: light-dark(oklch(0 0 0 / 0.05), oklch(0 0 0 / 0.15));
+    --shadow-md: light-dark(oklch(0 0 0 / 0.1), oklch(0 0 0 / 0.3));
+    --shadow-lg: light-dark(oklch(0 0 0 / 0.15), oklch(0 0 0 / 0.5));
+    --shadow-glow: light-dark(oklch(0.45 0.22 250 / 0.05), oklch(0.7 0.2 250 / 0.08));
 
     /* Spacing scale */
     --space-xs: 0.25rem;
@@ -98,41 +98,14 @@
       1.001
     );
 
-    /* The dark tokens above render dark whatever the OS theme: native controls follow the page, not the OS */
+    /* The used color-scheme picks the side of every light-dark() token above (the second value is
+       dark), so a descendant that sets its own color-scheme re-themes everything under it; dark
+       here keeps the page and its native controls dark whatever the OS theme */
     color-scheme: dark;
   }
 
-  /* Light mode tokens */
+  /* Light theme: the scheme alone selects the first value of every light-dark() token */
   :root[data-theme="light"] {
-    --bg-primary: oklch(0.98 0.003 260);
-    --bg-secondary: oklch(0.96 0.005 260);
-    --bg-elevated: oklch(1 0 0);
-    --bg-hover: oklch(0.94 0.008 260);
-    --bg-active: oklch(0.91 0.012 260);
-    --bg-surface: oklch(0.97 0.004 260);
-
-    --text-primary: oklch(0.2 0.015 260);
-    --text-secondary: oklch(0.38 0.02 260);
-    --text-muted: oklch(0.46 0.015 260);
-
-    --border-default: oklch(0.82 0.012 260);
-    --border-subtle: oklch(0.88 0.008 260);
-    --border-focus: oklch(0.5 0.22 250);
-
-    --accent: oklch(0.45 0.22 250);
-    --accent-hover: oklch(0.4 0.24 250);
-    --accent-subtle: oklch(0.45 0.22 250 / 0.1);
-
-    /* Feedback text on the light surfaces: the dark-theme values are 1.6-2.6:1 here */
-    --success: oklch(0.45 0.14 155);
-    --warning: oklch(0.45 0.12 80);
-    --error: oklch(0.5 0.2 25);
-
-    --shadow-sm: oklch(0 0 0 / 0.05);
-    --shadow-md: oklch(0 0 0 / 0.1);
-    --shadow-lg: oklch(0 0 0 / 0.15);
-    --shadow-glow: oklch(0.45 0.22 250 / 0.05);
-
     color-scheme: light;
   }
 }
@@ -150,7 +123,6 @@
 
   html {
     font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-size: 16px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -309,6 +281,7 @@
   /* Nav Tab */
   .nav-tab {
     appearance: none;
+    text-decoration: none;
     border: 1px solid transparent;
     background: transparent;
     color: var(--text-secondary);
@@ -580,10 +553,8 @@
   /* All States Demo Grid */
   .states-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
     gap: var(--space-lg);
-    container-type: inline-size;
-    container-name: states;
 
     & > section {
       display: flex;
@@ -596,12 +567,6 @@
         color: var(--text-secondary);
         letter-spacing: -0.01em;
       }
-    }
-  }
-
-  @container states (max-inline-size: 400px) {
-    .states-grid {
-      grid-template-columns: 1fr;
     }
   }
 
@@ -635,16 +600,19 @@
       color var(--duration-normal) var(--ease-out),
       border-color var(--duration-normal) var(--ease-out);
 
+    /* color-scheme re-resolves every light-dark() token for the wrapper and the palette in it */
     &[data-theme-preview="dark"] {
-      background: oklch(0.13 0.012 260);
-      color: oklch(0.95 0.008 260);
-      border-color: oklch(0.32 0.02 260);
+      color-scheme: dark;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border-color: var(--border-default);
     }
 
     &[data-theme-preview="light"] {
-      background: oklch(1 0 0);
-      color: oklch(0.2 0.015 260);
-      border-color: oklch(0.82 0.012 260);
+      color-scheme: light;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border-color: var(--border-default);
     }
   }
 
@@ -695,6 +663,7 @@
   /* Trigger button hover glow */
   .trigger-button {
     position: relative;
+    isolation: isolate;
 
     &::after {
       content: "";
@@ -771,9 +740,9 @@
     }
 
     .error-fallback {
-      border: 2px solid LinkText;
+      border: 2px solid CanvasText;
       background: Canvas;
-      color: LinkText;
+      color: CanvasText;
     }
 
     .theme-toggle {
