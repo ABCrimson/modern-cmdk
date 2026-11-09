@@ -36,60 +36,48 @@ export interface CommandListProps extends ComponentPropsWithRef<'div'> {
   readonly announceResults?: ((count: number) => string) | undefined;
 }
 
-const ITEM = '[data-command-item]';
-const CONTAINERS = '[data-command-group-items], [data-command-page]';
-
-/** The display index a child ranks by: an item by its id, any other element by its first item inside. */
-function rankOf(node: ChildNode, order: ReadonlyMap<string, number>): number | undefined {
-  if (node.nodeType !== 1 || (node as Element).hasAttribute('data-command-page')) return;
-  const element = node as Element;
-  let min: number | undefined;
-  for (const item of element.matches(ITEM) ? [element] : element.querySelectorAll(ITEM)) {
-    const rank = order.get(item.id);
-    if (rank !== undefined && (min === undefined || rank < min)) min = rank;
-  }
-  return min;
-}
-
-// The index each child has in the JSX order, the order React renders; orderChildren keeps it up to date
-const jsxKey = new WeakMap<ChildNode, number>();
+// A child carries its index in the JSX order, the order React renders, in `cmdkJsx`; orderChildren keeps it
+// up to date
+type Keyed = ChildNode & { cmdkJsx?: number };
 
 /**
- * Puts the ranked children of `container` in display order. A child without a rank (a separator, a
- * heading, a comment) keeps its place in the JSX order and the ranked children fill the other places.
- * A child that appeared since the last run took the place React gave it, directly before its next JSX
- * sibling, so it is keyed just below the first known child after it, or after every child when none
- * follows. Nodes move inside their parent only, and only when the order differs.
+ * Puts the ranked children of the container in display order. A rank is the display index (an item)
+ * or the lowest one among the items inside the child (a group, a wrapper); a page, a separator, a heading and a
+ * comment have none. A child without a rank keeps its place in the JSX order and the ranked children fill
+ * the other places. A child that appeared since the last run took the place React gave it, directly before
+ * its next JSX sibling, so it is keyed just below the first known child after it, or after every child when
+ * none follows. Nodes move inside their parent only, and only when the order differs.
  */
 function orderChildren(container: Element, order: ReadonlyMap<string, number>): void {
-  const nodes = [...container.childNodes];
+  const nodes: Keyed[] = [...container.childNodes];
   let next = Infinity;
   let i = nodes.length;
   while (i--) {
-    const node = nodes[i] as ChildNode;
-    const key = jsxKey.get(node);
-    if (key === undefined) jsxKey.set(node, next - 0.5);
-    else next = key;
+    const node = nodes[i] as Keyed;
+    if (node.cmdkJsx === undefined) node.cmdkJsx = next - 0.5;
+    else next = node.cmdkJsx;
   }
   // The sort is stable and Infinity - Infinity is NaN, which a comparator counts as 0
-  const jsx = nodes.sort((a, b) => (jsxKey.get(a) as number) - (jsxKey.get(b) as number));
-  const ranks = new Map<ChildNode, number>();
-  for (const node of jsx) {
-    const rank = rankOf(node, order);
-    if (rank !== undefined) ranks.set(node, rank);
-  }
-  const units = [...ranks.keys()].sort(
-    (a, b) => (ranks.get(a) as number) - (ranks.get(b) as number),
-  );
+  nodes.sort((a, b) => (a.cmdkJsx as number) - (b.cmdkJsx as number));
+  const slots = nodes.map((node) => {
+    let min = Infinity;
+    if (node.nodeType === 1 && !(node as Element).hasAttribute('data-command-page'))
+      for (const el of [
+        node as Element,
+        ...(node as Element).querySelectorAll('[data-command-item]'),
+      ])
+        min = Math.min(min, order.get(el.id) ?? Infinity);
+    return [min, node] as const;
+  });
+  const units = slots.filter(([rank]) => rank < Infinity).sort((a, b) => a[0] - b[0]);
   let unit = 0;
   let cursor = container.firstChild;
-  for (const [at, slot] of jsx.entries()) {
-    jsxKey.set(slot, at);
-    const node = ranks.has(slot) ? (units[unit++] as ChildNode) : slot;
-    if (node === cursor) cursor = node.nextSibling;
-    else if (node.nodeType !== 1) cursor = node.nextSibling;
+  slots.forEach(([rank, slot], at) => {
+    slot.cmdkJsx = at;
+    const node = rank < Infinity ? (units[unit++]?.[1] as ChildNode) : slot;
+    if (node === cursor || node.nodeType !== 1) cursor = node.nextSibling;
     else container['moveBefore' in container ? 'moveBefore' : 'insertBefore'](node, cursor);
-  }
+  });
 }
 
 /** Scrollable list container with auto-virtualization and aria-live announcements. */
@@ -219,7 +207,10 @@ export function CommandList({
   useLayoutEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
-    for (const container of [inner, ...inner.querySelectorAll(CONTAINERS)]) {
+    for (const container of [
+      inner,
+      ...inner.querySelectorAll('[data-command-group-items], [data-command-page]'),
+    ]) {
       orderChildren(container, displayIndex);
     }
   }, [displayIndex, visibleIdSet]);
