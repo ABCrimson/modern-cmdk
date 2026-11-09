@@ -245,7 +245,9 @@
     position: relative;
     will-change: transform;
 
-    /* Windowed rows sit on the virtualizer pitch: no intrinsic placeholder size */
+    /* WebKit sizes a row it has not laid out at contain-intrinsic-size plus the row padding, off
+       the virtualizer pitch (RA-88). The virtualizer already windows the rows, so they render with
+       content-visibility: visible and every engine sizes them at the pitch */
     & [data-command-item] {
       content-visibility: visible;
     }
