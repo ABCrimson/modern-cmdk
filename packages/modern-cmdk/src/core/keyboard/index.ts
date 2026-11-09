@@ -20,11 +20,6 @@ export function isImeComposition(event: KeyboardEvent): boolean {
   return event.isComposing || event.keyCode === 229;
 }
 
-/** The editable targets: form fields that take text or a choice, and contenteditable elements */
-function isEditable(target: Partial<HTMLElement> | undefined): boolean {
-  return !!(target?.isContentEditable || target?.matches?.('input,textarea,select'));
-}
-
 /** What the registry reads from its options: the constructor object, or the machine's own options */
 interface KeyboardShortcutOptions {
   enabled?: boolean | undefined;
@@ -153,15 +148,15 @@ export class KeyboardShortcutRegistry implements Disposable {
       if (!this.#enabled || isImeComposition(event) || event.defaultPrevented) return;
       const path = event.composedPath();
       // The path's first entry is the real target, also inside a shadow root (event.target is the host there)
-      const target = path[0] as Partial<HTMLElement> | undefined;
+      const target = path[0] as HTMLElement;
+      // A form field other than the palette's input, or a contenteditable element, is an editable target
       if (
         this.#options.shortcutsInEditable === false &&
-        isEditable(target) &&
-        !target?.matches?.('[data-command-input]')
+        (target.isContentEditable ||
+          target.matches?.('input:not([data-command-input]),textarea,select'))
       )
         return;
-      if (this.#options.shortcutScope === 'root' && !(this.#root && path.includes(this.#root)))
-        return;
+      if (this.#options.shortcutScope === 'root' && !path.includes(this.#root as Element)) return;
 
       // The later binding of every key competes; a key match beats a code match (see pickMatch)
       const winners = [...this.#bindings.values()].map((stack) => stack.at(-1) as ShortcutBinding);
