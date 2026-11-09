@@ -318,7 +318,7 @@ describe('keymap composition and scope', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it('C3: a key from a portaled descendant outside the root DOM does not drive the palette', async () => {
+  it("C3: a key from a portaled descendant outside the root's DOM does not drive the palette", async () => {
     const onSelect = vi.fn();
     await mount(
       <Command>
