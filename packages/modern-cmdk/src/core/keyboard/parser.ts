@@ -149,6 +149,6 @@ export function formatShortcut(parsed: ParsedShortcut, platform?: ShortcutPlatfo
 
   return [
     ...labels.filter(Boolean),
-    KEY_LABELS[key] ?? key.charAt(0).toUpperCase() + key.slice(1),
+    KEY_LABELS[key] ?? key.replace(/^./, (c) => c.toUpperCase()),
   ].join(isMac ? '' : '+');
 }
