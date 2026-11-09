@@ -27,8 +27,9 @@ export default defineConfig([
   },
   // React entry — the banner below is the only 'use client' in the package, for RSC bundler compatibility; the src/react modules carry none,
   // because rolldown drops a bundled module's directive and warns MODULE_LEVEL_DIRECTIVE for each one;
-  // The stylesheet is not a tsdown output: scripts/build-styles.ts builds src/react/styles.css into
-  // dist/react/styles.css (package.json ./styles.css export) after tsdown, whose clean empties dist first.
+  // The stylesheet is not a tsdown output: scripts/build-styles.ts builds src/react/styles.css
+  // into dist/react/styles.css (package.json ./styles.css export) after tsdown, whose clean
+  // empties dist first.
   // Two entries in ONE config: react/index (modern-cmdk/react) and react/dialog (modern-cmdk/react/dialog,
   // src/react/dialog.tsx, whose exports are exactly CommandDialog and CommandDialogProps). Sharing one
   // build lets rolldown emit the code both entries use (context, hooks, CommandDialog with its radix-ui import, which stays external) as shared chunks in

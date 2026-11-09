@@ -2,9 +2,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Parses the SOURCE stylesheet (packages/modern-cmdk/src/react/styles.css); the built file is its
-// lightningcss build (tests/dist/styles-build.test.ts), which keeps these floor properties. Every declaration is
-// recorded with the stack of at-rule/selector preludes that enclose it, in source order.
+// Parses the SOURCE stylesheet (packages/modern-cmdk/src/react/styles.css). The built file is its
+// lightningcss build: tests/dist/styles-build.test.ts pins that the build keeps the
+// -webkit-user-select twins and that no animation shorthand absorbs a timeline, and
+// tests/e2e/styles.spec.ts ("PKG-10: the built stylesheet keeps the scroll timeline on the fade
+// edges and the scroll indicator") pins the computed timeline. Every declaration is recorded with
+// the stack of at-rule/selector preludes that enclose it, in source order.
 const source = readFileSync(
   resolve(import.meta.dirname, '../../packages/modern-cmdk/src/react/styles.css'),
   'utf8',

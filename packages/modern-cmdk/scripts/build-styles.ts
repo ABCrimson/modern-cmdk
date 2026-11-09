@@ -39,7 +39,8 @@ export function buildStyles(code: Uint8Array): Uint8Array {
     code,
     minify: true,
     targets,
-    // The browsers of the floor all support light-dark(); the minifier would lower it otherwise.
+    // Every browser of the floor supports light-dark(), so this is a guard: should a target below
+    // Chrome and Edge 123 be added, lightningcss still does not lower light-dark().
     exclude: Features.LightDark,
   });
   if (warnings.length > 0) {
@@ -51,7 +52,7 @@ export function buildStyles(code: Uint8Array): Uint8Array {
   return built;
 }
 
-/** Every declaration of a stylesheet at the floor's targets, in the AST lightningcss parses (tests). */
+/** Every declaration of a stylesheet, as lightningcss parses it at the floor's targets (tests). */
 export function declarationsOf(code: Uint8Array): Declaration[] {
   const found: Declaration[] = [];
   const collect = (declaration: Declaration): void => {
