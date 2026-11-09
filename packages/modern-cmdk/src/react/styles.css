@@ -503,9 +503,18 @@
 
   /* ─── Loading ─── */
 
+  /* The status text stays at full opacity; a dot before it carries the pulse */
   [data-command-loading] {
-    animation: command-loading-pulse var(--command-duration-loading) ease-in-out infinite;
-    animation-composition: accumulate;
+    &::before {
+      content: "";
+      display: inline-block;
+      inline-size: 0.5em;
+      block-size: 0.5em;
+      margin-inline-end: 0.5em;
+      border-radius: 50%;
+      background: currentColor;
+      animation: command-loading-pulse var(--command-duration-loading) ease-in-out infinite;
+    }
   }
 
   @keyframes command-loading-pulse {
