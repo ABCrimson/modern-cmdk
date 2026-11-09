@@ -1396,23 +1396,23 @@
   },
   {
     "id": "PG-01",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-01: the RTL demo renders Arabic, not escape sequences",
+    "status": "covered"
   },
   {
     "id": "PG-03",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-03: the Loading State panel shows its loading indicator",
+    "status": "covered"
   },
   {
     "id": "PG-05",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-05: the light preview re-themes the palette",
+    "status": "covered"
   },
   {
     "id": "PG-06",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-06: Reset recovers the error boundary demo",
+    "status": "covered"
   },
   {
     "id": "RA-02",
@@ -1456,18 +1456,18 @@
   },
   {
     "id": "PG-27",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-27: count=Infinity and a huge count fall back to a bounded list",
+    "status": "covered"
   },
   {
     "id": "PG-28",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-28: the states grid fits 360 px and 320 px viewports",
+    "status": "covered"
   },
   {
     "id": "PG-29",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-29: the trigger button's hover glow paints",
+    "status": "covered"
   },
   {
     "id": "CE-42",
@@ -1486,33 +1486,33 @@
   },
   {
     "id": "PG-30",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-30: the playground root declares color-scheme dark and the light theme declares light",
+    "status": "covered"
   },
   {
     "id": "PG-31",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-31: the playground restores the chosen theme on reload",
+    "status": "covered"
   },
   {
     "id": "PG-32",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-32: a held Ctrl+K toggles the dialog once",
+    "status": "covered"
   },
   {
     "id": "PG-42",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-42: clicking the current route adds no history entry",
+    "status": "covered"
   },
   {
     "id": "PG-52",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-52: System Default applies the OS colour scheme",
+    "status": "covered"
   },
   {
     "id": "PG-59",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PG-59: the RTL placeholder's ellipsis trails the word",
+    "status": "covered"
   },
   {
     "id": "A11Y-33",
@@ -1536,8 +1536,8 @@
   },
   {
     "id": "PGX-01",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/playground.spec.ts::PGX-01: the playground requests no favicon.ico",
+    "status": "covered"
   },
   {
     "id": "RA-79",
