@@ -242,15 +242,33 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
     await expect(dialog).toBeHidden({ timeout: 5_000 });
   });
 
-  test('Escape on inline palette should update state', async ({ page }) => {
+  test('RA-38: in the browser, Escape on a closed inline palette is left to the page', async ({
+    page,
+  }) => {
+    const root = page.locator('[data-command-root]');
+    // An inline palette starts closed (`open` defaults to false)
+    await expect(root).toHaveAttribute('data-command-state', 'closed');
     const input = page.getByRole('combobox');
     await input.focus();
 
-    // Press Escape
+    // A bubbling listener on window runs after the palette's React handler, so it reads the flag
+    // the handler leaves behind
+    await page.evaluate(() => {
+      const seen: boolean[] = [];
+      Object.assign(window, { escapeSeen: seen });
+      window.addEventListener(
+        'keydown',
+        (event) => {
+          if (event.key === 'Escape') seen.push(event.defaultPrevented);
+        },
+        { once: true },
+      );
+    });
     await input.press('Escape');
 
-    // The root state should reflect closed
-    const root = page.locator('[data-command-root]');
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { escapeSeen: boolean[] }).escapeSeen))
+      .toEqual([false]);
     await expect(root).toHaveAttribute('data-command-state', 'closed');
   });
 
