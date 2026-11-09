@@ -81,7 +81,7 @@ modern-cmdk/
   biome.json                      Biome linter + formatter config
   lefthook.yml                    Git hooks (pre-commit, pre-push)
   vitest.config.ts                Unit/integration test config
-  playwright.config.ts            E2E test config (Chromium, locally and in CI; Firefox and WebKit opt-in with E2E_ENGINES=all until 1.8.0)
+  playwright.config.ts            E2E test config (Chromium and Firefox, locally and in CI; WebKit opt-in with E2E_ENGINES=all until RA-88)
   playwright.docs.config.ts       Docs render test config (`pnpm test:docs`, tests/docs)
   |
   packages/
@@ -277,7 +277,7 @@ modern-cmdk/
 | `pnpm test` | Run unit tests (Vitest, happy-dom) |
 | `pnpm test:watch` | Run unit tests in watch mode |
 | `pnpm test:coverage` | Run tests with V8 coverage report |
-| `pnpm test:e2e` | Run E2E tests (Playwright 1.66 -- Chromium; set E2E_ENGINES=all to add Firefox and WebKit) |
+| `pnpm test:e2e` | Run E2E tests (Playwright 1.66 -- Chromium and Firefox; set E2E_ENGINES=all to add WebKit) |
 | `pnpm test:docs` | Playwright render tests for the built docs site (run `pnpm docs:build` first) |
 | `pnpm bench` | Run benchmarks (Vitest bench mode) |
 | `pnpm bench:record benchmarks/history/<YYYY-MM-DD>-<sha7>.json [--out <file>] [--baseline <file>] [--target <category>:<key>=<ms>]... [--repo <dir>]` | Records a committed copy of the `benchmark-results` artifact of the first green run after each Node pin bump (D93) in `benchmarks/baseline.json` (or `--out`), as the record of the file's `environment.cpu` (created when that CPU has none; every other record stays as it is): the file name must match its own `date` and `commit`, it must hold 5 runs and name its CPU, `version` comes from that commit's manifest and `source` names the file (D27); exit 2 on a usage or input error, and nothing is written then |
@@ -545,7 +545,7 @@ Two records pin what the package ships. Both change only in a commit that says s
 ### E2E Tests
 
 **Config:** `playwright.config.ts`
-**Browsers:** Chromium, locally and in CI. Firefox and WebKit are opt-in (`E2E_ENGINES=all pnpm test:e2e`) until 1.8.0 (D36, ledger TEB-81)
+**Browsers:** Chromium and Firefox, locally and in CI. WebKit is opt-in (`E2E_ENGINES=all pnpm test:e2e`) until the RA-88 fix lands (ledger TEB-81)
 **Test files:** `tests/e2e/**/*.spec.ts`
 
 ```bash
@@ -694,7 +694,7 @@ chore: bump Biome to 2.6.6
    - Lint and type-check (`pnpm lint`, `pnpm typecheck`)
    - Phantom claims (`scripts/check-claims.mjs` over the READMEs, ARCHITECTURE.md, CONTRIBUTING.md, SECURITY.md, apps/docs and the wiki) and links (lychee over the shipped Markdown, then `pnpm check:repo-links`)
    - Unit tests (3 OS, on Node 26.4.0 and the `.nvmrc` Node), React lanes, built-package tests, coverage with the ratchet
-   - Rust & WASM, E2E tests (Chromium), docs build and render tests
+   - Rust & WASM, E2E tests (Chromium and Firefox), docs build and render tests
    - Bundle size check (`size-limit`)
    - Package integrity (`pnpm check:package --pack-dir`, the codemod tarball smoke `scripts/codemod-tarball-smoke.ts`, the notices check `scripts/third-party-notices.ts --check`, `pnpm check:licenses`, an SPDX SBOM artifact `sbom` made with syft v1.57.0), the Consumer app matrix (next-turbopack, next-webpack, vite) and a Node 24 engine-strict install of the packed tarball
    - Templates (scaffold `react-basic`, `react-dialog` and `react-full` from the packed tarballs, `tsc -b` and build each; `scripts/template-smoke.ts --template all`, timeout 10 minutes)

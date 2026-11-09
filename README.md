@@ -57,7 +57,7 @@ Development uses the Node version in `.nvmrc` (Node 28 nightly 28.0.0-nightly202
 |---|---|
 | `pnpm build` | Build all packages |
 | `pnpm test` | Unit tests (Vitest 5, happy-dom) |
-| `pnpm test:e2e` | E2E tests (Playwright; Chromium, with Firefox and WebKit opt-in via `E2E_ENGINES=all`) |
+| `pnpm test:e2e` | E2E tests (Playwright; Chromium and Firefox, with WebKit opt-in via `E2E_ENGINES=all`) |
 | `pnpm bench` | Benchmarks (Vitest bench mode) |
 | `pnpm lint` | Lint (Biome) |
 | `pnpm typecheck` | Type-check (TypeScript 7.1.0-dev.20261108.1) |
