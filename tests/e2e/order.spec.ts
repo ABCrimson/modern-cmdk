@@ -1,6 +1,5 @@
+import type { Page } from '@playwright/test';
 import { expect, open, test } from './fixtures';
-
-type Page = Parameters<typeof open>[0];
 
 test.describe('RA-88: virtual rows and the virtualizer agree on the row pitch', () => {
   test("RA-88: a virtual row renders at the virtualizer's pitch in every engine", async ({
@@ -99,6 +98,8 @@ test.describe('A11Y-03, RA-02: the listbox order is the order the arrow keys wal
 
     const domOrder = await enabledOptionIds(page);
     expect(domOrder.length).toBeGreaterThan(3);
+    // Apple stays active after `e` (RA-84: the kept option still matches), so Home moves to the first displayed option;
+    // the wait covers the press landing before the walk reads the active id
     await input.press('Home');
     await expect(page.locator('[data-command-item][data-active]')).toHaveId(domOrder[0] ?? '');
     const walked = await walk(page, domOrder.length, async () => {});
@@ -115,6 +116,8 @@ test.describe('A11Y-03, RA-02: the listbox order is the order the arrow keys wal
 
     const domOrder = await enabledOptionIds(page);
     const count = domOrder.length;
+    // Apple stays active after `e` (RA-84: the kept option still matches), so Home moves to the first displayed option;
+    // the wait covers the press landing before the walk reads the active id
     await input.press('Home');
     await expect(page.locator('[data-command-item][data-active]')).toHaveId(domOrder[0] ?? '');
     const tops: number[] = [];
@@ -147,9 +150,35 @@ test.describe('A11Y-03, RA-02: the listbox order is the order the arrow keys wal
     await expect.poll(() => groupHeadings(page)).toEqual(['Suggestions', 'Actions', 'Settings']);
 
     const domOrder = await enabledOptionIds(page);
+    // Apple stays active after `e` (RA-84: the kept option still matches), so Home moves to the first displayed option;
+    // the wait covers the press landing before the walk reads the active id
     await input.press('Home');
     await expect(page.locator('[data-command-item][data-active]')).toHaveId(domOrder[0] ?? '');
     const walked = await walk(page, domOrder.length, async () => {});
     expect(walked).toEqual(domOrder);
+  });
+
+  test('C4: the active item after a filter is the first displayed enabled option', async ({
+    page,
+  }) => {
+    await open(page, '/');
+    const input = page.getByRole('combobox');
+    const active = page.locator('[data-command-item][data-active]');
+    await expect(active).toHaveId('item-apple');
+
+    // Apple does not match `us`; Settings leads (User Profile first) and Extensions, not the first
+    // displayed option, is the first ranked one
+    await input.fill('us');
+    await expect.poll(() => groupHeadings(page)).toEqual(['Settings', 'Suggestions', 'Actions']);
+    await expect(page.locator('#item-apple')).toHaveCount(0);
+    const domOrder = await enabledOptionIds(page);
+    expect(domOrder.length).toBeGreaterThan(0);
+    const suggestionIds = await page
+      .locator('[data-command-group]')
+      .filter({ hasText: 'Suggestions' })
+      .locator('[data-command-item]')
+      .evaluateAll((els) => els.map((el) => el.id));
+    expect(suggestionIds).not.toContain(domOrder[0]);
+    await expect(active).toHaveId(domOrder[0] ?? '');
   });
 });
