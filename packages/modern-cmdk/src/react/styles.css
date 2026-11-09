@@ -1,4 +1,4 @@
-/* modern-cmdk/react — tokens, item and list transitions; the dialog and overlay transitions are declared but inert until DT-19 */
+/* modern-cmdk/react — tokens, item and list transitions, dialog and overlay enter transitions and exit keyframe animations */
 /* Also: scroll-driven animations (gated by @supports), WCAG 2.1 AA forced-colors, prefers-contrast and prefers-reduced-motion, logical properties for RTL/LTR, nesting, @layer, oklch(), container queries */
 /* Secondary text (group headings, shortcuts, empty state, placeholder) is coloured with
    --command-muted-color, never faded with opacity: opacity stacks on the consumer's text
@@ -323,22 +323,23 @@
     opacity: 1;
     transition:
       opacity var(--command-duration-enter) var(--command-spring-easing),
-      --command-overlay-opacity var(--command-duration-enter) ease-out,
-      display var(--command-duration-enter) allow-discrete,
-      overlay var(--command-duration-enter) allow-discrete;
+      --command-overlay-opacity var(--command-duration-enter) ease-out;
   }
 
+  /* The exit is a keyframe animation: Radix Presence keeps the closed node mounted until its
+     animationend, which a transition does not fire. The implicit from is the node's own value. */
   [data-command-overlay][data-state="closed"] {
-    --command-overlay-opacity: 0;
-    opacity: 0;
-    transition:
-      opacity var(--command-duration-exit) var(--command-easing-exit),
-      --command-overlay-opacity var(--command-duration-exit) ease-in,
-      display var(--command-duration-exit) allow-discrete,
-      overlay var(--command-duration-exit) allow-discrete;
+    animation: command-overlay-exit var(--command-duration-exit) var(--command-easing-exit) forwards;
   }
 
-  /* ─── Dialog Animations (inert until DT-19) ─── */
+  @keyframes command-overlay-exit {
+    to {
+      opacity: 0;
+      --command-overlay-opacity: 0;
+    }
+  }
+
+  /* ─── Dialog Animations ─── */
 
   [data-command-dialog][data-state="open"] {
     @starting-style {
@@ -356,24 +357,22 @@
     transition:
       opacity var(--command-duration-enter) var(--command-spring-easing),
       scale var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
-      translate var(--command-duration-enter-scale) var(--command-spring-easing-bouncy),
-      display var(--command-duration-enter-scale) allow-discrete,
-      overlay var(--command-duration-enter-scale) allow-discrete;
+      translate var(--command-duration-enter-scale) var(--command-spring-easing-bouncy);
   }
 
   /* Exit animation — quicker, no spring overshoot */
   [data-command-dialog][data-state="closed"] {
-    --command-dialog-scale: var(--command-scale-from);
-    --command-dialog-translate: 4px;
-    opacity: 0;
-    scale: var(--command-scale-from);
-    translate: 0 4px;
-    transition:
-      opacity var(--command-duration-exit) var(--command-easing-exit),
-      scale var(--command-duration-exit) var(--command-easing-exit),
-      translate var(--command-duration-exit) var(--command-easing-exit),
-      display var(--command-duration-exit) allow-discrete,
-      overlay var(--command-duration-exit) allow-discrete;
+    animation: command-dialog-exit var(--command-duration-exit) var(--command-easing-exit) forwards;
+  }
+
+  @keyframes command-dialog-exit {
+    to {
+      opacity: 0;
+      scale: var(--command-scale-from);
+      translate: 0 4px;
+      --command-dialog-scale: var(--command-scale-from);
+      --command-dialog-translate: 4px;
+    }
   }
 
   /* ─── Smooth Scroll ─── */
