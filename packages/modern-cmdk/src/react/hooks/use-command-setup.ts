@@ -55,7 +55,8 @@ export interface UseCommandSetupReturn {
  * last value forwarded. `held` is the active item the cleanup takes from the machine when the root stops being
  * live; the setup, when the root is live again, sends its re-activation and leaves `held` set only while that
  * report is pending. The dedupe swallows the first `activeId` report that follows (the re-activation's, which the
- * consumer already has) without writing the memory. It is never a forwarded value.
+ * consumer already has) without writing the memory; the machine's first state change after the send ends the
+ * mark, so an ignored re-activation swallows nothing later. It is never a forwarded value.
  */
 interface Forwarded {
   search: string;
@@ -120,8 +121,7 @@ function createLiveOptions(
       }
       if (key === 'activeId' && fwd.held !== null) {
         // The pending re-activation's report is swallowed; any other report means the re-activation was ignored
-        // (its item is not registered), so the pending mark ends. A re-activation ignored with no report after it
-        // leaves the mark until the next report or cleanup, which swallows one later report of that same id.
+        // (its item is not registered), so the pending mark ends.
         const pending = fwd.held;
         fwd.held = null;
         if (value === pending) return;
@@ -236,21 +236,30 @@ export function useCommandSetup(
   // setup puts the held item back (an uncontrolled root: a controlled one mirrors its prop, which the registrations
   // restore) and keeps `fwd.held` set while that re-activation is pending, so the dedupe swallows its report and
   // leaves the memory alone: a show reports nothing, and a later activation of an item the consumer has not heard of is
-  // reported once. StrictMode's replay finds the held item still active, sends nothing and clears `fwd.held`.
+  // reported once. The re-activation's report comes inside its batch, before the machine's state change; the first
+  // state change after the send ends the mark, so a re-activation the machine ignored (the item is not registered)
+  // swallows no later report. A re-activation and an activation of the same re-added item in one batch are not told
+  // apart. StrictMode's replay finds the held item still active, sends nothing and clears `fwd.held`.
   useLayoutEffect(() => {
     machine.resume?.();
     fwd.live = true;
     const held = fwd.held;
     fwd.held = null;
+    let off: (() => void) | undefined;
     if (
       latest.current.activeId === undefined &&
       held !== null &&
       held !== machine.getState().activeId
     ) {
       fwd.held = held;
+      off = machine.subscribe(() => {
+        fwd.held = null;
+        off?.();
+      });
       machine.send({ type: 'ITEM_ACTIVATE', id: held });
     }
     return (): void => {
+      off?.();
       machine.suspend?.();
       fwd.live = false;
       fwd.held = machine.getState().activeId;
