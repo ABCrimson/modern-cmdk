@@ -126,7 +126,7 @@ export function CommandDialog({
     [controlledOpen, onOpenChange, machine],
   );
 
-  // The registry's root for shortcutScope 'root': the content div, set while it is mounted
+  // The registry's root for shortcutScope 'root': the inner root div, set while it is mounted
   const rootRef = useCallback(
     (root: HTMLDivElement): (() => void) => {
       machine.getKeyboardRegistry().setRoot(root);
