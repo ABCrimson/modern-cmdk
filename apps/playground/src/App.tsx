@@ -5,7 +5,7 @@
 // React 19: useTransition, useId
 // ES2025: Iterator Helpers
 
-import { useCallback, useEffect, useId, useState, useTransition } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, useTransition } from 'react';
 import { version as modernCmdkVersion } from '../../../packages/modern-cmdk/package.json' with {
   type: 'json',
 };
@@ -17,7 +17,7 @@ import { ErrorBoundaryDemo } from './demos/ErrorBoundaryDemo.js';
 import { HighContrastDemo } from './demos/HighContrastDemo.js';
 import { RTLDemo } from './demos/RTLDemo.js';
 import { VirtualizedDemo } from './demos/VirtualizedDemo.js';
-import { readTheme, type Theme } from './theme.js';
+import { readTheme, setTheme as storeTheme, type Theme } from './theme.js';
 
 type Route =
   | '/'
@@ -51,12 +51,10 @@ function ThemeToggle(): React.ReactNode {
   const [theme, setTheme] = useState<Theme>(readTheme);
 
   const toggleTheme = useCallback(() => {
-    setTheme((prev) => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = next;
-      return next;
-    });
-  }, []);
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    storeTheme(next);
+  }, [theme]);
 
   return (
     <button
@@ -75,6 +73,17 @@ export function App(): React.ReactNode {
   const [route, setRoute] = useState<Route>(getRouteFromPathname);
   const [isPending, startTransition] = useTransition();
   const navId = useId();
+  const mainRef = useRef<HTMLElement>(null);
+  const shownRoute = useRef(route);
+  const label = ROUTES.find((r) => r.path === route)?.label ?? 'Basic';
+
+  // Move focus to the demo panel after every route change, not on the first render. The ref holds
+  // the last shown route, so StrictMode's second effect run finds no change and does not focus.
+  useEffect(() => {
+    if (shownRoute.current === route) return;
+    shownRoute.current = route;
+    mainRef.current?.focus();
+  }, [route]);
 
   // Listen for popstate (back/forward navigation)
   useEffect(() => {
@@ -89,6 +98,7 @@ export function App(): React.ReactNode {
   }, []);
 
   const navigate = useCallback((path: Route) => {
+    if (globalThis.location.pathname === path) return;
     globalThis.history.pushState(null, '', path);
     startTransition(() => {
       setRoute(path);
@@ -98,22 +108,29 @@ export function App(): React.ReactNode {
   // ES2025: Iterator Helpers — .map().toArray() on readonly array iterator
   const navItems = ROUTES.values()
     .map((r) => (
-      <button
+      <a
         key={r.path}
-        type="button"
+        href={r.path}
         className={`nav-tab${route === r.path ? ' nav-tab--active' : ''}`}
-        onClick={() => navigate(r.path)}
+        onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+          // Only a plain primary click navigates in place; modified and middle clicks keep the
+          // browser's open-in-new-tab behaviour.
+          if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+          if (e.defaultPrevented) return;
+          e.preventDefault();
+          navigate(r.path);
+        }}
         aria-current={route === r.path ? 'page' : undefined}
-        aria-controls="demo-panel"
       >
         {r.label}
         {r.badge != null && <span className="demo-badge demo-badge--beta">{r.badge}</span>}
-      </button>
+      </a>
     ))
     .toArray();
 
   return (
     <div className="playground">
+      <title>{`${label} — modern-cmdk Playground`}</title>
       <header className="playground-header">
         <div className="playground-brand">
           <div className="playground-logo" aria-hidden="true">
@@ -136,6 +153,8 @@ export function App(): React.ReactNode {
       </header>
 
       <main
+        ref={mainRef}
+        tabIndex={-1}
         className="playground-main"
         id="demo-panel"
         aria-busy={isPending}

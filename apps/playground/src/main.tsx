@@ -3,13 +3,13 @@ import monoUrl from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-la
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.js';
-import { applyOsThemeDefault } from './theme.js';
+import { applyInitialTheme } from './theme.js';
 import './styles.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element — ensure index.html has <div id="root"></div>');
 
-applyOsThemeDefault();
+applyInitialTheme();
 
 if (location.pathname === '/bench') {
   // Browser bench page (benchmarks/browser/run.ts): loaded on demand so no other route ships it
