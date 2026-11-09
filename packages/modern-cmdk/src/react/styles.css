@@ -113,6 +113,7 @@
   }
 
   /* ─── Screen Reader Only (for Radix Title/Description) ─── */
+  /* Deprecated: the class is removed in 2.0. clip-path replaces the deprecated clip property. */
 
   .sr-only {
     position: absolute;
@@ -121,7 +122,7 @@
     padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border-width: 0;
   }
