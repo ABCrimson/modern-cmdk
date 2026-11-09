@@ -25,6 +25,13 @@ function isEditable(target: Partial<HTMLElement> | undefined): boolean {
   return !!(target?.isContentEditable || target?.matches?.('input,textarea,select'));
 }
 
+/** What the registry reads from its options: the constructor object, or the machine's own options */
+interface KeyboardShortcutOptions {
+  enabled?: boolean | undefined;
+  shortcutScope?: 'document' | 'root' | undefined;
+  shortcutsInEditable?: boolean | undefined;
+}
+
 /**
  * Manages keyboard shortcut bindings with global keydown listening.
  * Supports `using` for automatic cleanup of both individual bindings and the
@@ -42,20 +49,14 @@ export class KeyboardShortcutRegistry implements Disposable {
   #keysByItem = new Map<ItemId, Set<string>>();
   #globalListener: ((event: KeyboardEvent) => void) | null = null;
   #enabled: boolean;
-  #inRoot: boolean;
-  #inEditable: boolean;
+  #options: KeyboardShortcutOptions;
   #root: Element | null = null;
   #suspended = false;
   #disposed = false;
 
-  constructor(options?: {
-    enabled?: boolean | undefined;
-    shortcutScope?: 'document' | 'root' | undefined;
-    shortcutsInEditable?: boolean | undefined;
-  }) {
-    this.#enabled = options?.enabled ?? true;
-    this.#inRoot = options?.shortcutScope === 'root';
-    this.#inEditable = options?.shortcutsInEditable ?? true;
+  constructor(options: KeyboardShortcutOptions = {}) {
+    this.#options = options;
+    this.#enabled = options.enabled ?? true;
   }
 
   /** Sets the element a `'root'` scope bounds the bindings to (the React root sets it from its ref callback) */
@@ -153,9 +154,14 @@ export class KeyboardShortcutRegistry implements Disposable {
       const path = event.composedPath();
       // The path's first entry is the real target, also inside a shadow root (event.target is the host there)
       const target = path[0] as Partial<HTMLElement> | undefined;
-      if (!this.#inEditable && isEditable(target) && !target?.matches?.('[data-command-input]'))
+      if (
+        this.#options.shortcutsInEditable === false &&
+        isEditable(target) &&
+        !target?.matches?.('[data-command-input]')
+      )
         return;
-      if (this.#inRoot && !(this.#root && path.includes(this.#root))) return;
+      if (this.#options.shortcutScope === 'root' && !(this.#root && path.includes(this.#root)))
+        return;
 
       // The later binding of every key competes; a key match beats a code match (see pickMatch)
       const winners = [...this.#bindings.values()].map((stack) => stack.at(-1) as ShortcutBinding);
