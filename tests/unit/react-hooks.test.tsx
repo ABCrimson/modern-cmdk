@@ -41,7 +41,9 @@
 //                                    the server HTML'
 //                                RA-14 (the ARIA placement of an Empty shown at mount) is OPEN
 //                                for 1.8.0
-// IME Enter                      OPEN (RA-15, 1.8.0): no test until the fix lands
+// IME Enter                      ime-composition.test.tsx:
+//                                  'RA-15: the keydown handler ignores keys during IME
+//                                    composition' and the four 'IME:' titles
 // Prop changes after mount       react-lifecycle.test.tsx:
 //                                  'onSelect prop change fires the new callback'
 //                                  'a loop prop change after mount changes wrap-around'
