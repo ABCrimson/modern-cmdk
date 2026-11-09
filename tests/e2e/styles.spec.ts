@@ -333,6 +333,7 @@ test.describe('Stylesheet — bare page', { tag: '@styles' }, () => {
       body: `<div data-command-overlay data-state="open"></div>
         <div data-command-dialog data-state="open"><div data-command-dialog-content></div></div>`,
     });
+    await settleTransitions(page);
     expect(await computed(page, OVERLAY, 'backdrop-filter')).toBe('blur(4px)');
     expect(await computed(page, DIALOG_CONTENT, 'border-radius')).toBe('12px');
   });
