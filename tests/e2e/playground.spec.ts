@@ -243,7 +243,13 @@ test.describe('Dark Mode demo', () => {
 });
 
 test.describe('Virtualized demo', () => {
-  test('PG-27: count=Infinity and a huge count fall back to a bounded list', async ({ page }) => {
+  test('PG-27: count=Infinity and a huge count fall back to a bounded list', async ({
+    page,
+    browserName,
+  }) => {
+    // Firefox mounts the capped 100,000-item list in 4.7 s (Chromium 2.2 s; measured 2026-11-09,
+    // with the fixture's timeStamp stub), so the four opens can pass 15 s under load
+    test.slow(browserName === 'firefox', 'the capped 100,000-item mount is slow in Firefox');
     const badge = page.locator('.demo-title .demo-badge');
 
     await open(page, '/virtualization?count=Infinity');

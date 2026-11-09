@@ -14,11 +14,14 @@ import {
 interface Fixtures {
   /** Every request of the test's browser context whose origin differs from the baseURL origin. */
   offOriginRequests: string[];
+  /** Firefox only: stubs `console.timeStamp` in every page of the test's browser context. */
+  firefoxTimeStampStub: undefined;
 }
 
 /**
- * The e2e `test`: `@playwright/test` plus the auto fixture `offOriginRequests`, which fails every
+ * The e2e `test`: `@playwright/test` plus two auto fixtures. `offOriginRequests` fails every
  * test that makes a request outside the playground's origin (`data:` and `blob:` URLs are exempt).
+ * `firefoxTimeStampStub` replaces `console.timeStamp` with a no-op in Firefox.
  */
 export const test: TestType<
   PlaywrightTestArgs & PlaywrightTestOptions & Fixtures,
@@ -44,6 +47,25 @@ export const test: TestType<
       await use(offOrigin);
       context.off('request', onRequest);
       expect(offOrigin, `requests left the playground origin ${origin}:`).toEqual([]);
+    },
+    { auto: true },
+  ],
+  // React's development build calls console.timeStamp once per rendered component, and Firefox
+  // under Playwright runs it slowly (a 100,000-item mount in the virtualized demo takes 14.0 s
+  // against 4.7 s stubbed). It is a dev-build profiling cost, not the library under test. Firefox
+  // only, so Chromium and WebKit run unchanged. The guard goes the day the playground's e2e
+  // server runs a production build.
+  firefoxTimeStampStub: [
+    async (
+      { context, browserName }: { context: BrowserContext; browserName: string },
+      use: (stubbed: undefined) => Promise<void>,
+    ) => {
+      if (browserName === 'firefox') {
+        await context.addInitScript(() => {
+          console.timeStamp = (): void => {};
+        });
+      }
+      await use(undefined);
     },
     { auto: true },
   ],
