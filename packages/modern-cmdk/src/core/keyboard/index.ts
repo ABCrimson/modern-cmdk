@@ -157,8 +157,8 @@ export class KeyboardShortcutRegistry implements Disposable {
     this.#globalListener = (event: KeyboardEvent): void => {
       if (!this.#enabled || isImeComposition(event) || event.defaultPrevented) return;
       const path = event.composedPath();
-      // The path's first entry is the real target, also inside a shadow root (event.target is the
-      // host there)
+      // The path's first entry is the real target, also inside an open shadow root (event.target
+      // is the host there); a closed shadow root shows the listener its host
       const target = path[0] as HTMLElement;
       // A form field other than the palette's input, or a contenteditable element, is an editable
       // target
