@@ -12,7 +12,7 @@
 import type { CommandMachineOptions } from 'modern-cmdk';
 import { Dialog } from 'radix-ui';
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommandSetup } from './hooks/use-command-setup.js';
 import { handleRootKeyDown } from './hooks/use-keyboard.js';
@@ -102,6 +102,17 @@ export function CommandDialog({
   // trigger to restore focus to, so onCloseAutoFocus does it.
   const opener = useRef<HTMLElement | null>(null);
 
+  // Read in the layout phase of the commit that opens the dialog, while the opener still has focus:
+  // Radix's Presence mounts the content in the next commit. Radix's mount handler cannot record it:
+  // an `autoFocus` inside the content takes focus in React's layout phase, before the focus-scope's
+  // passive effect, which dispatches its mount event only when nothing inside the content has focus.
+  useLayoutEffect(() => {
+    if (!open) return;
+    let active = document.activeElement;
+    while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+    opener.current = active as HTMLElement | null;
+  }, [open]);
+
   // A controlled dialog's machine follows the prop. Each committed machine state is a dependency, so that a state the
   // prop did not ask for is put back after it is reported, also when another request lands in the put-back frame and
   // the batch ends where it began; sending the state the machine already has changes nothing.
@@ -112,14 +123,11 @@ export function CommandDialog({
     }
   }, [controlledOpen, state, machine]);
 
-  // Radix dispatches the mount event while the opener still has focus: record it, then focus the
+  // Radix's mount event, dispatched only while nothing inside the content has focus: focus the
   // command input instead of Radix's default. The lookup starts at the dialog content, so a portal
   // container inside a shadow root finds the input (document.getElementById does not pierce a shadow
   // root).
   const handleOpenAutoFocus = useCallback((e: Event): void => {
-    let active = document.activeElement;
-    while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
-    opener.current = active as HTMLElement | null;
     e.preventDefault();
     contentRef.current?.querySelector<HTMLElement>('[data-command-input]')?.focus();
   }, []);
