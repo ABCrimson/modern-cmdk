@@ -401,6 +401,10 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
 
     // Type a search query
     await input.pressSequentially('app', { delay: 50 });
+    await expect(page.locator('[data-command-item]').first()).toHaveAttribute(
+      'data-value',
+      'apple',
+    );
 
     // Navigate down
     await input.press('ArrowDown');
@@ -408,15 +412,13 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
     // Navigate back up
     await input.press('ArrowUp');
 
-    // Verify active item exists
+    // The first result is the active item again
     const activeItem = page.locator('[data-command-item][data-active]');
-    await expect(activeItem).toHaveCount(1);
+    await expect(activeItem).toHaveAttribute('data-value', 'apple');
 
     // Select with Enter
-    const activeValue = await activeItem.getAttribute('data-value');
-    expect(activeValue).toBeTruthy();
     await input.press('Enter');
-    await expect(page.getByTestId('last-selected')).toHaveText(activeValue as string);
+    await expect(page.getByTestId('last-selected')).toHaveText('apple');
   });
 
   test('should handle clear search then navigate', async ({ page }) => {
