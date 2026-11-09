@@ -18,10 +18,17 @@ export function DialogDemo(): React.ReactNode {
     });
   }, []);
 
-  // Ctrl+K / Cmd+K to open
+  // Ctrl+K / Cmd+K toggles; auto-repeat, Shift, Alt and IME composition do not
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      if (
+        e.key.toLowerCase() === 'k' &&
+        (e.metaKey || e.ctrlKey) &&
+        !e.shiftKey &&
+        !e.altKey &&
+        !e.repeat &&
+        !e.isComposing
+      ) {
         e.preventDefault();
         setOpen((prev) => !prev);
       }

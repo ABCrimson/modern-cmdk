@@ -14,6 +14,7 @@ export function DarkModeDemo(): React.ReactNode {
   const handleSelect = useCallback((value: string) => {
     if (value === 'light') setDark(false);
     if (value === 'dark') setDark(true);
+    if (value === 'system') setDark(globalThis.matchMedia('(prefers-color-scheme: dark)').matches);
   }, []);
 
   return (
@@ -22,8 +23,9 @@ export function DarkModeDemo(): React.ReactNode {
         Dark Mode
       </h2>
       <p className="demo-description">
-        Toggle between dark and light themes. The palette uses OKLCH color tokens that can be
-        swapped via CSS custom properties or a <code>data-theme</code> attribute.
+        Toggle between dark and light themes. The palette uses OKLCH color tokens, and the preview
+        below re-themes through its <code>data-theme-preview</code> attribute. "System Default"
+        follows the <code>prefers-color-scheme</code> media query.
       </p>
 
       <button
@@ -32,7 +34,7 @@ export function DarkModeDemo(): React.ReactNode {
         onClick={() => setDark(!dark)}
         aria-pressed={dark}
       >
-        {dark ? '\u263E Dark Mode' : '\u2600 Light Mode'}
+        <span aria-hidden="true">{dark ? '\u263E' : '\u2600'}</span> Dark mode
       </button>
 
       <div className="theme-preview" data-theme-preview={dark ? 'dark' : 'light'}>
@@ -58,7 +60,7 @@ export function DarkModeDemo(): React.ReactNode {
                   <span className="item-label">Dark Mode</span>
                 </span>
               </Command.Item>
-              <Command.Item value="system">
+              <Command.Item value="system" onSelect={() => handleSelect('system')}>
                 <span className="item-content">
                   <span className="item-icon" aria-hidden="true">
                     {'\uD83D\uDCBB'}

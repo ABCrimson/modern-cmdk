@@ -1,7 +1,7 @@
 'use client';
 
 // apps/playground/src/demos/RTLDemo.tsx
-// Right-to-left layout demo with Arabic content
+// Right-to-left layout demo with Arabic content, searchable in Arabic through item keywords
 // React 19: useId
 // All styles use CSS logical properties (inline/block)
 
@@ -22,66 +22,55 @@ export function RTLDemo(): React.ReactNode {
       </p>
 
       <div dir="rtl" lang="ar" className="rtl-container">
-        <Command
-          className="command-palette"
-          label="\u0644\u0648\u062D\u0629 \u0627\u0644\u0623\u0648\u0627\u0645\u0631"
-        >
-          <Command.Input placeholder="...\u0628\u062D\u062B" />
+        <Command className="command-palette" label="لوحة الأوامر">
+          <Command.Input placeholder="بحث…" />
           <Command.List>
-            <Command.Empty>
-              {'\u0644\u0627 \u062A\u0648\u062C\u062F \u0646\u062A\u0627\u0626\u062C'}
-            </Command.Empty>
+            <Command.Empty>لا توجد نتائج</Command.Empty>
 
-            <Command.Group heading="\u0623\u0648\u0627\u0645\u0631">
-              <Command.Item value="copy">
+            <Command.Group heading="أوامر">
+              <Command.Item value="copy" keywords={['نسخ']}>
                 <span className="item-content">
                   <span className="item-icon" aria-hidden="true">
-                    {'\uD83D\uDCCB'}
+                    📋
                   </span>
-                  <span className="item-label">{'\u0646\u0633\u062E'}</span>
+                  <span className="item-label">نسخ</span>
                 </span>
               </Command.Item>
-              <Command.Item value="paste">
+              <Command.Item value="paste" keywords={['لصق']}>
                 <span className="item-content">
                   <span className="item-icon" aria-hidden="true">
-                    {'\uD83D\uDCCB'}
+                    📋
                   </span>
-                  <span className="item-label">{'\u0644\u0635\u0642'}</span>
+                  <span className="item-label">لصق</span>
                 </span>
               </Command.Item>
-              <Command.Item value="cut">
+              <Command.Item value="cut" keywords={['قص']}>
                 <span className="item-content">
                   <span className="item-icon" aria-hidden="true">
-                    {'\u2702'}
+                    ✂
                   </span>
-                  <span className="item-label">{'\u0642\u0635'}</span>
+                  <span className="item-label">قص</span>
                 </span>
               </Command.Item>
             </Command.Group>
 
             <Command.Separator />
 
-            <Command.Group heading="\u062A\u0646\u0642\u0644">
-              <Command.Item value="home">
+            <Command.Group heading="تنقل">
+              <Command.Item value="home" keywords={['الصفحة الرئيسية']}>
                 <span className="item-content">
                   <span className="item-icon" aria-hidden="true">
-                    {'\uD83C\uDFE0'}
+                    🏠
                   </span>
-                  <span className="item-label">
-                    {
-                      '\u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629'
-                    }
-                  </span>
+                  <span className="item-label">الصفحة الرئيسية</span>
                 </span>
               </Command.Item>
-              <Command.Item value="settings">
+              <Command.Item value="settings" keywords={['الاعدادات']}>
                 <span className="item-content">
                   <span className="item-icon" aria-hidden="true">
-                    {'\u2699'}
+                    ⚙
                   </span>
-                  <span className="item-label">
-                    {'\u0627\u0644\u0627\u0639\u062F\u0627\u062F\u0627\u062A'}
-                  </span>
+                  <span className="item-label">الاعدادات</span>
                 </span>
               </Command.Item>
             </Command.Group>

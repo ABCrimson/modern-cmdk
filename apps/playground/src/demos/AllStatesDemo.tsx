@@ -36,7 +36,7 @@ export function AllStatesDemo(): React.ReactNode {
           <Command className="command-palette" label="Loading demo">
             <Command.Input placeholder="Search..." />
             <Command.List>
-              <Command.Loading>Searching...</Command.Loading>
+              <Command.Loading loading>Searching...</Command.Loading>
             </Command.List>
           </Command>
         </section>

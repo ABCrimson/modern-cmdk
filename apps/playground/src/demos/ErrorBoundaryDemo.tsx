@@ -13,6 +13,8 @@ function BrokenItem(): React.ReactNode {
 
 export function ErrorBoundaryDemo(): React.ReactNode {
   const [showBroken, setShowBroken] = useState(false);
+  // Reset bumps this key so the boundary drops its caught error and renders its children again
+  const [resetCount, setResetCount] = useState(0);
   const headingId = useId();
 
   return (
@@ -28,13 +30,16 @@ export function ErrorBoundaryDemo(): React.ReactNode {
       <button
         type="button"
         className="trigger-button"
-        onClick={() => setShowBroken(!showBroken)}
-        aria-pressed={showBroken}
+        onClick={() => {
+          if (showBroken) setResetCount((count) => count + 1);
+          setShowBroken(!showBroken);
+        }}
       >
         {showBroken ? 'Reset' : 'Trigger Error'}
       </button>
 
       <CommandErrorBoundary
+        resetKeys={[resetCount]}
         fallback={(error) => (
           <div className="error-fallback" role="alert">
             <strong>Command Palette Error</strong>

@@ -2,11 +2,11 @@
 
 // apps/playground/src/demos/VirtualizedDemo.tsx
 // 10K items for virtualization testing
-// React 19: useId, useCallback, useMemo
+// React 19: useId, useMemo
 // ES2025: Iterator Helpers for item rendering
 
 import { Command } from 'modern-cmdk/react';
-import { useCallback, useId, useMemo } from 'react';
+import { useId, useMemo, useState } from 'react';
 
 /** Word pool for generating varied item values */
 const WORDS = [
@@ -34,15 +34,22 @@ const ICONS = ['\u2726', '\u25C6', '\u25CF', '\u25B2', '\u2605'] as const;
 /** Default item count — configurable via ?count= URL param for CI/testing */
 const DEFAULT_ITEM_COUNT = 10_000;
 
+/** Upper bound for ?count= so a huge value cannot hang the tab */
+const MAX_ITEM_COUNT = 100_000;
+
+/** ?count= when it is a positive safe integer (capped at MAX_ITEM_COUNT), else the default */
 function getItemCount(): number {
   const params = new URLSearchParams(globalThis.location?.search ?? '');
-  const count = Number(params.get('count'));
-  return count > 0 ? count : DEFAULT_ITEM_COUNT;
+  const count = Number.parseInt(params.get('count') ?? '', 10);
+  return Number.isSafeInteger(count) && count > 0
+    ? Math.min(count, MAX_ITEM_COUNT)
+    : DEFAULT_ITEM_COUNT;
 }
 
 export function VirtualizedDemo(): React.ReactNode {
   const headingId = useId();
   const itemCount = useMemo(getItemCount, []);
+  const [lastSelected, setLastSelected] = useState('');
 
   // Generate items using Array.from
   const items = useMemo(
@@ -61,10 +68,6 @@ export function VirtualizedDemo(): React.ReactNode {
     [itemCount],
   );
 
-  const handleSelect = useCallback((_value: string) => {
-    // Selection handler
-  }, []);
-
   // Memoize 10K rendered items — avoids 10K JSX allocations on every render
   const renderedItems = useMemo(
     () =>
@@ -75,7 +78,7 @@ export function VirtualizedDemo(): React.ReactNode {
             key={item.id}
             value={item.value}
             id={item.id}
-            onSelect={() => handleSelect(item.value)}
+            onSelect={() => setLastSelected(item.value)}
           >
             <span className="item-content">
               <span className="item-icon" aria-hidden="true">
@@ -86,7 +89,7 @@ export function VirtualizedDemo(): React.ReactNode {
           </Command.Item>
         ))
         .toArray(),
-    [items, handleSelect],
+    [items],
   );
 
   return (
@@ -112,6 +115,10 @@ export function VirtualizedDemo(): React.ReactNode {
           {renderedItems}
         </Command.List>
       </Command>
+
+      <p>
+        Last selected: <output data-testid="last-selected">{lastSelected}</output>
+      </p>
     </div>
   );
 }
