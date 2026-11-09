@@ -5,8 +5,9 @@
 
 import type { CommandMachine } from 'modern-cmdk';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
-import type { ReactNode } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { act, use } from 'react';
+import { createPortal } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -186,11 +187,14 @@ describe('keymap', () => {
   });
 });
 
-/** The keyboardScope prop, reached through a cast until the prop exists on the root. */
-const COMBOBOX = { keyboardScope: 'combobox' } as object;
+/** The keyboardScope prop of the root. */
+const COMBOBOX = { keyboardScope: 'combobox' } as const;
 
 /** An inline palette with a button next to the input; `props` reach the root. */
-function buttonPalette(onSelect: (id: string) => void, props: object = {}): ReactNode {
+function buttonPalette(
+  onSelect: (id: string) => void,
+  props: { readonly keyboardScope?: 'root' | 'combobox' } = {},
+): ReactNode {
   return (
     <Command {...props}>
       <Command.Input />
@@ -199,7 +203,7 @@ function buttonPalette(onSelect: (id: string) => void, props: object = {}): Reac
       </button>
       <Command.List>
         {['a', 'b', 'c'].map((id) => (
-          <Command.Item key={id} value={id} forceId={id} onSelect={() => onSelect(id)}>
+          <Command.Item key={id} value={id} forceId={id} onSelect={(): void => onSelect(id)}>
             {id}
           </Command.Item>
         ))}
@@ -207,6 +211,8 @@ function buttonPalette(onSelect: (id: string) => void, props: object = {}): Reac
     </Command>
   );
 }
+
+const stopKey = (event: ReactKeyboardEvent<HTMLDivElement>): void => event.stopPropagation();
 
 const nestedButton = (): HTMLButtonElement => {
   const button = container?.querySelector<HTMLButtonElement>('#nested');
@@ -261,11 +267,223 @@ describe('keymap scope and attachment', () => {
   it('RA-57: a React ancestor that stops the keydown propagation does not silence the palette', async () => {
     await mount(
       // biome-ignore lint/a11y/noStaticElementInteractions: a stand-in for a consumer ancestor
-      <div onKeyDown={(event): void => event.stopPropagation()}>{palette(vi.fn())}</div>,
+      <div onKeyDown={stopKey}>{palette(vi.fn())}</div>,
     );
     expect(activeItem()).toBe('a');
     const event = await press(inputOf(), 'ArrowDown');
     expect(event.defaultPrevented).toBe(true);
     expect(activeItem()).toBe('b');
+  });
+});
+
+describe('keymap composition and scope', () => {
+  it('C3: a consumer onKeyDown on the root runs first, and a key it default-prevents is left alone', async () => {
+    const calls: string[] = [];
+    let block = false;
+    const onSelect = vi.fn();
+    await mount(
+      <Command
+        onKeyDown={(event: ReactKeyboardEvent<HTMLDivElement>): void => {
+          calls.push(`consumer:${event.key}`);
+          if (block) event.preventDefault();
+        }}
+        onActiveChange={(id: string | null): void => {
+          calls.push(`active:${id}`);
+        }}
+      >
+        <Command.Input />
+        <Command.List>
+          {['a', 'b', 'c'].map((id) => (
+            <Command.Item key={id} value={id} forceId={id} onSelect={(): void => onSelect(id)}>
+              {id}
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command>,
+    );
+    const input = inputOf();
+    input.focus();
+
+    const event = await press(input, 'ArrowDown');
+    expect(event.defaultPrevented).toBe(true);
+    expect(calls.filter((call) => call !== 'active:a')).toEqual(['consumer:ArrowDown', 'active:b']);
+
+    block = true;
+    calls.length = 0;
+    for (const key of ['ArrowDown', 'End', 'Enter']) {
+      await press(input, key);
+    }
+    expect(calls).toEqual(['consumer:ArrowDown', 'consumer:End', 'consumer:Enter']);
+    expect(activeItem()).toBe('b');
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('C3: a key from a portaled descendant outside the root DOM does not drive the palette', async () => {
+    const onSelect = vi.fn();
+    await mount(
+      <Command>
+        <Command.Input />
+        <Command.List>
+          {['a', 'b', 'c'].map((id) => (
+            <Command.Item key={id} value={id} forceId={id} onSelect={(): void => onSelect(id)}>
+              {id}
+              {id === 'a' ? createPortal(<input id="portaled" />, document.body) : null}
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command>,
+    );
+    await press(inputOf(), 'ArrowDown');
+    expect(activeItem()).toBe('b');
+    const portaled = document.getElementById('portaled');
+    if (!portaled) throw new Error('no portaled input rendered');
+    expect(container?.contains(portaled)).toBe(false);
+
+    for (const key of ['ArrowDown', 'Home', 'Enter']) {
+      const event = await press(portaled, key);
+      expect(event.defaultPrevented, key).toBe(false);
+      expect(activeItem(), key).toBe('b');
+    }
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('RA-57: a palette rendered inside a shadow root handles its keys', async () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const inner = document.createElement('div');
+    host.attachShadow({ mode: 'open' }).appendChild(inner);
+    const shadowRoot = createRoot(inner);
+    try {
+      await act(async () => {
+        shadowRoot.render(palette(vi.fn()));
+      });
+      await settle();
+      const input = inner.querySelector<HTMLInputElement>('[data-command-input]');
+      if (!input) throw new Error('no command input rendered');
+      const event = await press(input, 'ArrowDown', { composed: true });
+      expect(event.defaultPrevented).toBe(true);
+      expect(inner.querySelector('[data-command-item][data-active]')?.id).toBe('b');
+    } finally {
+      await act(async () => {
+        shadowRoot.unmount();
+      });
+      host.remove();
+    }
+  });
+});
+
+describe('keymap coverage (CMD-4)', () => {
+  it('CMD-4: Home and End move to the first and last item', async () => {
+    await mount(palette(vi.fn()));
+    const input = inputOf();
+    input.focus();
+    await press(input, 'ArrowDown');
+    expect(activeItem()).toBe('b');
+    await press(input, 'End');
+    expect(activeItem()).toBe('c');
+    await press(input, 'Home');
+    expect(activeItem()).toBe('a');
+  });
+
+  it('CMD-4: loop false stops at both ends', async () => {
+    await mount(
+      <Command loop={false}>
+        <Command.Input />
+        <Command.List>
+          {['a', 'b', 'c'].map((id) => (
+            <Command.Item key={id} value={id} forceId={id}>
+              {id}
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command>,
+    );
+    const input = inputOf();
+    input.focus();
+    await press(input, 'ArrowUp');
+    expect(activeItem()).toBe('a');
+    await press(input, 'End');
+    await press(input, 'ArrowDown');
+    expect(activeItem()).toBe('c');
+  });
+
+  it('CMD-4: Backspace on an empty query pops a pushed page', async () => {
+    const probe = new MachineProbe();
+    await mount(palette(vi.fn(), probe));
+    const input = inputOf();
+    input.focus();
+    probe.current.send({ type: 'PAGE_PUSH', page: 'sub' });
+    await settle();
+    expect(probe.current.getState().pageStack).toEqual(['root']);
+    const event = await press(input, 'Backspace');
+    expect(event.defaultPrevented).toBe(true);
+    expect(probe.current.getState().pageStack).toEqual([]);
+  });
+
+  it('CMD-4: an item shortcut selects its item', async () => {
+    const onSelect = vi.fn();
+    await mount(
+      <Command>
+        <Command.Input />
+        <Command.List>
+          <Command.Item value="a" forceId="a" onSelect={(): void => onSelect('a')}>
+            a
+          </Command.Item>
+          <Command.Item
+            value="b"
+            forceId="b"
+            shortcut="Ctrl+J"
+            onSelect={(): void => onSelect('b')}
+          >
+            b
+          </Command.Item>
+        </Command.List>
+      </Command>,
+    );
+    const input = inputOf();
+    input.focus();
+    await press(input, 'j', { ctrlKey: true, keyCode: 74 });
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith('b');
+  });
+
+  it('CMD-4: onSearchChange and onActiveChange report typing and ArrowDown', async () => {
+    const onSearchChange = vi.fn();
+    const onActiveChange = vi.fn();
+    await mount(
+      <Command onSearchChange={onSearchChange} onActiveChange={onActiveChange}>
+        <Command.Input />
+        <Command.List>
+          {['a', 'b', 'c'].map((id) => (
+            <Command.Item key={id} value={id} forceId={id}>
+              {id}
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command>,
+    );
+    const input = inputOf();
+    input.focus();
+    await press(input, 'ArrowDown');
+    expect(onActiveChange).toHaveBeenLastCalledWith('b');
+
+    await act(async () => {
+      const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+      setValue?.call(input, 'c');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await settle();
+    expect(onSearchChange).toHaveBeenLastCalledWith('c');
+  });
+
+  it('CMD-4: moving the pointer over an item activates it', async () => {
+    await mount(palette(vi.fn()));
+    expect(activeItem()).toBe('a');
+    const item = container?.querySelector('#c');
+    if (!item) throw new Error('no item c rendered');
+    await act(async () => {
+      item.dispatchEvent(new MouseEvent('pointermove', { bubbles: true }));
+    });
+    await settle();
+    expect(activeItem()).toBe('c');
   });
 });
