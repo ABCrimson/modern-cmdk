@@ -252,10 +252,10 @@ export interface CommandMachineOptions {
   readonly shortcutAction?: 'select' | 'direct' | undefined;
   /**
    * Where item shortcuts fire. `'document'` (the default) listens to every keydown of the document;
-   * `'root'` fires a shortcut only for a keydown whose event path includes the `<Command>` root
-   * element. Under `'root'` nothing fires until a root element is set: `<Command>` sets its own,
-   * and `getKeyboardRegistry().setRoot(element)` sets one on a machine made by
-   * `createCommandMachine`.
+   * `'root'` fires a shortcut only for a keydown whose event path includes the palette's root
+   * element. Under `'root'` nothing fires until a root element is set: `<Command>` and
+   * `Command.Dialog` set their own, and `getKeyboardRegistry().setRoot(element)` sets one on a
+   * machine made by `createCommandMachine`.
    */
   readonly shortcutScope?: 'document' | 'root' | undefined;
   /**

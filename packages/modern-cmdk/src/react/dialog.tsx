@@ -126,6 +126,15 @@ export function CommandDialog({
     [controlledOpen, onOpenChange, machine],
   );
 
+  // The registry's root for shortcutScope 'root': the content div, set while it is mounted
+  const rootRef = useCallback(
+    (root: HTMLDivElement): (() => void) => {
+      machine.getKeyboardRegistry().setRoot(root);
+      return (): void => machine.getKeyboardRegistry().setRoot(null);
+    },
+    [machine],
+  );
+
   return (
     <Dialog.Root open={open} onOpenChange={handleRadixOpenChange}>
       <Dialog.Portal container={container}>
@@ -149,7 +158,7 @@ export function CommandDialog({
           <CommandStableContext value={stableContextValue}>
             <CommandStateContext value={stateContextValue}>
               <div data-command-dialog-content="" className={contentClassName}>
-                <div data-command-root="" role="search" aria-label={label}>
+                <div data-command-root="" ref={rootRef} role="search" aria-label={label}>
                   {children}
                 </div>
               </div>
