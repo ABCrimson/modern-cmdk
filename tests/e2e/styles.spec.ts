@@ -53,6 +53,8 @@ interface ExitRecord {
   dialogAnimations: string[];
   /** Names of the running CSSAnimations of the overlay node when the dialog first reads closed. */
   overlayAnimations: string[];
+  /** The alpha of the overlay's computed background-color when the dialog first reads closed. */
+  overlayAlpha: number | null;
 }
 
 declare global {
@@ -134,6 +136,22 @@ async function observeExit(page: Page): Promise<void> {
       removedAt: null,
       dialogAnimations: [],
       overlayAnimations: [],
+      overlayAlpha: null,
+    };
+    /** The alpha of a computed colour: oklch(l c h / a), rgb(a)(r, g, b, a) or color(space … / a). */
+    const alphaOf = (color: string): number => {
+      const slash = /\/\s*(\d+(?:\.\d+)?)(%?)\s*\)$/.exec(color);
+      if (slash?.[1] !== undefined) {
+        return Number.parseFloat(slash[1]) / (slash[2] === '%' ? 100 : 1);
+      }
+      if (/^(?:oklch|oklab|lab|lch|hsl|hwb|color)\(/.test(color)) return 1;
+      const legacy = /^rgba?\(([^)]*)\)$/.exec(color);
+      if (legacy?.[1] !== undefined) {
+        const parts = legacy[1].split(',');
+        if (parts.length === 3) return 1;
+        if (parts.length === 4) return Number.parseFloat(parts[3] ?? '');
+      }
+      throw new Error(`unknown colour form: ${color}`);
     };
     const cssAnimationNames = (node: Element): string[] =>
       node
@@ -153,6 +171,7 @@ async function observeExit(page: Page): Promise<void> {
         record.closedAt = now;
         record.dialogAnimations = cssAnimationNames(dialog);
         record.overlayAnimations = cssAnimationNames(overlay);
+        record.overlayAlpha = alphaOf(getComputedStyle(overlay).backgroundColor);
       }
       if (record.removedAt === null && !dialog.isConnected) record.removedAt = now;
     });
@@ -286,10 +305,21 @@ test.describe('Stylesheet — the dialog exit', { tag: ['@styles', '@dialog'] },
   });
 
   test('RA-11: Command.Dialog plays its exit animation before unmounting', async ({ page }) => {
-    await openDialog(page);
+    // The playground paints its overlay with its own fixed .command-overlay background (alpha
+    // 0.55) in a later layer, which hides the library tint; this rule is the library's own
+    // overlay background, unlayered, so the alpha follows --command-overlay-opacity again
+    await openDialog(
+      page,
+      '.command-overlay { background: oklch(0 0 0 / var(--command-overlay-opacity, 0.4)); }',
+    );
     const record = await closeAndRecord(page);
     expect(record.dialogAnimations, 'CSSAnimations of the closed dialog').not.toEqual([]);
     expect(record.overlayAnimations, 'CSSAnimations of the closed overlay').not.toEqual([]);
+    // The tint is 0.4 when the exit starts and fades from there, so it does not snap off at close
+    expect(
+      record.overlayAlpha,
+      'overlay background alpha when it first reads closed',
+    ).toBeGreaterThan(0.3);
   });
 });
 
