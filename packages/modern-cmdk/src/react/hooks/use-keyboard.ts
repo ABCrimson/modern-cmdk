@@ -113,15 +113,14 @@ export function handleRootKeyDown(
   const { currentTarget, nativeEvent } = event;
   const target = event.target as Element;
   if (!currentTarget.contains(target)) return;
-  const isInput = target.matches(INPUT);
-  if (keyboardScope === 'combobox' && !isInput) return;
+  if (keyboardScope === 'combobox' && !target.matches(INPUT)) return;
   handleKeyDown(nativeEvent);
   if (
     dev &&
     process.env.NODE_ENV !== 'production' &&
     keyboardScope !== 'combobox' &&
     nativeEvent.defaultPrevented &&
-    !isInput &&
+    !target.matches(INPUT) &&
     target.matches(INTERACTIVE) &&
     !warned.has(currentTarget)
   ) {

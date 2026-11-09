@@ -12,7 +12,7 @@
 import type { CommandMachineOptions } from 'modern-cmdk';
 import { Dialog } from 'radix-ui';
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommandSetup } from './hooks/use-command-setup.js';
 import { handleRootKeyDown } from './hooks/use-keyboard.js';
@@ -99,15 +99,8 @@ export function CommandDialog({
   const contentRef = useRef<HTMLDivElement>(null);
 
   // The element that had focus when the dialog opened, found through open shadow roots. Radix has no
-  // trigger to restore focus to, so onCloseAutoFocus does it. FocusScope's container is state, so its
-  // own autofocus runs in a later commit and this layout effect still sees the opener.
+  // trigger to restore focus to, so onCloseAutoFocus does it.
   const opener = useRef<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    if (!open) return;
-    let active = document.activeElement;
-    while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
-    opener.current = active as HTMLElement | null;
-  }, [open]);
 
   // A controlled dialog's machine follows the prop. Each committed machine state is a dependency, so that a state the
   // prop did not ask for is put back after it is reported, also when another request lands in the put-back frame and
@@ -119,9 +112,14 @@ export function CommandDialog({
     }
   }, [controlledOpen, state, machine]);
 
-  // Prevent Radix default focus — auto-focus the command input instead. The lookup starts at the dialog content, so
-  // a portal container inside a shadow root finds the input (document.getElementById does not pierce a shadow root).
+  // Radix dispatches the mount event while the opener still has focus: record it, then focus the
+  // command input instead of Radix's default. The lookup starts at the dialog content, so a portal
+  // container inside a shadow root finds the input (document.getElementById does not pierce a shadow
+  // root).
   const handleOpenAutoFocus = useCallback((e: Event): void => {
+    let active = document.activeElement;
+    while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+    opener.current = active as HTMLElement | null;
     e.preventDefault();
     contentRef.current?.querySelector<HTMLElement>('[data-command-input]')?.focus();
   }, []);
