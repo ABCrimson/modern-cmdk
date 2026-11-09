@@ -67,19 +67,15 @@ export function matchesShortcut(event: KeyboardEvent, shortcut: ParsedShortcut):
  */
 export function pickMatch<T>(
   event: KeyboardEvent,
-  candidates: Iterable<T>,
+  candidates: readonly T[],
   shortcutOf: (candidate: T) => ParsedShortcut,
 ): T | undefined {
-  let viaCode: T | undefined;
-  for (const candidate of candidates) {
-    const r = rank(event, shortcutOf(candidate));
-    if (r === 2) return candidate;
-    if (r === 1) viaCode ??= candidate;
-  }
-  return viaCode;
+  const first = (want: 1 | 2): T | undefined =>
+    candidates.values().find((candidate) => rank(event, shortcutOf(candidate)) === want);
+  return first(2) ?? first(1);
 }
 
-/** Match a KeyboardEvent against a list of shortcuts: a `event.key` match first, then a `event.code` match */
+/** Match a KeyboardEvent against a list of shortcuts: the `event.key` matches first, then the `event.code` ones */
 export function findMatchingShortcut(
   event: KeyboardEvent,
   shortcuts: readonly ParsedShortcut[],

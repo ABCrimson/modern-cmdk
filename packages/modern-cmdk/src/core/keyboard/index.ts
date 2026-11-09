@@ -158,7 +158,10 @@ export class KeyboardShortcutRegistry implements Disposable {
       if (this.#inRoot && !(this.#root && path.includes(this.#root))) return;
 
       // The later binding of every key competes; a key match beats a code match (see pickMatch)
-      const stacks = this.#bindings.values().map((stack) => stack.at(-1) as ShortcutBinding);
+      const stacks = this.#bindings
+        .values()
+        .map((stack) => stack.at(-1) as ShortcutBinding)
+        .toArray();
       const binding = pickMatch(event, stacks, (b) => b.shortcut);
       if (binding) {
         event.preventDefault();
