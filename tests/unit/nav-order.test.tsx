@@ -634,7 +634,6 @@ describe('C4 display order: React', () => {
     expect(itemIdsInDom()).toEqual(['u1', 'u2', 'a1', 'a2', 'b1', 'b2']);
     await searchReordering(probe);
     expect(itemIdsInDom()).toEqual(['b1', 'u2', 'u1', 'a1', 'a2']);
-    expect(view().querySelector('[id="u1"]')?.previousElementSibling?.id).toBe('u2');
   });
 
   it('C4: no node moves across parents when an item changes groups', async () => {

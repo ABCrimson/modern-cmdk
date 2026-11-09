@@ -13,8 +13,9 @@ export interface CommandGroupProps extends ComponentPropsWithRef<'div'> {
   /** Heading text displayed above the group */
   readonly heading?: string | undefined;
   /**
-   * Orders the keys of `CommandState.groupedIds` (lower first). React renders the groups in the JSX order
-   * of the group elements, not by this number.
+   * Orders the keys of `CommandState.groupedIds` (lower first; ties by first appearance). The list renders the
+   * groups in that order, not in the JSX order of the group elements, so a group with a lower number is shown
+   * first and a group that mounts after its siblings can still lead.
    */
   readonly priority?: number | undefined;
   /** The registration id, also the id of the group element; the registration id defaults to a `useId` id. Wins over the deprecated `forceId`. */
