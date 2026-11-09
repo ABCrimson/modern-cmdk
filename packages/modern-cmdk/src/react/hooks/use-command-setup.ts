@@ -49,13 +49,14 @@ export interface UseCommandSetupReturn {
 }
 
 /**
- * What the deduped callbacks remember: the last value each forwarded to the consumer, whether the root is live
- * (its layout effect is set up: mounted and not hidden by an `<Activity>`), and the search queries the caller owns
- * that the machine has not processed yet, oldest first. The dedupe memory (`search`, `activeId`, `open`) stays the
- * last value forwarded. `held` is the active item the cleanup takes from the machine when the root stops being
- * live; the setup, when the root is live again, sends its re-activation and leaves `held` set only while that
- * report is pending. The dedupe swallows the first `activeId` report that follows (the re-activation's, which the
- * consumer already has) without writing the memory; the machine's first state change after the send ends the
+ * What the deduped callbacks remember: the last value each forwarded to the consumer, whether the
+ * root is live (its layout effect is set up: mounted and not hidden by an `<Activity>`), and the
+ * search queries the caller owns that the machine has not processed yet, oldest first. The dedupe
+ * memory (`search`, `activeId`, `open`) stays the last value forwarded. `held` is the active item
+ * the cleanup takes from the machine when the root stops being live; the setup, when the root is
+ * live again, sends its re-activation and leaves `held` set only while that report is pending. The
+ * dedupe swallows the first `activeId` report that follows (the re-activation's, which the consumer
+ * already has) without writing the memory; the machine's first state change after the send ends the
  * mark, so an ignored re-activation swallows nothing later. It is never a forwarded value.
  */
 interface Forwarded {
@@ -228,18 +229,20 @@ export function useCommandSetup(
   const listId = `${id}-list`;
   const inputId = `${id}-input`;
 
-  // Resume in the layout-effect setup, suspend in its cleanup: the layout phase runs before paint, so
-  // StrictMode's synchronous replay and an Activity show re-arm the machine before a key can reach it. The
-  // cleanup suspends first (that flushes the pending batch while the root is still live, so the consumer hears
-  // it), then stops forwarding and holds the machine's active item in `fwd.held`; the dedupe memory stays the last
-  // value forwarded. A hide unmounts the items, which empties the registry and drops the machine's active item; the
-  // setup puts the held item back (an uncontrolled root: a controlled one mirrors its prop, which the registrations
-  // restore) and keeps `fwd.held` set while that re-activation is pending, so the dedupe swallows its report and
-  // leaves the memory alone: a show reports nothing, and a later activation of an item the consumer has not heard of is
-  // reported once. The re-activation's report comes inside its batch, before the machine's state change; the first
-  // state change after the send ends the mark, so a re-activation the machine ignored (the item is not registered)
-  // swallows no later report. A re-activation and an activation of the same re-added item in one batch are not told
-  // apart. StrictMode's replay finds the held item still active, sends nothing and clears `fwd.held`.
+  // Resume in the layout-effect setup, suspend in its cleanup: the layout phase runs before paint,
+  // so StrictMode's synchronous replay and an Activity show re-arm the machine before a key can
+  // reach it. The cleanup suspends first (that flushes the pending batch while the root is still
+  // live, so the consumer hears it), then stops forwarding and holds the machine's active item in
+  // `fwd.held`; the dedupe memory stays the last value forwarded. A hide unmounts the items, which
+  // empties the registry and drops the machine's active item; the setup puts the held item back (an
+  // uncontrolled root: a controlled one mirrors its prop, which the registrations restore) and
+  // keeps `fwd.held` set while that re-activation is pending, so the dedupe swallows its report and
+  // leaves the memory alone: a show reports nothing, and a later activation of an item the consumer
+  // has not heard of is reported once. The re-activation's report comes inside its batch, before
+  // the machine's state change; the first state change after the send ends the mark, so a
+  // re-activation the machine ignored (the item is not registered) swallows no later report. A
+  // re-activation and an activation of the same re-added item in one batch are not told apart.
+  // StrictMode's replay finds the held item still active, sends nothing and clears `fwd.held`.
   useLayoutEffect(() => {
     machine.resume?.();
     fwd.live = true;

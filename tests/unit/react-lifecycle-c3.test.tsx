@@ -1,6 +1,6 @@
 // tests/unit/react-lifecycle-c3.test.tsx
-// Cluster C3 additions to the <Command> root's lifecycle: the Activity re-activation that is pending
-// when the held item is no longer registered (RA-79).
+// Cluster C3 additions to the <Command> root's lifecycle: the Activity re-activation that is
+// pending when the held item is no longer registered (RA-79).
 
 import type { CommandMachine, ItemId } from 'modern-cmdk';
 import { itemId } from 'modern-cmdk';
