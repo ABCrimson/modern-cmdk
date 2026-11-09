@@ -1381,8 +1381,8 @@
   },
   {
     "id": "T22",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/keyboard.spec.ts::T22: the keyboard and basic specs assert their item count instead of returning early",
+    "status": "covered"
   },
   {
     "id": "T26",
@@ -1451,8 +1451,8 @@
   },
   {
     "id": "TEB-17",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/virtualization.spec.ts::TEB-17: virtualization scroll positions are read with expect.poll",
+    "status": "covered"
   },
   {
     "id": "PG-27",
