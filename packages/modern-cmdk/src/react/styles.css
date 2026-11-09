@@ -1,5 +1,12 @@
-/* modern-cmdk/react — tokens, item and list transitions, dialog and overlay enter transitions and exit keyframe animations */
-/* Also: scroll-driven animations (gated by @supports), WCAG 2.1 AA forced-colors, prefers-contrast and prefers-reduced-motion, logical properties for RTL/LTR, nesting, @layer, oklch(), container queries */
+/* modern-cmdk/react — tokens, item and list transitions, dialog and overlay enter transitions and
+   exit keyframe animations.
+   Compositor-only: the dialog and overlay opacity, scale and translate, the scroll indicator's
+   scale, the fade edges' opacity. Not compositor-only: the list height, the item
+   background-color, the overlay tint (it runs through --command-overlay-opacity). */
+/* Also: scroll-driven animations (gated by @supports), WCAG 2.1 AA forced-colors, prefers-contrast
+   and prefers-reduced-motion, logical properties for RTL/LTR (:dir(rtl) covers the two physical
+   cases: the scroll indicator's transform-origin and the page-enter slide), nesting, @layer,
+   oklch(), container queries */
 /* Secondary text (group headings, shortcuts, empty state, placeholder) is coloured with
    --command-muted-color, never faded with opacity: opacity stacks on the consumer's text
    colour and cannot be checked against it. The default is light-dark(), so it follows the
@@ -189,7 +196,6 @@
   [data-command-list] {
     overflow-y: auto;
     overscroll-behavior: contain;
-    will-change: height;
     transition: height var(--command-duration-list) var(--command-spring-easing);
     scrollbar-gutter: stable;
     scrollbar-width: thin;
@@ -208,7 +214,7 @@
     cursor: pointer;
     -webkit-user-select: none;
     user-select: none;
-    transition: background-color var(--command-duration-item) linear(0, 0.25, 0.5, 0.75, 1);
+    transition: background-color var(--command-duration-item) linear;
     scroll-margin-block: 8px;
     content-visibility: auto;
     contain-intrinsic-size: auto var(--command-item-height);
@@ -400,15 +406,20 @@
       transition: opacity var(--command-duration-exit) ease-out;
     }
 
+    /* The negative margins cancel the edges' block size, so they overlay the content and take no
+       scroll space */
+
     /* Top fade — visible when scrolled down */
     &::before {
       inset-block-start: 0;
+      margin-block-end: calc(-1 * var(--command-fade-edge-size));
       background: linear-gradient(to bottom, currentColor, transparent);
     }
 
     /* Bottom fade — visible when not scrolled to bottom */
     &::after {
       inset-block-end: 0;
+      margin-block-start: calc(-1 * var(--command-fade-edge-size));
       background: linear-gradient(to top, currentColor, transparent);
     }
   }
