@@ -10,7 +10,8 @@ const SITE_SUFFIX = 'modern-cmdk Playground';
 /** Rasterises a computed CSS colour (possibly `oklch()`) and returns its sRGB channels. */
 async function rasterise(page: Page, cssColor: string): Promise<[number, number, number]> {
   const rgb = await page.evaluate((color) => {
-    const ctx = new OffscreenCanvas(1, 1).getContext('2d', { willReadFrequently: true });
+    // A DOM canvas: Playwright's WebKit 27.2 build for Windows has no OffscreenCanvas.
+    const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
     if (!ctx) throw new Error('2d canvas unavailable');
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, 1, 1);
