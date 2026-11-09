@@ -36,49 +36,8 @@ export interface CommandListProps extends ComponentPropsWithRef<'div'> {
   readonly announceResults?: ((count: number) => string) | undefined;
 }
 
-// Each child's index in the JSX order, the order React renders; orderChildren keeps it current
+// Each child's index in the JSX order, the order React renders; the layout effect keeps it current
 const jsxKey = new WeakMap<ChildNode, number>();
-
-/**
- * Puts the ranked children of the container in display order. A rank is the display index (an
- * item) or the lowest one among the items inside the child (a group, a wrapper); a page, a
- * separator, a heading and a comment have none. A child without a rank keeps its place in the JSX
- * order and the ranked children fill the other places. A child that appeared since the last run
- * took the place React gave it, directly before its next JSX sibling, so it is keyed just below
- * the first known child after it, or after every child when none follows. Nodes move inside their
- * parent only, and only when the order differs.
- */
-function orderChildren(container: Element, order: ReadonlyMap<string, number>): void {
-  const nodes = [...container.childNodes];
-  let next = Infinity;
-  let i = nodes.length;
-  while (i--) {
-    const key = jsxKey.get(nodes[i] as ChildNode);
-    if (key === undefined) jsxKey.set(nodes[i] as ChildNode, next - 0.5);
-    else next = key;
-  }
-  // The sort is stable and Infinity - Infinity is NaN, which a comparator counts as 0
-  nodes.sort((a, b) => (jsxKey.get(a) as number) - (jsxKey.get(b) as number));
-  const slots = nodes.map((node) => {
-    let min = Infinity;
-    if (node.nodeType === 1 && !(node as Element).hasAttribute('data-command-page'))
-      for (const el of [
-        node as Element,
-        ...(node as Element).querySelectorAll('[data-command-item]'),
-      ])
-        min = Math.min(min, order.get(el.id) ?? Infinity);
-    return [min, node] as const;
-  });
-  const units = slots.filter(([rank]) => rank < Infinity).sort((a, b) => a[0] - b[0]);
-  let unit = 0;
-  let cursor = container.firstChild;
-  slots.forEach(([rank, slot], at) => {
-    jsxKey.set(slot, at);
-    const node = rank < Infinity ? (units[unit++]?.[1] as ChildNode) : slot;
-    if (node === cursor || node.nodeType !== 1) cursor = node.nextSibling;
-    else container['moveBefore' in container ? 'moveBefore' : 'insertBefore'](node, cursor);
-  });
-}
 
 /** Scrollable list container with auto-virtualization and aria-live announcements. */
 export function CommandList({
@@ -117,10 +76,7 @@ export function CommandList({
   // The display order: the items of `groupedIds` in key order, the order the keyboard walks, the
   // virtual rows take their places in and the effect below gives the DOM
   const groupedIds = stateCtx.state.groupedIds;
-  const { displayIds, displayIndex } = useMemo(() => {
-    const ids = getDisplayIds({ groupedIds });
-    return { displayIds: ids, displayIndex: new Map(ids.map((id, at) => [id as string, at])) };
-  }, [groupedIds]);
+  const displayIds = useMemo(() => getDisplayIds({ groupedIds }), [groupedIds]);
 
   // ResizeObserver for the --command-list-height CSS custom property. The one inner element is always
   // mounted, so the observer never watches a detached node. It reports the inner element's content height
@@ -167,14 +123,14 @@ export function CommandList({
       if (el?.matches(':hover')) return;
 
       if (shouldVirtualize) {
-        // Virtual mode: O(1) lookup of the row, which sits at the item's place in the display order
-        const idx = displayIndex.get(activeId) ?? -1;
+        // Virtual mode: the row sits at the item's place in the display order
+        const idx = displayIds.indexOf(activeId as ItemId);
         if (idx >= 0) virtualizer.scrollToIndex(idx, 'nearest');
       } else {
         el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     }
-  }, [stateCtx.state.activeId, shouldVirtualize, virtualizer, displayIndex]);
+  }, [stateCtx.state.activeId, shouldVirtualize, virtualizer, displayIds]);
 
   const mergedStyle = useMemo<CSSProperties & Record<`--${string}`, string>>(
     () => ({ ...style, '--command-list-height': `${height.toFixed(1)}px` }),
@@ -204,17 +160,52 @@ export function CommandList({
   // reader agree. The inner element is taken by ref, since its data attribute changes with the
   // mode. It runs when the order or the virtual window changes: the items and groups React mounted
   // for that change are placed too, and a refilter that keeps the order writes nothing.
+  // Each container (the inner element, every group's items, every page) is ordered alone. A rank is
+  // the display index (an item) or the lowest one among the items inside the child (a group, a
+  // wrapper); a page, a separator, a heading and a comment have none. A child without a rank keeps
+  // its place in the JSX order and the ranked children fill the other places. A child that appeared
+  // since the last run took the place React gave it, directly before its next JSX sibling, so it is
+  // keyed just below the first known child after it, or after every child when none follows. Nodes
+  // move inside their parent only, and only when the order differs.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the virtual window re-runs the order
   useLayoutEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
+    const order = new Map(displayIds.map((id, at) => [id as string, at]));
     for (const container of [
       inner,
       ...inner.querySelectorAll('[data-command-group-items], [data-command-page]'),
     ]) {
-      orderChildren(container, displayIndex);
+      const slots = [...container.childNodes].map(
+        (node): [number | undefined, number, ChildNode] => {
+          let rank = Infinity;
+          if (node.nodeType === 1 && !(node as Element).hasAttribute('data-command-page'))
+            for (const el of [
+              node as Element,
+              ...(node as Element).querySelectorAll('[data-command-item]'),
+            ])
+              rank = Math.min(rank, order.get(el.id) ?? Infinity);
+          return [jsxKey.get(node), rank, node];
+        },
+      );
+      let next = Infinity;
+      for (let i = slots.length; i--; ) {
+        const slot = slots[i] as [number | undefined, number, ChildNode];
+        if (slot[0] === undefined) slot[0] = next - 0.5;
+        else next = slot[0];
+      }
+      slots.sort((a, b) => (a[0] as number) - (b[0] as number));
+      const units = slots.toSorted((a, b) => a[1] - b[1]);
+      let unit = 0;
+      let cursor = container.firstChild;
+      slots.forEach(([, rank, slot], at) => {
+        jsxKey.set(slot, at);
+        const node = rank < Infinity ? (units[unit++]?.[2] as ChildNode) : slot;
+        if (node === cursor || node.nodeType !== 1) cursor = node.nextSibling;
+        else container['moveBefore' in container ? 'moveBefore' : 'insertBefore'](node, cursor);
+      });
     }
-  }, [displayIndex, visibleIdSet]);
+  }, [displayIds, visibleIdSet]);
 
   // Override state context for children — adds visibleIdSet and virtualPositionMap
   const virtualizedStateCtx = useMemo<CommandStateContextValue>(
