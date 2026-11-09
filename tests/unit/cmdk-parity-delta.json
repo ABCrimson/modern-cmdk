@@ -856,7 +856,7 @@
         "role": "search"
       }
     },
-    "reason": "Both dialogs are role=\"dialog\" with the aria-label. modern-cmdk also marks the dialog aria-modal=\"true\", labels it with a visually hidden title, describes it with a visually hidden description, and gives the palette root role=\"search\" with the label; cmdk's root inside the dialog has no role or label.",
+    "reason": "Both dialogs are role=\"dialog\" with the aria-label. modern-cmdk also marks the dialog aria-modal=\"true\", which tells assistive technology that the page outside the dialog is inert (Radix hides it with aria-hidden but sets no aria-modal), labels it with a visually hidden title, describes it with a visually hidden description, and gives the palette root role=\"search\" with the label; cmdk's root inside the dialog has no role or label.",
     "ref": null
   },
   "dialog-closed": {
