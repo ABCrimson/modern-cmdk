@@ -459,7 +459,8 @@
     scale: 0 1;
     will-change: scale;
 
-    /* transform-origin has no logical keywords, so the inline start is spelled for each direction */
+    /* transform-origin has no logical keywords, so the inline start is spelled for each
+       direction */
     &:dir(rtl) {
       transform-origin: right center;
     }

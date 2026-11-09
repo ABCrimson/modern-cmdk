@@ -1,9 +1,11 @@
 // tests/dist/styles-build.test.ts
-// PKG-10, D122, D139: dist/react/styles.css (the package.json ./styles.css export) is the lightningcss
-// build of src/react/styles.css that packages/modern-cmdk/scripts/build-styles.ts makes at the browser
-// floor: minified, comment-free, with the floor's features intact. Without `targets` lightningcss folds
-// animation-timeline into the animation shorthand and text-decoration-thickness into text-decoration,
-// and engines at the floor drop both whole; without `exclude: Features.LightDark` it lowers light-dark().
+// PKG-10, D122, D139: dist/react/styles.css (the package.json ./styles.css export) is the
+// lightningcss build of src/react/styles.css that packages/modern-cmdk/scripts/build-styles.ts
+// makes at the browser floor: minified, comment-free, with the floor's features intact. Without
+// `targets` lightningcss folds animation-timeline into the animation shorthand and
+// text-decoration-thickness into text-decoration, which engines at the floor drop whole.
+// `exclude: Features.LightDark` is a guard that changes no byte at the floor (every target
+// supports light-dark()); no case here pins it.
 // Needs: pnpm build (the dist project runs after the build).
 
 import { readFileSync } from 'node:fs';
@@ -71,7 +73,8 @@ describe('dist/react/styles.css', () => {
     expect(twins.length).toBe(userSelects.length);
     for (const [, prefixed, plain] of twins) expect(prefixed).toBe(plain);
 
-    // The `@layer a, b, c, d;` order statement is gone from the build; the four blocks keep the order
+    // The `@layer a, b, c, d;` order statement is gone from the build; the four blocks keep the
+    // order
     const layers = [...built.matchAll(/@layer\s+(command\.\w+)\s*\{/g)].map((m) => m[1]);
     expect([...new Set(layers)]).toEqual([
       'command.base',

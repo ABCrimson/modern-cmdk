@@ -116,7 +116,9 @@ async function openDialog(page: Page, css?: string): Promise<void> {
   });
 }
 
-/** The alpha of a computed colour: oklch(l c h / a), rgb(a)(r, g, b, a) or color(space … / a). */
+/**
+ * The alpha of a computed colour: oklch(l c h / a), rgb(a)(r, g, b, a) or color(space … / a).
+ */
 function alphaOf(color: string): number {
   const slash = /\/\s*(\d+(?:\.\d+)?)(%?)\s*\)$/.exec(color);
   if (slash?.[1] !== undefined) {
@@ -203,7 +205,10 @@ async function closeAndRecord(page: Page): Promise<ExitRecord> {
   return record;
 }
 
-/** Pauses every animation of the page at time 0, so a keyframe's `from` values are the computed ones. */
+/**
+ * Pauses every animation of the page at time 0, so a keyframe's `from` values are the computed
+ * ones.
+ */
 async function pauseAtStart(page: Page): Promise<void> {
   await page.evaluate(() => {
     for (const animation of document.getAnimations()) {
