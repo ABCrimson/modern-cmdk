@@ -36,29 +36,29 @@ export interface CommandListProps extends ComponentPropsWithRef<'div'> {
   readonly announceResults?: ((count: number) => string) | undefined;
 }
 
-// A child carries its index in the JSX order, the order React renders, in `cmdkJsx`; orderChildren keeps it
-// up to date
-type Keyed = ChildNode & { cmdkJsx?: number };
+// Each child's index in the JSX order, the order React renders; orderChildren keeps it current
+const jsxKey = new WeakMap<ChildNode, number>();
 
 /**
- * Puts the ranked children of the container in display order. A rank is the display index (an item)
- * or the lowest one among the items inside the child (a group, a wrapper); a page, a separator, a heading and a
- * comment have none. A child without a rank keeps its place in the JSX order and the ranked children fill
- * the other places. A child that appeared since the last run took the place React gave it, directly before
- * its next JSX sibling, so it is keyed just below the first known child after it, or after every child when
- * none follows. Nodes move inside their parent only, and only when the order differs.
+ * Puts the ranked children of the container in display order. A rank is the display index (an
+ * item) or the lowest one among the items inside the child (a group, a wrapper); a page, a
+ * separator, a heading and a comment have none. A child without a rank keeps its place in the JSX
+ * order and the ranked children fill the other places. A child that appeared since the last run
+ * took the place React gave it, directly before its next JSX sibling, so it is keyed just below
+ * the first known child after it, or after every child when none follows. Nodes move inside their
+ * parent only, and only when the order differs.
  */
 function orderChildren(container: Element, order: ReadonlyMap<string, number>): void {
-  const nodes: Keyed[] = [...container.childNodes];
+  const nodes = [...container.childNodes];
   let next = Infinity;
   let i = nodes.length;
   while (i--) {
-    const node = nodes[i] as Keyed;
-    if (node.cmdkJsx === undefined) node.cmdkJsx = next - 0.5;
-    else next = node.cmdkJsx;
+    const key = jsxKey.get(nodes[i] as ChildNode);
+    if (key === undefined) jsxKey.set(nodes[i] as ChildNode, next - 0.5);
+    else next = key;
   }
   // The sort is stable and Infinity - Infinity is NaN, which a comparator counts as 0
-  nodes.sort((a, b) => (a.cmdkJsx as number) - (b.cmdkJsx as number));
+  nodes.sort((a, b) => (jsxKey.get(a) as number) - (jsxKey.get(b) as number));
   const slots = nodes.map((node) => {
     let min = Infinity;
     if (node.nodeType === 1 && !(node as Element).hasAttribute('data-command-page'))
@@ -73,7 +73,7 @@ function orderChildren(container: Element, order: ReadonlyMap<string, number>): 
   let unit = 0;
   let cursor = container.firstChild;
   slots.forEach(([rank, slot], at) => {
-    slot.cmdkJsx = at;
+    jsxKey.set(slot, at);
     const node = rank < Infinity ? (units[unit++]?.[1] as ChildNode) : slot;
     if (node === cursor || node.nodeType !== 1) cursor = node.nextSibling;
     else container['moveBefore' in container ? 'moveBefore' : 'insertBefore'](node, cursor);
@@ -114,8 +114,8 @@ export function CommandList({
   if (nextLatched !== latched) setLatched(nextLatched);
   const shouldVirtualize: boolean = virtualize ?? nextLatched;
 
-  // The display order: the items of `groupedIds` in key order, the order the keyboard walks, the virtual
-  // rows take their places in and the effect below gives the DOM
+  // The display order: the items of `groupedIds` in key order, the order the keyboard walks, the
+  // virtual rows take their places in and the effect below gives the DOM
   const groupedIds = stateCtx.state.groupedIds;
   const { displayIds, displayIndex } = useMemo(() => {
     const ids = getDisplayIds({ groupedIds });
@@ -181,7 +181,8 @@ export function CommandList({
     [style, height],
   );
 
-  // Compute visible IDs and position map from virtualizer output: row `index` is a place in the display order
+  // Compute visible IDs and position map from virtualizer output: row `index` is a place in the
+  // display order
   const { visibleIdSet, virtualPositionMap } = useMemo(() => {
     if (!shouldVirtualize) return { visibleIdSet: null, virtualPositionMap: null };
     const idSet = new Set<ItemId>();
@@ -199,11 +200,11 @@ export function CommandList({
     };
   }, [shouldVirtualize, virtualizer.virtualItems, displayIds]);
 
-  // Puts the DOM in the display order in both modes, so the arrow keys, the screen and a screen reader
-  // agree. The inner element is taken by ref, since its data attribute changes with the mode. It runs
-  // when the order or the virtual window changes: the items and groups React mounted for that change
-  // are placed too, and a refilter that keeps the order writes nothing.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: visibleIdSet is the virtual window; a new window mounts rows that this effect orders
+  // Puts the DOM in the display order in both modes, so the arrow keys, the screen and a screen
+  // reader agree. The inner element is taken by ref, since its data attribute changes with the
+  // mode. It runs when the order or the virtual window changes: the items and groups React mounted
+  // for that change are placed too, and a refilter that keeps the order writes nothing.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the virtual window re-runs the order
   useLayoutEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
