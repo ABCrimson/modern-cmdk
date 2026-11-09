@@ -54,8 +54,8 @@ interface ExitRecord {
   dialogAnimations: string[];
   /** Names of the running CSSAnimations of the overlay node when the dialog first reads closed. */
   overlayAnimations: string[];
-  /** The alpha of the overlay's computed background-color when the dialog first reads closed. */
-  overlayAlpha: number | null;
+  /** The overlay's registered `--command-overlay-opacity` when the dialog first reads closed. */
+  overlayToken: number | null;
 }
 
 declare global {
@@ -116,6 +116,22 @@ async function openDialog(page: Page, css?: string): Promise<void> {
   });
 }
 
+/** The alpha of a computed colour: oklch(l c h / a), rgb(a)(r, g, b, a) or color(space … / a). */
+function alphaOf(color: string): number {
+  const slash = /\/\s*(\d+(?:\.\d+)?)(%?)\s*\)$/.exec(color);
+  if (slash?.[1] !== undefined) {
+    return Number.parseFloat(slash[1]) / (slash[2] === '%' ? 100 : 1);
+  }
+  if (/^(?:oklch|oklab|lab|lch|hsl|hwb|color)\(/.test(color)) return 1;
+  const legacy = /^rgba?\(([^)]*)\)$/.exec(color);
+  if (legacy?.[1] !== undefined) {
+    const parts = legacy[1].split(',');
+    if (parts.length === 3) return 1;
+    if (parts.length === 4) return Number.parseFloat(parts[3] ?? '');
+  }
+  throw new Error(`unknown colour form: ${color}`);
+}
+
 /** The used `inline-size` of an element in pixels. */
 async function inlineSize(page: Page, selector: string): Promise<number> {
   return Number.parseFloat(await computed(page, selector, 'inline-size'));
@@ -137,22 +153,7 @@ async function observeExit(page: Page): Promise<void> {
       removedAt: null,
       dialogAnimations: [],
       overlayAnimations: [],
-      overlayAlpha: null,
-    };
-    /** The alpha of a computed colour: oklch(l c h / a), rgb(a)(r, g, b, a) or color(space … / a). */
-    const alphaOf = (color: string): number => {
-      const slash = /\/\s*(\d+(?:\.\d+)?)(%?)\s*\)$/.exec(color);
-      if (slash?.[1] !== undefined) {
-        return Number.parseFloat(slash[1]) / (slash[2] === '%' ? 100 : 1);
-      }
-      if (/^(?:oklch|oklab|lab|lch|hsl|hwb|color)\(/.test(color)) return 1;
-      const legacy = /^rgba?\(([^)]*)\)$/.exec(color);
-      if (legacy?.[1] !== undefined) {
-        const parts = legacy[1].split(',');
-        if (parts.length === 3) return 1;
-        if (parts.length === 4) return Number.parseFloat(parts[3] ?? '');
-      }
-      throw new Error(`unknown colour form: ${color}`);
+      overlayToken: null,
     };
     const cssAnimationNames = (node: Element): string[] =>
       node
@@ -172,7 +173,9 @@ async function observeExit(page: Page): Promise<void> {
         record.closedAt = now;
         record.dialogAnimations = cssAnimationNames(dialog);
         record.overlayAnimations = cssAnimationNames(overlay);
-        record.overlayAlpha = alphaOf(getComputedStyle(overlay).backgroundColor);
+        record.overlayToken = Number.parseFloat(
+          getComputedStyle(overlay).getPropertyValue('--command-overlay-opacity'),
+        );
       }
       if (record.removedAt === null && !dialog.isConnected) record.removedAt = now;
     });
@@ -306,20 +309,15 @@ test.describe('Stylesheet — the dialog exit', { tag: ['@styles', '@dialog'] },
   });
 
   test('RA-11: Command.Dialog plays its exit animation before unmounting', async ({ page }) => {
-    // The playground paints its overlay with its own fixed .command-overlay background (alpha
-    // 0.55) in a later layer, which hides the library tint; this rule is the library's own
-    // overlay background, unlayered, so the alpha follows --command-overlay-opacity again
-    await openDialog(
-      page,
-      '.command-overlay { background: oklch(0 0 0 / var(--command-overlay-opacity, 0.4)); }',
-    );
+    await openDialog(page);
     const record = await closeAndRecord(page);
     expect(record.dialogAnimations, 'CSSAnimations of the closed dialog').not.toEqual([]);
     expect(record.overlayAnimations, 'CSSAnimations of the closed overlay').not.toEqual([]);
-    // The tint is 0.4 when the exit starts and fades from there, so it does not snap off at close
+    // The closed rule holds the registered tint token at 0.4 and the exit fades it from there, so
+    // the tint does not snap off at close
     expect(
-      record.overlayAlpha,
-      'overlay background alpha when it first reads closed',
+      record.overlayToken,
+      'the overlay tint token when the dialog first reads closed',
     ).toBeGreaterThan(0.3);
   });
 });
@@ -489,6 +487,35 @@ test.describe('Stylesheet — bare page', { tag: '@styles' }, () => {
       const ltr = await slide('#ltr');
       expect(ltr, 'LTR slide starts at the positive translate-from').toBeGreaterThan(0);
       expect(await slide('#rtl'), 'RTL slide is the mirror image').toBe(-ltr);
+    });
+
+    test('RA-11: a bare overlay keeps its 0.4 tint as its exit animation starts', async ({
+      page,
+    }) => {
+      await bareDocument(page, { body: '<div data-command-overlay data-state="open"></div>' });
+      await page.evaluate(() =>
+        Promise.all(document.getAnimations().map((animation) => animation.finished)),
+      );
+      expect(
+        alphaOf(await computed(page, OVERLAY, 'background-color')),
+        'the open overlay tint',
+      ).toBeCloseTo(0.4, 5);
+      const closed = await page.evaluate(() => {
+        const overlay = document.querySelector('[data-command-overlay]');
+        if (overlay === null) throw new Error('no overlay');
+        overlay.setAttribute('data-state', 'closed');
+        return {
+          color: getComputedStyle(overlay).backgroundColor,
+          animations: overlay
+            .getAnimations()
+            .filter((animation): animation is CSSAnimation => animation instanceof CSSAnimation)
+            .map((animation) => animation.animationName),
+        };
+      });
+      expect(alphaOf(closed.color), 'the tint as the exit starts').toBeGreaterThanOrEqual(0.39);
+      expect(closed.animations, 'CSSAnimations of the closed overlay').toContain(
+        'command-overlay-exit',
+      );
     });
 
     test('A11Y-40: the loading status text stays at opacity 1 while its indicator pulses', async ({
