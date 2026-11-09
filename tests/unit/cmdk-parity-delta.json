@@ -505,11 +505,11 @@
       "active": "apple"
     },
     "modernCmdk": {
-      "shown": ["applesauce", "pineapple", "apple"],
+      "shown": ["apple", "applesauce", "pineapple"],
       "active": "applesauce"
     },
-    "reason": "Both rank apple first for \"apple\". cmdk re-orders the DOM by rank and makes the top match active. modern-cmdk keeps the item that was active before the search while it still matches, so here applesauce stays active and Enter selects it, and in 1.7 it leaves the DOM in source order; RA-02, open for 1.8.0, tracks putting the DOM in rank order.",
-    "ref": "RA-02, RA-84"
+    "reason": "Both rank apple first for \"apple\" and put the DOM in rank order. cmdk makes the top match active. modern-cmdk keeps the item that was active before the search while it still matches, so here applesauce stays active and Enter selects it.",
+    "ref": "RA-84"
   },
   "first-match-active": {
     "status": "same",
@@ -534,7 +534,7 @@
     "ref": null
   },
   "custom-filter-ranking": {
-    "status": "differs",
+    "status": "same",
     "cmdk": {
       "shown": ["apple", "cherry", "pineapple"],
       "active": "apple",
@@ -542,13 +542,13 @@
       "afterSecondArrowDown": "pineapple"
     },
     "modernCmdk": {
-      "shown": ["pineapple", "apple", "cherry"],
+      "shown": ["apple", "cherry", "pineapple"],
       "active": "apple",
       "afterArrowDown": "cherry",
       "afterSecondArrowDown": "pineapple"
     },
-    "reason": "Both keep the items a custom filter scores above 0 and make the best-scored item active first, then step by score with the arrow keys. cmdk re-orders its DOM by score; modern-cmdk 1.7 leaves the DOM in source order; RA-02, open for 1.8.0, tracks putting it in score order. cmdk's filter prop is (value, search, keywords) and modern-cmdk's is (item, query).",
-    "ref": "RA-02"
+    "reason": "Both keep the items a custom filter scores above 0, put the DOM in score order and make the best-scored item active first, then step by score with the arrow keys. cmdk's filter prop is (value, search, keywords) and modern-cmdk's is (item, query).",
+    "ref": null
   },
   "custom-filter-exclusion": {
     "status": "same",
