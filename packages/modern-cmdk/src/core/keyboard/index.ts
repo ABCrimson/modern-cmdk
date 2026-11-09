@@ -15,12 +15,17 @@ interface ShortcutBinding {
   readonly handler: () => void;
 }
 
-/** True while an input method composes text: `isComposing`, or the legacy `keyCode` 229 some engines report instead */
+/**
+ * True while an input method composes text: `isComposing`, or the legacy `keyCode` 229 some engines
+ * report instead
+ */
 export function isImeComposition(event: KeyboardEvent): boolean {
   return event.isComposing || event.keyCode === 229;
 }
 
-/** What the registry reads from its options: the constructor object, or the machine's own options */
+/**
+ * What the registry reads from its options: the constructor object, or the machine's own options
+ */
 interface KeyboardShortcutOptions {
   enabled?: boolean | undefined;
   shortcutScope?: 'document' | 'root' | undefined;
@@ -28,14 +33,14 @@ interface KeyboardShortcutOptions {
 }
 
 /**
- * Manages keyboard shortcut bindings with global keydown listening.
- * Supports `using` for automatic cleanup of both individual bindings and the
- * document listener, which is attached while at least one binding exists and the registry is not suspended.
- * A keydown that an input method is composing, that another handler default-prevented, or (with
- * `shortcutsInEditable: false`) that targets an editable element other than the palette's input
- * (`data-command-input`) fires nothing; with `shortcutScope: 'root'` only a keydown whose path includes the
- * element given to `setRoot` fires. Every normalized shortcut keeps a stack of bindings, one per item: the later
- * binding wins the keydown, disposing it restores the earlier one, and `getConflicts()` reports the keys with
+ * Manages keyboard shortcut bindings with global keydown listening. Supports `using` for automatic
+ * cleanup of both individual bindings and the document listener, which is attached while at least
+ * one binding exists and the registry is not suspended. A keydown that an input method is
+ * composing, that another handler default-prevented, or (with `shortcutsInEditable: false`) that
+ * targets an editable element other than the palette's input (`data-command-input`) fires nothing;
+ * with `shortcutScope: 'root'` only a keydown whose path includes the element given to `setRoot`
+ * fires. Every normalized shortcut keeps a stack of bindings, one per item: the later binding wins
+ * the keydown, disposing it restores the earlier one, and `getConflicts()` reports the keys with
  * two or more bindings (through `detectConflicts`, which groups with the local mapGroupBy helper).
  */
 export class KeyboardShortcutRegistry implements Disposable {
@@ -54,7 +59,10 @@ export class KeyboardShortcutRegistry implements Disposable {
     this.#enabled = options.enabled ?? true;
   }
 
-  /** Sets the element a `'root'` scope bounds the bindings to (the React root sets it from its ref callback) */
+  /**
+   * Sets the element a `'root'` scope bounds the bindings to (the React root sets it from its ref
+   * callback)
+   */
   setRoot(root: Element | null): void {
     this.#root = root;
   }
@@ -133,7 +141,9 @@ export class KeyboardShortcutRegistry implements Disposable {
     );
   }
 
-  /** Attaches the document listener when a binding exists, the registry is live and none is attached */
+  /**
+   * Attaches the document listener when a binding exists, the registry is live and none is attached
+   */
   #attachGlobalListener(): void {
     if (
       this.#globalListener ||
@@ -147,9 +157,11 @@ export class KeyboardShortcutRegistry implements Disposable {
     this.#globalListener = (event: KeyboardEvent): void => {
       if (!this.#enabled || isImeComposition(event) || event.defaultPrevented) return;
       const path = event.composedPath();
-      // The path's first entry is the real target, also inside a shadow root (event.target is the host there)
+      // The path's first entry is the real target, also inside a shadow root (event.target is the
+      // host there)
       const target = path[0] as HTMLElement;
-      // A form field other than the palette's input, or a contenteditable element, is an editable target
+      // A form field other than the palette's input, or a contenteditable element, is an editable
+      // target
       if (
         this.#options.shortcutsInEditable === false &&
         (target.isContentEditable ||
@@ -183,8 +195,8 @@ export class KeyboardShortcutRegistry implements Disposable {
   }
 
   /**
-   * Clear the suspension: re-attach the document keydown listener when a binding exists. Idempotent; does
-   * nothing after dispose.
+   * Clear the suspension: re-attach the document keydown listener when a binding exists.
+   * Idempotent; does nothing after dispose.
    */
   resume(): void {
     this.#suspended = false;

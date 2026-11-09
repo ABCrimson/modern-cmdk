@@ -4,19 +4,20 @@
 import { mapGroupBy } from '../utils/group-by.js';
 import type { ParsedShortcut } from './parser.js';
 
-/** The eleven US punctuation codes; each stands for the character of PUNCTUATION_KEYS at its index */
+/**
+ * The eleven US punctuation codes, space-separated; each stands for the character of
+ * PUNCTUATION_KEYS at its index.
+ */
 const PUNCTUATION_CODES =
-  'Backquote Minus Equal BracketLeft BracketRight Backslash Semicolon Quote Comma Period Slash'.split(
-    ' ',
-  );
+  'Backquote Minus Equal BracketLeft BracketRight Backslash Semicolon Quote Comma Period Slash';
 const PUNCTUATION_KEYS = "`-=[]\\;',./";
 
 /**
- * Whether the physical key (`event.code`) stands for the shortcut's key when `event.key` does not: a layout
- * whose key value is not that character (Cyrillic letters, macOS Option glyphs, `Dead`, the shifted symbol of
- * a digit). `Digit0` to `Digit9` and `Space` always map; `KeyA` to `KeyZ` and the punctuation codes map only
- * when `event.key` is not one printable ASCII character, so an AZERTY `a` on `KeyQ` stays an `a`. An AltGr
- * press (AltGraph without `altKey`) never maps.
+ * Whether the physical key (`event.code`) stands for the shortcut's key when `event.key` does not:
+ * a layout whose key value is not that character (Cyrillic letters, macOS Option glyphs, `Dead`,
+ * the shifted symbol of a digit). `Digit0` to `Digit9` and `Space` always map; `KeyA` to `KeyZ` and
+ * the punctuation codes map only when `event.key` is not one printable ASCII character, so an
+ * AZERTY `a` on `KeyQ` stays an `a`. An AltGr press (AltGraph without `altKey`) never maps.
  */
 function matchesCode(event: KeyboardEvent, key: string): boolean {
   const { code } = event;
@@ -26,13 +27,13 @@ function matchesCode(event: KeyboardEvent, key: string): boolean {
     (code === 'Space'
       ? 'space'
       : (/^(?:Key|Digit)(.)$/.exec(code)?.[1]?.toLowerCase() ??
-        PUNCTUATION_KEYS[PUNCTUATION_CODES.indexOf(code)])) === key
+        PUNCTUATION_KEYS[PUNCTUATION_CODES.split(' ').indexOf(code)])) === key
   );
 }
 
 /**
- * Whether `event` matches `shortcut`: the four modifier keys (meta, ctrl, shift, alt) compare exactly, then the
- * primary key by `event.key` or, with `byCode`, by the physical key.
+ * Whether `event` matches `shortcut`: the four modifier keys (meta, ctrl, shift, alt) compare
+ * exactly, then the primary key by `event.key` or, with `byCode`, by the physical key.
  */
 export function matchShortcut(
   event: KeyboardEvent,
@@ -49,15 +50,18 @@ export function matchShortcut(
 }
 
 /**
- * Tests whether a KeyboardEvent exactly matches a ParsedShortcut: the four modifier keys and the primary
- * key, by `event.key` or, when that misses, by the physical key (`event.code`, for layouts whose key value
- * is not the shortcut's character).
+ * Tests whether a KeyboardEvent exactly matches a ParsedShortcut: the four modifier keys and the
+ * primary key, by `event.key` or, when that misses, by the physical key (`event.code`, for layouts
+ * whose key value is not the shortcut's character).
  */
 export function matchesShortcut(event: KeyboardEvent, shortcut: ParsedShortcut): boolean {
   return matchShortcut(event, shortcut, false) || matchShortcut(event, shortcut, true);
 }
 
-/** Match a KeyboardEvent against a list of shortcuts: the `event.key` matches first, then the `event.code` ones */
+/**
+ * Match a KeyboardEvent against a list of shortcuts: the `event.key` matches first, then the
+ * `event.code` ones
+ */
 export function findMatchingShortcut(
   event: KeyboardEvent,
   shortcuts: readonly ParsedShortcut[],

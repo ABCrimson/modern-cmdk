@@ -51,14 +51,14 @@ const MODIFIER_MAP: Readonly<
 };
 
 /**
- * Parse a shortcut string like "Mod+Shift+K" into a structured ParsedShortcut.
- * Ensures valid Unicode input via ensureWellFormed helper.
+ * Parse a shortcut string like "Mod+Shift+K" into a structured ParsedShortcut. Ensures valid
+ * Unicode input via ensureWellFormed helper.
  *
  * `Mod` resolves to Meta on `'mac'` and to Ctrl on `'other'`. Without `platform`, the platform is
  * detected from `navigator` when the function is called.
  *
- * A `+` at the end of the string is the plus key (`Ctrl++`, or `+` alone), and the part `Plus` names
- * it too (`Ctrl+Plus`): the parsed `key` is `+` for both.
+ * A `+` at the end of the string is the plus key (`Ctrl++`, or `+` alone), and the part `Plus`
+ * names it too (`Ctrl+Plus`): the parsed `key` is `+` for both.
  */
 export function parseShortcut(shortcut: string, platform?: ShortcutPlatform): ParsedShortcut {
   // Ensure valid Unicode before processing
@@ -118,7 +118,9 @@ export function parseShortcut(shortcut: string, platform?: ShortcutPlatform): Pa
   };
 }
 
-/** Display text for named keys; the null prototype keeps `constructor` and `__proto__` out of it. */
+/**
+ * Display text for named keys; the null prototype keeps `constructor` and `__proto__` out of it.
+ */
 const KEY_LABELS: Readonly<Record<string, string | null>> = {
   __proto__: null,
   arrowup: '↑',
@@ -131,14 +133,13 @@ const KEY_LABELS: Readonly<Record<string, string | null>> = {
 };
 
 /**
- * Formats a ParsedShortcut for display; only the modifiers that are set appear.
- * On `'mac'`: Apple glyphs in Apple's order (⌃ ctrl, ⌥ alt, ⇧ shift, ⌘ meta), then the key, joined
- * by nothing. On `'other'`: the labels Meta, Ctrl, Shift and Alt in that order, then the key, joined
- * by "+"; an explicit meta reads "Meta", and `Mod` parsed for `'other'` is Ctrl.
- * On both platforms the key is capitalised ("Enter", "F1") except the named keys: ↑ ↓ ← →, "PageUp",
- * "PageDown" and "Esc".
- * Without `platform`, the platform is detected from `navigator` when the function is called;
- * pass `'other'` to render the same text on a server and in the hydration pass.
+ * Formats a ParsedShortcut for display; only the modifiers that are set appear. On `'mac'`: Apple
+ * glyphs in Apple's order (⌃ ctrl, ⌥ alt, ⇧ shift, ⌘ meta), then the key, joined by nothing. On
+ * `'other'`: the labels Meta, Ctrl, Shift and Alt in that order, then the key, joined by "+"; an
+ * explicit meta reads "Meta", and `Mod` parsed for `'other'` is Ctrl. On both platforms the key is
+ * capitalised ("Enter", "F1") except the named keys: ↑ ↓ ← →, "PageUp", "PageDown" and "Esc".
+ * Without `platform`, the platform is detected from `navigator` when the function is called; pass
+ * `'other'` to render the same text on a server and in the hydration pass.
  */
 export function formatShortcut(parsed: ParsedShortcut, platform?: ShortcutPlatform): string {
   const isMac = (platform ?? detectPlatform()) === 'mac';

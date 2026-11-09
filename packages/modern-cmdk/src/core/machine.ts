@@ -572,7 +572,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     resume(): void {
       keyboardRegistry.resume();
       frecencyEngine?.resume();
-      // A machine created open reports that open at the first batch after it resumes, without waiting for an event
+      // A machine created open reports that open at the first batch after it resumes, without
+      // waiting for an event
       if (!disposed && state.open !== reportedOpen) enqueue(() => undefined);
     },
 

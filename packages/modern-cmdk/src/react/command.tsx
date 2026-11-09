@@ -92,12 +92,13 @@ function CommandRoot({
     label,
   );
 
-  // The root element's ref: attaches the scoped keyboard listener (only events originating within the root are
-  // handled), gives the element to the shortcut registry (the bound of `shortcutScope="root"`) and forwards it
-  // to the caller's `ref`. A ref callback may return a cleanup function
-  // (node_modules/@types/react/index.d.ts, `RefCallback`, line 176); React then skips the `null` call, so the
-  // cleanup detaches the listener, clears the registry's root and releases the caller's ref: an object ref gets
-  // `null`, a function ref runs its own cleanup or, returning none, is called with `null`.
+  // The root element's ref: attaches the scoped keyboard listener (only events originating within
+  // the root are handled), gives the element to the shortcut registry (the bound of
+  // `shortcutScope="root"`) and forwards it to the caller's `ref`. A ref callback may return a
+  // cleanup function (node_modules/@types/react/index.d.ts, `RefCallback`, line 176); React then
+  // skips the `null` call, so the cleanup detaches the listener, clears the registry's root and
+  // releases the caller's ref: an object ref gets `null`, a function ref runs its own cleanup or,
+  // returning none, is called with `null`.
   const rootRef = useCallback(
     (root: HTMLDivElement): (() => void) => {
       const scopedHandler = (e: KeyboardEvent): void => {
