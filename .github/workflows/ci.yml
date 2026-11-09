@@ -274,6 +274,10 @@ jobs:
       # Docs-samples gate (TEB-84), the one run with both dists present: the wasm-importing samples type-check here (the modern-cmdk dist is built earlier in this job)
       - run: pnpm check:doc-samples
 
+  # The timeout comes from the default set (Chromium and Firefox), measured on 2026-11-09. Locally,
+  # chromium + firefox at CI's 2 workers take 247 s. CI's chromium-only test step takes 79 s for 114
+  # cases (run 42543097659, at 84331cd7) against 34 s locally for the same 114 cases at 2 workers, a
+  # ratio of 2.32. ceil(2.32 x 247 s x 1.5 / 60) = 15 minutes.
   e2e:
     name: E2E Tests
     needs: build
@@ -298,14 +302,15 @@ jobs:
       # The playground imports the built modern-cmdk, so it is checked and built here, after the download
       - run: pnpm --filter playground exec tsc --noEmit
       - run: pnpm --filter playground run build
-      # Chromium only: Firefox and WebKit are opt-in (E2E_ENGINES=all) until 1.8.0, never set in CI
+      # The default projects, Chromium and Firefox, are installed. WebKit is opt-in (E2E_ENGINES=all)
+      # until RA-88 lands (ledger TEB-81) and is never set in CI
       # The retry is for the apt mirror flake (run 42023125730: apt exit 100 'Unable to locate package'); an
       # infrastructure install retry announced with ::warning, never a test retry (LD-04 stands for tests).
-      - name: Install Chromium (bounded retry on the apt mirror)
+      - name: Install Chromium and Firefox (bounded retry on the apt mirror)
         shell: bash
         run: |
           for i in 1 2 3; do
-            pnpm playwright install --with-deps chromium && exit 0
+            pnpm playwright install --with-deps chromium firefox && exit 0
             if [ "$i" -eq 3 ]; then
               echo "::error::playwright install failed 3 times (apt mirror or registry)"
               exit 1
@@ -894,7 +899,7 @@ jobs:
             "dist-tests|Built-package tests"
             "coverage|Coverage and ratchet"
             "rust-wasm|Rust & WASM"
-            "e2e|E2E (Chromium)"
+            "e2e|E2E (Chromium, Firefox)"
             "docs|Docs build & render"
             "claims|Phantom claims"
             "links|Links"

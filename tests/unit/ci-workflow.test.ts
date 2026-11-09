@@ -44,16 +44,27 @@ function job(name: string): string {
 
 describe('ci.yml', () => {
   // The title is the string tests/bug-matrix.json cites for RDG-127, so it keeps its original three jobs; the loop below also covers browser-bench (R5)
+  // D161: the e2e job installs the default engines, Chromium and Firefox; the other jobs install
+  // Chromium only
   it('RDG-127: the e2e, docs and consumers jobs install Chromium through the bounded retry that announces every failed attempt', () => {
-    for (const name of ['e2e', 'docs', 'consumers', 'browser-bench']) {
+    const chromiumOnly = {
+      step: '- name: Install Chromium (bounded retry on the apt mirror)',
+      install: 'pnpm playwright install --with-deps chromium && exit 0',
+    };
+    const expected = {
+      e2e: {
+        step: '- name: Install Chromium and Firefox (bounded retry on the apt mirror)',
+        install: 'pnpm playwright install --with-deps chromium firefox && exit 0',
+      },
+      docs: chromiumOnly,
+      consumers: chromiumOnly,
+      'browser-bench': chromiumOnly,
+    };
+    for (const [name, { step, install }] of Object.entries(expected)) {
       const block = job(name);
-      expect(block, `${name} job`).toContain(
-        '- name: Install Chromium (bounded retry on the apt mirror)',
-      );
+      expect(block, `${name} job`).toContain(step);
       expect(block, `${name} job`).toContain('for i in 1 2 3; do');
-      expect(block, `${name} job`).toContain(
-        'pnpm playwright install --with-deps chromium && exit 0',
-      );
+      expect(block, `${name} job`).toContain(install);
       expect(block, `${name} job`).toContain('::warning::playwright install attempt $i failed');
       expect(block, `${name} job`).toContain('::error::playwright install failed 3 times');
       expect(block, `${name} job`).not.toMatch(/^ {6}- run: pnpm playwright install/m);

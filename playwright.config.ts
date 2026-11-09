@@ -26,17 +26,18 @@ export default defineConfig({
     trace: 'retain-on-failure',
     actionTimeout: isCI ? 30_000 : 10_000,
   },
-  // Chromium is the gate, in CI and locally. Firefox and WebKit are opt-in (E2E_ENGINES=all) until the
-  // 1.8.0 cross-engine release: on 2026-11-04 Firefox 159.0 timed out ten "Virtualization — Large Item
-  // Set" tests at the 15 s test timeout and WebKit 27.2 failed virtualization.spec.ts:93 and :323 on
-  // every repeat (ledger TEB-81). A run that is red by default is not a gate.
+  // Chromium and Firefox are the gate, in CI and locally. WebKit 27.2 is opt-in (E2E_ENGINES=all)
+  // until ledger RA-88 is fixed: WebKit sizes virtual rows it has not laid out yet at their
+  // intrinsic size plus the playground's padding (64 px, against the virtualizer's 44 px row
+  // pitch), so scrollToIndex('nearest') leaves the active row clipped. The red case is
+  // "should scroll the active item into view during keyboard navigation" in
+  // tests/e2e/virtualization.spec.ts. The C8 cluster makes WebKit a default project once RA-88
+  // lands; ledger TEB-81 tracks the cross-engine gate. A run that is red by default is not a gate.
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     ...(process.env.E2E_ENGINES === 'all'
-      ? [
-          { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-          { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-        ]
+      ? [{ name: 'webkit', use: { ...devices['Desktop Safari'] } }]
       : []),
   ],
   webServer: {
