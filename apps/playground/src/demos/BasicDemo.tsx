@@ -2,7 +2,7 @@
 
 // apps/playground/src/demos/BasicDemo.tsx
 // Basic inline command palette with 15 items across 3 groups
-// Hooks: useId, useState
+// React hooks: useId, useState
 
 import { Command, useCommandDevtools } from 'modern-cmdk/react';
 import { useId, useState } from 'react';
