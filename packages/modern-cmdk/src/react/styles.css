@@ -263,6 +263,10 @@
     background: var(--command-highlight-color);
     border-radius: 2px;
     color: inherit;
+    /* A cue that does not depend on the background colour: forced colors and low-vision users */
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
   }
 
   /* ─── Empty ─── */
@@ -643,10 +647,10 @@
       opacity: 1;
     }
 
+    /* Mark and MarkText are the system colours for a marked match; the base underline stays */
     [data-command-highlight] {
-      background: transparent;
-      color: LinkText;
-      text-decoration: underline;
+      background-color: Mark;
+      color: MarkText;
     }
 
     [data-command-group-heading] {
