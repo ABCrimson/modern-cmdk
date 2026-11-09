@@ -630,10 +630,32 @@ describe('C4 display order: React', () => {
 
   it("C4: ungrouped items sit as one block at their first member's position", async () => {
     const probe = new MachineProbe();
-    await mount(c4r(probe));
+    // No separator: nothing keeps a slot between the two ungrouped items
+    await mount(
+      <Command filter={C4R_FILTER}>
+        <probe.Probe />
+        <Command.Input />
+        <Command.List>
+          {row('u1')}
+          <Command.Group heading="A" id="gA">
+            {row('a1')}
+            {row('a2')}
+          </Command.Group>
+          <Command.Group heading="B" id="gB">
+            {row('b1')}
+            {row('b2')}
+          </Command.Group>
+          {row('u2')}
+        </Command.List>
+      </Command>,
+    );
+    const inner = (): string[] =>
+      [...(view().querySelector('[data-command-list-inner]')?.children ?? [])].map((el) => el.id);
     expect(itemIdsInDom()).toEqual(['u1', 'u2', 'a1', 'a2', 'b1', 'b2']);
+    expect(inner()).toEqual(['u1', 'u2', 'gA', 'gB']);
     await searchReordering(probe);
     expect(itemIdsInDom()).toEqual(['b1', 'u2', 'u1', 'a1', 'a2']);
+    expect(inner()).toEqual(['gB', 'u2', 'u1', 'gA']);
   });
 
   it('C4: no node moves across parents when an item changes groups', async () => {
