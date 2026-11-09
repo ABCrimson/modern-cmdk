@@ -867,6 +867,32 @@ describe('React lifecycle (C1)', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it('DAE-61: a re-render changing shortcutsInEditable or shortcutScope warns that each is init-only', async () => {
+    using warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnings = (): string[] => warn.mock.calls.map((call) => String(call[0]));
+    const tree = (shortcutsInEditable: boolean, shortcutScope: 'document' | 'root'): ReactNode => (
+      <Command shortcutsInEditable={shortcutsInEditable} shortcutScope={shortcutScope}>
+        <Command.List />
+      </Command>
+    );
+    await mount(tree(true, 'document'));
+    await settle();
+    expect(warn).not.toHaveBeenCalled();
+
+    await update(tree(false, 'document'));
+    await update(tree(true, 'document'));
+    await settle();
+    expect(warnings()).toHaveLength(1);
+    expect(warnings()[0]).toContain('"shortcutsInEditable"');
+
+    warn.mockClear();
+    await update(tree(true, 'root'));
+    await update(tree(true, 'document'));
+    await settle();
+    expect(warnings()).toHaveLength(1);
+    expect(warnings()[0]).toContain('"shortcutScope"');
+  });
+
   it('a shortcutAction prop change after mount warns once that the option is read at mount', async () => {
     using warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const tree = (shortcutAction: 'direct' | 'select'): ReactNode => (
