@@ -23,6 +23,8 @@ const initOnlyValues = (o: CommandMachineOptions): unknown[] => [
   o.searchEngine,
   typeof o.filter === 'function',
   o.open,
+  o.shortcutScope,
+  o.shortcutsInEditable,
 ];
 const INIT_ONLY = [
   'shortcutAction',
@@ -32,6 +34,8 @@ const INIT_ONLY = [
   'searchEngine',
   'filter',
   'open',
+  'shortcutScope',
+  'shortcutsInEditable',
 ];
 
 export interface UseCommandSetupReturn {
