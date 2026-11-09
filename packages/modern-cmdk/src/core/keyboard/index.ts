@@ -2,7 +2,7 @@
 // Keyboard shortcut registry — `using` for listener cleanup
 
 import type { ItemId } from '../types.js';
-import { detectConflicts, pickMatch } from './matcher.js';
+import { detectConflicts, matchShortcut } from './matcher.js';
 import type { ParsedShortcut } from './parser.js';
 import { parseShortcut } from './parser.js';
 
@@ -158,11 +158,10 @@ export class KeyboardShortcutRegistry implements Disposable {
       if (this.#inRoot && !(this.#root && path.includes(this.#root))) return;
 
       // The later binding of every key competes; a key match beats a code match (see pickMatch)
-      const stacks = this.#bindings
-        .values()
-        .map((stack) => stack.at(-1) as ShortcutBinding)
-        .toArray();
-      const binding = pickMatch(event, stacks, (b) => b.shortcut);
+      const winners = [...this.#bindings.values()].map((stack) => stack.at(-1) as ShortcutBinding);
+      const pick = (byCode: boolean): ShortcutBinding | undefined =>
+        winners.find((b) => matchShortcut(event, b.shortcut, byCode));
+      const binding = pick(false) ?? pick(true);
       if (binding) {
         event.preventDefault();
         event.stopPropagation();
