@@ -1,8 +1,9 @@
 /* modern-cmdk/react — tokens, item and list transitions, dialog and overlay enter transitions and
    exit keyframe animations.
-   Compositor-only: the dialog and overlay opacity, scale and translate, the scroll indicator's
-   scale, the fade edges' opacity. Not compositor-only: the list height, the item
-   background-color, the overlay tint (it runs through --command-overlay-opacity). */
+   Compositor-only: the dialog's opacity, scale and translate, the overlay's opacity, the
+   page-enter slide's opacity and translate, the scroll indicator's scale, the fade edges' opacity,
+   the loading dot's opacity. Not compositor-only: the list height, the item background-color, the
+   overlay tint (it runs through --command-overlay-opacity). */
 /* Also: scroll-driven animations (gated by @supports), WCAG 2.1 AA forced-colors, prefers-contrast
    and prefers-reduced-motion, logical properties for RTL/LTR (:dir(rtl) covers the two physical
    cases: the scroll indicator's transform-origin and the page-enter slide), nesting, @layer,
@@ -119,7 +120,7 @@
     --command-muted-color: light-dark(oklch(0.45 0.015 260), oklch(0.75 0.015 260));
   }
 
-  /* ─── Screen Reader Only (for Radix Title/Description) ─── */
+  /* ─── Screen Reader Only (Radix Title/Description, the status region) ─── */
   /* Deprecated: the class is removed in 2.0. clip-path replaces the deprecated clip property. */
 
   .sr-only {
@@ -345,8 +346,12 @@
   }
 
   /* The exit is a keyframe animation: Radix Presence keeps the closed node mounted until its
-     animationend, which a transition does not fire. The implicit from is the node's own value. */
+     animationend, which a transition does not fire. The keyframes have an implicit from, the
+     node's own value, and the registered --command-overlay-opacity would fall back to its initial
+     0 once the open rule stops matching, so the closed rule holds the open value 0.4 and the tint
+     fades from there. */
   [data-command-overlay][data-state="closed"] {
+    --command-overlay-opacity: 0.4;
     animation: command-overlay-exit var(--command-duration-exit) var(--command-easing-exit) forwards;
   }
 
@@ -380,6 +385,8 @@
 
   /* Exit animation — quicker, no spring overshoot */
   [data-command-dialog][data-state="closed"] {
+    --command-dialog-scale: 1;
+    --command-dialog-translate: 0px;
     animation: command-dialog-exit var(--command-duration-exit) var(--command-easing-exit) forwards;
   }
 
