@@ -185,3 +185,87 @@ describe('keymap', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 });
+
+/** The keyboardScope prop, reached through a cast until the prop exists on the root. */
+const COMBOBOX = { keyboardScope: 'combobox' } as object;
+
+/** An inline palette with a button next to the input; `props` reach the root. */
+function buttonPalette(onSelect: (id: string) => void, props: object = {}): ReactNode {
+  return (
+    <Command {...props}>
+      <Command.Input />
+      <button type="button" id="nested">
+        nested
+      </button>
+      <Command.List>
+        {['a', 'b', 'c'].map((id) => (
+          <Command.Item key={id} value={id} forceId={id} onSelect={() => onSelect(id)}>
+            {id}
+          </Command.Item>
+        ))}
+      </Command.List>
+    </Command>
+  );
+}
+
+const nestedButton = (): HTMLButtonElement => {
+  const button = container?.querySelector<HTMLButtonElement>('#nested');
+  if (!button) throw new Error('no nested button rendered');
+  return button;
+};
+
+describe('keymap scope and attachment', () => {
+  it('A11Y-16: keyboardScope combobox ignores Enter on a button inside the palette', async () => {
+    const onSelect = vi.fn();
+    await mount(buttonPalette(onSelect, COMBOBOX));
+    expect(activeItem()).toBe('a');
+
+    const onButton = await press(nestedButton(), 'Enter');
+    expect(onButton.defaultPrevented).toBe(false);
+    expect(onSelect).not.toHaveBeenCalled();
+
+    const onInput = await press(inputOf(), 'Enter');
+    expect(onInput.defaultPrevented).toBe(true);
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith('a');
+  });
+
+  it('A11Y-16: the root scope warns once per root when a key is handled from a nested button', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      await mount(buttonPalette(vi.fn()));
+      const space = await press(nestedButton(), ' ');
+      expect(space.defaultPrevented).toBe(false);
+      await press(inputOf(), 'ArrowDown');
+      expect(warn).not.toHaveBeenCalled();
+
+      await press(nestedButton(), 'Enter');
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]?.[0])).toContain('keyboardScope="combobox"');
+      await press(nestedButton(), 'ArrowDown');
+      expect(warn).toHaveBeenCalledTimes(1);
+
+      warn.mockClear();
+      await act(async () => {
+        root?.unmount();
+      });
+      root = undefined;
+      await mount(buttonPalette(vi.fn(), COMBOBOX));
+      await press(nestedButton(), 'Enter');
+      await press(inputOf(), 'ArrowDown');
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('RA-57: a React ancestor that stops the keydown propagation does not silence the palette', async () => {
+    await mount(
+      // biome-ignore lint/a11y/noStaticElementInteractions: a stand-in for a consumer ancestor
+      <div onKeyDown={(event): void => event.stopPropagation()}>{palette(vi.fn())}</div>,
+    );
+    expect(activeItem()).toBe('a');
+    const event = await press(inputOf(), 'ArrowDown');
+    expect(event.defaultPrevented).toBe(true);
+    expect(activeItem()).toBe('b');
+  });
+});
