@@ -182,6 +182,60 @@ describe('C4 display order: core', () => {
     // The disabled item is listed but never reached: the walk skips it
     expect(await walk(m, 1)).toEqual(ids('a1', 'a1'));
   });
+
+  it('C4: the active item after a filter is the first displayed enabled item', async () => {
+    const items = (disableA1: boolean): CommandItem[] =>
+      itemsOf([
+        ['a1', 'gA', disableA1],
+        ['a2', 'gA'],
+        ['b1', 'gB'],
+        ['b2', 'gB'],
+      ]);
+    const firstDisplayedEnabled = (m: CommandMachine): ItemId | undefined =>
+      getDisplayIds(m.getState()).find((id) => m.getRegistry().getItem(id)?.disabled !== true);
+
+    // A disabled best match: gA is displayed first, so its first enabled item wins, not b1
+    {
+      using m = createCommandMachine({
+        items: items(true),
+        groups: [{ id: groupId('gA') }, { id: groupId('gB') }],
+        filter: scoring({ a1: 9, b1: 8, a2: 7, b2: 6 }),
+      });
+      await searchScored(m);
+      expect(m.getState().filteredIds).toEqual(ids('a1', 'b1', 'a2', 'b2'));
+      expect(getDisplayIds(m.getState())).toEqual(ids('a1', 'a2', 'b1', 'b2'));
+      expect(m.getState().activeId).toBe(firstDisplayedEnabled(m));
+      expect(m.getState().activeId).toBe(itemId('a2'));
+    }
+    // A set priority: gA (-1) is displayed first although b1 ranks first
+    {
+      using m = createCommandMachine({
+        items: items(false),
+        groups: [{ id: groupId('gA'), priority: -1 }, { id: groupId('gB') }],
+        filter: scoring({ b1: 9, b2: 8, a1: 3, a2: 2 }),
+      });
+      await searchScored(m);
+      expect(m.getState().filteredIds).toEqual(ids('b1', 'b2', 'a1', 'a2'));
+      expect(getDisplayIds(m.getState())).toEqual(ids('a1', 'a2', 'b1', 'b2'));
+      expect(m.getState().activeId).toBe(firstDisplayedEnabled(m));
+      expect(m.getState().activeId).toBe(itemId('a1'));
+    }
+    // A controlled activeId hears the same candidate after the query
+    {
+      const onActiveChange = vi.fn();
+      using m = createCommandMachine({
+        items: items(true),
+        groups: [{ id: groupId('gA') }, { id: groupId('gB') }],
+        filter: scoring({ a1: 9, b1: 8, a2: 7, b2: 6 }),
+        activeId: null,
+        onActiveChange,
+      });
+      await searchScored(m);
+      expect(firstDisplayedEnabled(m)).toBe(itemId('a2'));
+      expect(onActiveChange).toHaveBeenLastCalledWith(firstDisplayedEnabled(m));
+      expect(onActiveChange).not.toHaveBeenCalledWith(itemId('b1'));
+    }
+  });
 });
 
 // -------------------------------------------------------------------------------------------------
