@@ -4,20 +4,12 @@
 import { mapGroupBy } from '../utils/group-by.js';
 import type { ParsedShortcut } from './parser.js';
 
-/** The eleven US punctuation codes and the key each stands for */
-const PUNCTUATION: Readonly<Record<string, string>> = {
-  Backquote: '`',
-  Minus: '-',
-  Equal: '=',
-  BracketLeft: '[',
-  BracketRight: ']',
-  Backslash: '\\',
-  Semicolon: ';',
-  Quote: "'",
-  Comma: ',',
-  Period: '.',
-  Slash: '/',
-};
+/** The eleven US punctuation codes; each stands for the character of PUNCTUATION_KEYS at its index */
+const PUNCTUATION_CODES =
+  'Backquote Minus Equal BracketLeft BracketRight Backslash Semicolon Quote Comma Period Slash'.split(
+    ' ',
+  );
+const PUNCTUATION_KEYS = "`-=[]\\;',./";
 
 /**
  * Whether the physical key (`event.code`) stands for the shortcut's key when `event.key` does not: a layout
@@ -33,7 +25,8 @@ function matchesCode(event: KeyboardEvent, key: string): boolean {
     (/^(Digit\d|Space)$/.test(code) || !/^[ -~]$/.test(event.key)) &&
     (code === 'Space'
       ? 'space'
-      : (/^(?:Key|Digit)(.)$/.exec(code)?.[1]?.toLowerCase() ?? PUNCTUATION[code])) === key
+      : (/^(?:Key|Digit)(.)$/.exec(code)?.[1]?.toLowerCase() ??
+        PUNCTUATION_KEYS[PUNCTUATION_CODES.indexOf(code)])) === key
   );
 }
 
