@@ -1548,5 +1548,20 @@
     "id": "RA-83",
     "test": null,
     "status": "pending"
+  },
+  {
+    "id": "RA-88",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-89",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-76",
+    "test": "tests/e2e/playground.spec.ts::PG-27: count=Infinity and a huge count fall back to a bounded list",
+    "status": "covered"
   }
 ]
