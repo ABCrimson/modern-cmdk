@@ -3,16 +3,19 @@
 // The dialog is modal (Radix's default): while it is open Radix hides the rest of the page from
 // assistive technology with aria-hidden on the content's siblings (hideOthers), traps focus in the
 // content and locks scroll (RemoveScroll)
+// The palette's keys are handled from Dialog.Content only, and closing the dialog returns focus to
+// the element that was focused when it opened
 // styles.css declares @starting-style entries for the overlay and the content; they are inert
 // until DT-19
 // Isolated declarations: explicit return types on all exports
 
 import type { CommandMachineOptions } from 'modern-cmdk';
 import { Dialog } from 'radix-ui';
-import type { ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommandSetup } from './hooks/use-command-setup.js';
+import { handleRootKeyDown } from './hooks/use-keyboard.js';
 
 export interface CommandDialogProps extends CommandMachineOptions {
   readonly children?: ReactNode | undefined;
@@ -38,6 +41,12 @@ export interface CommandDialogProps extends CommandMachineOptions {
   readonly description?: string | undefined;
   /** Container element for the portal (default: document.body) */
   readonly container?: HTMLElement | null | undefined;
+  /**
+   * Where the palette's keys are handled. `'root'` (the default) handles them from any element inside
+   * `Dialog.Content`; `'combobox'` only from `Command.Input`. In development, `'root'` warns once when it
+   * handles a key from another interactive element.
+   */
+  readonly keyboardScope?: 'root' | 'combobox' | undefined;
 }
 
 /** Dialog variant that wraps the command palette in a Radix UI Dialog with focus trap and overlay. */
@@ -51,6 +60,7 @@ export function CommandDialog({
   open: controlledOpen,
   onOpenChange,
   container,
+  keyboardScope,
   ...machineOptions
 }: CommandDialogProps): ReactNode {
   // The machine reads `open` once, at construction, and the effect below makes it follow the prop afterwards, so
@@ -83,19 +93,21 @@ export function CommandDialog({
     label,
   );
 
-  // One value for Dialog.Root, both data-state attributes and the keydown listener
+  // One value for Dialog.Root, both data-state attributes and the focus record
   const open = controlledOpen ?? state.open;
 
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Keyboard listener — only when dialog is open
-  useEffect(() => {
+  // The element that had focus when the dialog opened, found through open shadow roots. Radix has no
+  // trigger to restore focus to, so onCloseAutoFocus does it. FocusScope's container is state, so its
+  // own autofocus runs in a later commit and this layout effect still sees the opener.
+  const opener = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
     if (!open) return;
-    document.addEventListener('keydown', handleKeyDown);
-    return (): void => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handleKeyDown, open]);
+    let active = document.activeElement;
+    while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+    opener.current = active as HTMLElement | null;
+  }, [open]);
 
   // A controlled dialog's machine follows the prop. Each committed machine state is a dependency, so that a state the
   // prop did not ask for is put back after it is reported, also when another request lands in the put-back frame and
@@ -112,6 +124,13 @@ export function CommandDialog({
   const handleOpenAutoFocus = useCallback((e: Event): void => {
     e.preventDefault();
     contentRef.current?.querySelector<HTMLElement>('[data-command-input]')?.focus();
+  }, []);
+
+  // Focus returns to the opener when it is still connected; Radix's own restore targets a trigger this
+  // dialog does not have
+  const handleCloseAutoFocus = useCallback((e: Event): void => {
+    e.preventDefault();
+    if (opener.current?.isConnected) opener.current.focus();
   }, []);
 
   // Radix reports the user's request to open or close the dialog. A controlled dialog hands it to the consumer and
@@ -151,7 +170,12 @@ export function CommandDialog({
           data-state={open ? 'open' : 'closed'}
           className={className}
           aria-label={label}
+          aria-modal="true"
+          onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) =>
+            handleRootKeyDown(e, handleKeyDown, keyboardScope)
+          }
           onOpenAutoFocus={handleOpenAutoFocus}
+          onCloseAutoFocus={handleCloseAutoFocus}
         >
           <Dialog.Title className="sr-only">{label}</Dialog.Title>
           <Dialog.Description className="sr-only">{description}</Dialog.Description>

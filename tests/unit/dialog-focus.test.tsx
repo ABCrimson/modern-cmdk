@@ -4,12 +4,13 @@
 // inside a shadow root), and the content is marked modal.
 
 import type { CommandMachine } from 'modern-cmdk';
+import type { CommandDialogProps } from 'modern-cmdk/react';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
 import { act, use, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;
@@ -109,7 +110,7 @@ function Controlled({
   readonly keepOpen?: boolean;
   readonly onOpenChange?: (open: boolean) => void;
   readonly opener?: ReactNode;
-  readonly props?: object;
+  readonly props?: Pick<CommandDialogProps, 'keyboardScope'>;
 }): ReactNode {
   const [open, setOpen] = useState(initialOpen);
   if (parent) parent.setOpen = setOpen;
@@ -131,6 +132,38 @@ function Controlled({
 }
 
 describe('Command.Dialog keys, scope and focus', () => {
+  it('C3: ArrowDown with focus on Dialog.Content moves the active item', async () => {
+    await mount(<Controlled />);
+    await settle();
+    const content = query<HTMLElement>('[data-command-dialog]');
+    content.focus();
+    expect(document.activeElement).toBe(content);
+    expect(activeText()).toBe('Alpha');
+
+    const event = await press(content, 'ArrowDown');
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(activeText()).toBe('Bravo');
+  });
+
+  it("A11Y-17: Escape inside the dialog is handled once, by Radix; the palette's handler sees defaultPrevented and returns", async () => {
+    const onOpenChange = vi.fn();
+    const probe = new MachineProbe();
+    // The parent refuses to close: a CLOSE the palette sent itself would be a second report
+    await mount(<Controlled probe={probe} onOpenChange={onOpenChange} keepOpen />);
+    await settle();
+    const input = query<HTMLInputElement>('[data-command-input]');
+    input.focus();
+
+    using send = vi.spyOn(probe.current, 'send');
+    const event = await press(input, 'Escape');
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(onOpenChange.mock.calls).toEqual([[false]]);
+    expect(send.mock.calls.map(([sent]) => sent.type)).not.toContain('CLOSE');
+    expect(probe.current.getState().open).toBe(true);
+  });
+
   it('A11Y-02: closing the dialog returns focus to the element that opened it', async () => {
     const parent = { setOpen: (_open: boolean): void => undefined };
     await mount(
@@ -213,8 +246,7 @@ describe('Command.Dialog keys, scope and focus', () => {
   });
 
   it('C3: with keyboardScope="combobox", ArrowDown on Dialog.Content does nothing while ArrowDown on the input moves', async () => {
-    // The cast carries the prop until CommandDialogProps declares it
-    await mount(<Controlled props={{ keyboardScope: 'combobox' } as object} />);
+    await mount(<Controlled props={{ keyboardScope: 'combobox' }} />);
     await settle();
     const content = query<HTMLElement>('[data-command-dialog]');
     content.focus();
