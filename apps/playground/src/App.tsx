@@ -17,7 +17,7 @@ import { ErrorBoundaryDemo } from './demos/ErrorBoundaryDemo.js';
 import { HighContrastDemo } from './demos/HighContrastDemo.js';
 import { RTLDemo } from './demos/RTLDemo.js';
 import { VirtualizedDemo } from './demos/VirtualizedDemo.js';
-import { readTheme, setTheme as storeTheme, type Theme } from './theme.js';
+import { readTheme, storeTheme, type Theme } from './theme.js';
 
 type Route =
   | '/'

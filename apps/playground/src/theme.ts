@@ -1,7 +1,7 @@
 // apps/playground/src/theme.ts
 // The playground theme lives in one place: the `data-theme` attribute on <html>. The CSS keys off
 // it, `applyInitialTheme` sets it once before the first render, `readTheme` reads it back, and
-// `setTheme` writes it and remembers the choice in localStorage.
+// `storeTheme` writes it and remembers the choice in localStorage.
 
 export type Theme = 'dark' | 'light';
 
@@ -43,7 +43,7 @@ export function applyInitialTheme(): void {
  * Applies `theme` to `<html data-theme>` and stores it. A storage failure (SecurityError,
  * QuotaExceededError) is swallowed: the theme still applies for this page, it just is not kept.
  */
-export function setTheme(theme: Theme): void {
+export function storeTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
   try {
     globalThis.localStorage.setItem(STORAGE_KEY, theme);
