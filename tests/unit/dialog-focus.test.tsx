@@ -82,10 +82,16 @@ const activeText = (): string | null =>
   document.querySelector('[data-command-item][data-active]')?.textContent ?? null;
 
 /** The dialog's children: an input and three items. */
-const Palette = ({ probe }: { readonly probe?: MachineProbe | undefined }): ReactNode => (
+const Palette = ({
+  probe,
+  autoFocus,
+}: {
+  readonly probe?: MachineProbe | undefined;
+  readonly autoFocus?: boolean | undefined;
+}): ReactNode => (
   <>
     {probe ? <probe.Probe /> : null}
-    <Command.Input />
+    <Command.Input autoFocus={autoFocus} />
     <Command.List>
       <Command.Item value="alpha">Alpha</Command.Item>
       <Command.Item value="bravo">Bravo</Command.Item>
@@ -103,6 +109,7 @@ function Controlled({
   onOpenChange,
   opener,
   props,
+  autoFocus,
 }: {
   readonly parent?: { setOpen: (open: boolean) => void };
   readonly initialOpen?: boolean;
@@ -111,6 +118,7 @@ function Controlled({
   readonly onOpenChange?: (open: boolean) => void;
   readonly opener?: ReactNode;
   readonly props?: Pick<CommandDialogProps, 'keyboardScope'>;
+  readonly autoFocus?: boolean;
 }): ReactNode {
   const [open, setOpen] = useState(initialOpen);
   if (parent) parent.setOpen = setOpen;
@@ -125,7 +133,7 @@ function Controlled({
         }}
         {...props}
       >
-        <Palette probe={probe} />
+        <Palette probe={probe} autoFocus={autoFocus} />
       </Command.Dialog>
     </>
   );
@@ -170,6 +178,36 @@ describe('Command.Dialog keys, scope and focus', () => {
       <Controlled
         parent={parent}
         initialOpen={false}
+        opener={
+          <button type="button" id="opener">
+            Open
+          </button>
+        }
+      />,
+    );
+    const opener = query<HTMLButtonElement>('#opener');
+    opener.focus();
+    expect(document.activeElement).toBe(opener);
+    await act(async () => {
+      parent.setOpen(true);
+    });
+    await settle();
+    const input = query<HTMLInputElement>('[data-command-input]');
+    expect(document.activeElement).toBe(input);
+
+    await press(input, 'Escape');
+
+    expect(document.querySelector('[data-command-dialog]')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('A11Y-02: with an autoFocus input, closing the dialog returns focus to the element that opened it', async () => {
+    const parent = { setOpen: (_open: boolean): void => undefined };
+    await mount(
+      <Controlled
+        parent={parent}
+        initialOpen={false}
+        autoFocus
         opener={
           <button type="button" id="opener">
             Open
