@@ -35,10 +35,14 @@ function detectPlatform(): ShortcutPlatform {
     : 'other';
 }
 
-/** Modifier aliases; `mod` is resolved per platform in `parseShortcut` */
+/**
+ * Modifier aliases; `mod` is resolved per platform in `parseShortcut`. The null prototype keeps
+ * `constructor` and `__proto__` out of it, so those parts are plain keys.
+ */
 const MODIFIER_MAP: Readonly<
-  Record<string, keyof Pick<ParsedShortcut, 'meta' | 'ctrl' | 'shift' | 'alt'>>
+  Record<string, keyof Pick<ParsedShortcut, 'meta' | 'ctrl' | 'shift' | 'alt'> | null>
 > = {
+  __proto__: null,
   meta: 'meta',
   cmd: 'meta',
   command: 'meta',
