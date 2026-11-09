@@ -1361,8 +1361,8 @@
   },
   {
     "id": "A11Y-03",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/nav-order.test.tsx::A11Y-03: the listbox DOM order equals the keyboard navigation order",
+    "status": "covered"
   },
   {
     "id": "A11Y-20",
@@ -1416,8 +1416,8 @@
   },
   {
     "id": "RA-02",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/nav-order.test.tsx::RA-02: keyboard navigation follows the visible order of the list",
+    "status": "covered"
   },
   {
     "id": "RA-09",
@@ -1546,8 +1546,8 @@
   },
   {
     "id": "RA-88",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/order.spec.ts::RA-88: a virtual row renders at the virtualizer's pitch in every engine",
+    "status": "covered"
   },
   {
     "id": "RA-89",
