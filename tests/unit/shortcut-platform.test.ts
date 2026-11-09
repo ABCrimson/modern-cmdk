@@ -113,3 +113,27 @@ describe('platform detection without an argument', () => {
     expect(m.formatShortcut(m.parseShortcut('Mod+K'))).toBe('⌘K');
   });
 });
+
+describe('parseShortcut part names', () => {
+  it('RA-89: parseShortcut treats constructor and __proto__ as plain keys', () => {
+    // toString, hasOwnProperty and valueOf are guards: lower-casing already takes them off
+    // Object.prototype
+    for (const name of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf']) {
+      const key = name.toLowerCase();
+      expect(parseShortcut(name, 'other')).toMatchObject({
+        key,
+        meta: false,
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+      expect(parseShortcut(`Ctrl+${name}`, 'other')).toMatchObject({
+        key,
+        meta: false,
+        ctrl: true,
+        shift: false,
+        alt: false,
+      });
+    }
+  });
+});
