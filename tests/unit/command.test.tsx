@@ -927,15 +927,17 @@ describe('Command — React Compound Components', () => {
       expect(kbd?.textContent).toBe('Ctrl+K');
     });
 
-    it('should format shortcut string when shortcut prop is provided', async () => {
+    it('CMD-9: Command.Shortcut renders Shift+K off macOS and ⇧K on macOS', async () => {
       await render(<Command.Shortcut shortcut="Shift+K" />);
+      expect(container.querySelector('kbd')?.textContent).toBe('Shift+K');
 
-      const kbd = container.querySelector('kbd') as Element;
-      expect(kbd).not.toBeNull();
-      // formatShortcut produces platform-specific text; just check it rendered something
-      expect(kbd.textContent?.length).toBeGreaterThan(0);
-      // Should contain 'K' as the key
-      expect(kbd.textContent).toContain('K');
+      vi.stubGlobal('navigator', { platform: 'MacIntel' });
+      try {
+        await render(<Command.Shortcut key="mac" shortcut="Shift+K" />);
+        expect(container.querySelector('kbd')?.textContent).toBe('⇧K');
+      } finally {
+        vi.unstubAllGlobals();
+      }
     });
   });
 

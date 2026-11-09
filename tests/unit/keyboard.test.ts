@@ -48,11 +48,11 @@ describe('parseShortcut', () => {
     expect.soft(result.alt).toBe(expected.alt);
   });
 
-  it('should parse Mod+Key', () => {
-    const result = parseShortcut('Mod+K');
-    expect(result.key).toBe('k');
-    // Mod resolves to meta on Mac, ctrl on Windows
-    expect(result.meta || result.ctrl).toBe(true);
+  it('T43: Mod+K resolves to meta on mac and to ctrl elsewhere', () => {
+    const mac = parseShortcut('Mod+K', 'mac');
+    expect([mac.key, mac.meta, mac.ctrl]).toEqual(['k', true, false]);
+    const other = parseShortcut('Mod+K', 'other');
+    expect([other.key, other.meta, other.ctrl]).toEqual(['k', false, true]);
   });
 
   // Data-driven: single modifier tests
@@ -192,11 +192,13 @@ describe('findMatchingShortcut()', () => {
 });
 
 describe('detectConflicts', () => {
-  it('should detect duplicate bindings', () => {
+  it('TUB-48: detectConflicts reports the duplicated key with both bindings and not the unique one', () => {
     const shortcuts = [parseShortcut('Ctrl+K'), parseShortcut('Ctrl+K'), parseShortcut('Ctrl+J')];
 
     const conflicts = detectConflicts(shortcuts);
     expect(conflicts.size).toBe(1);
+    expect(conflicts.get('ctrl+k')).toHaveLength(2);
+    expect(conflicts.has('ctrl+j')).toBe(false);
   });
 
   it('should return empty map with no conflicts', () => {
@@ -268,6 +270,23 @@ describe('KeyboardShortcutRegistry conflicts (CE-08, DAE-32)', () => {
     expect(registry.getConflicts().size).toBe(0);
     press('k');
     expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it("TUB-18: a document keydown reaches a registry handler once, and none after setEnabled(false) or the binding's disposal", () => {
+    const handler = vi.fn();
+    using registry = new KeyboardShortcutRegistry();
+    const binding = registry.register('Ctrl+K', a, handler);
+    press('k');
+    expect(handler).toHaveBeenCalledTimes(1);
+    registry.setEnabled(false);
+    press('k');
+    expect(handler).toHaveBeenCalledTimes(1);
+    registry.setEnabled(true);
+    press('k');
+    expect(handler).toHaveBeenCalledTimes(2);
+    binding[Symbol.dispose]();
+    press('k');
+    expect(handler).toHaveBeenCalledTimes(2);
   });
 
   it('CE-08: the same item registered again under the same shortcut replaces its own binding and is no conflict', () => {
@@ -369,13 +388,15 @@ describe('KeyboardShortcutRegistry conflicts (CE-08, DAE-32)', () => {
 });
 
 describe('formatShortcut', () => {
-  it('should format simple key', () => {
-    const formatted = formatShortcut(parseShortcut('k'));
-    expect(formatted).toContain('K');
+  it('TUB-17: formatShortcut renders a lone key as its capital', () => {
+    expect(formatShortcut(parseShortcut('k'), 'other')).toBe('K');
+    expect(formatShortcut(parseShortcut('k', 'mac'), 'mac')).toBe('K');
   });
 
-  it('should format modifier+key', () => {
-    const formatted = formatShortcut(parseShortcut('Ctrl+K'));
-    expect(formatted.length).toBeGreaterThan(1);
+  it('TUB-17: formatShortcut renders Ctrl+K and Shift+K exactly on each platform', () => {
+    expect(formatShortcut(parseShortcut('Ctrl+K', 'other'), 'other')).toBe('Ctrl+K');
+    expect(formatShortcut(parseShortcut('Ctrl+K', 'mac'), 'mac')).toBe('⌃K');
+    expect(formatShortcut(parseShortcut('Shift+K', 'other'), 'other')).toBe('Shift+K');
+    expect(formatShortcut(parseShortcut('Shift+K', 'mac'), 'mac')).toBe('⇧K');
   });
 });
