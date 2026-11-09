@@ -9,7 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "16.5.0-canary.44",
+    "next": "16.5.0-canary.45",
     "radix-ui": "1.8.2-rc.1791984254107",
     "react": "0.0.0-experimental-5b610964-20261106",
     "react-dom": "0.0.0-experimental-5b610964-20261106"

@@ -62,22 +62,22 @@ trustPolicyExclude:
   - lefthook@2.2.2
   - semver@5.7.2
   - semver@6.3.1
-# Exact versions published less than minimumReleaseAge before the 2026-11-08 sweep install (pruned 2026-11-08 08:37 UTC);
+# Exact versions published less than minimumReleaseAge before the 2026-11-08 sweep install (pruned 2026-11-09 00:51 UTC: the canary.44 entries);
 # pnpm 12.18.0 refuses them otherwise. Entries age out of need after a day.
 minimumReleaseAgeExclude:
-  # next@16.5.0-canary.44 (the root devDependency for the docs-samples gate, TEB-84 and D57, and the tests/consumers/next-app pin) was
-  # published 2026-11-07T23:50:55Z (its @next/env and platform binaries 23:41-23:45Z), under the 24 h minimumReleaseAge at the
-  # 2026-11-08 bump from canary.43; with its @next/env and platform binaries. Drop after a day.
-  - next@16.5.0-canary.44
-  - '@next/env@16.5.0-canary.44'
-  - '@next/swc-darwin-arm64@16.5.0-canary.44'
-  - '@next/swc-darwin-x64@16.5.0-canary.44'
-  - '@next/swc-linux-arm64-gnu@16.5.0-canary.44'
-  - '@next/swc-linux-arm64-musl@16.5.0-canary.44'
-  - '@next/swc-linux-x64-gnu@16.5.0-canary.44'
-  - '@next/swc-linux-x64-musl@16.5.0-canary.44'
-  - '@next/swc-win32-arm64-msvc@16.5.0-canary.44'
-  - '@next/swc-win32-x64-msvc@16.5.0-canary.44'
+  # next@16.5.0-canary.45 (the root devDependency for the docs-samples gate, TEB-84 and D57, and the tests/consumers/next-app pin) was
+  # published 2026-11-08T23:55:42Z (its @next/env 23:48:44Z and platform binaries 23:47-23:48Z), under the 24 h minimumReleaseAge at the
+  # 2026-11-09 bump from canary.44; with its @next/env and platform binaries. Drop after a day.
+  - next@16.5.0-canary.45
+  - '@next/env@16.5.0-canary.45'
+  - '@next/swc-darwin-arm64@16.5.0-canary.45'
+  - '@next/swc-darwin-x64@16.5.0-canary.45'
+  - '@next/swc-linux-arm64-gnu@16.5.0-canary.45'
+  - '@next/swc-linux-arm64-musl@16.5.0-canary.45'
+  - '@next/swc-linux-x64-gnu@16.5.0-canary.45'
+  - '@next/swc-linux-x64-musl@16.5.0-canary.45'
+  - '@next/swc-win32-arm64-msvc@16.5.0-canary.45'
+  - '@next/swc-win32-x64-msvc@16.5.0-canary.45'
   # @playwright/test, playwright and playwright-core 1.66.0-alpha-2026-11-08 (dist-tag next-pending on all three; `next` still points at 1.66.0-alpha-1793916328000 for
   # @playwright/test and playwright and at 1.66.0-alpha-2026-11-06 for playwright-core; published 2026-11-08T05:16:11Z, 05:16:27Z and 05:25:16Z) were under the
   # 24 h minimumReleaseAge at the 2026-11-08 bump from 1.66.0-alpha-2026-11-07 (the lockfile re-resolves playwright and playwright-core to the same build). Drop after a day.
