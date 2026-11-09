@@ -281,8 +281,8 @@ export function createCommandMachine(options: CommandMachineOptions = {}): Creat
     // Navigation list: the enabled items of the display order (disabled ones are never active)
     navIds = getDisplayIds({ groupedIds }).filter(isEnabled);
 
-    // Keep the active item while it is still listed and enabled, else the first enabled one in the
-    // display order (the first enabled item of the best match's group when that match is disabled)
+    // Keep the active item while it is still listed and enabled, else the first enabled one of the
+    // display order
     const current = currentActiveId();
     const candidate =
       current && filteredIdSet.has(current) && isEnabled(current) ? current : (navIds[0] ?? null);
