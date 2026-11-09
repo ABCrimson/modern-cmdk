@@ -34,8 +34,9 @@ const TOKENS = [
   '--command-muted-color',
 ] as const;
 
-/** Chromium serializes the reduced-motion clamp of 0.01ms in seconds. */
-const CLAMPED_DURATION = '1e-05s';
+/** The reduced-motion clamp, 0.01 ms, in seconds (Chromium serializes it as 1e-05s, Firefox and
+    WebKit as 0.00001s), so the cases compare numbers. */
+const CLAMPED_SECONDS = 0.00001;
 
 const DIALOG = '[data-command-dialog]';
 const OVERLAY = '[data-command-overlay]';
@@ -390,13 +391,13 @@ test.describe('Stylesheet — bare page', { tag: '@styles' }, () => {
     for (const [selector, pseudo] of inside) {
       const label = `${selector}${pseudo ?? ''}`;
       expect(
-        await computed(page, selector, 'transition-duration', pseudo),
+        Number.parseFloat(await computed(page, selector, 'transition-duration', pseudo)),
         `${label} transition`,
-      ).toBe(CLAMPED_DURATION);
+      ).toBe(CLAMPED_SECONDS);
       expect(
-        await computed(page, selector, 'animation-duration', pseudo),
+        Number.parseFloat(await computed(page, selector, 'animation-duration', pseudo)),
         `${label} animation`,
-      ).toBe(CLAMPED_DURATION);
+      ).toBe(CLAMPED_SECONDS);
     }
   });
 
