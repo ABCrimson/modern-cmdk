@@ -241,7 +241,8 @@ export function useCommandSetup(
   // has not heard of is reported once. The re-activation's report comes inside its batch, before
   // the machine's state change; the first state change after the send ends the mark, so a
   // re-activation the machine ignored (the item is not registered) swallows no later report. A
-  // re-activation and an activation of the same re-added item in one batch are not told apart.
+  // re-activation and the consumer's activation of the re-added item in one batch report the item
+  // once.
   // StrictMode's replay finds the held item still active, sends nothing and clears `fwd.held`.
   useLayoutEffect(() => {
     machine.resume?.();
