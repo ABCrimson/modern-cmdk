@@ -244,6 +244,11 @@
   [data-command-list-virtual] {
     position: relative;
     will-change: transform;
+
+    /* Windowed rows sit on the virtualizer pitch: no intrinsic placeholder size */
+    & [data-command-item] {
+      content-visibility: visible;
+    }
   }
 
   /* ─── Group ─── */
