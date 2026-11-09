@@ -1356,8 +1356,8 @@
   },
   {
     "id": "A11Y-01",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/styles.spec.ts::A11Y-01: Command.Dialog lays out at its token max width",
+    "status": "covered"
   },
   {
     "id": "A11Y-03",
@@ -1376,8 +1376,8 @@
   },
   {
     "id": "DT-19",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/styles.spec.ts::DT-19: the dialog, overlay and content resolve every --command token",
+    "status": "covered"
   },
   {
     "id": "T22",
@@ -1391,8 +1391,8 @@
   },
   {
     "id": "RC-2",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/styles.spec.ts::RC-2: the scroll indicator grows from the inline start",
+    "status": "covered"
   },
   {
     "id": "PG-01",
@@ -1426,18 +1426,18 @@
   },
   {
     "id": "RA-10",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/styles.spec.ts::RA-10: the overlay's backdrop blur and the dialog radius apply",
+    "status": "covered"
   },
   {
     "id": "RA-11",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/styles.spec.ts::RA-11: Command.Dialog plays its exit animation before unmounting",
+    "status": "covered"
   },
   {
     "id": "RA-12",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/styles.spec.ts::RA-12: the reduced-motion rule leaves the host page's transitions alone",
+    "status": "covered"
   },
   {
     "id": "RA-14",
@@ -1516,8 +1516,8 @@
   },
   {
     "id": "A11Y-33",
-    "test": null,
-    "status": "pending"
+    "test": "tests/e2e/styles.spec.ts::A11Y-33: the page-enter slide follows dir=rtl",
+    "status": "covered"
   },
   {
     "id": "RA-37",
