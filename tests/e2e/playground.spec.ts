@@ -247,8 +247,11 @@ test.describe('Virtualized demo', () => {
     page,
     browserName,
   }) => {
-    // Firefox mounts the capped 100,000-item list in 4.7 s (Chromium 2.2 s; measured 2026-11-09,
-    // with the fixture's timeStamp stub), so the four opens can pass 15 s under load
+    // Firefox mounts the capped 100,000-item list in 14.03 s without the fixture's timeStamp stub
+    // and in 4.67 s with it, Chromium in 2.23 s (measured 2026-11-09). One cause is React's
+    // development build, which calls console.timeStamp once per rendered component; the shared
+    // fixture stubs it in Firefox. The other is by design: the demo renders and registers all N
+    // Command.Item components, which both engines pay.
     test.slow(browserName === 'firefox', 'the capped 100,000-item mount is slow in Firefox');
     const badge = page.locator('.demo-title .demo-badge');
 
