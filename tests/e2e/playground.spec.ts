@@ -104,6 +104,8 @@ test.describe('RTL demo', () => {
     await open(page, '/rtl');
     const palette = page.locator('.rtl-container');
     await palette.getByRole('combobox').fill('نسخ');
+    // The filter has applied once exactly one option is left; on the defect none is left
+    await expect(palette.getByRole('option')).toHaveCount(1);
     await expect(palette.getByRole('option', { name: 'نسخ' })).toBeVisible();
     await expect(palette.getByRole('option', { name: 'لصق' })).toHaveCount(0);
   });
@@ -121,14 +123,15 @@ test.describe('All States demo', () => {
     await expect(loading).toHaveText('Searching...');
   });
 
-  test.describe('at 360 px', () => {
+  test.describe('at narrow viewports', () => {
     test.use({ viewport: { width: 360, height: 800 } });
 
-    test('PG-28: the states grid fits a 360 px viewport', async ({ page }) => {
+    test('PG-28: the states grid fits 360 px and 320 px viewports', async ({ page }) => {
       await open(page, '/all-states');
       const grid = page.locator('.states-grid');
       await expect(grid).toBeVisible();
-      // 360 px is the nominal width; 320 px is where a 300 px column floor no longer fits
+      // 360 px is the nominal width; 320 px is well under the 348 px below which a 300 px column
+      // floor overflows (the base's grid is 292/300 at 340 px)
       for (const width of [360, 320]) {
         await page.setViewportSize({ width, height: 800 });
         await settleFrames(page);
@@ -248,6 +251,13 @@ test.describe('Virtualized demo', () => {
 
     await open(page, '/virtualization?count=1000000');
     await expect(badge).toHaveText('100,000 items');
+
+    // 1e6 is not a decimal integer, so it takes the default; one item is singular
+    await open(page, '/virtualization?count=1e6');
+    await expect(badge).toHaveText('10,000 items');
+
+    await open(page, '/virtualization?count=1');
+    await expect(badge).toHaveText('1 item');
   });
 
   test('PG-57: the virtualized demo renders its last selection', async ({ page }) => {
@@ -306,6 +316,11 @@ test.describe('Theme', () => {
       document.documentElement.dataset.theme = 'light';
     });
     expect(await colorScheme()).toBe('light');
+
+    await expect(page.locator('meta[name="color-scheme"]')).toHaveAttribute(
+      'content',
+      'dark light',
+    );
   });
 
   test.describe('with the OS in dark mode', () => {
