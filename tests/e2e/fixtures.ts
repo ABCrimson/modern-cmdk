@@ -58,10 +58,17 @@ export { expect };
  *    command root is no signal, because `/dialog` renders none until its trigger is clicked.
  * 3. `document.fonts.ready` resolves: a second guard for any font a rendered element still
  *    requests (a family no FontFace preloaded). Such a load starts only once the text exists, so
- *    this follows step 2; with the preloaded fonts it resolves at once.
+ *    this follows step 2; with the preloaded fonts it resolves at once. `{ fontsReady: false }`
+ *    skips it, for a case that must see a late font swap.
  */
-export async function open(page: Page, path: string): Promise<void> {
+export async function open(
+  page: Page,
+  path: string,
+  { fontsReady = true }: { fontsReady?: boolean } = {},
+): Promise<void> {
   await page.goto(path);
   await expect(page.locator('.demo-container')).toBeVisible();
-  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  if (fontsReady) {
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  }
 }

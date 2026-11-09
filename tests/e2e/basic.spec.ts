@@ -325,3 +325,22 @@ test('TEB-104: no e2e request leaves the playground origin', async ({
   }
   expect(offOriginRequests, 'requests left the playground origin').toEqual([]);
 });
+
+test('TEB-104: both font faces are loaded when the first demo renders', async ({ page }) => {
+  await page.addInitScript(() => {
+    const probe = globalThis as unknown as { __loadedFaces?: string[] };
+    const observer = new MutationObserver(() => {
+      if ((document.getElementById('root')?.childElementCount ?? 0) === 0) return;
+      probe.__loadedFaces = [...document.fonts]
+        .filter((face) => face.status === 'loaded')
+        .map((face) => face.family.replaceAll('"', ''));
+      observer.disconnect();
+    });
+    observer.observe(document, { childList: true, subtree: true });
+  });
+  await open(page, '/virtualization?count=2000');
+  const loaded = await page.evaluate(
+    () => (globalThis as unknown as { __loadedFaces?: string[] }).__loadedFaces,
+  );
+  expect([...new Set(loaded)].sort()).toEqual(['Inter Variable', 'JetBrains Mono Variable']);
+});

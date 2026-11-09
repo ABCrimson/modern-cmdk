@@ -535,8 +535,8 @@ async function hoverEveryVisibleRow(page: Page): Promise<number> {
 }
 
 // Navigates to the virtualized demo once the test has registered its routes, and waits for a row.
-async function openVirtualizedDemo(page: Page): Promise<void> {
-  await open(page, virtualizationUrl);
+async function openVirtualizedDemo(page: Page, options?: { fontsReady?: boolean }): Promise<void> {
+  await open(page, virtualizationUrl, options);
   await expect(page.locator('[data-command-item]').first()).toBeVisible();
 }
 
@@ -552,8 +552,8 @@ test.describe('Virtualization — scroll to the active row (CE-119)', { tag: '@v
   });
 
   // A late font swap moves the rows between the position read and the pointer move. The fonts load
-  // before the first render, so holding every font response cannot move a row; the fonts.ready wait
-  // of open() is a second guard.
+  // before the first render, so holding every font response cannot move a row. This case skips the
+  // fonts wait of open() so that a late swap would reach the pointer.
   test('TEB-104: the CE-119 hover case passes without a per-describe fonts wait', async ({
     page,
   }) => {
@@ -561,7 +561,7 @@ test.describe('Virtualization — scroll to the active row (CE-119)', { tag: '@v
       await new Promise((r) => setTimeout(r, 300));
       await route.continue();
     });
-    await openVirtualizedDemo(page);
+    await openVirtualizedDemo(page, { fontsReady: false });
     expect(await hoverEveryVisibleRow(page)).toBeGreaterThan(3);
   });
 
