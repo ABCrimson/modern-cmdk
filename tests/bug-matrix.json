@@ -1558,5 +1558,15 @@
     "id": "PG-76",
     "test": "tests/e2e/playground.spec.ts::PG-27: count=Infinity and a huge count fall back to a bounded list",
     "status": "covered"
+  },
+  {
+    "id": "RA-90",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "PG-77",
+    "test": null,
+    "status": "pending"
   }
 ]
