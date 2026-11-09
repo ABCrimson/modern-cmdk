@@ -111,7 +111,7 @@
               "level": "error",
               "options": {
                 "available": "newly",
-                "allowProperties": ["clip", "user-select"]
+                "allowProperties": ["user-select"]
               }
             }
           }
