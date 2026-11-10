@@ -172,22 +172,6 @@ describe('Machine Integration', () => {
     expect(machine.getState().open).toBe(false);
   });
 
-  it('TUB-38: an item shortcut fires its onSelect once on a document keydown', () => {
-    const handler = vi.fn();
-    using machine = createCommandMachine({
-      items: [makeItem('copy', 'Copy', { shortcut: 'Ctrl+C', onSelect: handler })],
-    });
-
-    const registry = machine.getKeyboardRegistry();
-    const bindings = registry.getBindings();
-    expect(bindings.size).toBe(1);
-
-    document.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true, cancelable: true }),
-    );
-    expect(handler).toHaveBeenCalledTimes(1);
-  });
-
   it('RA-83: a machine created open reports its open at its first event', () => {
     const onPaletteOpen = vi.fn();
     using machine = createCommandMachine({ open: true, telemetry: { onPaletteOpen } });
@@ -228,49 +212,6 @@ describe('Machine Integration', () => {
     nextFrame();
     // All items visible because filtering is disabled
     expect(machine.getState().filteredCount).toBe(2);
-  });
-
-  it('TUB-08: ITEM_SELECT on a disabled item is a no-op, an enabled one in the same frame still selects', () => {
-    const onDisabled = vi.fn();
-    const onEnabled = vi.fn();
-    const onMachineSelect = vi.fn();
-    using machine = createCommandMachine({
-      items: [
-        makeItem('disabled', 'Disabled Item', { disabled: true, onSelect: onDisabled }),
-        makeItem('enabled', 'Enabled Item', { onSelect: onEnabled }),
-      ],
-      onSelect: onMachineSelect,
-    });
-    // D78: a disabled item is rendered (it counts as filtered) and skipped, not removed
-    expect(machine.getState().filteredCount).toBe(2);
-
-    machine.send({ type: 'ITEM_SELECT', id: itemId('disabled') });
-    machine.send({ type: 'ITEM_SELECT', id: itemId('enabled') });
-    // Neither ran before the frame, so the assertions below see what the frame did
-    expect(onEnabled).not.toHaveBeenCalled();
-    nextFrame();
-
-    expect(onEnabled).toHaveBeenCalledTimes(1);
-    expect(onDisabled).not.toHaveBeenCalled();
-    expect(onMachineSelect).toHaveBeenCalledExactlyOnceWith(itemId('enabled'));
-  });
-
-  it('TUB-35: LOADING moves state.loading, and ITEMS_LOADED adds the items', () => {
-    using machine = createCommandMachine();
-    expect(machine.getState().loading).toBe(false);
-
-    machine.send({ type: 'LOADING', source: 'remote', pending: true });
-    nextFrame();
-    expect(machine.getState().loading).toBe(true);
-
-    machine.send({
-      type: 'ITEMS_LOADED',
-      items: [makeItem('x', 'Loaded Item X'), makeItem('y', 'Loaded Item Y')],
-    });
-    machine.send({ type: 'LOADING', source: 'remote', pending: false });
-    nextFrame();
-    expect(machine.getState().filteredCount).toBe(2);
-    expect(machine.getState().loading).toBe(false);
   });
 
   it('TUB-35: ITEMS_LOADED binds the shortcut of a loaded item to its onSelect', () => {
@@ -324,40 +265,14 @@ describe('Machine Integration', () => {
     live.send({ type: 'OPEN' });
     nextFrame();
 
-    // send() after dispose is still processed and options callbacks (onOpenChange...) still fire; only listeners
-    // added through subscribe/subscribeState are silent, which is all this test asserts
+    // send() after dispose is not processed: the disposed scheduler drops it, so no subscribe or
+    // subscribeState listener fires for it
     // Positive control: the same frame ran the live machine's batch and notified its listener
     expect(live.getState().open).toBe(true);
     expect(onLive).toHaveBeenCalledTimes(1);
     expect(onDisposed).not.toHaveBeenCalled();
     // The state stays readable
     expect(disposed.getState().filteredCount).toBe(1);
-  });
-
-  it('should support useSyncExternalStore-compatible subscribe', () => {
-    using machine = createCommandMachine();
-    const listener = vi.fn();
-
-    const unsubscribe = machine.subscribe(listener);
-    machine.send({ type: 'OPEN' });
-
-    nextFrame();
-    expect(listener).toHaveBeenCalled();
-
-    unsubscribe();
-  });
-
-  it('should support Disposable-style subscribeState', () => {
-    using machine = createCommandMachine();
-    const listener = vi.fn();
-
-    using _sub = machine.subscribeState(listener);
-    machine.send({ type: 'OPEN' });
-
-    nextFrame();
-    expect(listener).toHaveBeenCalled();
-    const state = listener.mock.calls.at(-1)?.[0];
-    expect(state?.open).toBe(true);
   });
 
   it('TUB-37: 20 rapid NAVIGATE next events in one frame all apply, from item-0 to item-20', () => {

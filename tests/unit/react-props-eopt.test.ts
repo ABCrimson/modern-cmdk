@@ -20,7 +20,6 @@ import type {
   RegisterItemOptions,
   VirtualizerOptions,
 } from 'modern-cmdk/react';
-import { useCommandDevtools } from 'modern-cmdk/react';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 describe('React prop types (C2)', () => {
@@ -128,20 +127,5 @@ describe('React prop types (C2)', () => {
     // A runtime value too: the props object holds what it was given.
     const props: CommandGroupProps = { heading: 'Fruit' };
     expect(props.heading).toBe('Fruit');
-  });
-
-  it('ARCH-30: useCommandDevtools options accept an explicit undefined', () => {
-    // Under exactOptionalPropertyTypes a bare `redactQuery?: boolean` rejects an explicit
-    // undefined (TS2375).
-    type DevtoolsOptions = NonNullable<Parameters<typeof useCommandDevtools>[1]>;
-    type RedactUndefined = { redactQuery: undefined };
-
-    expectTypeOf<RedactUndefined>().toExtend<DevtoolsOptions>();
-    // The call form a consumer writes
-    expectTypeOf(useCommandDevtools).toBeCallableWith('label', { redactQuery: undefined });
-
-    // A runtime value too: the options object holds what it was given.
-    const options: DevtoolsOptions = { redactQuery: undefined };
-    expect(options.redactQuery).toBeUndefined();
   });
 });

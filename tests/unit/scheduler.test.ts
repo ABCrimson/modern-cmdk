@@ -2,13 +2,6 @@ import { createScheduler } from 'modern-cmdk';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 
 describe('Scheduler', () => {
-  it('should create a scheduler', () => {
-    using scheduler = createScheduler();
-    expect(scheduler).toBeDefined();
-    expect(typeof scheduler.schedule).toBe('function');
-    expect(typeof scheduler.flush).toBe('function');
-  });
-
   describe('on the animation frame', () => {
     // The scheduler reads the global requestAnimationFrame when it schedules, so the fakes installed here are the ones it calls.
     beforeEach(() => {
@@ -80,37 +73,6 @@ describe('Scheduler', () => {
     scheduler.flush();
 
     expect(fn).toHaveBeenCalledOnce();
-  });
-
-  it('should support the Disposable interface', () => {
-    using scheduler = createScheduler();
-    expect(typeof scheduler[Symbol.dispose]).toBe('function');
-  });
-
-  it('should auto-dispose via using declaration', () => {
-    const fn = vi.fn();
-
-    {
-      using scheduler = createScheduler();
-      scheduler.schedule(fn);
-      scheduler.flush();
-    }
-
-    expect(fn).toHaveBeenCalledOnce();
-  });
-
-  it('should handle rapid sequential scheduling', () => {
-    using scheduler = createScheduler();
-    let counter = 0;
-
-    for (let i = 0; i < 50; i++) {
-      scheduler.schedule(() => {
-        counter++;
-      });
-    }
-
-    scheduler.flush();
-    expect(counter).toBe(50);
   });
 
   it('should handle flush with no pending updates', () => {

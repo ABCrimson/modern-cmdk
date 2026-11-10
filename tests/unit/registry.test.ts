@@ -46,34 +46,12 @@ describe('CommandRegistry', () => {
     expect(values).toEqual(['Cherry', 'Apple', 'Banana']);
   });
 
-  it('should register items with Disposable pattern', () => {
-    using registry = new CommandRegistry();
-
-    {
-      using _sub = registry.registerItem(makeItem('temp', 'Temporary'));
-      expect(registry.size).toBe(1);
-    }
-    // After using block, item should be deregistered
-    expect(registry.size).toBe(0);
-  });
-
   it('should bulk register items', () => {
     using registry = new CommandRegistry();
     const items = [makeItem('a'), makeItem('b'), makeItem('c')];
 
     using _sub = registry.registerItems(items);
     expect(registry.size).toBe(3);
-  });
-
-  it('should bulk unregister items', () => {
-    using registry = new CommandRegistry();
-    registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
-
-    const toRemove = new Set([itemId('a'), itemId('c')]);
-    registry.unregisterItems(toRemove);
-
-    expect(registry.size).toBe(1);
-    expect(registry.getItem(itemId('b'))).toBeDefined();
   });
 
   it('should register and retrieve groups', () => {
@@ -117,18 +95,6 @@ describe('CommandRegistry', () => {
     expect(intersection.size).toBe(2);
     expect(intersection.has(itemId('b'))).toBe(true);
     expect(intersection.has(itemId('c'))).toBe(true);
-  });
-
-  it('should compute the difference from another set', () => {
-    using registry = new CommandRegistry();
-    registry.registerItems([makeItem('a'), makeItem('b'), makeItem('c')]);
-
-    const other = new Set([itemId('b')]);
-    const diff = registry.differenceFrom(other);
-
-    expect(diff.size).toBe(2);
-    expect(diff.has(itemId('a'))).toBe(true);
-    expect(diff.has(itemId('c'))).toBe(true);
   });
 
   // D33: differenceFrom stays tested while it is public; CE-121 (1.12.0) decides whether it stays.

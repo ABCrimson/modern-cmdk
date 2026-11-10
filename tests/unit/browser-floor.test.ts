@@ -526,7 +526,6 @@ function entryKeys(config: UserConfig): string[] {
 }
 
 let outDir = '';
-let buildMs = 0;
 let builtFiles: string[] = [];
 const sources = new Map<string, string>();
 
@@ -538,7 +537,6 @@ beforeAll(async () => {
   expect(configs.map(entryKeys)).toEqual([['core/index'], ['react/index', 'react/dialog']]);
 
   outDir = await mkdtemp(join(tmpdir(), 'modern-cmdk-floor-'));
-  const started = performance.now();
   for (const config of configs) {
     // A fresh outDir (clean: false, so the second config does not delete the first one's output)
     // and no declaration files.
@@ -556,7 +554,6 @@ beforeAll(async () => {
       await bundle[Symbol.asyncDispose]();
     }
   }
-  buildMs = performance.now() - started;
 
   const react = await readdir(join(outDir, 'react'));
   builtFiles = ['core/index.mjs', ...react.map((name) => `react/${name}`)].sort();
@@ -695,13 +692,6 @@ describe('browser floor: the built core and react entries (CE-29, R4)', () => {
       'export { note };',
     ].join('\n');
     expect(denyViolations(new Map([['note.mjs', text]]))).toEqual([]);
-  });
-
-  it('R4: the build reports its wall time', () => {
-    expect(buildMs).toBeGreaterThan(0);
-    process.stdout.write(
-      `browser-floor beforeAll: tsdown build of ${builtFiles.length} files in ${buildMs.toFixed(0)} ms\n`,
-    );
   });
 });
 

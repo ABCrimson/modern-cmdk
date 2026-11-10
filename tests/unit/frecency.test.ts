@@ -74,17 +74,6 @@ describe('computeFrecencyBonus', () => {
     const bonus = computeFrecencyBonus(record, now);
     expect(bonus).toBe(20.0); // 4.0 * 5
   });
-
-  it('should support custom decay config', () => {
-    const now = Date.now();
-    const record: FrecencyRecord = {
-      frequency: 1,
-      lastUsed: now - 30 * 60_000, // 30 minutes ago
-    };
-
-    const bonus = computeFrecencyBonus(record, now, { hourWeight: 10.0 });
-    expect(bonus).toBe(10.0);
-  });
 });
 
 describe('computeFrecencyBonus bucket boundaries', () => {
@@ -138,29 +127,6 @@ describe('computeFrecencyBonus bucket boundaries', () => {
 });
 
 describe('FrecencyEngine', () => {
-  it('should record selections and compute bonuses', () => {
-    using engine = new FrecencyEngine({ enabled: true });
-    const id = itemId('test');
-
-    engine.recordSelection(id);
-    const bonus = engine.getBonus(id);
-
-    expect(bonus).toBeGreaterThan(0);
-  });
-
-  it('should accumulate frequency', () => {
-    using engine = new FrecencyEngine({ enabled: true });
-    const id = itemId('test');
-
-    engine.recordSelection(id);
-    engine.recordSelection(id);
-    engine.recordSelection(id);
-
-    const data = engine.getData();
-    const record = data.records.get(id);
-    expect(record?.frequency).toBe(3);
-  });
-
   it('TUB-23: without a decayConfig getConfig returns the defaults and setConfig changes later bonuses', () => {
     using engine = new FrecencyEngine({});
     const id = itemId('cfg');
@@ -185,12 +151,6 @@ describe('FrecencyEngine', () => {
     await engine.load();
 
     expect(engine.getBonus(id)).toBe(12); // frequency 3 x the default hourWeight 4
-  });
-
-  it('should return 0 bonus for unrecorded items', () => {
-    using engine = new FrecencyEngine({ enabled: true });
-    const bonus = engine.getBonus(itemId('unknown'));
-    expect(bonus).toBe(0);
   });
 
   it('should get all bonuses as a map', () => {

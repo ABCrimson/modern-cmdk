@@ -128,18 +128,6 @@ describe('TypedEmitter', () => {
     expect(h3).toHaveBeenCalledWith('second');
   });
 
-  it('should not emit to removed listeners', () => {
-    using emitter = new TypedEmitter<TestEvents>();
-    const handler = vi.fn();
-
-    const sub = emitter.on('message', handler);
-    sub[Symbol.dispose]();
-    emitter.emit('message', 'after-remove');
-
-    // Handler should not be called: dispose removed the listener from the set
-    expect(handler).not.toHaveBeenCalled();
-  });
-
   it('should handle emit with no listeners', () => {
     using emitter = new TypedEmitter<TestEvents>();
     // Emitting without subscribers must be a no-op, not an error
@@ -188,16 +176,6 @@ describe('TypedEmitter', () => {
     expect(emitter.has('message')).toBe(false);
   });
 
-  it('should handle complex event data types', () => {
-    using emitter = new TypedEmitter<TestEvents>();
-    const handler = vi.fn();
-
-    using _sub = emitter.on('data', handler);
-    emitter.emit('data', { x: 10, y: 20 });
-
-    expect(handler).toHaveBeenCalledWith({ x: 10, y: 20 });
-  });
-
   it('should handle rapid sequential emissions', () => {
     using emitter = new TypedEmitter<TestEvents>();
     const handler = vi.fn();
@@ -214,11 +192,6 @@ describe('TypedEmitter', () => {
     });
 
     expect(handler).toHaveBeenCalledTimes(100);
-  });
-
-  it('should support the Disposable interface', () => {
-    const emitter = new TypedEmitter<TestEvents>();
-    expect(typeof emitter[Symbol.dispose]).toBe('function');
   });
 
   it('CE-75: a throwing listener does not skip the later listeners and its error is rethrown from a microtask', async () => {

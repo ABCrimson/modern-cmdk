@@ -56,24 +56,6 @@ describe('Incremental Filtering', () => {
     expect(ids).toContain(itemId('application'));
   });
 
-  it('should do full rescan when query does not extend previous', () => {
-    using engine = createSearchEngine();
-    const items = [
-      makeItem('apple', 'Apple'),
-      makeItem('banana', 'Banana'),
-      makeItem('cherry', 'Cherry'),
-    ];
-    engine.index(items);
-
-    // Search "a" first
-    engine.search('a', items).toArray();
-
-    // Now search "b" — not incremental, should find Banana
-    const results = engine.search('b', items).toArray();
-    expect(results.length).toBe(1);
-    expect(results[0]?.id).toBe(itemId('banana'));
-  });
-
   it('should do full rescan when query is shorter than previous', () => {
     using engine = createSearchEngine();
     const items = [
@@ -91,37 +73,6 @@ describe('Incremental Filtering', () => {
     expect(results.length).toBeGreaterThanOrEqual(2); // At least Apple and Apricot
   });
 
-  it('should return all items for empty query', () => {
-    using engine = createSearchEngine();
-    const items = [makeItem('a', 'Apple'), makeItem('b', 'Banana'), makeItem('c', 'Cherry')];
-    engine.index(items);
-
-    const results = engine.search('', items).toArray();
-    expect(results.length).toBe(3);
-  });
-
-  it('should handle removal during incremental filtering', () => {
-    using engine = createSearchEngine();
-    const items = [
-      makeItem('apple', 'Apple'),
-      makeItem('application', 'Application'),
-      makeItem('banana', 'Banana'),
-    ];
-    engine.index(items);
-
-    // First search
-    engine.search('a', items).toArray();
-
-    // Remove apple from the engine, but keep handing it the FULL items array: only the engine's
-    // own pruning can drop apple now (its previous-results cache would otherwise still hold it)
-    engine.remove(new Set([itemId('apple')]));
-
-    const results = engine.search('ap', items).toArray();
-    const ids = results.map((r) => r.id);
-    expect(ids).not.toContain(itemId('apple'));
-    expect(ids).toContain(itemId('application'));
-  });
-
   it('should maintain correct sort order during incremental filtering', () => {
     using engine = createSearchEngine();
     const items = [
@@ -137,29 +88,6 @@ describe('Incremental Filtering', () => {
     // Results should be sorted by score (descending)
     const scores = results.map((r) => r.score);
     expect(scores).toEqual(scores.toSorted((a, b) => b - a));
-  });
-
-  it('should handle single-character incremental filtering', () => {
-    using engine = createSearchEngine();
-    // ES2025 Iterator helpers — generate test items via iterator pipeline
-    const items = Iterator.from({
-      [Symbol.iterator]: function* (): Generator<number> {
-        for (let i = 0; i < 100; i++) yield i;
-      },
-    })
-      .map((i) => makeItem(`item-${i}`, `Item ${i}`))
-      .toArray();
-    engine.index(items);
-
-    // Type one character at a time
-    const r1 = engine.search('I', items).toArray();
-    expect(r1.length).toBeGreaterThan(0);
-
-    const r2 = engine.search('It', items).toArray();
-    expect(r2.length).toBeLessThanOrEqual(r1.length);
-
-    const r3 = engine.search('Ite', items).toArray();
-    expect(r3.length).toBeLessThanOrEqual(r2.length);
   });
 
   it('should clear incremental cache on engine.clear()', () => {

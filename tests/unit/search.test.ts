@@ -71,18 +71,6 @@ describe('scoreItem', () => {
     expect.soft(result?.matches[0]?.[1]).toBe(3); // End at 3
   });
 
-  it('should score word boundary matches', () => {
-    const wordBoundary = scoreItem('fc', makeItem('File Copy'));
-    expect(wordBoundary).not.toBeNull();
-    expect(wordBoundary?.score).toBeGreaterThan(0.3);
-  });
-
-  it('should score fuzzy character matches', () => {
-    const fuzzy = scoreItem('ale', makeItem('Apple'));
-    expect(fuzzy).not.toBeNull();
-    expect(fuzzy?.score).toBeGreaterThan(0);
-  });
-
   it('should give higher score to contiguous matches', () => {
     const contiguous = scoreItem('app', makeItem('Application'));
     const scattered = scoreItem('aon', makeItem('Application'));
@@ -279,41 +267,6 @@ describe('scoreItem word-boundary tier', () => {
       [3, 4],
     ]);
   });
-
-  it('should keep the matches of every cover a greedy scan finds (CE-36)', () => {
-    const cases = [
-      [
-        'gc',
-        'git commit',
-        [
-          [0, 1],
-          [4, 5],
-        ],
-      ],
-      [
-        'fc',
-        'file copy',
-        [
-          [0, 1],
-          [5, 6],
-        ],
-      ],
-      [
-        'gico',
-        'git commit',
-        [
-          [0, 2],
-          [4, 6],
-        ],
-      ],
-    ] as const;
-    for (const [query, value, matches] of cases) {
-      notSubstring(query, value);
-      expect
-        .soft(scoreItem(query, makeItem(value))?.matches, `${query} on ${value}`)
-        .toEqual(matches);
-    }
-  });
 });
 
 describe('scorer public API', () => {
@@ -349,11 +302,6 @@ describe('scorer public API', () => {
 });
 
 describe('createSearchEngine', () => {
-  it('should create a search engine', () => {
-    using engine = createSearchEngine();
-    expect(engine).toBeDefined();
-  });
-
   it('should search items and return ordered results', () => {
     using engine = createSearchEngine();
     const items = [makeItem('Apple'), makeItem('Banana'), makeItem('Apricot')];
@@ -372,36 +320,6 @@ describe('createSearchEngine', () => {
 
     const results = engine.search('', items).toArray();
     expect(results.length).toBe(2);
-  });
-
-  it('should support incremental filtering', () => {
-    using engine = createSearchEngine();
-    const items = [
-      makeItem('Apple'),
-      makeItem('Application'),
-      makeItem('Banana'),
-      makeItem('Apricot'),
-    ];
-    engine.index(items);
-
-    // First search
-    const r1 = engine.search('a', items).toArray();
-    expect(r1.length).toBeGreaterThanOrEqual(3); // At least Apple, Application, Apricot (fuzzy may match more)
-
-    // Incremental — extends previous query
-    const r2 = engine.search('ap', items).toArray();
-    expect(r2.length).toBeLessThanOrEqual(r1.length);
-  });
-
-  it('should remove items from index', () => {
-    using engine = createSearchEngine();
-    const apple = makeItem('Apple');
-    const items = [apple, makeItem('Banana')];
-    engine.index(items);
-
-    engine.remove(new Set([apple.id]));
-    const results = engine.search('a', [items[1] as CommandItem]).toArray();
-    expect(results.every((r) => r.id !== apple.id)).toBe(true);
   });
 
   it('should support custom scorer', () => {

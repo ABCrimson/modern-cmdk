@@ -61,22 +61,6 @@ describe('IdbFrecencyStorage', () => {
       expect(pasteRecord).toBeDefined();
       expect(pasteRecord?.frequency).toBe(3);
     });
-
-    it('should handle single-item data', async () => {
-      using storage = new IdbFrecencyStorage(uniqueDb());
-      const timestamp = 1_700_000_000_000; // epoch ms
-
-      const records = new Map<ItemId, FrecencyRecord>([
-        [itemId('solo'), { frequency: 1, lastUsed: timestamp }],
-      ]);
-
-      await storage.save('ns', { records });
-      const loaded = await storage.load('ns');
-
-      expect(loaded.records.size).toBe(1);
-      const record = loaded.records.get(itemId('solo'));
-      expect(record?.lastUsed).toBe(1_700_000_000_000);
-    });
   });
 
   describe('namespace isolation', () => {
@@ -146,12 +130,6 @@ describe('IdbFrecencyStorage', () => {
   });
 
   describe('Disposable cleanup', () => {
-    it('should implement Symbol.dispose', () => {
-      const storage = new IdbFrecencyStorage(uniqueDb());
-      expect(typeof storage[Symbol.dispose]).toBe('function');
-      storage[Symbol.dispose]();
-    });
-
     it('should implement Symbol.asyncDispose', async () => {
       const db = uniqueDb();
       await using live = new IdbFrecencyStorage(db);

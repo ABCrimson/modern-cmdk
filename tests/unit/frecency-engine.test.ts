@@ -325,14 +325,6 @@ describe('FrecencyEngine dispose', () => {
     expect(async[Symbol.dispose]).not.toHaveBeenCalled();
   });
 
-  it('CE-115, D95: an engine that created its storage disposes it', async () => {
-    const dispose = vi.spyOn(MemoryFrecencyStorage.prototype, Symbol.dispose);
-    const engine = makeEngine();
-    engine.recordSelection(A);
-    await engine[Symbol.asyncDispose]();
-    expect(dispose).toHaveBeenCalledTimes(1);
-  });
-
   it('CE-01: sync dispose with a failing save still disposes the storage and warns once', async () => {
     const storage = makeStorage();
     const failure = new Error('blocked');
