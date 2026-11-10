@@ -344,6 +344,28 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('8. Edge Cases & Behavior Differences', () => {
+  it('empty query — both should match everything', () => {
+    const items = ['Apple', 'Banana', 'Cherry'];
+    const commandItems: CommandItem[] = items.map((v, i) => ({
+      id: itemId(`edge-${i}`),
+      value: v,
+      keywords: [],
+    }));
+
+    // cmdk: empty query scores 0.99 for a non-empty item (command-score's exhausted-query
+    // branch) and the search is skipped, so every item is shown
+    const cmdkScores = items.map((item) => cmdkDefaultFilter(item, ''));
+    // ours: empty query = score 1 (full match, shows all)
+    const ourScores = commandItems.map((item) => scoreItem('', item)?.score ?? 0);
+
+    console.log(`  Empty query — cmdk scores: [${cmdkScores.join(', ')}]`);
+    console.log(`  Empty query — our scores: [${ourScores.join(', ')}]`);
+
+    // Both should effectively "show all" — but scoring approach differs
+    expect(cmdkScores).toEqual([0.99, 0.99, 0.99]);
+    expect(ourScores).toHaveLength(3);
+  });
+
   it('case sensitivity — both should be case-insensitive', () => {
     const cmdkLower = cmdkDefaultFilter('Open Settings', 'open settings');
     const cmdkUpper = cmdkDefaultFilter('Open Settings', 'OPEN SETTINGS');
