@@ -225,7 +225,7 @@ html .vp-doc table.mc-stack td {
 }
 
 html .vp-doc table.mc-stack td:not(:first-child, :last-child)::before {
-  content: attr(data-label);
+  content: attr(data-label) / "";
   margin-inline-end: var(--mc-space-2);
   font-size: var(--mc-step--2);
   font-weight: var(--mc-step--2-weight);
