@@ -36,7 +36,7 @@ export interface CommandListProps extends ComponentPropsWithRef<'div'> {
   readonly announceResults?: ((count: number) => string) | undefined;
 }
 
-// Each child's index in the JSX order, renewed on each run; a child React moves by a keyed
+// Each child's index in the JSX order, renewed on each pass; a child React moves by a keyed
 // reorder keeps its earlier index until it remounts (D145 Risks)
 const jsxKey = new WeakMap<ChildNode, number>();
 
@@ -172,7 +172,7 @@ export function CommandList({
   // could move, and React has put every node where the JSX has it, which is the place a child
   // without a key takes. `placed` turns true at the first run with an item; an empty order after
   // that runs the pass, which returns the children to their keys. An item is its own rank (its id)
-  // and asks the list no query; any other element but a page asks for the items inside it.
+  // and runs no query; any other element but a page queries for the items inside it.
   const placed = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the virtual window re-runs the order
   useLayoutEffect(() => {
