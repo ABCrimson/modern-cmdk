@@ -2,7 +2,7 @@ import type { CommandItem, CommandMachine } from 'modern-cmdk';
 import { getDisplayIds } from 'modern-cmdk';
 import { Command, CommandStableContext } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
-import { act, use, useState } from 'react';
+import { act, use, useLayoutEffect, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -138,6 +138,14 @@ function tally(): Tally {
 /** Every filter match scores alike, so a search keeps the registration order. */
 const keepsOrder = (): number => 1;
 
+/** Pushes `read()` in its layout effect: where it stands in the tree says which effects ran before it. */
+function Mark({ marks, read }: { marks: number[]; read: () => number }): null {
+  useLayoutEffect(() => {
+    marks.push(read());
+  }, [marks, read]);
+  return null;
+}
+
 /** `count` plain items whose JSX order is their registration order, below the virtualization threshold. */
 function plain(probe: MachineProbe, count: number): ReactNode {
   return (
@@ -196,9 +204,29 @@ describe('PERF-16: the ordering effect works in proportion to what changed', () 
     expect(large.refilter.moves).toBe(0);
     expect(large.refilter.queries).toBe(small.refilter.queries);
   });
+
+  it('PERF-16: the mount commit, whose display order holds no item yet, makes the list query nothing', async () => {
+    const probe = new MachineProbe();
+    const counts = tally();
+    const marks: number[] = [];
+    // Layout effects run in tree order: the marks bracket the effects of the List and its items
+    const read = (): number => counts.queries;
+    await mount(
+      <Command filter={keepsOrder}>
+        <probe.Probe />
+        <Mark marks={marks} read={read} />
+        <Command.Input />
+        <Command.List>{Array.from({ length: 30 }, (_, at) => row(`p${at}`))}</Command.List>
+        <Mark marks={marks} read={read} />
+      </Command>,
+    );
+    expect(itemIdsInDom()).toHaveLength(30);
+    expect(marks).toHaveLength(2);
+    expect(marks[1]).toBe(marks[0]);
+  });
 });
 
-/** Item m, rendered after its siblings and ranked first by a search. */
+/** The scores of the reordering search: m, mounted last, ranks first of the plain items; group A leads the groups. */
 const REORDER_SCORES = { m: 9, p1: 5, p2: 4, p0: 3, a1: 6, a2: 2 } as const;
 const reorderFilter = (item: CommandItem, query: string): number | false =>
   query === 'zz'
@@ -207,7 +235,7 @@ const reorderFilter = (item: CommandItem, query: string): number | false =>
       ? ((REORDER_SCORES as Record<string, number>)[item.value] ?? 0) || false
       : 1;
 
-/** Group "Late" (priority -1), mounted on demand. */
+/** Setters the fixture components below hand to the test. */
 const lateControls: { show?: () => void; setPriority?: (priority: number) => void } = {};
 
 function Late(): ReactNode {
@@ -227,7 +255,7 @@ function Prioritized(): ReactNode {
   );
 }
 
-describe('PERF-16: the fast path does not skip a needed reorder', () => {
+describe('PERF-16: the ordering effect still places what a change needs', () => {
   it('PERF-16: a search that reorders, a priority change and an item registered out of order each end in the display order', async () => {
     const probe = new MachineProbe();
     await mount(
