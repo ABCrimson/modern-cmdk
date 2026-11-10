@@ -103,12 +103,13 @@ export function CommandDialog({
   // trigger to restore focus to, so onCloseAutoFocus does it.
   const opener = useRef<HTMLElement | null>(null);
 
-  // Read in the layout phase of the commit in which `open` turns true, while the opener still has
-  // focus: the content mounts in a later commit (Radix's Presence mounts the portal a commit after
-  // `open` turns true on a mounted dialog, and Radix's Portal renders after its own mount unless
-  // `container` is set). Radix's mount handler cannot record it: an `autoFocus` inside the content
-  // takes focus in React's layout phase, before the focus-scope's passive effect, which dispatches
-  // its mount event only when nothing inside the content has focus.
+  // Read in the layout phase of the commit in which `open` turns true. Outside the two cases below,
+  // the opener still has focus then: the content mounts in a later commit (Radix's Presence mounts
+  // the portal a commit after `open` turns true on a mounted dialog, and Radix's Portal renders
+  // after its own mount unless `container` is set). Radix's mount handler cannot record it: an
+  // `autoFocus` inside the content takes focus in React's layout phase, before the focus-scope's
+  // passive effect, which dispatches its mount event only when nothing inside the content has
+  // focus.
   // Two cases read an element inside the content as the opener, so closing leaves focus on body: a
   // dialog mounted open with a `container` renders its content in the first commit, where an
   // `autoFocus` input takes focus; and a dialog reopened during its exit animation still has its
