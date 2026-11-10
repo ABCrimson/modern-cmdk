@@ -208,7 +208,7 @@ describe('release.yml has no backfill job and no dispatch trigger (D73)', () => 
 });
 
 describe('release.yml has no first-publish scaffolding', () => {
-  it('FP-REMOVAL: no job starts with first-publish, no step uploads a first-publish-* artifact, and the header job graph names exactly the jobs that exist', () => {
+  it('RDG-131: no job starts with first-publish, no step uploads a first-publish-* artifact, and the header job graph names exactly the jobs that exist', () => {
     const names = jobNames();
     expect(names.filter((name) => name.startsWith('first-publish'))).toEqual([]);
     const uploads = [...workflow.matchAll(/upload-artifact@[^\n]*\n\s+with:\n\s+name: (\S+)/g)].map(
