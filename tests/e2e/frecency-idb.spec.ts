@@ -1,11 +1,11 @@
 // tests/e2e/frecency-idb.spec.ts
-// CE-112, D108: IdbFrecencyStorage from the BUILT core (packages/modern-cmdk/dist/core/index.mjs) in Chromium.
+// CE-112, D108: IdbFrecencyStorage from the BUILT core (packages/modern-cmdk/dist/core/index.mjs) in Chromium and Firefox.
 // The page does not use the playground: page.route fulfils an HTML page on http://cmdk.test/ and serves the built
 // core and its one dependency, idb-keyval's ESM file, from disk through an import map. Needs `pnpm build` first.
 //
 // Each storage opens its database per operation (openStore in src/core/frecency/idb-storage.ts), so storages created
 // in one tick race to open the same database name; the unit test in tests/unit/frecency-idb.test.ts runs the same
-// scenario in happy-dom's IndexedDB, this spec runs it against Chromium's.
+// scenario in happy-dom's IndexedDB, this spec runs it against the IndexedDB of Chromium and Firefox.
 
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -60,7 +60,7 @@ interface Round {
   readonly viaFresh: readonly (readonly (readonly [string, number, number])[])[];
 }
 
-test.describe('CE-112: IdbFrecencyStorage in Chromium', () => {
+test.describe('CE-112: IdbFrecencyStorage in the browser', () => {
   test.beforeEach(async ({ page }) => {
     await page.route(`${ORIGIN}/**`, async (route) => {
       const { pathname } = new URL(route.request().url());
@@ -76,7 +76,7 @@ test.describe('CE-112: IdbFrecencyStorage in Chromium', () => {
     await page.waitForFunction(() => 'core' in globalThis);
   });
 
-  test('CE-112: three frecency storages on one database name opened in one tick all save and load in Chromium', async ({
+  test('CE-112: three frecency storages on one database name opened in one tick all save and load in Chromium and Firefox', async ({
     page,
   }) => {
     const rounds = await page.evaluate(async (): Promise<readonly Round[]> => {

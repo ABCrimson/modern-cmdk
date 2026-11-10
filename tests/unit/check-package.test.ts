@@ -283,17 +283,17 @@ describe('importAllowListFailures', () => {
 const js = (sample: string): string => sample.replaceAll('@{', '$' + '{');
 
 describe('bareImports and blankNonCode', () => {
-  it('SEC-33: a real import() after a string holding // on the same line is reported', () => {
+  it('DT-68: a real import() after a string holding // on the same line is reported', () => {
     const code = "const u = 'https://x.test'; const m = await import('jscodeshift');";
     expect(bareImports(code)).toEqual(['jscodeshift']);
   });
 
-  it('SEC-33: a real require() after a string holding an apostrophe on the same line is reported', () => {
+  it('DT-68: a real require() after a string holding an apostrophe on the same line is reported', () => {
     const code = 'const s = "it\'s"; const r = require("recast");';
     expect(bareImports(code)).toEqual(['recast']);
   });
 
-  it('SEC-33: a bare import inside a template literal, a block comment or a line comment is not reported', () => {
+  it('DT-68: a bare import inside a template literal, a block comment or a line comment is not reported', () => {
     const code = [
       js("const t = `import('a') @{ok('in-substitution-string')} require('b')`;"),
       '/* spanning',
@@ -305,12 +305,12 @@ describe('bareImports and blankNonCode', () => {
     expect(bareImports(code)).toEqual([]);
   });
 
-  it('SEC-33: code inside a template substitution is still scanned', () => {
+  it('DT-68: code inside a template substitution is still scanned', () => {
     const code = js("const t = `x @{await import('real-dep')}`;");
     expect(bareImports(code)).toEqual(['real-dep']);
   });
 
-  it('SEC-33: blankNonCode keeps the length and the line count and blanks exactly the literal contents', () => {
+  it('DT-68: blankNonCode keeps the length and the line count and blanks exactly the literal contents', () => {
     const src = js(['a(\'x y\', "p\\"q", `t@{b}u`); // note', '/* c', 'd */ e'].join('\n'));
     const out = blankNonCode(src);
     expect(out).toHaveLength(src.length);

@@ -466,7 +466,7 @@
   },
   {
     "id": "DT-68",
-    "test": "tests/unit/check-package.test.ts::SEC-33: a real import() after a string holding // on the same line is reported",
+    "test": "tests/unit/check-package.test.ts::DT-68: a real import() after a string holding // on the same line is reported",
     "status": "covered"
   },
   {
@@ -1281,7 +1281,7 @@
   },
   {
     "id": "CE-112",
-    "test": "tests/e2e/frecency-idb.spec.ts::CE-112: three frecency storages on one database name opened in one tick all save and load in Chromium",
+    "test": "tests/e2e/frecency-idb.spec.ts::CE-112: three frecency storages on one database name opened in one tick all save and load in Chromium and Firefox",
     "status": "covered"
   },
   {
@@ -1381,7 +1381,7 @@
   },
   {
     "id": "T22",
-    "test": "tests/e2e/keyboard.spec.ts::T22: the keyboard and basic specs assert their item count instead of returning early",
+    "test": "tests/unit/e2e-spec-guards.test.ts::T22: no e2e spec returns early on a count or visibility guard",
     "status": "covered"
   },
   {

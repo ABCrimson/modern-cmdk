@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { expect, open, test } from './fixtures';
 
 // Locator-first assertions throughout
@@ -16,26 +14,6 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
   test('T22: BasicDemo renders 15 items before the keyboard cases run', async ({ page }) => {
     await expect(page.locator('[data-command-item]')).toHaveCount(15);
     await expect(page.locator('[data-command-item]:not([data-disabled])')).toHaveCount(14);
-  });
-
-  test('T22: the keyboard and basic specs assert their item count instead of returning early', () => {
-    // Each pattern keeps one character in a class so that this file never matches itself
-    const earlyReturns = [
-      /\bi[f] \(.*[cC]ount\b.*\) return\b/,
-      /has[T]rigger/,
-      /count [>] 0/,
-      /isVisible\(\)\)+ retur[n]/,
-    ];
-    const offenders: string[] = [];
-    for (const file of ['basic.spec.ts', 'keyboard.spec.ts']) {
-      const lines = readFileSync(join(import.meta.dirname, file), 'utf8').split('\n');
-      lines.forEach((line, index) => {
-        if (earlyReturns.some((pattern) => pattern.test(line))) {
-          offenders.push(`${file}:${index + 1}`);
-        }
-      });
-    }
-    expect(offenders, 'early-return guards in the e2e specs').toEqual([]);
   });
 
   // ---------- Arrow Key Navigation ----------
