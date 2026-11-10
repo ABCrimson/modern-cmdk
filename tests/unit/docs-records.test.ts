@@ -116,9 +116,9 @@ describe('readSearch', () => {
   it('takes the newest record when the baseline keeps several CPU models, whatever the key order', () => {
     const search = readSearch(
       baseline({
+        'C CPU': { date: '2026-11-09', median: 3 },
         'B CPU': { date: '2026-11-09', median: 2 },
         'A CPU': { date: '2026-11-08', median: 1 },
-        'C CPU': { date: '2026-11-09', median: 3 },
       }),
     );
     expect(search?.cpu).toBe('B CPU');
