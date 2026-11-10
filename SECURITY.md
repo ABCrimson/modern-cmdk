@@ -57,4 +57,4 @@ The `Release` workflow makes an SPDX SBOM and a build-provenance attestation for
 gh attestation verify <tgz> -R ABCrimson/modern-cmdk
 ```
 
-The command exits non-zero when no attestation of this repository matches the file's digest. The first `modern-cmdk-codemod` tarball is published by the owner by hand from the artifact the workflow attested, so verify it the same way.
+The command exits non-zero when no attestation of this repository matches the file's digest.
