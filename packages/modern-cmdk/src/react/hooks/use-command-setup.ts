@@ -193,7 +193,8 @@ export function useCommandSetup(
   // The first render's props and, in development, the init-only props already warned about
   const [first] = useState(options);
   const [warned] = useState(() => new Set<string>());
-  // The last value each deduped callback forwarded; the machine's options object holds it
+  // The dedupe memory and the root's forwarding state (`Forwarded`); the machine's options object
+  // holds it
   const [fwd] = useState<Forwarded>(() => ({
     search: '',
     activeId: null,

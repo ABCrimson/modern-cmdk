@@ -69,7 +69,8 @@ export function CommandDialog({
   const [initialOpen] = useState(controlledOpen ?? false);
   // The open state the effect below last asked the machine for. The machine applies a request on its next batch (a
   // frame in a browser), so when `open` changes again before then it still reports the earlier request: a report equal
-  // to the marker is the machine following the prop and is not forwarded. Every report clears the marker.
+  // to the marker is the machine following the prop and is not forwarded. Every report of a controlled
+  // dialog clears the marker.
   const followed = useRef<boolean | undefined>(undefined);
   // The machine reports every change of its open state. An uncontrolled dialog hands that report to the consumer. A dialog
   // mounted without `open` never opens (RA-85, DG-21); one that drops its `open` prop after mount is uncontrolled and
