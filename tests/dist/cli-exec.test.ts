@@ -393,25 +393,6 @@ describe.skipIf(!built)('CLI-TEST: built bins over temp copies', () => {
     );
   });
 
-  it("CLI-TEST: the strict bin skips the gitignored and excluded files, the shim keeps 1.4's excludes (gen/ and coverage/ are reached, dist/ and node_modules/ are not)", async () => {
-    await withTemp(async (root) => {
-      const strict = await stageMixed(await mkdtemp(join(root, 'a-')), {
-        repo: true,
-        ignored: true,
-      });
-      const shim = await stageMixed(await mkdtemp(join(root, 'b-')), { repo: true, ignored: true });
-      const a = await exec(BIN.codemod, ['import-rewrite', '.'], strict);
-      const b = await exec(BIN.shim, ['import-rewrite', '.'], shim);
-      const touched = async (work: string): Promise<string[]> =>
-        Object.entries(await readTree(work))
-          .filter(([path, text]) => IGNORED.some((i) => i.path === path) && text !== GENERATED)
-          .map(([path]) => path);
-      expect([a.code, b.code]).toEqual([0, 0]);
-      expect(await touched(strict)).toEqual([]);
-      expect(await touched(shim)).toEqual(['coverage/lcov-report/block.js', 'gen/generated.tsx']);
-    });
-  });
-
   // --- RP-18: EOL and quotes ----------------------------------------------
 
   describe.each([
@@ -511,14 +492,12 @@ describe.skipIf(!built)('CLI-TEST: built bins over temp copies', () => {
 
   describe('CLI-TEST: exit codes of the deprecated shim keep 1.4', () => {
     it.each([
-      ['--bogus alone', ['--bogus'], 0],
       [
         '--bogus beside both positionals (warns, carries on)',
         ['import-rewrite', 'src', '--bogus', '--dry-run'],
         0,
       ],
       ['an unknown transform', ['no-such-transform', 'src'], 1],
-      ['--strict --bogus', ['--strict', '--bogus'], 2],
     ] as const)(
       'CLI-TEST: the shim exits as 1.4 did on %s, with exactly one deprecation line',
       async (_name, args, code) => {

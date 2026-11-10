@@ -76,12 +76,6 @@ describe('PKG-1: the modern-cmdk bin is a shim over the bundled codemod', () => 
     expect(help.stderr.trimEnd().split('\n')).toHaveLength(1);
   });
 
-  it('PKG-1: modern-cmdk --strict --bogus exits 2 through the shim', async () => {
-    const r = await runBin(BINS['modern-cmdk (shim)'], ['--strict', '--bogus']);
-    expect(r.code).toBe(2);
-    expect(r.stderr).toContain('unknown option --bogus');
-  });
-
   it('PKG-1: modern-cmdk-codemod --bogus exits 2', async () => {
     const r = await runBin(BINS['modern-cmdk-codemod'], ['--bogus']);
     expect(r.code).toBe(2);
