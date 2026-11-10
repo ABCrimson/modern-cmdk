@@ -168,10 +168,17 @@ export function CommandList({
   // since the last run took the place React gave it, directly before its next JSX sibling, so it is
   // keyed just below the first known child after it, or after every child when none follows. Nodes
   // move inside their parent only, and only when the order differs.
+  // Until the display order holds an item the effect does nothing: no child has a rank, so no node
+  // could move, and React has put every node where the JSX has it, which is the place a child
+  // without a key takes. `placed` turns true at the first run with an item; an empty order after
+  // that runs the pass, which returns the children to their keys. An item is its own rank (its id)
+  // and asks the list no query; any other element but a page asks for the items inside it.
+  const placed = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the virtual window re-runs the order
   useLayoutEffect(() => {
     const inner = innerRef.current;
-    if (!inner) return;
+    if (!inner || (!placed.current && displayIds.length === 0)) return;
+    placed.current = true;
     const order = new Map(displayIds.map((id, at) => [id as string, at]));
     for (const container of [
       inner,
@@ -179,13 +186,14 @@ export function CommandList({
     ]) {
       const slots = [...container.childNodes].map(
         (node): [number | undefined, number, ChildNode] => {
+          const el = node as Element;
           let rank = Infinity;
-          if (node.nodeType === 1 && !(node as Element).hasAttribute('data-command-page'))
-            for (const el of [
-              node as Element,
-              ...(node as Element).querySelectorAll('[data-command-item]'),
-            ])
-              rank = Math.min(rank, order.get(el.id) ?? Infinity);
+          if (node.nodeType === 1 && !el.hasAttribute('data-command-page')) {
+            rank = order.get(el.id) ?? Infinity;
+            if (!el.hasAttribute('data-command-item'))
+              for (const item of el.querySelectorAll('[data-command-item]'))
+                rank = Math.min(rank, order.get(item.id) ?? Infinity);
+          }
           return [jsxKey.get(node), rank, node];
         },
       );
