@@ -1446,8 +1446,8 @@
   },
   {
     "id": "RA-15",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/ime-composition.test.tsx::RA-15: the keydown handler ignores keys during IME composition",
+    "status": "covered"
   },
   {
     "id": "TEB-17",
@@ -1521,13 +1521,13 @@
   },
   {
     "id": "RA-37",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/keymap.test.tsx::RA-37: Shift+Home and Shift+End keep the input's text selection",
+    "status": "covered"
   },
   {
     "id": "RA-38",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/keymap.test.tsx::RA-38: Escape in an inline Command that is not open neither closes nor prevents the default",
+    "status": "covered"
   },
   {
     "id": "RA-43",
@@ -1541,8 +1541,8 @@
   },
   {
     "id": "RA-79",
-    "test": null,
-    "status": "pending"
+    "test": "tests/unit/react-lifecycle-c3.test.tsx::RA-79: a held re-activation of a removed item does not swallow its later onActiveChange",
+    "status": "covered"
   },
   {
     "id": "RA-88",
@@ -1566,6 +1566,16 @@
   },
   {
     "id": "PG-77",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "RA-91",
+    "test": null,
+    "status": "pending"
+  },
+  {
+    "id": "A11Y-42",
     "test": null,
     "status": "pending"
   }
