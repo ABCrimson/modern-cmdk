@@ -152,9 +152,7 @@ html .vp-doc td {
    the code in a FIRST column never wraps (a selector, a signature or a path there is a name: [data-command-list-inner],
    [Symbol.dispose](), --command-dialog-translate), and on the API pages (config.ts, mc-nb and mc-w) neither does the code of
    any column but the last (a type, a default), so no such span is split at 1280, 1440 or 1920 and no table scrolls. The last
-   cell is the description, prose with code in it: its code breaks after a hyphen or a slash, and `overflow-wrap: anywhere`
-   lets a word longer than the room the other columns leave break there instead of scrolling the table (the one table of
-   api/command-react and the two of api/command that still scrolled at 1280 with the description's words unbreakable). Code in
+   cell is the description, prose with code in it: its code breaks after a hyphen or a slash. Code in
    the other columns of the guide pages still breaks after a hyphen or a slash (modern-cmdk-codemod in guide/installation):
    nowrap on every code span makes tables scroll at 1280. The description keeps a 7.5rem (120 px) floor and cells pad
    0.75rem inline, not 1rem; a 8rem floor left table 7 of guide/migration-from-cmdk 3 px too wide at 1280. */
@@ -171,9 +169,6 @@ html .vp-doc td code .mc-w {
 
 html .vp-doc td:last-child {
   min-inline-size: 7.5rem;
-
-  /* the description is the cell that gives way: a word longer than the room the other columns leave breaks there, not the page */
-  overflow-wrap: anywhere;
 }
 
 /* Stacked API tables. 1.6.0 and 1.7.0 put whole paragraphs of behaviour into the Description cell (api/command's activeId is
@@ -234,9 +229,17 @@ html .vp-doc table.mc-stack td:not(:first-child, :last-child)::before {
   color: var(--mc-text-3);
 }
 
+/* overflow-wrap: anywhere is limited to the stacked description, where a word longer than the table breaks instead of
+   widening it. It was once site-wide. Measured on the built site, the site-wide rule and this limited one leave the same
+   tables scrolling at 1280, 1440 and 1920 except one: no API table scrolls with either, so the stacked tables do not depend
+   on it, and table 1 of architecture/overview, which the site-wide rule kept from scrolling at 1440 and 1920, now scrolls
+   there (as it does at 1280 with either). The site-wide rule also split more words in the last column of the prose tables
+   (at 1280: benchmarks 0 to 2, guide/architecture 1 to 5, guide/installation 1 to 2; at 375, 127 split words against 51), so
+   those tables keep the browser's default. */
 html .vp-doc table.mc-stack td:last-child {
   flex: 1 0 100%;
   min-inline-size: 0;
+  overflow-wrap: anywhere;
 }
 
 html .vp-doc th {
