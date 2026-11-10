@@ -31,19 +31,21 @@ describe('codemod pool: the scheduler', () => {
   });
 
   it('CLI-PERF: a slot that frees up takes the next item at once (no batch barrier)', async () => {
-    // Slot A holds item 0 for a long time; items 1..4 must run on slot B without waiting for it.
-    let slowDone = false;
-    const finishedBeforeSlow: number[] = [];
-    await runPool([0, 1, 2, 3, 4], 2, async (item) => {
-      if (item === 0) {
-        await sleep(80);
-        slowDone = true;
-        return;
-      }
-      await sleep(2);
-      if (!slowDone) finishedBeforeSlow.push(item);
+    // Slot A holds item 0 until the test releases it; items 1..4 settle in microtasks on slot B. One
+    // macrotask later they have all finished, which a batch-and-wait scheduler (slot B idle behind
+    // item 0) or a single slot cannot do.
+    const slow = Promise.withResolvers<void>();
+    const finished: number[] = [];
+    const pool = runPool([0, 1, 2, 3, 4], 2, async (item) => {
+      if (item === 0) await slow.promise;
+      else await Promise.resolve();
+      finished.push(item);
     });
-    expect(finishedBeforeSlow).toEqual([1, 2, 3, 4]);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(finished).toEqual([1, 2, 3, 4]);
+    slow.resolve();
+    await pool;
+    expect(finished).toEqual([1, 2, 3, 4, 0]);
   });
 
   it('CLI-8, RP-38: results come back in input order', async () => {

@@ -470,7 +470,7 @@ describe('create-modern-cmdk 1.5 safety', () => {
     ]);
   });
 
-  it('CV-25: the scaffold type-checks vite.config.ts: tsconfig.node.json includes it and the typecheck script is tsc -b', async () => {
+  it('CV-25, CV-64: the scaffold type-checks vite.config.ts: tsconfig.node.json includes it and the typecheck script is tsc -b', async () => {
     const target = join(dir, 'node-project');
     expect(await run([target], capture().io)).toBe(0);
     const node = JSON.parse(await readFile(join(target, 'tsconfig.node.json'), 'utf-8')) as {
