@@ -49,6 +49,27 @@ describe('Scheduler', () => {
       expect(fn3).toHaveBeenCalledOnce();
       expect(raf).toHaveBeenCalledOnce();
     });
+
+    it('should clean up on dispose', () => {
+      const scheduler = createScheduler();
+      const fn = vi.fn();
+
+      scheduler.schedule(fn);
+      scheduler[Symbol.dispose]();
+
+      // After dispose, the scheduled function must never run: pending updates are
+      // cleared and the frame request is cancelled. Run the frame to prove it.
+      vi.advanceTimersToNextFrame();
+      scheduler.flush();
+      expect(fn).not.toHaveBeenCalled();
+
+      // After dispose, schedule() queues nothing.
+      const late = vi.fn();
+      scheduler.schedule(late);
+      vi.advanceTimersToNextFrame();
+      scheduler.flush();
+      expect(late).not.toHaveBeenCalled();
+    });
   });
 
   it('should flush pending updates synchronously', () => {
@@ -59,20 +80,6 @@ describe('Scheduler', () => {
     scheduler.flush();
 
     expect(fn).toHaveBeenCalledOnce();
-  });
-
-  it('should clean up on dispose', async () => {
-    const scheduler = createScheduler();
-    const fn = vi.fn();
-
-    scheduler.schedule(fn);
-    scheduler[Symbol.dispose]();
-
-    // After dispose, the scheduled function must never run: pending updates are
-    // cleared and the rAF/microtask is cancelled. Give both a chance to fire.
-    await new Promise<void>((resolve) => setTimeout(resolve, 20));
-    scheduler.flush();
-    expect(fn).not.toHaveBeenCalled();
   });
 
   it('should support the Disposable interface', () => {

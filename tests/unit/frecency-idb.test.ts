@@ -153,9 +153,22 @@ describe('IdbFrecencyStorage', () => {
     });
 
     it('should implement Symbol.asyncDispose', async () => {
-      const storage = new IdbFrecencyStorage(uniqueDb());
-      expect(typeof storage[Symbol.asyncDispose]).toBe('function');
-      await storage[Symbol.asyncDispose]();
+      const db = uniqueDb();
+      await using live = new IdbFrecencyStorage(db);
+      await live.save('kept-ns', {
+        records: new Map([[itemId('kept'), { frequency: 2, lastUsed: 1 }]]),
+      });
+      const storage = new IdbFrecencyStorage(db);
+      await expect(storage[Symbol.asyncDispose]()).resolves.toBeUndefined();
+
+      expect((await storage.load('kept-ns')).records.size).toBe(0);
+      await storage.save('post-dispose', {
+        records: new Map([[itemId('x'), { frequency: 1, lastUsed: 1 }]]),
+      });
+      await storage.delete('kept-ns');
+      // the asyncDisposed instance wrote nothing and deleted nothing
+      expect((await live.load('post-dispose')).records.size).toBe(0);
+      expect((await live.load('kept-ns')).records.get(itemId('kept'))?.frequency).toBe(2);
     });
 
     it('should work with using declaration', async () => {

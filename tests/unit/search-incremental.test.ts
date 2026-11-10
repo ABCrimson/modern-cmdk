@@ -164,16 +164,30 @@ describe('Incremental Filtering', () => {
 
   it('should clear incremental cache on engine.clear()', () => {
     using engine = createSearchEngine();
-    const items = [makeItem('a', 'Apple'), makeItem('b', 'Banana')];
+    const items = [
+      makeItem('apple', 'Apple'),
+      makeItem('apricot', 'Apricot'),
+      makeItem('banana', 'Banana'),
+    ];
     engine.index(items);
 
-    engine.search('a', items).toArray();
+    expect(
+      engine
+        .search('app', items)
+        .toArray()
+        .map((r) => r.id),
+    ).toEqual([itemId('apple')]);
     engine.clear();
-    engine.index(items);
+    scoreSpy.mockClear();
 
-    // Should do full rescan after clear
-    const results = engine.search('ap', items).toArray();
-    expect(results.length).toBe(1);
+    // No index() after clear(): index() resets the cache itself, so only clear() can make 'appl' a full rescan
+    expect(
+      engine
+        .search('appl', items)
+        .toArray()
+        .map((r) => r.id),
+    ).toEqual([itemId('apple')]);
+    expect(scoreSpy).toHaveBeenCalledTimes(items.length);
   });
 
   describe('which items are scored (default scorer)', () => {
