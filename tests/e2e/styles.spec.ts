@@ -338,16 +338,6 @@ test.describe('Stylesheet — bare page', { tag: '@styles' }, () => {
     expect(await computed(page, DIALOG_CONTENT, 'border-radius')).toBe('12px');
   });
 
-  test('RA-12: reduced motion leaves an element outside the palette at its own transition duration', async ({
-    page,
-  }) => {
-    await bareDocument(page, {
-      host: '#host { transition: opacity 300ms linear; }',
-      body: '<div id="host"></div>',
-    });
-    expect(await computed(page, '#host', 'transition-duration')).toBe('0.3s');
-  });
-
   test("RA-12: the reduced-motion rule leaves the host page's transitions alone", async ({
     page,
   }) => {

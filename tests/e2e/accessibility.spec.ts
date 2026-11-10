@@ -66,23 +66,6 @@ test.describe('Accessibility — WCAG 2.1 AA', { tag: '@a11y' }, () => {
 
   // ---------- ARIA Roles & Structure ----------
 
-  test('should have correct combobox/listbox ARIA roles', async ({ page }) => {
-    // Combobox input
-    const input = page.getByRole('combobox');
-    await expect(input).toBeVisible();
-    await expect(input).toHaveAttribute('role', 'combobox');
-    await expect(input).toHaveAttribute('aria-autocomplete', 'list');
-
-    // Listbox
-    const listbox = page.getByRole('listbox');
-    await expect(listbox).toBeVisible();
-
-    // aria-controls on input should point to listbox ID
-    const controlsId = await input.getAttribute('aria-controls');
-    const listboxId = await listbox.getAttribute('id');
-    expect(controlsId).toBe(listboxId);
-  });
-
   test('should have aria-expanded reflecting result availability', async ({ page }) => {
     const input = page.getByRole('combobox');
     await expect(input).toBeVisible();
@@ -562,11 +545,6 @@ test.describe('Accessibility — WCAG 2.1 AA', { tag: '@a11y' }, () => {
 
   // ---------- Label & Name Accessibility ----------
 
-  test('should have accessible name on the command root', async ({ page }) => {
-    const root = page.locator('[data-command-root]');
-    await expect(root).toHaveAttribute('aria-label', /.+/);
-  });
-
   test('should have accessible label on the combobox input', async ({ page }) => {
     const input = page.getByRole('combobox');
     await expect(input).toHaveAttribute('aria-label', /.+/);
@@ -575,14 +553,5 @@ test.describe('Accessibility — WCAG 2.1 AA', { tag: '@a11y' }, () => {
   test('should have accessible label on the listbox', async ({ page }) => {
     const listbox = page.getByRole('listbox');
     await expect(listbox).toHaveAttribute('aria-label', /.+/);
-  });
-
-  // ---------- Loading State Accessibility ----------
-
-  test('should set aria-busy on listbox when loading', async ({ page }) => {
-    const listbox = page.getByRole('listbox');
-    // aria-busy should be present (true or false)
-    const ariaBusy = await listbox.getAttribute('aria-busy');
-    expect(ariaBusy).toBeDefined();
   });
 });

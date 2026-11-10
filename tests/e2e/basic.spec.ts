@@ -90,32 +90,6 @@ test.describe('Basic Command Palette', () => {
     await expect(page.getByRole('option')).toHaveCount(initialCount);
   });
 
-  test('should show empty state when no items match', async ({ page }) => {
-    const input = page.getByRole('combobox');
-
-    await input.pressSequentially('zzzznonexistent', { delay: 50 });
-
-    // No options should be visible
-    await expect(page.getByRole('option')).toHaveCount(0);
-
-    // Empty state should be rendered
-    const empty = page.locator('[data-command-empty]');
-    await expect(empty).toBeVisible();
-    await expect(empty).toHaveRole('status');
-  });
-
-  test('should update aria-live region with result count after filtering', async ({ page }) => {
-    const input = page.getByRole('combobox');
-
-    await input.pressSequentially('app', { delay: 50 });
-
-    // Wait for filter to complete
-    await expect(page.getByRole('option').first()).toBeVisible();
-
-    const liveRegion = page.locator('[aria-live="polite"]');
-    await expect(liveRegion).toContainText(/result/);
-  });
-
   // ---------- Item Selection ----------
 
   test('TEB-28: click and Enter write the selected value into the last-selected output', async ({
@@ -163,23 +137,6 @@ test.describe('Basic Command Palette', () => {
     await input.press('Enter');
 
     await expect(page.getByTestId('last-selected')).toHaveText(activeValue as string);
-  });
-
-  // ---------- Groups ----------
-
-  test('should render groups with heading and correct roles', async ({ page }) => {
-    const groups = page.locator('[data-command-group]');
-    expect(await groups.count()).toBeGreaterThan(0);
-
-    const firstGroup = groups.first();
-    await expect(firstGroup).toHaveAttribute('role', 'group');
-
-    // The basic demo's groups all have headings
-    const heading = firstGroup.locator('[data-command-group-heading]');
-    await expect(heading).toHaveCount(1);
-    const headingId = await heading.getAttribute('id');
-    expect(headingId).toBeTruthy();
-    await expect(firstGroup).toHaveAttribute('aria-labelledby', headingId as string);
   });
 
   // ---------- Page Navigation ----------

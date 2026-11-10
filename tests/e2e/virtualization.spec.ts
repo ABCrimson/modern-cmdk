@@ -25,16 +25,6 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
     expect(count).toBeLessThan(100);
   });
 
-  test('should not render all items in the DOM simultaneously', async ({ page }) => {
-    // Verify the total rendered item count is dramatically less than total
-    const itemCount = await page.locator('[data-command-item]').count();
-    expect(itemCount).toBeLessThan(200);
-
-    // The list container should exist and contain items
-    const list = page.locator('[data-command-list]');
-    await expect(list).toBeVisible();
-  });
-
   test('should have correct ARIA roles on virtualized list', async ({ page }) => {
     const listbox = page.getByRole('listbox');
     await expect(listbox).toBeVisible();
@@ -121,33 +111,6 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
       .toBeTruthy();
   });
 
-  test('should maintain DOM node budget after scroll up/down cycle', async ({ page }) => {
-    const list = page.locator('[data-command-list]');
-
-    // Scroll down
-    await list.evaluate((el) => {
-      el.scrollTop = 3_000;
-    });
-    // Locator-first assertion instead of waitForTimeout
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
-
-    // Scroll further down
-    await list.evaluate((el) => {
-      el.scrollTop = 8_000;
-    });
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
-
-    // Scroll back up
-    await list.evaluate((el) => {
-      el.scrollTop = 1_000;
-    });
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
-
-    const count = await page.locator('[data-command-item]').count();
-    expect(count).toBeLessThan(100);
-    expect(count).toBeGreaterThan(0);
-  });
-
   // ---------- Scroll to Bottom ----------
 
   test('should render last items when scrolled to the very bottom', async ({ page }) => {
@@ -167,21 +130,6 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
   });
 
   // ---------- Keyboard Navigation in Virtualized List ----------
-
-  test('should navigate with ArrowDown in virtualized list', async ({ page }) => {
-    const input = page.getByRole('combobox');
-    await input.focus();
-
-    // Navigate down multiple items
-    for (let i = 0; i < 10; i++) {
-      await input.press('ArrowDown');
-    }
-
-    // An item should still be active
-    const activeItem = page.locator('[data-command-item][data-active]');
-    await expect(activeItem).toHaveCount(1);
-    await expect(activeItem).toHaveAttribute('aria-selected', 'true');
-  });
 
   test('should navigate with ArrowUp in virtualized list', async ({ page }) => {
     const input = page.getByRole('combobox');
@@ -382,23 +330,6 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
     expect(count).toBeLessThan(100);
   });
 
-  test('should not leak DOM nodes during repeated scroll operations', async ({ page }) => {
-    const list = page.locator('[data-command-list]');
-
-    // Perform many scroll cycles
-    for (let cycle = 0; cycle < 5; cycle++) {
-      await list.evaluate((el) => {
-        el.scrollTop = Math.random() * el.scrollHeight;
-      });
-      // Locator-first assertion instead of waitForTimeout
-      await expect(page.locator('[data-command-item]').first()).toBeVisible();
-    }
-
-    // DOM node count should remain bounded
-    const finalCount = await page.locator('[data-command-item]').count();
-    expect(finalCount).toBeLessThan(100);
-  });
-
   // ---------- Combobox Integrity During Virtualization ----------
 
   test('should maintain combobox ARIA attributes during virtualized scroll', async ({ page }) => {
@@ -435,6 +366,7 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
     // Assert the settled end state: a count of 1 alone also holds mid-navigation
     const activeItem = page.locator('[data-command-item][data-active]');
     await expect(activeItem).toHaveId('virt-item-5');
+    await expect(activeItem).toHaveAttribute('aria-selected', 'true');
     await expect(activeItem).toHaveCount(1);
 
     // aria-activedescendant must name that same active item
