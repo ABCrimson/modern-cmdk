@@ -2,8 +2,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { loadRecords, readSizes } from '../../apps/docs/.vitepress/theme/data/records';
+import { loadRecords, readSearch, readSizes } from '../../apps/docs/.vitepress/theme/data/records';
 
+// The search record: benchmarks/baseline.json (schemaVersion 2) keeps one record per CPU model; the page prints the newest.
 // Which size record the home page prints (hostile verifier finding 3): the one whose version equals the manifest's, else the
 // highest not above it, else none. Fixture records live in a temp directory shaped like benchmarks/size-history/.
 
@@ -71,5 +72,63 @@ describe('loadRecords', () => {
     expect(data.version).toBe('1.4.0');
     expect(data.sizes?.version).toBe('1.4.0');
     expect(data.deps).toEqual(['idb-keyval']);
+  });
+});
+
+describe('readSearch', () => {
+  function baseline(records: Record<string, { date: string; median: number }>): string {
+    const path = join(root, 'baseline.json');
+    const entries = Object.entries(records).map(([cpu, { date, median }]) => [
+      cpu,
+      {
+        version: '1.4.0',
+        date,
+        commit: `commit-${cpu}`,
+        environment: { node: 'v28.0.0', cpu, cpuCount: 4 },
+        benchmarks: {
+          search: { 'ts-scorer-10k': { median_ms: median, p99_ms: 9, target_ms: 16 } },
+        },
+      },
+    ]);
+    writeFileSync(
+      path,
+      JSON.stringify({
+        schemaVersion: 2,
+        regressionThresholds: {},
+        records: Object.fromEntries(entries),
+      }),
+    );
+    return path;
+  }
+
+  it('reads the one record of a schemaVersion 2 baseline', () => {
+    const search = readSearch(baseline({ 'EPYC 7763': { date: '2026-11-08', median: 3.8 } }));
+    expect(search).toEqual({
+      medianMs: 3.8,
+      cpu: 'EPYC 7763',
+      cpuCount: 4,
+      node: 'v28.0.0',
+      date: '2026-11-08',
+      commit: 'commit-EPYC 7763',
+    });
+  });
+
+  it('takes the newest record when the baseline keeps several CPU models, whatever the key order', () => {
+    const search = readSearch(
+      baseline({
+        'B CPU': { date: '2026-11-09', median: 2 },
+        'A CPU': { date: '2026-11-08', median: 1 },
+        'C CPU': { date: '2026-11-09', median: 3 },
+      }),
+    );
+    expect(search?.cpu).toBe('B CPU');
+    expect(search?.medianMs).toBe(2);
+  });
+
+  it('leaves the figure out, with a warning, for the retired single-record shape', () => {
+    const path = join(root, 'baseline.json');
+    writeFileSync(path, JSON.stringify({ version: '1.2.3', benchmarks: { search: {} } }));
+    expect(readSearch(path)).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('lacks a record'));
   });
 });

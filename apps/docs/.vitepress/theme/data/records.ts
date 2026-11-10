@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 // The pure half of the home page's build-time records (design-final.md C6, 3.4); records.data.ts is the VitePress loader that calls
 // loadRecords(). Every figure on the page is read from a committed record, never typed: the size record of the manifest's own
-// version in benchmarks/size-history/ (else the highest record not above it), the search median in benchmarks/baseline.json, and
+// version in benchmarks/size-history/ (else the highest record not above it), the search median of benchmarks/baseline.json's newest per-CPU record, and
 // the version and runtime dependencies in packages/modern-cmdk/package.json. Kept apart from the loader so that
 // tests/unit/docs-records.test.ts can import it without VitePress. A missing size or search record, or a missing entry in it,
 // leaves that figure out (null or undefined) and logs console.warn; the build never fails on a missing record. Only the manifest
@@ -188,26 +188,39 @@ export function readSizes(paths: readonly string[], manifestVersion: string): Re
   };
 }
 
-function readSearch(path: string | undefined): RecordsData['search'] {
+/**
+ * The search record the page prints. benchmarks/baseline.json (schemaVersion 2) keeps one record per CPU model under
+ * `records`, each with its own version, date, commit and environment; the page names a single machine, so it takes the record
+ * with the newest `date` (ties go to the CPU model that sorts first, so the choice never depends on key order).
+ */
+export function readSearch(path: string | undefined): RecordsData['search'] {
   if (!path) {
     warn('no benchmarks/baseline.json: the search figure is left out');
     return null;
   }
   try {
-    const record = readJson(path);
-    const benchmarks = isRecord(record) && isRecord(record.benchmarks) ? record.benchmarks : {};
+    const baseline = readJson(path);
+    const records = isRecord(baseline) && isRecord(baseline.records) ? baseline.records : {};
+    const newest = Object.entries(records)
+      .filter((entry): entry is [string, Record<string, unknown>] => isRecord(entry[1]))
+      .sort(([cpuA, a], [cpuB, b]) => {
+        const dateA = text(a.date) ?? '';
+        const dateB = text(b.date) ?? '';
+        return dateA === dateB ? cpuA.localeCompare(cpuB, 'en') : dateB.localeCompare(dateA, 'en');
+      })[0]?.[1];
+    const benchmarks = newest && isRecord(newest.benchmarks) ? newest.benchmarks : {};
     const search = isRecord(benchmarks.search) ? benchmarks.search : {};
     const scorer = isRecord(search['ts-scorer-10k']) ? search['ts-scorer-10k'] : {};
-    const environment = isRecord(record) && isRecord(record.environment) ? record.environment : {};
+    const environment = newest && isRecord(newest.environment) ? newest.environment : {};
     const medianMs = finite(scorer.median_ms);
     const cpu = text(environment.cpu);
     const cpuCount = finite(environment.cpuCount);
     const node = text(environment.node);
-    const date = isRecord(record) ? text(record.date) : undefined;
-    const commit = isRecord(record) ? text(record.commit) : undefined;
+    const date = newest ? text(newest.date) : undefined;
+    const commit = newest ? text(newest.commit) : undefined;
     if (medianMs === undefined || cpuCount === undefined || !(cpu && node && date && commit)) {
       warn(
-        'benchmarks/baseline.json lacks benchmarks.search["ts-scorer-10k"].median_ms or its environment: the search figure is left out',
+        'benchmarks/baseline.json lacks a record with benchmarks.search["ts-scorer-10k"].median_ms and its environment: the search figure is left out',
       );
       return null;
     }
