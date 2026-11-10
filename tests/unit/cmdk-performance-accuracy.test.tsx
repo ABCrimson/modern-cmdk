@@ -283,12 +283,6 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
               ? 1
               : 0;
 
-        console.log(
-          `  ours "${tc.query}": ${foundCount}/${tc.expectedMatches.length} expected found, ` +
-            `${results.length} total results, recall=${(recall * 100).toFixed(0)}%` +
-            (results[0] ? `, top="${resultValues[0]}" (${results[0].score.toFixed(4)})` : ''),
-        );
-
         // 80% minimum recall — we should find most expected matches
         expect(recall).toBeGreaterThanOrEqual(0.8);
       });
@@ -307,11 +301,6 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
           }
           const specificity = correctlyExcluded / tc.expectedNonMatches.length;
 
-          console.log(
-            `  ours "${tc.query}" specificity: ${correctlyExcluded}/${tc.expectedNonMatches.length} ` +
-              `correctly excluded (${(specificity * 100).toFixed(0)}%)`,
-          );
-
           // 90% minimum specificity
           expect(specificity).toBeGreaterThanOrEqual(0.9);
         });
@@ -326,10 +315,6 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
           const topItem = top ? commandCorpus.find((i) => i.id === top.id) : null;
 
           const topCorrect = topItem?.value === tc.expectedTopResult;
-          console.log(
-            `  ours "${tc.query}" top result: "${topItem?.value}" ` +
-              `(expected "${tc.expectedTopResult}") → ${topCorrect ? 'CORRECT' : 'WRONG'}`,
-          );
 
           // Our top result should match the expected top result
           expect(topCorrect).toBe(true);
@@ -358,9 +343,6 @@ describe('8. Edge Cases & Behavior Differences', () => {
     // ours: empty query = score 1 (full match, shows all)
     const ourScores = commandItems.map((item) => scoreItem('', item)?.score ?? 0);
 
-    console.log(`  Empty query — cmdk scores: [${cmdkScores.join(', ')}]`);
-    console.log(`  Empty query — our scores: [${ourScores.join(', ')}]`);
-
     // Both should effectively "show all" — but scoring approach differs
     expect(cmdkScores).toEqual([0.99, 0.99, 0.99]);
     expect(ourScores).toHaveLength(3);
@@ -369,19 +351,11 @@ describe('8. Edge Cases & Behavior Differences', () => {
   it('case sensitivity — both should be case-insensitive', () => {
     const cmdkLower = cmdkDefaultFilter('Open Settings', 'open settings');
     const cmdkUpper = cmdkDefaultFilter('Open Settings', 'OPEN SETTINGS');
-    const cmdkMixed = cmdkDefaultFilter('Open Settings', 'OpEn SeTtInGs');
 
     const item: CommandItem = { id: itemId('case-1'), value: 'Open Settings', keywords: [] };
     const ourLower = scoreItem('open settings', item)?.score ?? 0;
     const ourUpper = scoreItem('OPEN SETTINGS', item)?.score ?? 0;
     const ourMixed = scoreItem('OpEn SeTtInGs', item)?.score ?? 0;
-
-    console.log(
-      `  Case test — cmdk: lower=${cmdkLower.toFixed(4)}, upper=${cmdkUpper.toFixed(4)}, mixed=${cmdkMixed.toFixed(4)}`,
-    );
-    console.log(
-      `  Case test — ours: lower=${ourLower.toFixed(4)}, upper=${ourUpper.toFixed(4)}, mixed=${ourMixed.toFixed(4)}`,
-    );
 
     // Both should be case-insensitive (cmdk applies a small 0.9999-per-character case-mismatch
     // penalty, hence toBeCloseTo)
@@ -411,13 +385,6 @@ describe('8. Edge Cases & Behavior Differences', () => {
     const ourWithKw = scoreItem('preferences', itemWithKw)?.score ?? 0;
     const ourWithoutKw = scoreItem('preferences', itemWithoutKw)?.score ?? 0;
 
-    console.log(
-      `  Keywords "preferences" — cmdk: with=${cmdkWithKeywords.toFixed(4)}, without=${cmdkWithoutKeywords.toFixed(4)}`,
-    );
-    console.log(
-      `  Keywords "preferences" — ours: with=${ourWithKw.toFixed(4)}, without=${ourWithoutKw.toFixed(4)}`,
-    );
-
     // With keywords should score higher (or at least find it)
     expect(cmdkWithKeywords).toBeGreaterThan(cmdkWithoutKeywords);
     expect(ourWithKw).toBeGreaterThan(ourWithoutKw);
@@ -446,10 +413,6 @@ describe('8. Edge Cases & Behavior Differences', () => {
 
     const cmdkScore = cmdkDefaultFilter(item, longQuery);
     const ourResult = scoreItem(longQuery, commandItem);
-
-    console.log(
-      `  Long non-matching query — cmdk: ${cmdkScore.toFixed(4)}, ours: ${ourResult?.score ?? 'null (no match)'}`,
-    );
 
     expect(cmdkScore).toBe(0);
     expect(ourResult).toBeNull();
