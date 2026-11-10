@@ -5,7 +5,7 @@
 ## OKLCH Design Tokens
 
 ::: info
-These tokens belong to this documentation site's theme, not to the library. `modern-cmdk/styles.css` does not read `--color-hue` or any `--color-*`, `--ease-*` or `--transition-*` token. Its own tokens are the `--command-*` custom properties declared on `[data-command-root]`.
+These tokens are an example layer, not part of the library or of this documentation site. `modern-cmdk/styles.css` does not read `--color-hue` or any `--color-*`, `--ease-*` or `--transition-*` token. Its own tokens are the `--command-*` custom properties declared on `[data-command-root]`.
 :::
 
 All colors use the [OKLCH color space](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch) for perceptually uniform lightness. This means dark mode is achieved by inverting lightness values while preserving chroma and hue.
@@ -162,7 +162,7 @@ Dark mode is achieved by flipping OKLCH lightness values. Since OKLCH is percept
 ```
 
 ::: tip
-In this site's theme, one variable (`--color-hue`) shifts the whole palette. The lightness and chroma values are designed to work with any hue. To get the same effect with `modern-cmdk/styles.css`, define your own `--color-*` tokens and map them onto the `--command-*` properties on `[data-command-root]`.
+With these tokens, one variable (`--color-hue`) shifts the whole palette. The lightness and chroma values are designed to work with any hue. To get the same effect with `modern-cmdk/styles.css`, define your own `--color-*` tokens and map them onto the `--command-*` properties on `[data-command-root]`.
 :::
 
 ## `data-*` Attribute Selectors
