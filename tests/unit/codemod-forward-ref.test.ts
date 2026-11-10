@@ -36,9 +36,13 @@ describe('codemod: forward-ref', () => {
       expect(result.reports).toEqual(fixture.reports);
     });
 
-    it(`${name}: a second run changes nothing`, () => {
-      const second = run(fixture.output);
-      expect(second.output).toBe(fixture.output);
-    });
+    // A case whose output equals its input is already its own fixed point: the first test above
+    // runs that very source.
+    if (fixture.input !== fixture.output) {
+      it(`${name}: a second run changes nothing`, () => {
+        const second = run(fixture.output);
+        expect(second.output).toBe(fixture.output);
+      });
+    }
   }
 });

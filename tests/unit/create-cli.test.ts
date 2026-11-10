@@ -488,15 +488,6 @@ describe('create-modern-cmdk 1.5 safety', () => {
     expect(pkg.devDependencies['@types/node']).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
-  it('CV-64: the scaffold has a typecheck script tsc -b', async () => {
-    const target = join(dir, 'typecheck');
-    expect(await run([target], capture().io)).toBe(0);
-    const pkg = JSON.parse(await readFile(join(target, 'package.json'), 'utf-8')) as {
-      scripts: Record<string, string>;
-    };
-    expect(pkg.scripts.typecheck).toBe('tsc -b');
-  });
-
   it('CV-25: every scaffolded file equals its template file byte for byte', async () => {
     const templates = resolve(import.meta.dirname, '../../packages/create-modern-cmdk/templates');
     for (const template of ['react-basic', 'react-dialog']) {

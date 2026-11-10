@@ -1,6 +1,8 @@
 // should-filter on exact-output fixtures: tests/fixtures/codemod/should-filter/<ROW-id-case>/.
-// Every case runs three ways: LF, CRLF (both sides through toCrlf), and idempotent (the output is
-// a fixed point: the filter adapter and the `expr ? undefined : false` form are recognised and left alone).
+// Every case runs LF and CRLF (both sides through toCrlf); a case whose output differs from its input
+// also runs idempotent (the output is a fixed point: the filter adapter and the `expr ? undefined : false`
+// form are recognised and left alone). A case whose output equals its input is its own fixed point,
+// and its LF run checks that.
 // Every title starts with its ledger row id.
 
 import { describe, expect, it } from 'vitest';
@@ -39,10 +41,14 @@ describe('codemod: should-filter fixtures', () => {
       expect(result.reports).toEqual(c.reports);
     });
 
-    it(`${name}: running it on its own output changes nothing`, () => {
-      const again = run(c.inputPath, c.output);
-      expect(again.output).toBe(c.output);
-    });
+    // A case whose output equals its input is already its own fixed point: the LF test above runs
+    // that very source.
+    if (c.input !== c.output) {
+      it(`${name}: running it on its own output changes nothing`, () => {
+        const again = run(c.inputPath, c.output);
+        expect(again.output).toBe(c.output);
+      });
+    }
   }
 
   // The forms the transform header lists as left unchanged (should-filter.ts: filter={x!},
