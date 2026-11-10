@@ -789,9 +789,11 @@ When changesets are merged to `main`, the release workflow first waits (`ci-gate
 
 1. Runs `pnpm version-packages` (`changeset version`, then `pnpm install --lockfile-only`) to update `package.json` versions, generate `CHANGELOG.md` entries and refresh `pnpm-lock.yaml`
 2. Creates a release PR (`chore: release packages`) with the version bumps
-3. When that PR is merged, builds the packages and runs `changeset publish` to publish to npm
+3. When that PR is merged, packs the packages (`pack`), makes an SPDX SBOM, a build-provenance attestation and an SBOM attestation for each tarball (`attest`), and publishes those same tarballs with `changeset publish` (`publish`)
 
 Publishing authenticates via **npm OIDC Trusted Publishing** -- the workflow's `id-token: write` permission supplies a short-lived token, so no long-lived `NPM_TOKEN` secret exists. The publish job runs in the `npm` GitHub environment, which only the `main` branch may deploy to. Never push git tags manually; tag pushes can trigger publishing.
+
+The first version of a new package is the exception: npm trusted publishing can be configured only for a package that exists, so the owner publishes that version by hand and then adds the package's trusted publisher (`release.yml`, environment `npm`). Until npm knows the package, the `attest` job refuses any publish plan that holds it (`first publish of <name> is owner-gated (D62); publish it by hand first`) and nothing is published. `modern-cmdk-codemod` 1.0.0 was published this way on 2026-11-10.
 
 ### Release tags
 

@@ -58,3 +58,5 @@ gh attestation verify <tgz> -R ABCrimson/modern-cmdk
 ```
 
 The command exits non-zero when no attestation of this repository matches the file's digest.
+
+One version was not published by the workflow: `modern-cmdk-codemod` 1.0.0, the package's first version, was published by the owner by hand on 2026-11-10 (npm trusted publishing can be configured only for a package that exists) from a tarball the `Release` workflow built and attested. It carries no npm provenance, but its tarball has GitHub artifact attestations (build provenance and SBOM) and verifies with the command above; `modern-cmdk-codemod` 1.0.1 onward are published by the workflow with npm provenance. The first version of any new package is published by the owner by hand, and the workflow refuses to publish a package npm has never seen.

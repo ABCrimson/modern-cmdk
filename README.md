@@ -35,7 +35,7 @@ Usage, install, peers and sizes are documented once, in the [`modern-cmdk` packa
 | Package | What it is | npm status |
 |---|---|---|
 | [`modern-cmdk`](./packages/modern-cmdk) | Core engine, React adapter (`modern-cmdk/react`, `modern-cmdk/react/dialog`), default styles and the deprecated `modern-cmdk` codemod bin (until 2.0) | Published |
-| [`modern-cmdk-codemod`](./packages/modern-cmdk-codemod) | The cmdk migration codemods (`npx modern-cmdk-codemod <transform> <dir or glob>`), strict by default; replaces the `modern-cmdk` bin | Prepared for its first publish (owner-gated) |
+| [`modern-cmdk-codemod`](./packages/modern-cmdk-codemod) | The cmdk migration codemods (`npx modern-cmdk-codemod <transform> <dir or glob>`), strict by default; replaces the `modern-cmdk` bin | Published (1.0.0 by the owner by hand, every later version by the release workflow) |
 | [`create-modern-cmdk`](./packages/create-modern-cmdk) | Project scaffolding with two templates (react-basic, react-dialog); react-full is a deprecated alias of react-basic, removed in create-modern-cmdk 2.0 | Published |
 | [`modern-cmdk-search-wasm`](./packages/command-search-wasm) | Rust/WASM fuzzy search (trigram index) | Experimental, private (0.9.0), unpublished |
 | [`vscode-modern-cmdk`](./packages/vscode-modern-cmdk) | VS Code snippets extension | Private; not on the VS Code Marketplace (the npm 1.0.0 was an accidental publish) |

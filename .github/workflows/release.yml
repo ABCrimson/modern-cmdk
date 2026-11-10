@@ -14,8 +14,8 @@ permissions: {}
 #
 # D62: npm's trusted publishing is configured per existing package, so the first version of a new package is
 # published by the owner by hand, never by this workflow. The attest job refuses a publish plan that holds a
-# package npm has never seen, so merging a Version PR that adds such a package before that hand publish fails
-# before anything is published.
+# package npm has never seen, so a push to main whose plan holds such a package (a merged Version PR, or any merge
+# that leaves no changeset pending) fails before anything is published.
 #
 # ci-gate holds every other job until the ci.yml run for the same commit has completed and
 # succeeded: nothing is published or released for a commit whose CI is red or cancelled. It also
@@ -196,8 +196,8 @@ jobs:
           artifact-ids: ${{ needs.pack.outputs.pack-dir-artifact-id }}
           path: pack
       # Fails loudly unless the tarball set is exactly the publish plan, every tarball is one of the three
-      # published packages, npm already knows each package (D62: `npm view` E404 means never published, whose
-      # first publish is the owner's, by hand; any other npm error fails too) and its sha256 equals the plan's
+      # published packages, npm already knows each package (D62: `npm view` E404 means the package was never published,
+      # and its first publish is the owner's, by hand; any other npm error fails too) and its sha256 equals the plan's
       # integrity (the bytes publish will upload).
       # Each tarball is also unpacked under sbom-src/<package> for the SBOM scan. Syft's directory defaults leave out
       # javascript-package-cataloger (it reads package.json only for installed/image sources) and a tarball holds no

@@ -99,6 +99,10 @@ describe('release.yml attest job (PKG-1, D62)', () => {
     );
     // Any other npm error fails the job as well.
     expect(layout).toMatch(/::error::npm view \$name failed/);
+    // Both branches end in `exit 1`: the refusal fails the job.
+    expect(layout).toMatch(
+      /^ {12}if ! registry=\$\(npm view "\$name" version 2>&1\); then\n {14}if grep -q 'E404' <<< "\$registry"; then\n {16}echo "::error::first publish of \$name is owner-gated \(D62\); publish it by hand first"\n {14}else\n {16}echo "::error::npm view \$name failed: \$registry"\n {14}fi\n {14}exit 1\n {12}fi$/m,
+    );
   });
 
   it('D62: no continue-on-error and no `|| true` anywhere in the workflow', () => {
@@ -215,6 +219,15 @@ describe('release.yml has no first-publish scaffolding', () => {
     // The graph line lists every job once: ci-gate -> select-mode -> version | (pack -> attest -> publish).
     const graph = /^# Job graph\. On a push to main: (.+)$/m.exec(workflow)?.[1] ?? '';
     expect([...new Set(graph.match(/[a-z][a-z-]*/g))].sort()).toEqual([...names].sort());
+  });
+
+  it('SEC-60: no job holding id-token: write executes a freshly resolved npm tree', () => {
+    for (const name of ['attest', 'publish']) {
+      expect(job(name), name).not.toBe('');
+      expect(job(name), name).not.toMatch(
+        /\bnpm (exec|install|ci)\b|\bnpx\b|codemod-tarball-smoke/,
+      );
+    }
   });
 });
 

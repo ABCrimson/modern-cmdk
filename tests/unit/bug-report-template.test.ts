@@ -100,9 +100,10 @@ describe('bug_report.yml placeholders and dropdown', () => {
     expect(value('Node')).toEqual([`v${read('.nvmrc').trim()}`]);
     const pkg = JSON.parse(read('packages/modern-cmdk/package.json')) as { version: string };
     // While a modern-cmdk changeset is pending, the manifest version is the published one and the placeholder must equal it.
-    // A Version PR is written by `changeset version` (release.yml's version job runs the version-packages script), which edits
-    // only package.json versions, CHANGELOG.md files and the consumed changesets and so never this template, so with no
-    // modern-cmdk changeset pending the placeholder may also name the release before the manifest version.
+    // A Version PR is written by release.yml's version job, which runs the version-packages script (`changeset version`, then
+    // `pnpm install --lockfile-only`): it edits package.json versions, CHANGELOG.md files, the consumed changesets and at most
+    // pnpm-lock.yaml, never this template, so with no modern-cmdk changeset pending the placeholder may also name the release
+    // before the manifest version.
     const released = [
       ...read('packages/modern-cmdk/CHANGELOG.md').matchAll(/^## (\d+\.\d+\.\d+)\r?$/gm),
     ].map((m) => m[1]);
