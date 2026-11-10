@@ -16,7 +16,6 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { setTimeout as setTimeout_ } from 'node:timers/promises';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import type { CliOptions } from '../../scripts/consumer-smoke.ts';
 import {
@@ -264,7 +263,9 @@ describe('buildWorkspaceYaml()', () => {
 });
 
 describe('run()', () => {
-  it('a timeout ends the step even when a grandchild holds the pipes, and the grandchild dies', async () => {
+  it('a timeout ends the step even when a grandchild holds the pipes, and the grandchild dies', async ({
+    task,
+  }) => {
     // The child prints its grandchild's pid, then both sleep; the grandchild inherits the pipes, so
     // only a kill of the whole process group (POSIX) or tree (Windows) lets the step end.
     const script = [
@@ -283,34 +284,59 @@ describe('run()', () => {
     expect(elapsed).toBeLessThan(1500 + 5000);
     const pid = Number(/GRANDCHILD=(\d+)/.exec(result.output)?.[1]);
     expect(Number.isInteger(pid) && pid > 0).toBe(true);
-    // The kill is delivered before 'close' resolves; allow the OS a moment to reap the process.
-    const deadline = performance.now() + 5000;
-    while (isAlive(pid) && performance.now() < deadline) await setTimeout_(50);
-    expect(isAlive(pid)).toBe(false);
+    // The kill is delivered before 'close' resolves, but under load the OS can take seconds to reap
+    // the process: poll until it is gone, for what the test's own timeout leaves (less a margin, so
+    // a survivor fails this assertion rather than the test timeout).
+    await expect
+      .poll(() => isAlive(pid), {
+        timeout: task.timeout - (performance.now() - started) - 500,
+        interval: 50,
+      })
+      .toBe(false);
   }, 20_000);
 });
 
 describe('killTree()', () => {
-  /** Waits for the child to disappear; a survivor is killed so it cannot outlive the test. */
-  async function ended(child: ChildProcess, pid: number): Promise<boolean> {
-    const deadline = performance.now() + 5000;
-    while (isAlive(pid) && performance.now() < deadline) await setTimeout_(50);
-    const gone = !isAlive(pid);
-    if (!gone) child.kill('SIGKILL');
-    return gone;
+  /**
+   * Waits for the child to disappear, for what the test's own timeout leaves (less a margin, so a
+   * survivor fails the caller's assertion rather than the test timeout); a survivor is killed so it
+   * cannot outlive the test.
+   */
+  async function ended(
+    child: ChildProcess,
+    pid: number,
+    task: { readonly timeout: number },
+    started: number,
+  ): Promise<boolean> {
+    try {
+      await expect
+        .poll(() => isAlive(pid), {
+          timeout: task.timeout - (performance.now() - started) - 500,
+          interval: 50,
+        })
+        .toBe(false);
+      return true;
+    } catch {
+      child.kill('SIGKILL');
+      return false;
+    }
   }
 
-  it('ends the served app spawned by spawnServer', async () => {
+  it('ends the served app spawned by spawnServer', async ({ task }) => {
+    const started = performance.now();
     const child = spawnServer(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], {
       cwd: tmpdir(),
     });
     const pid = child.pid as number;
     expect(Number.isInteger(pid) && pid > 0).toBe(true);
     killTree(child);
-    expect(await ended(child, pid)).toBe(true);
+    expect(await ended(child, pid, task, started)).toBe(true);
   }, 20_000);
 
-  it('ends a child that is not a process group leader (the POSIX ESRCH fallback)', async () => {
+  it('ends a child that is not a process group leader (the POSIX ESRCH fallback)', async ({
+    task,
+  }) => {
+    const started = performance.now();
     const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], {
       cwd: tmpdir(),
       stdio: 'ignore',
@@ -319,7 +345,7 @@ describe('killTree()', () => {
     const pid = child.pid as number;
     expect(Number.isInteger(pid) && pid > 0).toBe(true);
     killTree(child);
-    expect(await ended(child, pid)).toBe(true);
+    expect(await ended(child, pid, task, started)).toBe(true);
   }, 20_000);
 
   it('does nothing for a child that already exited', async () => {
