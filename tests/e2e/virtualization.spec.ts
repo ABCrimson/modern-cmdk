@@ -384,7 +384,7 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
   test('should handle scrolling with mouse wheel equivalent', async ({ page }) => {
     const list = page.locator('[data-command-list]');
 
-    // Simulate mouse wheel by scrolling the element
+    // A real wheel event over the list, not a scrollTop assignment, must scroll it
     await list.hover();
     await page.mouse.wheel(0, 500);
     await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
