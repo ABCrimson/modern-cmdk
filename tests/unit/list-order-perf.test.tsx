@@ -321,4 +321,30 @@ describe('PERF-16: the ordering effect still places what a change needs', () => 
     expect(itemIdsInDom()).toEqual(displayOf(probe));
     expect(searched.moves).toBeGreaterThan(0);
   });
+
+  it('PERF-16: a search that matches nothing after the first placement returns the moved children to their JSX slots', async () => {
+    const probe = new MachineProbe();
+    const filter = (item: CommandItem, query: string): number | false =>
+      query === 'zz'
+        ? false
+        : query
+          ? (({ b1: 9, a1: 8 } as Record<string, number>)[item.value] ?? false)
+          : 1;
+    await mount(
+      <Command filter={filter}>
+        <probe.Probe />
+        <Command.Input />
+        <Command.List>
+          <div data-k="WA">A{row('a1')}</div>
+          <div data-k="WB">B{row('b1')}</div>
+        </Command.List>
+      </Command>,
+    );
+    const wrappers = (): string[] =>
+      [...view().querySelectorAll('[data-k]')].map((el) => el.getAttribute('data-k') ?? '');
+    await sendTo(probe, { type: 'SEARCH_CHANGE', query: 's' });
+    expect(wrappers()).toEqual(['WB', 'WA']);
+    await sendTo(probe, { type: 'SEARCH_CHANGE', query: 'zz' });
+    expect(wrappers()).toEqual(['WA', 'WB']);
+  });
 });
