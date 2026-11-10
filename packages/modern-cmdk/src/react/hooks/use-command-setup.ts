@@ -55,11 +55,13 @@ export interface UseCommandSetupReturn {
  * memory (`search`, `activeId`, `open`) stays the last value forwarded. `held` is the active item
  * the cleanup takes from the machine when the root stops being live; the setup, when the root is
  * live again, sends its re-activation and leaves `held` set as the mark of that pending report.
- * The dedupe swallows the next `activeId` report when it names the held item (the re-activation's,
- * which the consumer already has) without writing the memory; the machine's first state change
- * after the send, or the next `activeId` report, ends the mark. A re-activation the machine
- * ignores changes no state, so the next `activeId` report, if it names the held item and comes
- * before any state change, is swallowed (RA-91). `held` is never a forwarded value.
+ * The dedupe swallows the next `activeId` report when it names the held item (the re-activation's:
+ * it puts back the item that was active at the hide, which is no new choice) without writing the
+ * memory; the machine's first state change after the send, the next `activeId` report or the next
+ * cleanup ends the mark. A re-activation the machine ignores changes no state, so the next
+ * `activeId` report, if it names the held item and comes before any state change or cleanup, is
+ * swallowed (RA-91); StrictMode's replay runs the cleanup right after the send, so under
+ * StrictMode an ignored re-activation leaves no mark. `held` is never a forwarded value.
  */
 interface Forwarded {
   search: string;
@@ -123,9 +125,10 @@ function createLiveOptions(
         return;
       }
       if (key === 'activeId' && fwd.held !== null) {
-        // The pending re-activation's report is swallowed. Any other report ends the mark and is
-        // handled as usual: the re-activation was ignored (its item is not registered), or an
-        // activation queued before it in the same batch reported first.
+        // A report naming the held item is swallowed: the pending re-activation's, or, after a
+        // re-activation the machine ignored, the held item's next activation (RA-91). Any other
+        // report ends the mark and is handled as usual: the re-activation was ignored (its item is
+        // not registered), or an activation queued before it in the same batch reported first.
         const pending = fwd.held;
         fwd.held = null;
         if (value === pending) return;
@@ -237,19 +240,23 @@ export function useCommandSetup(
   // so StrictMode's synchronous replay and an Activity show re-arm the machine before a key can
   // reach it. The cleanup suspends first (that flushes the pending batch while the root is still
   // live, so the consumer hears it), then stops forwarding and holds the machine's active item in
-  // `fwd.held`; the dedupe memory stays the last value forwarded. A hide unmounts the items, which
-  // empties the registry and drops the machine's active item; the setup puts the held item back (an
+  // `fwd.held`; the dedupe memory stays the last value forwarded. A hide unmounts the child
+  // items, which unregisters them (the `items` prop's entries stay) and drops the machine's active
+  // item when it was one of them; the setup puts the held item back (an
   // uncontrolled root: a controlled one mirrors its prop, which the registrations restore) and
   // keeps `fwd.held` set while that re-activation is pending, so the dedupe swallows its report and
   // leaves the memory alone: a show reports nothing, and a later activation of an item the consumer
   // has not heard of is reported once. The re-activation's report comes inside its batch, before
   // the machine's state change; the first state change after the send ends the mark. A
   // re-activation the machine ignores (the item is not registered) changes no state, so the mark
-  // stays until the next state change or `activeId` report, and the next `activeId` report, if it
-  // names the held item and comes before any state change (the item re-added and activated in one
-  // batch), is swallowed (RA-91). A re-activation and the consumer's activation of the re-added
-  // item in one batch report the item once.
-  // StrictMode's replay finds the held item still active, sends nothing and clears `fwd.held`.
+  // stays until the next state change, `activeId` report or cleanup, and the next `activeId`
+  // report, if it names the held item and comes before any state change (the item re-added and
+  // activated in one batch), is swallowed (RA-91). A re-activation and the consumer's activation
+  // of the re-added item in one batch report the item once.
+  // StrictMode's replay runs the cleanup first, which flushes the pending re-activation (one the
+  // machine takes reports and is swallowed; one it ignores changes nothing) and holds the
+  // machine's active item; the replayed setup finds that item still active, or none, sends
+  // nothing and clears `fwd.held`, so under StrictMode an ignored re-activation leaves no mark.
   useLayoutEffect(() => {
     machine.resume?.();
     fwd.live = true;

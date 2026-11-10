@@ -4,8 +4,9 @@
 // assistive technology with aria-hidden on the content's siblings (hideOthers), traps focus in the
 // content and locks scroll (RemoveScroll)
 // The palette's keys are handled from Dialog.Content only, and closing the dialog returns focus to
-// the element that was focused when it opened, except in a dialog mounted open with a `container`
-// and an `autoFocus` input (the opener record below says why)
+// the element that was focused when it opened, except when focus is already inside the content as
+// `open` turns true: a dialog mounted open with a `container` and an `autoFocus` input, or one
+// reopened during its exit animation (the opener record below says why)
 // styles.css declares @starting-style entries for the overlay and the content; they are inert
 // until DT-19
 // Isolated declarations: explicit return types on all exports
@@ -107,9 +108,12 @@ export function CommandDialog({
   // `open` turns true on a mounted dialog, and Radix's Portal renders after its own mount unless
   // `container` is set). Radix's mount handler cannot record it: an `autoFocus` inside the content
   // takes focus in React's layout phase, before the focus-scope's passive effect, which dispatches
-  // its mount event only when nothing inside the content has focus. A dialog mounted open with a
-  // `container` renders its content in the first commit, so an `autoFocus` input there is read as
-  // the opener and closing leaves focus on body.
+  // its mount event only when nothing inside the content has focus.
+  // Two cases read an element inside the content as the opener, so closing leaves focus on body: a
+  // dialog mounted open with a `container` renders its content in the first commit, where an
+  // `autoFocus` input takes focus; and a dialog reopened during its exit animation still has its
+  // content mounted (Radix's Presence keeps a closing node until its animationend), with focus
+  // inside it.
   useLayoutEffect(() => {
     if (!open) return;
     let active = document.activeElement;
