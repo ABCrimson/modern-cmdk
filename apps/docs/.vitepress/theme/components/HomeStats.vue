@@ -101,7 +101,7 @@ const hasSizeTiles = computed(() => tiles.value.some((tile) => tile.mark === '¹
         {{ data.sizes.sha }} on {{ data.sizes.date }}; <code>{{ sizesPath }}</code>.
       </li>
       <li v-if="data.search">
-        <span class="mark" aria-hidden="true">&#x00B2;</span> Search: ts-scorer-10k, median of one CI run on
+        <span class="mark" aria-hidden="true">&#x00B2;</span> Search: ts-scorer-10k, median of five runs' p50 on
         {{ data.search.cpuCount }}-CPU {{ data.search.cpu }}, Node {{ data.search.node }}, {{ data.search.date }}, commit
         {{ data.search.commit.slice(0, 7) }}; <code>benchmarks/baseline.json</code>. Runner noise is &plusmn;20-40&nbsp;% (the
         record's own <code>note</code>).
