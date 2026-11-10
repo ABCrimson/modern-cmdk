@@ -194,7 +194,9 @@ describe('parseCli', () => {
 });
 
 describe('run', () => {
-  it('a timeout ends the step even when a grandchild holds the pipes, and the grandchild dies', async () => {
+  it('a timeout ends the step even when a grandchild holds the pipes, and the grandchild dies', async ({
+    task,
+  }) => {
     const script = [
       "const { spawn } = require('node:child_process');",
       "const grandchild = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { stdio: 'inherit' });",
@@ -207,10 +209,15 @@ describe('run', () => {
     expect(performance.now() - started).toBeLessThan(10_000);
     const pid = Number(/GRANDCHILD=(\d+)/.exec(result.output)?.[1]);
     expect(Number.isInteger(pid) && pid > 0).toBe(true);
-    // The kill is delivered before 'close' resolves; allow the OS a moment to reap the process.
-    const deadline = performance.now() + 5000;
-    while (isAlive(pid) && performance.now() < deadline) await setTimeout_(50);
-    expect(isAlive(pid)).toBe(false);
+    // The kill is delivered before 'close' resolves, but under load the OS can take seconds to reap
+    // the process: poll until it is gone, for what the test's own timeout leaves (less a margin, so
+    // a survivor fails this assertion rather than the test timeout).
+    await expect
+      .poll(() => isAlive(pid), {
+        timeout: task.timeout - (performance.now() - started) - 500,
+        interval: 50,
+      })
+      .toBe(false);
   }, 15_000);
 });
 
