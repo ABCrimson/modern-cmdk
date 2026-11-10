@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "vite": "catalog:",
-    "@vitejs/plugin-react": "6.2.1",
+    "@vitejs/plugin-react": "6.3.0",
     "typescript": "catalog:"
   }
 }

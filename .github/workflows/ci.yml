@@ -89,7 +89,7 @@ jobs:
         os: [ubuntu-26.04, macos-26, windows-2025-vs2026]
         # 26.4.0 = the engines.node floor; the other entry = .nvmrc
         # (a matrix cannot read the file — keep in sync).
-        node: ['26.4.0', '28.0.0-nightly20261107a43bfb5bb2']
+        node: ['26.4.0', '28.0.0-nightly20261109768315cf71']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -695,21 +695,21 @@ jobs:
             tar -xzf "$tarball" -C "$RUNNER_TEMP/sbom-src/$name"
           done
           printf 'select-catalogers:\n  - "+javascript-package-cataloger"\n' > "$RUNNER_TEMP/syft.yaml"
-      # sbom-action v0.24.3 looks for syft in the runner tool cache (actions/tool-cache find('syft', 'v1.57.0'), which semver.clean reduces to
-      # 1.57.0: the folder $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and, only on a miss, downloads syft's
+      # sbom-action v0.24.3 looks for syft in the runner tool cache (actions/tool-cache find('syft', 'v1.57.1'), which semver.clean reduces to
+      # 1.57.1: the folder $RUNNER_TOOL_CACHE/syft/1.57.1/x64 with its x64.complete marker) and, only on a miss, downloads syft's
       # install.sh through @actions/tool-cache (three attempts); install.sh fetches the checksums file and the tarball with one curl
       # each; a GitHub release-host HTTP 504 on the checksums file failed this job on four of five attempts. The local
       # install-release-binary action seeds that folder from the release tarball (up to eight attempts, gh release download, then the API asset route,
       # then the direct release URL, per attempt, and a pinned sha256), so the action finds syft and skips its download. The sha256 is the tarball's GitHub asset
-      # digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest').
+      # digest (re-resolve with: gh release view v1.57.1 -R anchore/syft --json assets --jq '.assets[] | select(.name == "syft_1.57.1_linux_amd64.tar.gz") | .digest').
       # Bump the tag, the digest and the syft-version below together.
       - name: Install syft into the tool cache
         uses: ./.github/actions/install-release-binary
         with:
           repo: anchore/syft
-          tag: v1.57.0
-          asset: syft_1.57.0_linux_amd64.tar.gz
-          sha256: 9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704
+          tag: v1.57.1
+          asset: syft_1.57.1_linux_amd64.tar.gz
+          sha256: bf52519eb57f675d47c07d43213cb6dff6449f3d6d1147ff6701ed91f44eef0c
           path-in-archive: syft
           tool: syft
           tool-cache: true
@@ -722,7 +722,7 @@ jobs:
           upload-artifact: 'false'
           upload-release-assets: 'false'
           # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
-          syft-version: v1.57.0
+          syft-version: v1.57.1
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom

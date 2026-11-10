@@ -335,8 +335,8 @@ describe('resolvePnpmEntry()', () => {
 
   it('spawns an executable npm_execpath directly, with no leading argument', () => {
     expect(
-      resolvePnpmEntry({ npm_execpath: 'C:/Users/me/.local/share/pnpm-12.18.0/pnpm.exe' }, node),
-    ).toEqual({ file: 'C:/Users/me/.local/share/pnpm-12.18.0/pnpm.exe', leading: [] });
+      resolvePnpmEntry({ npm_execpath: 'C:/Users/me/.local/share/pnpm-12.19.0/pnpm.exe' }, node),
+    ).toEqual({ file: 'C:/Users/me/.local/share/pnpm-12.19.0/pnpm.exe', leading: [] });
     expect(resolvePnpmEntry({ npm_execpath: '/usr/local/bin/pnpm' }, node)).toEqual({
       file: '/usr/local/bin/pnpm',
       leading: [],

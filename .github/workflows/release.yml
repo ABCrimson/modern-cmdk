@@ -472,14 +472,14 @@ jobs:
           mkdir sbom-src
           tar -xzf "$TGZ" -C sbom-src
           printf 'select-catalogers:\n  - "+javascript-package-cataloger"\n' > syft.yaml
-      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', 'v1.57.0'), which semver.clean reduces to 1.57.0: the folder
-      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and otherwise downloads syft's install.sh through
+      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', 'v1.57.1'), which semver.clean reduces to 1.57.1: the folder
+      # $RUNNER_TOOL_CACHE/syft/1.57.1/x64 with its x64.complete marker) and otherwise downloads syft's install.sh through
       # @actions/tool-cache (three attempts) and, on a cache miss, install.sh fetches the checksums file and the tarball with one curl
       # each; a GitHub release-host HTTP 504 failed CI's SBOM scan on four of five attempts. This job checks out nothing, so
       # it cannot use the local install-release-binary action CI uses; it seeds the same folder from syft's release tarball (up to
       # eight attempts, each gh release download, then the API asset route, then the direct release URL, and a pinned sha256) and the
-      # action finds syft and skips its download. The sha256 is the tarball's GitHub asset digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json
-      # assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest'). Bump the tag, the digest and every
+      # action finds syft and skips its download. The sha256 is the tarball's GitHub asset digest (re-resolve with: gh release view v1.57.1 -R anchore/syft --json
+      # assets --jq '.assets[] | select(.name == "syft_1.57.1_linux_amd64.tar.gz") | .digest'). Bump the tag, the digest and every
       # syft-version below together with ci.yml.
       - name: Install syft into the tool cache
         shell: bash
@@ -489,9 +489,9 @@ jobs:
           set -euo pipefail
           tarball="$RUNNER_TEMP/syft.tar.gz"
           fetch() {
-            gh release download v1.57.0 -R anchore/syft -p syft_1.57.0_linux_amd64.tar.gz -O "$tarball" --clobber && return 0
+            gh release download v1.57.1 -R anchore/syft -p syft_1.57.1_linux_amd64.tar.gz -O "$tarball" --clobber && return 0
             local id
-            id="$(curl --fail --silent --show-error --location --connect-timeout 15 --max-time 60 -H "Accept: application/vnd.github+json" ${GH_TOKEN:+-H "Authorization: Bearer $GH_TOKEN"} https://api.github.com/repos/anchore/syft/releases/tags/v1.57.0 | jq -r '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .id')" || id=
+            id="$(curl --fail --silent --show-error --location --connect-timeout 15 --max-time 60 -H "Accept: application/vnd.github+json" ${GH_TOKEN:+-H "Authorization: Bearer $GH_TOKEN"} https://api.github.com/repos/anchore/syft/releases/tags/v1.57.1 | jq -r '.assets[] | select(.name == "syft_1.57.1_linux_amd64.tar.gz") | .id')" || id=
             if [ -n "$id" ]; then
               curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 --connect-timeout 15 --max-time 120 \
                 -H "Accept: application/octet-stream" ${GH_TOKEN:+-H "Authorization: Bearer $GH_TOKEN"} \
@@ -499,18 +499,18 @@ jobs:
             fi
             curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 --connect-timeout 15 --max-time 120 \
               --output "$tarball" \
-              https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz
+              https://github.com/anchore/syft/releases/download/v1.57.1/syft_1.57.1_linux_amd64.tar.gz
           }
           for attempt in 1 2 3 4 5 6 7 8; do
             rm -f "$tarball"
             fetch && break
-            [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.0_linux_amd64.tar.gz from anchore/syft v1.57.0"; exit 1; }
+            [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.1_linux_amd64.tar.gz from anchore/syft v1.57.1"; exit 1; }
             sleep $((attempt * 5))
           done
-          echo "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704  $tarball" | sha256sum --check
+          echo "bf52519eb57f675d47c07d43213cb6dff6449f3d6d1147ff6701ed91f44eef0c  $tarball" | sha256sum --check
           extract="$(mktemp -d "$RUNNER_TEMP/extract.XXXXXX")"
           tar -xzf "$tarball" -C "$extract" syft
-          dest="$RUNNER_TOOL_CACHE/syft/1.57.0/x64"
+          dest="$RUNNER_TOOL_CACHE/syft/1.57.1/x64"
           rm -rf "$dest" "$dest.complete"
           install -D -m 0755 "$extract/syft" "$dest/syft"
           touch "$dest.complete"
@@ -526,7 +526,7 @@ jobs:
           upload-artifact: "false"
           upload-release-assets: "false"
           # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
-          syft-version: v1.57.0
+          syft-version: v1.57.1
       - name: Build provenance attestation
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
@@ -645,14 +645,14 @@ jobs:
             tar -xzf "pack/$tarball" -C "sbom-src/$key"
             echo "$key=pack/$tarball" >> "$GITHUB_OUTPUT"
           done
-      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', 'v1.57.0'), which semver.clean reduces to 1.57.0: the folder
-      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and otherwise downloads syft's install.sh through
+      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', 'v1.57.1'), which semver.clean reduces to 1.57.1: the folder
+      # $RUNNER_TOOL_CACHE/syft/1.57.1/x64 with its x64.complete marker) and otherwise downloads syft's install.sh through
       # @actions/tool-cache (three attempts) and, on a cache miss, install.sh fetches the checksums file and the tarball with one curl
       # each; a GitHub release-host HTTP 504 failed CI's SBOM scan on four of five attempts. This job checks out nothing, so
       # it cannot use the local install-release-binary action CI uses; it seeds the same folder from syft's release tarball (up to
       # eight attempts, each gh release download, then the API asset route, then the direct release URL, and a pinned sha256) and the
-      # action finds syft and skips its download. The sha256 is the tarball's GitHub asset digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json
-      # assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest'). Bump the tag, the digest and every
+      # action finds syft and skips its download. The sha256 is the tarball's GitHub asset digest (re-resolve with: gh release view v1.57.1 -R anchore/syft --json
+      # assets --jq '.assets[] | select(.name == "syft_1.57.1_linux_amd64.tar.gz") | .digest'). Bump the tag, the digest and every
       # syft-version below together with ci.yml.
       - name: Install syft into the tool cache
         if: steps.tarballs.outputs.count != '0'
@@ -663,9 +663,9 @@ jobs:
           set -euo pipefail
           tarball="$RUNNER_TEMP/syft.tar.gz"
           fetch() {
-            gh release download v1.57.0 -R anchore/syft -p syft_1.57.0_linux_amd64.tar.gz -O "$tarball" --clobber && return 0
+            gh release download v1.57.1 -R anchore/syft -p syft_1.57.1_linux_amd64.tar.gz -O "$tarball" --clobber && return 0
             local id
-            id="$(curl --fail --silent --show-error --location --connect-timeout 15 --max-time 60 -H "Accept: application/vnd.github+json" ${GH_TOKEN:+-H "Authorization: Bearer $GH_TOKEN"} https://api.github.com/repos/anchore/syft/releases/tags/v1.57.0 | jq -r '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .id')" || id=
+            id="$(curl --fail --silent --show-error --location --connect-timeout 15 --max-time 60 -H "Accept: application/vnd.github+json" ${GH_TOKEN:+-H "Authorization: Bearer $GH_TOKEN"} https://api.github.com/repos/anchore/syft/releases/tags/v1.57.1 | jq -r '.assets[] | select(.name == "syft_1.57.1_linux_amd64.tar.gz") | .id')" || id=
             if [ -n "$id" ]; then
               curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 --connect-timeout 15 --max-time 120 \
                 -H "Accept: application/octet-stream" ${GH_TOKEN:+-H "Authorization: Bearer $GH_TOKEN"} \
@@ -673,18 +673,18 @@ jobs:
             fi
             curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 --connect-timeout 15 --max-time 120 \
               --output "$tarball" \
-              https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz
+              https://github.com/anchore/syft/releases/download/v1.57.1/syft_1.57.1_linux_amd64.tar.gz
           }
           for attempt in 1 2 3 4 5 6 7 8; do
             rm -f "$tarball"
             fetch && break
-            [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.0_linux_amd64.tar.gz from anchore/syft v1.57.0"; exit 1; }
+            [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.1_linux_amd64.tar.gz from anchore/syft v1.57.1"; exit 1; }
             sleep $((attempt * 5))
           done
-          echo "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704  $tarball" | sha256sum --check
+          echo "bf52519eb57f675d47c07d43213cb6dff6449f3d6d1147ff6701ed91f44eef0c  $tarball" | sha256sum --check
           extract="$(mktemp -d "$RUNNER_TEMP/extract.XXXXXX")"
           tar -xzf "$tarball" -C "$extract" syft
-          dest="$RUNNER_TOOL_CACHE/syft/1.57.0/x64"
+          dest="$RUNNER_TOOL_CACHE/syft/1.57.1/x64"
           rm -rf "$dest" "$dest.complete"
           install -D -m 0755 "$extract/syft" "$dest/syft"
           touch "$dest.complete"
@@ -701,7 +701,7 @@ jobs:
           upload-artifact: "false"
           upload-release-assets: "false"
           # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
-          syft-version: v1.57.0
+          syft-version: v1.57.1
       - name: SBOM for create-modern-cmdk
         if: steps.tarballs.outputs.create_modern_cmdk != ''
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
@@ -713,7 +713,7 @@ jobs:
           upload-artifact: "false"
           upload-release-assets: "false"
           # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
-          syft-version: v1.57.0
+          syft-version: v1.57.1
       - name: SBOM for modern-cmdk-codemod
         if: steps.tarballs.outputs.modern_cmdk_codemod != ''
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
@@ -725,7 +725,7 @@ jobs:
           upload-artifact: "false"
           upload-release-assets: "false"
           # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
-          syft-version: v1.57.0
+          syft-version: v1.57.1
       - name: Build provenance attestation
         if: steps.tarballs.outputs.count != '0'
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2

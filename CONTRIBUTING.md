@@ -33,9 +33,9 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261107a43bfb5bb2) | Iterator Helpers (ES2025) and `Symbol.dispose` / `using` (ESNext explicit resource management) run natively |
+| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261109768315cf71) | Iterator Helpers (ES2025) and `Symbol.dispose` / `using` (ESNext explicit resource management) run natively |
 | pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
-| TypeScript | 7.1.0-dev.20261108.1 | Pinned once in the `catalog:` of `pnpm-workspace.yaml` (with react, react-dom, @types/react, @types/react-dom and vite; D54); the root, create-modern-cmdk and playground manifests reference it as `catalog:`, while apps/docs keeps its own `typescript` 6.0.3 pin for vue-tsc (the scoped hold the catalog comment records). Do not install globally |
+| TypeScript | 7.1.0-dev.20261109.1 | Pinned once in the `catalog:` of `pnpm-workspace.yaml` (with react, react-dom, @types/react, @types/react-dom and vite; D54); the root, create-modern-cmdk and playground manifests reference it as `catalog:`, while apps/docs keeps its own `typescript` 6.0.3 pin for vue-tsc (the scoped hold the catalog comment records). Do not install globally |
 | Rust + wasm-pack | Pinned nightly (`rust-toolchain.toml`) + wasm-pack 0.15.1 | Only needed if working on `command-search-wasm` |
 | Git | >= 2.40 | For Lefthook pre-commit/pre-push hooks |
 
@@ -308,7 +308,7 @@ modern-cmdk/
 # Watch mode for a specific package
 pnpm --filter modern-cmdk run dev
 
-# Run the playground (Vite 8.3.6)
+# Run the playground (Vite 8.3.7)
 pnpm --filter playground run dev
 # Opens at http://localhost:5173
 
@@ -394,7 +394,7 @@ All relative imports use the `.js` extension suffix. This is a house convention 
 
 ## TypeScript Guidelines
 
-This project uses **TypeScript 7.1.0-dev.20261108.1** with strict configuration.
+This project uses **TypeScript 7.1.0-dev.20261109.1** with strict configuration.
 
 ### Required tsconfig flags
 
@@ -696,7 +696,7 @@ chore: bump Biome to 2.6.6
    - Unit tests (3 OS, on Node 26.4.0 and the `.nvmrc` Node), React lanes, built-package tests, coverage with the ratchet
    - Rust & WASM, E2E tests (Chromium and Firefox), docs build and render tests
    - Bundle size check (`size-limit`)
-   - Package integrity (`pnpm check:package --pack-dir`, the codemod tarball smoke `scripts/codemod-tarball-smoke.ts`, the notices check `scripts/third-party-notices.ts --check`, `pnpm check:licenses`, an SPDX SBOM artifact `sbom` made with syft v1.57.0), the Consumer app matrix (next-turbopack, next-webpack, vite) and a Node 24 engine-strict install of the packed tarball
+   - Package integrity (`pnpm check:package --pack-dir`, the codemod tarball smoke `scripts/codemod-tarball-smoke.ts`, the notices check `scripts/third-party-notices.ts --check`, `pnpm check:licenses`, an SPDX SBOM artifact `sbom` made with syft v1.57.1), the Consumer app matrix (next-turbopack, next-webpack, vite) and a Node 24 engine-strict install of the packed tarball
    - Templates (scaffold `react-basic`, `react-dialog` and `react-full` from the packed tarballs, `tsc -b` and build each; `scripts/template-smoke.ts --template all`, timeout 10 minutes)
    - Benchmarks (`pnpm bench:compare` against `benchmarks/baseline.json`, then `pnpm bench --run`)
    - Browser bench (Chromium, 10K mount gate): `node benchmarks/browser/run.ts` builds the playground, drives its `/bench` route at 1K and 10K items (1 warm-up and 7 measured runs each) and fails the job when the 10K mount median is above the 75 ms tripwire (D94, set from the runner's first measurement of 47.80 ms on an AMD EPYC 7763; the 1.7.0 RC measured 54.70 ms on an AMD EPYC 9V74 and the tripwire stands, D120) or the harness errors (exit 1 or 2); the results JSON is uploaded as the `browser-bench-results` artifact
@@ -821,7 +821,7 @@ Management (`Symbol.dispose` / `using`) and `Promise.withResolvers` natively -- 
 Node.js 26.4.0+ ships all of them. If you hit one of these errors, your Node.js is too old:
 
 ```bash
-node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly20261107a43bfb5bb2
+node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly20261109768315cf71
 ```
 
 > [!NOTE]

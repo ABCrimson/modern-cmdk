@@ -117,7 +117,7 @@
       "license": "MIT",
       "file": "license",
       "sha256": "66b333b0f66759a0b710459e03f7029abe17f4358114a128d2c972e642961b49",
-      "reason": "No license field in its manifest; its licence is the MIT text in a lowercase `license` file, which pnpm 12.18.0's resolver (license_resolver.rs, unchanged from 12.17.0; LICENSE_FILES tried by exact name) opens on case-insensitive file systems and misses on Linux, so CI reported it Unknown (run 41914394016, 2026-11-04) while Windows reports MIT. Reached only through mermaid 12.3.0 in apps/docs; absent from every built dist file. Re-pin the hash if khroma changes the file."
+      "reason": "No license field in its manifest; its licence is the MIT text in a lowercase `license` file, which pnpm 12.19.0's resolver (license_resolver.rs, unchanged from 12.17.0; LICENSE_FILES tried by exact name) opens on case-insensitive file systems and misses on Linux, so CI reported it Unknown (run 41914394016, 2026-11-04) while Windows reports MIT. Reached only through mermaid 12.3.0 in apps/docs; absent from every built dist file. Re-pin the hash if khroma changes the file."
     }
   ],
   "noticeFiles": [

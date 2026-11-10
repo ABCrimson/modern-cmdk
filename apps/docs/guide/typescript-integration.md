@@ -1,6 +1,6 @@
 # TypeScript Integration
 
-modern-cmdk is built with TypeScript 7.1.0-dev.20261108.1 and provides first-class type safety.
+modern-cmdk is built with TypeScript 7.1.0-dev.20261109.1 and provides first-class type safety.
 
 ## Branded IDs
 
@@ -100,7 +100,7 @@ state.filteredIds.push(itemId('x'));
 
 The codebase uses only erasable TypeScript syntax (no enums, no namespaces, no constructor parameter properties). This means any tool that strips types works correctly: Node's built-in type stripping first, then esbuild, swc and Bun.
 
-Node runs `.ts` files by stripping the types, with no flag, from v23.6.0 and v22.18.0 (type stripping is stable from v25.2.0 and v24.12.0), per [nodejs.org/api/typescript.html](https://nodejs.org/api/typescript.html), read on 2026-11-04. On the Node pinned in `.nvmrc` (28.0.0-nightly20261107a43bfb5bb2):
+Node runs `.ts` files by stripping the types, with no flag, from v23.6.0 and v22.18.0 (type stripping is stable from v25.2.0 and v24.12.0), per [nodejs.org/api/typescript.html](https://nodejs.org/api/typescript.html), read on 2026-11-04. On the Node pinned in `.nvmrc` (28.0.0-nightly20261109768315cf71):
 
 ```bash
 node -p process.features.typescript

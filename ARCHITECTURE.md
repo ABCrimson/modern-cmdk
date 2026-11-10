@@ -378,7 +378,7 @@ The optional WASM engine implements the core's `SearchEngine` interface; you pas
 - **`createWorkerSearchEngine()`** (`src/worker-engine.ts`) -- runs the same engine in a Web Worker; scores travel in a `SharedArrayBuffer` only when the page is cross-origin isolated, otherwise they are structured-cloned. Its synchronous `search()` yields the results of the most recent `searchAsync()` call, and nothing in `createCommandMachine` calls `searchAsync()`, so pair it with explicit `await engine.searchAsync(query)` calls. This file uses `Promise.withResolvers` (ES2024) for the worker-ready signal and for per-request tracking; `packages/modern-cmdk/src` does not use it, and the codemod uses it in `packages/modern-cmdk-codemod/src/cli.ts` and `files.ts`.
 - **Edit distance** -- `crate/src/scorer.rs` (Levenshtein helpers) is compiled under `cfg(test)` only and is not part of the search path.
 
-**Measurements.** The `.wasm` binary is 113,239 bytes raw and 52,096 bytes under `gzip -9` (measured 2026-11-09 on the `pkg/command_search_wasm_bg.wasm` that wasm-pack 0.15.1 builds with the nightly of 2026-11-09, rustc 1.102.0-nightly 5b7b37aef; the 2026-11-08 nightly gave 113,492 and 52,188, the 2026-11-07 nightly 113,220 and 52,103), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
+**Measurements.** The `.wasm` binary is 113,236 bytes raw and 52,107 bytes under `gzip -9` (measured 2026-11-10 on the `pkg/command_search_wasm_bg.wasm` that wasm-pack 0.15.1 builds with the nightly of 2026-11-10, rustc 1.102.0-nightly ac8310ba6; the 2026-11-09 nightly gave 113,239 and 52,096, the 2026-11-08 nightly 113,492 and 52,188), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
 
 ---
 
@@ -653,7 +653,7 @@ Five custom properties are registered with `@property` (`--command-list-height`,
 | Codemod bin (`modern-cmdk`, deprecated) | ≤ 3.4 MB | **Enforced**: `dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs` (the bundled bin, shim included), installed size (no compression). `benchmarks/size-history/1.7.0.json` (a7838c9, measured 2026-11-08 with size-limit 14.3.0) holds 3153027 B; the 1.6 value was 3153027 B |
 | Codemod shim (`bin.mjs`) | ≤ 1000 B | **Enforced**: `dist/codemod/bin.mjs` alone, installed size. Measured 897 B (`benchmarks/size-history/1.7.0.json`) |
 | `modern-cmdk-codemod` own files | ≤ 102000 B | **Enforced**: `packages/modern-cmdk-codemod/dist/*.mjs` plus `dist/transforms/*.mjs`, installed size; `jscodeshift` is not in the tarball and not counted. Measured 100685 B (`benchmarks/size-history/1.7.0.json`); the tarball is 117172 B unpacked, 34216 B packed |
-| WASM binary (gzipped) | no budget; about 52 kB measured (113,239 bytes raw, see [WASM Search Engine](#wasm-search-engine)) | Not enforced (package private, not in `size-limit`) |
+| WASM binary (gzipped) | no budget; about 52 kB measured (113,236 bytes raw, see [WASM Search Engine](#wasm-search-engine)) | Not enforced (package private, not in `size-limit`) |
 | Search latency (10K items, TS scorer) | < 16 ms | Tripwire on the named task `search:ts-scorer-10k`: `pnpm bench:compare` against the record of the run's CPU in `benchmarks/baseline.json` warns above a 5% regression and fails (exit 2) above 15% or when the median exceeds the 16 ms `target_ms`; the CI bench job turns red only when a re-run also exits 2 (see below). |
 | Search latency (100K items, WASM engine) | none (unmeasured) | Target (not enforced); no figure has been measured |
 | Time to first render | < 50 ms | Target (not enforced). Not the metric the browser bench enforces (next row) |
@@ -747,7 +747,7 @@ Building a production-quality dialog from scratch would add significant bundle s
 
 ### Why Vite for the playground?
 
-The interactive playground (`apps/playground`) uses **Vite 8.3.6** with `@vitejs/plugin-react` 6.2.1 and `build.target: 'esnext'`, so Iterator Helpers and `using` syntax are not downleveled. Vite passes CSS nesting, `@layer` and `@starting-style` through unchanged.
+The interactive playground (`apps/playground`) uses **Vite 8.3.7** with `@vitejs/plugin-react` 6.3.0 and `build.target: 'esnext'`, so Iterator Helpers and `using` syntax are not downleveled. Vite passes CSS nesting, `@layer` and `@starting-style` through unchanged.
 
 ### Why `@starting-style` over JavaScript animations?
 
