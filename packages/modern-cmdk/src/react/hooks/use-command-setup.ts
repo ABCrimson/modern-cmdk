@@ -54,10 +54,12 @@ export interface UseCommandSetupReturn {
  * search queries the caller owns that the machine has not processed yet, oldest first. The dedupe
  * memory (`search`, `activeId`, `open`) stays the last value forwarded. `held` is the active item
  * the cleanup takes from the machine when the root stops being live; the setup, when the root is
- * live again, sends its re-activation and leaves `held` set only while that report is pending. The
- * dedupe swallows the first `activeId` report that follows (the re-activation's, which the consumer
- * already has) without writing the memory; the machine's first state change after the send ends the
- * mark, so an ignored re-activation swallows nothing later. It is never a forwarded value.
+ * live again, sends its re-activation and leaves `held` set as the mark of that pending report.
+ * The dedupe swallows the next `activeId` report when it names the held item (the re-activation's,
+ * which the consumer already has) without writing the memory; the machine's first state change
+ * after the send, or the next `activeId` report, ends the mark. A re-activation the machine
+ * ignores changes no state, so the next `activeId` report, if it names the held item and comes
+ * before any state change, is swallowed (RA-91). `held` is never a forwarded value.
  */
 interface Forwarded {
   search: string;
@@ -121,8 +123,9 @@ function createLiveOptions(
         return;
       }
       if (key === 'activeId' && fwd.held !== null) {
-        // The pending re-activation's report is swallowed; any other report means the re-activation was ignored
-        // (its item is not registered), so the pending mark ends.
+        // The pending re-activation's report is swallowed. Any other report ends the mark and is
+        // handled as usual: the re-activation was ignored (its item is not registered), or an
+        // activation queued before it in the same batch reported first.
         const pending = fwd.held;
         fwd.held = null;
         if (value === pending) return;
@@ -239,10 +242,12 @@ export function useCommandSetup(
   // keeps `fwd.held` set while that re-activation is pending, so the dedupe swallows its report and
   // leaves the memory alone: a show reports nothing, and a later activation of an item the consumer
   // has not heard of is reported once. The re-activation's report comes inside its batch, before
-  // the machine's state change; the first state change after the send ends the mark, so a
-  // re-activation the machine ignored (the item is not registered) swallows no later report. A
-  // re-activation and the consumer's activation of the re-added item in one batch report the item
-  // once.
+  // the machine's state change; the first state change after the send ends the mark. A
+  // re-activation the machine ignores (the item is not registered) changes no state, so the mark
+  // stays until the next state change or `activeId` report, and the next `activeId` report, if it
+  // names the held item and comes before any state change (the item re-added and activated in one
+  // batch), is swallowed (RA-91). A re-activation and the consumer's activation of the re-added
+  // item in one batch report the item once.
   // StrictMode's replay finds the held item still active, sends nothing and clears `fwd.held`.
   useLayoutEffect(() => {
     machine.resume?.();
