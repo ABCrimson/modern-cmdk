@@ -16,6 +16,7 @@ import {
 import pkg from '../../../packages/modern-cmdk/package.json' with { type: 'json' };
 
 type FenceRule = NonNullable<MarkdownRenderer['renderer']['rules']['fence']>;
+type InlineCodeRule = NonNullable<MarkdownRenderer['renderer']['rules']['code_inline']>;
 
 // The site is a GitHub Pages project site. VitePress prefixes base onto its own asset and page URLs
 // but not onto `head` entries, so the favicon href below is built from these constants.
@@ -182,6 +183,67 @@ export default defineConfig({
         return fence ? fence(...args) : self.renderToken(tokens, idx, options);
       };
       md.renderer.rules.fence = render;
+
+      // On the API pages, a code span in a table cell that is not the last of its row (a name, a type, a default) never breaks
+      // inside a word (tests/docs/api-tables.spec.ts, doc.css "API tables"): CSS has no switch for the break a hyphen, a slash
+      // or a bracket allows, so a span without whitespace gets class mc-nb (nowrap) and a span with whitespace has each word in
+      // an mc-w span (nowrap), the spaces between the words staying breakable. The last cell is the description, prose with
+      // code in it: its spans stay breakable, so a table whose unbreakable words do not fit squeezes the prose, not the page.
+      md.core.ruler.push('mc_table_code', (state) => {
+        const relativePath: unknown = state.env?.relativePath;
+        if (typeof relativePath !== 'string' || !relativePath.startsWith('api/')) return;
+        // A table of three or more columns whose last header is "Description" is stacked (doc.css "API tables"): the
+        // description takes a line of its own under the name, the type and the default, which carry their header as data-label.
+        let labels: string[] | undefined;
+        let column = 0;
+        for (const [index, token] of state.tokens.entries()) {
+          if (token.type === 'table_open') {
+            const header: string[] = [];
+            for (let at = index + 1; state.tokens[at]?.type !== 'thead_close'; at += 1) {
+              const cell = state.tokens[at];
+              if (cell?.type === 'inline') header.push(cell.content);
+              if (cell === undefined) break;
+            }
+            labels = header.length >= 3 && header.at(-1) === 'Description' ? header : undefined;
+            if (labels) token.attrJoin('class', 'mc-stack');
+          } else if (token.type === 'table_close') {
+            labels = undefined;
+          } else if (token.type === 'tr_open') {
+            column = 0;
+          } else if ((token.type === 'td_open' || token.type === 'th_open') && labels) {
+            token.attrSet('data-label', labels[column] ?? '');
+            column += 1;
+          }
+        }
+        for (const [index, token] of state.tokens.entries()) {
+          const before = state.tokens[index - 1]?.type;
+          if (token.type !== 'inline' || (before !== 'td_open' && before !== 'th_open')) continue;
+          if (
+            state.tokens[index + 2]?.type !== 'td_open' &&
+            state.tokens[index + 2]?.type !== 'th_open'
+          )
+            continue;
+          for (const child of token.children ?? []) {
+            if (child.type !== 'code_inline') continue;
+            if (/\s/.test(child.content)) child.meta = { words: true };
+            else child.attrJoin('class', 'mc-nb');
+          }
+        }
+      });
+      const inlineCode = md.renderer.rules.code_inline;
+      const renderInlineCode: InlineCodeRule = (...args: Parameters<InlineCodeRule>) => {
+        const [tokens, idx, options, , self] = args;
+        const token = tokens[idx];
+        if (token?.meta?.words !== true) {
+          return inlineCode ? inlineCode(...args) : self.renderToken(tokens, idx, options);
+        }
+        const words = token.content
+          .split(/\s+/)
+          .filter((word) => word !== '')
+          .map((word) => `<span class="mc-w">${md.utils.escapeHtml(word)}</span>`);
+        return `<code${self.renderAttrs(token)}>${words.join(' ')}</code>`;
+      };
+      md.renderer.rules.code_inline = renderInlineCode;
     },
   },
 

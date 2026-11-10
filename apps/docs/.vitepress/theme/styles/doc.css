@@ -150,28 +150,93 @@ html .vp-doc td {
    first Props table 106 px) and 10 at 1280 (widest 299 px); api/command had 10 of 19 at 1440 (widest 453 px) and 12 at 1280
    (widest 517 px). What holds now: a cell wraps at spaces, and breaks after a hyphen, a slash or a bracket where it must, but
    the code in a FIRST column never wraps (a selector, a signature or a path there is a name: [data-command-list-inner],
-   [Symbol.dispose](), --command-dialog-translate), so on api/command-react, api/command and api/command-search-wasm no code
-   span is split in any column at 1280, 1440 and 1920 and no table scrolls (without the first-column rule: 15 split words
-   at 1280 and 11 at 1440 and 1920 on command-react, [Symbol.dispose]() at 1280 on command, [Symbol.asyncDispose]() at all
-   widths on command-search-wasm). Code in the other columns still breaks after a hyphen or a slash on the guide pages
-   (modern-cmdk-codemod in guide/installation, 3 split words at 1280 and 2 at 1440 and 1920): nowrap on every code span makes
-   tables scroll at 1280 (api/command-react 4 tables, api/command 7, api/command-search-wasm 2, guide/migration-from-cmdk 2,
-   guide/theming 2, guide/installation, guide/architecture and guide/wasm-search 1 each), so those spans stay breakable. The
-   description keeps an 8rem (128 px) floor and cells pad 0.75rem inline, not 1rem; the one wide row, `enabled` of
-   api/command's FrecencyOptions table, was cut from 6 lines to 2 in the markdown. The tallest row on the three API pages is
-   125 px at 1280 and at most 104 px at 1440 and 1920; tests/docs/api-tables.spec.ts allows 160. A 10rem floor leaves table 11 of
-   api/command 14 px too wide at 1280, so 8rem is the largest that fits. */
+   [Symbol.dispose](), --command-dialog-translate), and on the API pages (config.ts, mc-nb and mc-w) neither does the code of
+   any column but the last (a type, a default), so no such span is split at 1280, 1440 or 1920 and no table scrolls. The last
+   cell is the description, prose with code in it: its code breaks after a hyphen or a slash, and `overflow-wrap: anywhere`
+   lets a word longer than the room the other columns leave break there instead of scrolling the table (the one table of
+   api/command-react and the two of api/command that still scrolled at 1280 with the description's words unbreakable). Code in
+   the other columns of the guide pages still breaks after a hyphen or a slash (modern-cmdk-codemod in guide/installation):
+   nowrap on every code span makes tables scroll at 1280. The description keeps a 7.5rem (120 px) floor and cells pad
+   0.75rem inline, not 1rem; a 8rem floor left table 7 of guide/migration-from-cmdk 3 px too wide at 1280. */
 html .vp-doc td,
 html .vp-doc td code {
   white-space: normal;
 }
 
-html .vp-doc td:first-child code {
+html .vp-doc td:first-child code,
+html .vp-doc td code.mc-nb,
+html .vp-doc td code .mc-w {
   white-space: nowrap;
 }
 
 html .vp-doc td:last-child {
-  min-inline-size: 8rem;
+  min-inline-size: 7.5rem;
+
+  /* the description is the cell that gives way: a word longer than the room the other columns leave breaks there, not the page */
+  overflow-wrap: anywhere;
+}
+
+/* Stacked API tables. 1.6.0 and 1.7.0 put whole paragraphs of behaviour into the Description cell (api/command's activeId is
+   679 characters, api/command-react's searchEngine 369), and a Type column of 150 to 300 px leaves that cell 160 to 220 px
+   at 1280 and 1440: rows of 300 to 840 px, a description read down a strip. config.ts marks the tables of the API pages that
+   have three or more columns and end in "Description" (class mc-stack, data-label on each cell): a row becomes a line of
+   name, type and default (the last two behind their header as a small label) over the description at the full width of the
+   table. The header row stays in the accessibility tree and leaves the page, because its labels moved into the rows. */
+html .vp-doc table.mc-stack {
+  display: block;
+  inline-size: auto;
+}
+
+html .vp-doc table.mc-stack thead {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+html .vp-doc table.mc-stack tbody {
+  display: block;
+}
+
+html .vp-doc table.mc-stack tr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--mc-space-1) var(--mc-space-4);
+  padding: var(--mc-space-2) var(--mc-space-3);
+  border-block-end: 1px solid var(--mc-divider);
+}
+
+html .vp-doc table.mc-stack thead tr {
+  display: block;
+  padding: 0;
+  border: 0;
+}
+
+html .vp-doc table.mc-stack tbody tr:last-child {
+  border-block-end: 0;
+}
+
+html .vp-doc table.mc-stack td {
+  display: block;
+  padding: 0;
+  border: 0;
+}
+
+html .vp-doc table.mc-stack td:not(:first-child, :last-child)::before {
+  content: attr(data-label);
+  margin-inline-end: var(--mc-space-2);
+  font-size: var(--mc-step--2);
+  font-weight: var(--mc-step--2-weight);
+  letter-spacing: var(--mc-step--2-tracking);
+  text-transform: uppercase;
+  color: var(--mc-text-3);
+}
+
+html .vp-doc table.mc-stack td:last-child {
+  flex: 1 0 100%;
+  min-inline-size: 0;
 }
 
 html .vp-doc th {
