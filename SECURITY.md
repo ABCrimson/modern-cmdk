@@ -51,7 +51,7 @@ Releases are published by the `Release` GitHub Actions workflow, which first wai
 
 ## Verifying a release
 
-The `Release` workflow makes an SPDX SBOM and a build-provenance attestation for each packed tarball (`modern-cmdk`, `create-modern-cmdk` and `modern-cmdk-codemod`) before anything is published. To check that a tarball was built by this repository's workflow, download it and run:
+The `Release` workflow makes an SPDX SBOM and an SBOM attestation for each packed tarball (`modern-cmdk`, `create-modern-cmdk` and `modern-cmdk-codemod`), and one build-provenance attestation that covers them all, before anything is published. To check that a tarball was built by this repository's workflow, download it and run:
 
 ```bash
 gh attestation verify <tgz> -R ABCrimson/modern-cmdk
