@@ -176,27 +176,6 @@ describe('WASM Trigram Query Lengths — 10K Items', () => {
 // ---------------------------------------------------------------------------
 
 describe('WASM Clear + Re-index Cycle', () => {
-  test('clear + re-index 100 items', async ({ bench }) => {
-    await bench('clear + re-index 100 items', () => {
-      wasmEngine.clear();
-      wasmEngine.index(items100);
-    }).run();
-  });
-
-  test('clear + re-index 1K items', async ({ bench }) => {
-    await bench('clear + re-index 1K items', () => {
-      wasmEngine.clear();
-      wasmEngine.index(items1K);
-    }).run();
-  });
-
-  test('clear + re-index 10K items', async ({ bench }) => {
-    await bench('clear + re-index 10K items', () => {
-      wasmEngine.clear();
-      wasmEngine.index(items10K);
-    }).run();
-  });
-
   test('clear + re-index + search 1K items', async ({ bench }) => {
     await bench('clear + re-index + search 1K items', () => {
       wasmEngine.clear();
