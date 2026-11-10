@@ -4,7 +4,8 @@
 // assistive technology with aria-hidden on the content's siblings (hideOthers), traps focus in the
 // content and locks scroll (RemoveScroll)
 // The palette's keys are handled from Dialog.Content only, and closing the dialog returns focus to
-// the element that was focused when it opened
+// the element that was focused when it opened, except in a dialog mounted open with a `container`
+// and an `autoFocus` input (the opener record below says why)
 // styles.css declares @starting-style entries for the overlay and the content; they are inert
 // until DT-19
 // Isolated declarations: explicit return types on all exports
@@ -100,10 +101,14 @@ export function CommandDialog({
   // trigger to restore focus to, so onCloseAutoFocus does it.
   const opener = useRef<HTMLElement | null>(null);
 
-  // Read in the layout phase of the commit that opens the dialog, while the opener still has focus:
-  // Radix's Presence mounts the content in the next commit. Radix's mount handler cannot record it:
-  // an `autoFocus` inside the content takes focus in React's layout phase, before the focus-scope's
-  // passive effect, which dispatches its mount event only when nothing inside the content has focus.
+  // Read in the layout phase of the commit in which `open` turns true, while the opener still has
+  // focus: the content mounts in a later commit (Radix's Presence mounts the portal a commit after
+  // `open` turns true on a mounted dialog, and Radix's Portal renders after its own mount unless
+  // `container` is set). Radix's mount handler cannot record it: an `autoFocus` inside the content
+  // takes focus in React's layout phase, before the focus-scope's passive effect, which dispatches
+  // its mount event only when nothing inside the content has focus. A dialog mounted open with a
+  // `container` renders its content in the first commit, so an `autoFocus` input there is read as
+  // the opener and closing leaves focus on body.
   useLayoutEffect(() => {
     if (!open) return;
     let active = document.activeElement;
