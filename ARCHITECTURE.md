@@ -645,9 +645,9 @@ Five custom properties are registered with `@property` (`--command-list-height`,
 | Metric | Target | Enforcement |
 |---|---|---|
 | Core bundle | ≤ 8.35 kB | **Enforced**: `size-limit` (`pnpm size`, CI "Bundle Size" job), `packages/modern-cmdk/dist/core/index.mjs`, gzip. Measured 7742 B |
-| React adapter only | ≤ 6.92 kB | **Enforced**: `dist/react/index.mjs`, gzip, with `modern-cmdk`, `react`, `react-dom`, `react/jsx-runtime` and `radix-ui` ignored (the core is not counted). Measured 6491 B |
-| Core + React adapter | ≤ 12.98 kB | **Enforced**: `dist/react/index.mjs`, gzip, `modern-cmdk` not ignored, so the one core is counted once. Measured 12038 B (1.6 measured 10764 B; 1.3 inlined the core in the adapter: 6355 B + 9844 B = 16199 B) |
-| `modern-cmdk/react/dialog` only | ≤ 2.2 kB | **Enforced**: `dist/react/dialog.mjs`, gzip, same ignore list. Measured 2104 B |
+| React adapter only | ≤ 7.09 kB | **Enforced**: `dist/react/index.mjs`, gzip, with `modern-cmdk`, `react`, `react-dom`, `react/jsx-runtime` and `radix-ui` ignored (the core is not counted). Measured 6491 B |
+| Core + React adapter | ≤ 13.16 kB | **Enforced**: `dist/react/index.mjs`, gzip, `modern-cmdk` not ignored, so the one core is counted once. Measured 12038 B (1.6 measured 10764 B; 1.3 inlined the core in the adapter: 6355 B + 9844 B = 16199 B) |
+| `modern-cmdk/react/dialog` only | ≤ 2.39 kB | **Enforced**: `dist/react/dialog.mjs`, gzip, same ignore list. Measured 2104 B |
 | `CommandSeparator` only | ≤ 390 B | **Enforced**: `import { CommandSeparator }` from `dist/react/index.mjs`, gzip, same ignore list. Measured 293 B; `Command` is a `/* @__PURE__ */ Object.assign` (D116), so the bundle holds `CommandSeparator` and what it imports, not `CommandDialog`, `CommandRoot` or the `radix-ui` import, and the entry pins that tree-shaking property |
 | `modern-cmdk/styles.css` | ≤ 2.5 kB | **Enforced**: `dist/react/styles.css`, gzip. Measured 3986 B |
 | Codemod bin (`modern-cmdk`, deprecated) | ≤ 3.4 MB | **Enforced**: `dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs` (the bundled bin, shim included), installed size (no compression). `benchmarks/size-history/1.7.0.json` (a7838c9, measured 2026-11-08 with size-limit 14.3.0) holds 3153027 B; the 1.6 value was 3153027 B |

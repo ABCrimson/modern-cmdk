@@ -610,9 +610,9 @@ Benchmark targets are the `target_ms` values in the records of `benchmarks/basel
 | Entry | Limit | Method |
 |---|---|---|
 | `modern-cmdk` (core) | 8.35 kB | `dist/core/index.mjs`, gzip |
-| `modern-cmdk/react` (adapter only) | 6.92 kB | `dist/react/index.mjs`, gzip; `modern-cmdk`, `react`, `react-dom` and `radix-ui` ignored |
-| `modern-cmdk` + `modern-cmdk/react` | 12.98 kB | `dist/react/index.mjs`, gzip; only the React side ignored, so the one core is counted |
-| `modern-cmdk/react/dialog` (adapter only) | 2.2 kB | `dist/react/dialog.mjs`, gzip; same ignore list as the adapter |
+| `modern-cmdk/react` (adapter only) | 7.09 kB | `dist/react/index.mjs`, gzip; `modern-cmdk`, `react`, `react-dom` and `radix-ui` ignored |
+| `modern-cmdk` + `modern-cmdk/react` | 13.16 kB | `dist/react/index.mjs`, gzip; only the React side ignored, so the one core is counted |
+| `modern-cmdk/react/dialog` (adapter only) | 2.39 kB | `dist/react/dialog.mjs`, gzip; same ignore list as the adapter |
 | `CommandSeparator` only | 390 B | `import { CommandSeparator }` from `dist/react/index.mjs`, gzip; same ignore list as the adapter; `Command` is a `/* @__PURE__ */ Object.assign` (D116), so the bundle holds the separator and not the compound |
 | `modern-cmdk/styles.css` | 2.5 kB | `dist/react/styles.css`, gzip |
 | Codemod bin (`modern-cmdk`, deprecated) | 3.4 MB | `dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs` (the bundled bin, shim included), installed size (no compression) |
