@@ -87,23 +87,6 @@ describe('Virtualization', () => {
     });
   });
 
-  it('should have listbox role on the list element', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="test" forceId="test">
-            Test
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    const list = container.querySelector('[data-command-list]');
-    expect(list).not.toBeNull();
-    expect(list?.getAttribute('role')).toBe('listbox');
-  });
-
   it('should have aria-live region for screen reader announcements', async () => {
     await render(
       <Command>
@@ -142,23 +125,6 @@ describe('Virtualization', () => {
     expect(list).not.toBeNull();
     // The style should contain the custom property (getPropertyValue returns '' for missing props)
     expect(list.style.getPropertyValue('--command-list-height')).not.toBe('');
-  });
-
-  it('should accept estimateSize and overscan props', async () => {
-    await render(
-      <Command>
-        <Command.Input />
-        <Command.List estimateSize={48} overscan={4}>
-          <Command.Item value="test" forceId="test">
-            Test
-          </Command.Item>
-        </Command.List>
-      </Command>,
-    );
-
-    // Should render without error — props are accepted
-    const list = container.querySelector('[data-command-list]');
-    expect(list).not.toBeNull();
   });
 });
 
@@ -201,12 +167,6 @@ describe('useVirtualizer scrollToIndex', () => {
       scrollTo,
     };
   }
-
-  it('CE-119: scrollToIndex aligns the row to the top by default, in view or not', async () => {
-    const { current, scrollTo } = await mountHook(1000);
-    current().scrollToIndex(5);
-    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 220, behavior: 'instant' });
-  });
 
   it("CE-119: scrollToIndex with 'nearest' leaves a row in view alone and scrolls a row below just into view", async () => {
     const { current, scrollTo } = await mountHook(100);

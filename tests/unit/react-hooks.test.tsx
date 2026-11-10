@@ -17,12 +17,12 @@
 // RA-33 gap                      file: title
 // -----------------------------  ----------------------------------------------------------------
 // useCommandDevtools             use-devtools.test.tsx:
-//                                  'SEC-52: registers the label when NODE_ENV is development'
-//                                  'SEC-52: leaves the registry uncreated when NODE_ENV is
-//                                    production'
+//                                  'D30: the new and the deprecated global hold the same registry'
 //                                  'RA-48: one state change dispatches one event per name with
 //                                    the new state'
-//                                react-hooks.test.tsx (T10 devtools titles below)
+//                                react-hooks.test.tsx (T10 devtools titles below, among them
+//                                  'T10: in production the mount and a later state change dispatch
+//                                    no event and create no global')
 // StrictMode lifecycle           react-lifecycle.test.tsx:
 //                                  'query survives StrictMode remount'
 //                                  'StrictMode: an item shortcut still fires after the double
@@ -50,9 +50,8 @@
 //                                  'a filter prop change refilters the current query'
 //                                  'an items prop change registers added items and unregisters
 //                                    removed ones'
-// Highlight                      react-hooks.test.tsx (RA-33 titles below), command.test.tsx
-//                                ('Highlight component') and cmdk-comparison.test.tsx
-//                                ('17g. Highlight Component (Command.Highlight)')
+// Highlight                      react-hooks.test.tsx (RA-33 titles below) and command.test.tsx
+//                                ('Highlight component')
 // Shortcut SSR                   ssr-render.test.tsx:
 //                                  'RA-19: Command.Shortcut hydrates under a macOS client with no
 //                                    recoverable error'

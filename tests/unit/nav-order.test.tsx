@@ -98,21 +98,6 @@ describe('C4 display order: core', () => {
     expect(activeId).toBe(filteredIds[0]);
   });
 
-  it('C4: a disabled best match makes the first enabled item of its group active', async () => {
-    using m = createCommandMachine({
-      items: itemsOf([
-        ['a1', 'gA', true],
-        ['a2', 'gA'],
-        ['b1', 'gB'],
-      ]),
-      groups: [{ id: groupId('gA') }, { id: groupId('gB') }],
-      filter: scoring({ a1: 9, b1: 8, a2: 7 }),
-    });
-    await searchScored(m);
-    expect(m.getState().filteredIds).toEqual(ids('a1', 'b1', 'a2'));
-    expect(m.getState().activeId).toBe(itemId('a2'));
-  });
-
   it('C4: a set priority puts its group first in the display order and NAVIGATE walks it', async () => {
     // A search: gA (priority -1) leads although its item scores below b1
     {

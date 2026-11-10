@@ -50,26 +50,14 @@
 //   4. The differential harness: describe.for over the two adapters, the ResizeObserver stub
 //      (happy-dom 21.0.4's does nothing), and the gate test, "the delta table has exactly one row
 //      per parity case".
-//   5. modern-cmdk superset: behaviour that has no cmdk counterpart (the framework-agnostic core,
-//      the search engine, the shortcut registry, frecency, branded ids, and the components cmdk
-//      lacks), asserted on modern-cmdk alone.
+//   5. modern-cmdk superset: behaviour that has no cmdk counterpart (the framework-agnostic core
+//      engine, CommandErrorBoundary and the filter contract), asserted on modern-cmdk alone. The
+//      search engine, the shortcut registry, frecency, branded ids and the components cmdk lacks
+//      are tested in their own suites.
 // ============================================================================
 
 import { isDeepStrictEqual } from 'node:util';
-import {
-  type CommandItem as CoreCommandItem,
-  computeFrecencyBonus,
-  createCommandMachine,
-  createSearchEngine,
-  detectConflicts,
-  type FrecencyRecord,
-  formatShortcut,
-  groupId,
-  itemId,
-  matchesShortcut,
-  parseShortcut,
-  scoreItem,
-} from 'modern-cmdk';
+import { type CommandItem as CoreCommandItem, createCommandMachine, itemId } from 'modern-cmdk';
 import { Command, CommandErrorBoundary } from 'modern-cmdk/react';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -1070,170 +1058,7 @@ describe('modern-cmdk superset', () => {
     });
   });
 
-  describe('pluggable search engine', () => {
-    it('scoreItem scores an item against a query', () => {
-      const item: CoreCommandItem = {
-        id: itemId('test'),
-        value: 'Application Settings',
-        keywords: ['config', 'preferences'],
-        disabled: false,
-      };
-      const result = scoreItem('app', item);
-      expect(result?.score).toBeGreaterThan(0);
-      expect(result?.id).toBe(item.id);
-    });
-
-    it('scoreItem returns match ranges for highlighting', () => {
-      const item: CoreCommandItem = {
-        id: itemId('test'),
-        value: 'Application',
-        keywords: [],
-        disabled: false,
-      };
-      const result = scoreItem('app', item);
-      expect(result?.matches.length).toBeGreaterThan(0);
-      // The first match starts at position 0 of "Application"
-      expect(result?.matches[0]?.[0]).toBe(0);
-    });
-
-    it('a search engine indexes items and searches them', () => {
-      using engine = createSearchEngine();
-      const items: CoreCommandItem[] = [
-        { id: itemId('a'), value: 'Application', keywords: [], disabled: false },
-        { id: itemId('b'), value: 'Banana', keywords: [], disabled: false },
-      ];
-      engine.index(items);
-      const results = engine.search('app', items).toArray();
-      expect(results.map((result) => result.id)).toEqual([itemId('a')]);
-    });
-  });
-
-  describe('keyboard shortcut registry', () => {
-    it('parseShortcut normalizes the key to lowercase', () => {
-      expect(parseShortcut('Ctrl+Shift+K').key).toBe('k');
-    });
-
-    it('formatShortcut writes a parsed shortcut back', () => {
-      expect(formatShortcut(parseShortcut('Ctrl+K'))).toContain('K');
-    });
-
-    it('matchesShortcut matches a keyboard event against a shortcut', () => {
-      const shortcut = parseShortcut('Ctrl+K');
-      expect(
-        matchesShortcut(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }), shortcut),
-      ).toBe(true);
-    });
-
-    it('matchesShortcut rejects an event whose modifiers differ', () => {
-      const shortcut = parseShortcut('Ctrl+K');
-      const event = new KeyboardEvent('keydown', { key: 'k', ctrlKey: false, shiftKey: true });
-      expect(matchesShortcut(event, shortcut)).toBe(false);
-    });
-
-    it('detectConflicts reports a repeated shortcut', () => {
-      const conflicts = detectConflicts([parseShortcut('Ctrl+K'), parseShortcut('Ctrl+K')]);
-      expect(conflicts.size).toBeGreaterThan(0);
-    });
-  });
-
-  describe('frecency engine', () => {
-    it('a used item earns a bonus', () => {
-      const now = Date.now();
-      const record: FrecencyRecord = { frequency: 5, lastUsed: now };
-      expect(computeFrecencyBonus(record, now)).toBeGreaterThan(0);
-    });
-
-    it('a recently used item earns more than one used 30 days ago', () => {
-      const now = Date.now();
-      const recent = computeFrecencyBonus({ frequency: 1, lastUsed: now }, now);
-      const old = computeFrecencyBonus({ frequency: 1, lastUsed: now - 720 * 3_600_000 }, now);
-      expect(recent).toBeGreaterThan(old);
-    });
-
-    it('a frequently used item earns more than a rarely used one', () => {
-      const now = Date.now();
-      const hourAgo = now - 3_600_000;
-      const frequent = computeFrecencyBonus({ frequency: 10, lastUsed: hourAgo }, now);
-      const rare = computeFrecencyBonus({ frequency: 1, lastUsed: hourAgo }, now);
-      expect(frequent).toBeGreaterThan(rare);
-    });
-  });
-
-  describe('branded ids', () => {
-    it('itemId returns the string it is given', () => {
-      expect(itemId('my-item')).toBe('my-item');
-    });
-
-    it('groupId returns the string it is given', () => {
-      expect(groupId('my-group')).toBe('my-group');
-    });
-  });
-
   describe('components', () => {
-    it('Command.Page renders only the active page, "root" by default', async () => {
-      await render(
-        <Command>
-          <Command.Input />
-          <Command.List>
-            <Command.Page id="root">
-              <Command.Item value="dashboard">Dashboard</Command.Item>
-            </Command.Page>
-            <Command.Page id="settings">
-              <Command.Item value="profile">Profile</Command.Item>
-            </Command.Page>
-          </Command.List>
-        </Command>,
-      );
-      expect(container.querySelector('[data-command-page-id="root"]')).not.toBeNull();
-      expect(container.querySelector('[data-command-page-id="settings"]')).toBeNull();
-    });
-
-    it('Command.Highlight wraps a match range in a mark with the class', async () => {
-      await render(
-        <Command.Highlight text="Application" ranges={[[0, 3]]} highlightClassName="hl" />,
-      );
-      const marks = container.querySelectorAll('mark');
-      expect(marks.length).toBe(1);
-      expect(marks[0]?.textContent).toBe('App');
-      expect(marks[0]?.className).toBe('hl');
-    });
-
-    it('Command.Highlight marks several non-overlapping ranges', async () => {
-      await render(
-        <Command.Highlight
-          text="Hello World"
-          ranges={[
-            [0, 2],
-            [6, 11],
-          ]}
-        />,
-      );
-      const marks = container.querySelectorAll('mark');
-      expect(marks.length).toBe(2);
-      expect(marks[0]?.textContent).toBe('He');
-      expect(marks[1]?.textContent).toBe('World');
-    });
-
-    it('Command.Highlight renders plain text when there are no ranges', async () => {
-      await render(<Command.Highlight text="No highlights" ranges={[]} />);
-      expect(container.querySelectorAll('mark').length).toBe(0);
-      expect(container.textContent).toBe('No highlights');
-    });
-
-    it('Command.Shortcut renders a kbd element', async () => {
-      await render(<Command.Shortcut>Ctrl+K</Command.Shortcut>);
-      const kbd = container.querySelector('kbd');
-      expect(kbd?.getAttribute('data-command-shortcut')).toBe('');
-      expect(kbd?.textContent).toBe('Ctrl+K');
-    });
-
-    it('Command.Badge renders a span with data-command-badge', async () => {
-      await render(<Command.Badge className="tag">New</Command.Badge>);
-      const badge = container.querySelector('[data-command-badge]');
-      expect(badge?.tagName).toBe('SPAN');
-      expect(badge?.textContent).toBe('New');
-    });
-
     it('CommandErrorBoundary renders its children when nothing throws', async () => {
       await render(
         <CommandErrorBoundary fallback={<div>Error!</div>}>
@@ -1242,18 +1067,6 @@ describe('modern-cmdk superset', () => {
       );
       expect(container.querySelector('[data-testid="child"]')?.textContent).toBe('OK');
       expect(container.textContent).not.toContain('Error!');
-    });
-
-    it('Command.Loading renders nothing while its loading prop is false', async () => {
-      await render(
-        <Command>
-          <Command.Input />
-          <Command.List>
-            <Command.Loading loading={false}>Hidden</Command.Loading>
-          </Command.List>
-        </Command>,
-      );
-      expect(container.querySelector('[data-command-loading]')).toBeNull();
     });
 
     it('a modern-cmdk filter excludes an item scored false, 0 or negative', async () => {

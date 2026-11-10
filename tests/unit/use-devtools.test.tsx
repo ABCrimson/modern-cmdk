@@ -1,5 +1,7 @@
 // tests/unit/use-devtools.test.tsx
-// SEC-52 (devtools half): useCommandDevtools registers its label in development and stays inert in production.
+// D30: useCommandDevtools registers its label in development under both global names (the production half of
+// SEC-52 is pinned by tests/unit/react-hooks.test.tsx, 'T10: in production the mount and a later state change
+// dispatch no event and create no global').
 // RA-48: one state change publishes one event per name, carrying the new state.
 
 import type { CommandMachine } from 'modern-cmdk';
@@ -88,20 +90,6 @@ describe('useCommandDevtools', () => {
     vi.useRealTimers();
     vi.resetModules();
     clearRegistries();
-  });
-
-  it('SEC-52: registers the label when NODE_ENV is development', async () => {
-    vi.stubEnv('NODE_ENV', 'development');
-    ({ cleanup } = await mountDevtools('unit-dev'));
-    const registry = Reflect.get(globalThis, DEVTOOLS_KEY) as Map<string, unknown> | undefined;
-    expect(registry?.has('unit-dev')).toBe(true);
-  });
-
-  it('SEC-52: leaves the registry uncreated when NODE_ENV is production', async () => {
-    vi.stubEnv('NODE_ENV', 'production');
-    ({ cleanup } = await mountDevtools('unit-prod'));
-    expect(Reflect.has(globalThis, DEVTOOLS_KEY)).toBe(false);
-    expect(Reflect.has(globalThis, DEPRECATED_KEY)).toBe(false);
   });
 
   it('D30: the new and the deprecated global hold the same registry', async () => {

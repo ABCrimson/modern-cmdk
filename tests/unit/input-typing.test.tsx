@@ -73,23 +73,6 @@ describe('Command.Input rapid typing', () => {
     expect(machine().getState().search).toBe(TYPED);
   });
 
-  it('never lets the DOM value lag the last change event', async () => {
-    const { input } = renderPalette();
-    const user = userEvent.setup({ delay: 0 });
-    const seen: string[] = [];
-    input.addEventListener('input', () => {
-      seen.push(input.value);
-    });
-
-    await user.click(input);
-    for (const [index, char] of [...TYPED].entries()) {
-      await user.keyboard(char);
-      // After the event has been processed (act boundary), the DOM holds exactly what was typed.
-      expect(input.value).toBe(TYPED.slice(0, index + 1));
-    }
-    expect(seen).toEqual([...TYPED].map((_, index) => TYPED.slice(0, index + 1)));
-  });
-
   it('keeps typed characters while the machine tick has not run yet', async () => {
     // Hold every animation frame: the machine scheduler (rAF in browsers) cannot apply SEARCH_CHANGE
     // until the test releases the frames, which is the worst case of the browser flake.

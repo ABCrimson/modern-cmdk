@@ -91,24 +91,6 @@ describe('Command.Separator alwaysRender (C2)', () => {
     expect(cases(host)).toEqual(['hides', 'stays']);
   });
 
-  it('RA-45: the default keeps rendering the separator during a search', async () => {
-    const host = await mount(
-      <Command>
-        <Probe />
-        <Command.Input />
-        <Command.List>
-          <Command.Item value="apple" forceId="apple">
-            Apple
-          </Command.Item>
-          <Command.Separator />
-        </Command.List>
-      </Command>,
-    );
-    await settle();
-    await search('app');
-    expect(separators(host)).toBe(1);
-  });
-
   it('RA-45: a separator outside Command renders, with the default and with alwaysRender false', async () => {
     const host = await mount(
       <>

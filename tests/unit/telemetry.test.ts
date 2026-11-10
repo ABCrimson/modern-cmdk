@@ -1,8 +1,9 @@
 // tests/unit/telemetry.test.ts
 // SEC-52 (telemetry half): createTelemetryMiddleware (packages/modern-cmdk/src/core/telemetry.ts).
 // The other halves of SEC-52: the devtools hook is covered by tests/unit/use-devtools.test.tsx
-// ('SEC-52: registers the label when NODE_ENV is development' and 'SEC-52: leaves the registry uncreated
-// when NODE_ENV is production'); the create-modern-cmdk CLI by tests/dist/cli-exec.test.ts. The frecency
+// ('D30: the new and the deprecated global hold the same registry') and tests/unit/react-hooks.test.tsx ('T10: in
+// production the mount and a later state change dispatch no event and create no global'); the create-modern-cmdk CLI
+// by tests/dist/cli-exec.test.ts. The frecency
 // flush-on-dispose half of SEC-02 is covered by tests/unit/frecency-machine.test.ts ('CE-02: await using flushes the
 // pending save before the block ends' and 'CE-02: a synchronous dispose of a dirty machine still persists the selection').
 // T11 (exports without tests): the sorted runtime export list is pinned by tests/dist/exports.test.ts.
