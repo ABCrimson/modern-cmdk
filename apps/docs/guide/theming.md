@@ -110,7 +110,7 @@ These are the custom properties `modern-cmdk/styles.css` declares on `[data-comm
 | `--command-highlight-color` | `oklch(0.85 0.15 90 / 0.3)` |
 | `--command-muted-color` | `light-dark(oklch(0.45 0.015 260), oklch(0.75 0.015 260))` |
 
-### Docs-site motion tokens (example)
+### Motion tokens (example)
 
 ```css
 :root {
