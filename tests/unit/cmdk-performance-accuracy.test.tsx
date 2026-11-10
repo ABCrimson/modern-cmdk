@@ -1,14 +1,15 @@
 // tests/unit/cmdk-performance-accuracy.test.tsx
-// Head-to-head: modern-cmdk vs cmdk — Performance & Search Accuracy
-// Vitest — ESNext — React 19
+// Search accuracy and edge cases of modern-cmdk, with cmdk 1.1.1's defaultFilter as the reference where a test
+// compares them — Vitest — ESNext — React 19
+// The wall-clock head-to-heads (raw filter, search pipeline, typing, initial render) are in
+// benchmarks/cmdk-head-to-head.bench.ts: a timing cannot fail a unit test.
 
 // ── cmdk (the original) ──
-import { Command as CmdkCommand, defaultFilter as cmdkDefaultFilter } from 'cmdk';
+import { defaultFilter as cmdkDefaultFilter } from 'cmdk';
 // ── Our library ──
-import type { CommandItem, SearchResult } from 'modern-cmdk';
+import type { CommandItem } from 'modern-cmdk';
 import { createSearchEngine, itemId, scoreItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
-import type { ReactNode } from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -63,16 +64,6 @@ const ACTIONS: string[] = [
   'Download',
 ];
 
-function generatePlainItems(count: number): string[] {
-  return Iterator.from({
-    [Symbol.iterator]: function* (): Generator<number> {
-      for (let i = 0; i < count; i++) yield i;
-    },
-  })
-    .map((i) => `${ACTIONS[i % ACTIONS.length]} ${WORDS[i % WORDS.length]} ${i}`)
-    .toArray();
-}
-
 function generateCommandItems(count: number): CommandItem[] {
   return Iterator.from({
     [Symbol.iterator]: function* (): Generator<number> {
@@ -87,163 +78,29 @@ function generateCommandItems(count: number): CommandItem[] {
     .toArray();
 }
 
-// High-resolution timer
-function measure(fn: () => void, iterations: number = 1): number {
-  // Warmup
-  for (let i = 0; i < Math.min(3, iterations); i++) fn();
-
-  const start = performance.now();
-  for (let i = 0; i < iterations; i++) fn();
-  const elapsed = performance.now() - start;
-  return elapsed / iterations;
-}
-
 // ─────────────────────────────────────────────────────────────
-// 1. RAW FILTER THROUGHPUT — scoreItem vs defaultFilter
+// 2. SEARCH ENGINE PIPELINE — a search over a large set finds its matches
 // ─────────────────────────────────────────────────────────────
 
-describe('1. Raw Filter Throughput (scoreItem vs defaultFilter)', () => {
-  const sizes = [100, 1_000, 10_000] as const;
-  const queries = ['app', 'banana', 'open settings', 'dshbrd', 'xyznotfound'] as const;
-
-  for (const size of sizes) {
-    const plainItems = generatePlainItems(size);
+describe('2. Search Engine Pipeline', () => {
+  for (const size of [1_000, 10_000] as const) {
     const commandItems = generateCommandItems(size);
 
-    describe(`${size.toLocaleString()} items`, () => {
-      for (const query of queries) {
-        it(`query "${query}" — our scoreItem vs cmdk defaultFilter`, () => {
-          // ── cmdk ──
-          const cmdkTime = measure(() => {
-            for (const item of plainItems) {
-              cmdkDefaultFilter(item, query);
-            }
-          }, 5);
-
-          // ── ours ──
-          const ourTime = measure(() => {
-            for (const item of commandItems) {
-              scoreItem(query, item);
-            }
-          }, 5);
-
-          const ratio = cmdkTime / ourTime;
-          const winner = ratio > 1 ? 'OURS' : 'CMDK';
-          const speedup = ratio > 1 ? ratio : 1 / ratio;
-
-          // Log results for visibility
-          console.log(
-            `  [${size.toLocaleString()} items] "${query}": ` +
-              `cmdk=${cmdkTime.toFixed(3)}ms, ours=${ourTime.toFixed(3)}ms → ` +
-              `${winner} ${speedup.toFixed(1)}x faster`,
-          );
-
-          // Both should complete with finite timing
-          expect(cmdkTime).toBeGreaterThan(0);
-          expect(ourTime).toBeGreaterThan(0);
-        });
-      }
-    });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────
-// 2. SEARCH ENGINE THROUGHPUT — full pipeline vs cmdk filter loop
-// ─────────────────────────────────────────────────────────────
-
-describe('2. Search Engine Pipeline Throughput', () => {
-  const sizes = [1_000, 10_000] as const;
-
-  for (const size of sizes) {
-    const plainItems = generatePlainItems(size);
-    const commandItems = generateCommandItems(size);
-
-    it(`${size.toLocaleString()} items — full search pipeline (index + search + collect)`, () => {
-      // ── cmdk: filter all items, collect matches ──
-      const cmdkTime = measure(() => {
-        const results: Array<{ value: string; score: number }> = [];
-        for (const item of plainItems) {
-          const score = cmdkDefaultFilter(item, 'apple');
-          if (score > 0) results.push({ value: item, score });
-        }
-        results.sort((a, b) => b.score - a.score);
-      }, 5);
-
-      // ── ours: create engine, index, search, collect ──
-      let ourResults: SearchResult[] = [];
-      const ourTime = measure(() => {
-        using engine = createSearchEngine();
-        engine.index(commandItems);
-        ourResults = engine.search('apple', commandItems).toArray();
-      }, 5);
-
-      const ratio = cmdkTime / ourTime;
-      const winner = ratio > 1 ? 'OURS' : 'CMDK';
-      const speedup = ratio > 1 ? ratio : 1 / ratio;
-
-      console.log(
-        `  [${size.toLocaleString()} items] Full pipeline: ` +
-          `cmdk=${cmdkTime.toFixed(3)}ms, ours=${ourTime.toFixed(3)}ms → ` +
-          `${winner} ${speedup.toFixed(1)}x faster`,
-      );
-
-      expect(cmdkTime).toBeGreaterThan(0);
-      expect(ourTime).toBeGreaterThan(0);
-      // Verify search actually produces results for "apple"
-      expect(ourResults.length).toBeGreaterThan(0);
-    });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────
-// 3. INCREMENTAL SEARCH (typing simulation)
-// ─────────────────────────────────────────────────────────────
-
-describe('3. Incremental Search (simulated typing)', () => {
-  const size = 10_000;
-  const plainItems = generatePlainItems(size);
-  const commandItems = generateCommandItems(size);
-  const typingSequence = ['a', 'ap', 'app', 'appl', 'apple'];
-
-  it('should measure incremental filtering as user types', () => {
-    // ── cmdk: re-filter all items for each keystroke ──
-    const cmdkTime = measure(() => {
-      for (const query of typingSequence) {
-        for (const item of plainItems) {
-          cmdkDefaultFilter(item, query);
-        }
-      }
-    }, 3);
-
-    // ── ours: search engine with incremental optimization ──
-    const ourTime = measure(() => {
+    it(`${size.toLocaleString()} items — the search pipeline (index + search + collect) finds "apple"`, () => {
       using engine = createSearchEngine();
       engine.index(commandItems);
-      for (const query of typingSequence) {
-        engine.search(query, commandItems).toArray();
-      }
-    }, 3);
+      const results = engine.search('apple', commandItems).toArray();
 
-    const ratio = cmdkTime / ourTime;
-    const winner = ratio > 1 ? 'OURS' : 'CMDK';
-    const speedup = ratio > 1 ? ratio : 1 / ratio;
-
-    console.log(
-      `  [10K items] Typing "apple" (5 keystrokes): ` +
-        `cmdk=${cmdkTime.toFixed(3)}ms, ours=${ourTime.toFixed(3)}ms → ` +
-        `${winner} ${speedup.toFixed(1)}x faster`,
-    );
-
-    expect(cmdkTime).toBeGreaterThan(0);
-    expect(ourTime).toBeGreaterThan(0);
-  });
+      expect(results.length).toBeGreaterThan(0);
+    });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────
-// 5. REACT RENDER PERFORMANCE — side-by-side
+// 5. REACT RENDER — the tree is rendered
 // ─────────────────────────────────────────────────────────────
 
-describe('5. React Render Performance', () => {
+describe('5. React Render', () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -260,79 +117,33 @@ describe('5. React Render Performance', () => {
     container.remove();
   });
 
-  async function renderAndMeasure(ui: ReactNode): Promise<number> {
-    const start = performance.now();
-    await act(async () => {
-      root.render(ui);
-    });
-    // One rAF frame: the machine's scheduler batches with requestAnimationFrame (happy-dom's is
-    // setImmediate-backed), so this waits for modern-cmdk's batch; cmdk is not rAF-batched and has
-    // rendered by the act() above. The frame sits inside the timed region on purpose
-    await act(async () => {
-      await new Promise<void>((r) => requestAnimationFrame(() => r()));
-    });
-    return performance.now() - start;
-  }
-
-  const itemCounts = [50, 200] as const;
-
-  for (const count of itemCounts) {
-    it(`initial render with ${count} items — ours vs cmdk`, async () => {
+  for (const count of [50, 200] as const) {
+    it(`initial render with ${count} items — ours renders the tree`, async () => {
       const items = Array.from({ length: count }, (_, i) => ({
         value: `${ACTIONS[i % ACTIONS.length]} ${WORDS[i % WORDS.length]} ${i}`,
         key: `item-${i}`,
       }));
 
-      // ── cmdk ──
-      const cmdkRender = await renderAndMeasure(
-        <CmdkCommand>
-          <CmdkCommand.Input placeholder="cmdk search..." />
-          <CmdkCommand.List>
-            {items.map((item) => (
-              <CmdkCommand.Item key={item.key} value={item.value}>
-                {item.value}
-              </CmdkCommand.Item>
-            ))}
-          </CmdkCommand.List>
-        </CmdkCommand>,
-      );
-
-      // Unmount and remount for fair comparison
       await act(async () => {
-        root.unmount();
+        root.render(
+          <Command>
+            <Command.Input placeholder="our search..." />
+            <Command.List>
+              {items.map((item) => (
+                <Command.Item key={item.key} value={item.value}>
+                  {item.value}
+                </Command.Item>
+              ))}
+            </Command.List>
+          </Command>,
+        );
       });
-      container.remove();
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      root = createRoot(container);
+      // One rAF frame: the machine's scheduler batches with requestAnimationFrame (happy-dom's is
+      // setImmediate-backed), so this waits for the batch before the assertion
+      await act(async () => {
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      });
 
-      // ── ours ──
-      const ourRender = await renderAndMeasure(
-        <Command>
-          <Command.Input placeholder="our search..." />
-          <Command.List>
-            {items.map((item) => (
-              <Command.Item key={item.key} value={item.value}>
-                {item.value}
-              </Command.Item>
-            ))}
-          </Command.List>
-        </Command>,
-      );
-
-      const ratio = cmdkRender / ourRender;
-      const winner = ratio > 1 ? 'OURS' : 'CMDK';
-      const speedup = ratio > 1 ? ratio : 1 / ratio;
-
-      console.log(
-        `  [${count} items] Initial render: ` +
-          `cmdk=${cmdkRender.toFixed(2)}ms, ours=${ourRender.toFixed(2)}ms → ` +
-          `${winner} ${speedup.toFixed(1)}x faster`,
-      );
-
-      expect(cmdkRender).toBeGreaterThan(0);
-      expect(ourRender).toBeGreaterThan(0);
-      // Verify the component actually rendered
       expect(container.children.length).toBeGreaterThan(0);
     });
   }
@@ -591,19 +402,19 @@ describe('8. Edge Cases & Behavior Differences', () => {
   });
 
   it('special characters in query', () => {
-    const item = 'C++ Compiler';
-    const commandItem: CommandItem = { id: itemId('special-1'), value: item, keywords: [] };
+    const item: CommandItem = { id: itemId('special-1'), value: 'C++ Compiler', keywords: [] };
 
-    const cmdkScore = cmdkDefaultFilter(item, 'c++');
-    const ourScore = scoreItem('c++', commandItem)?.score ?? 0;
+    // "c++" is a literal prefix of the value: all three characters highlight
+    expect(scoreItem('c++', item)).toEqual({
+      id: item.id,
+      score: expect.closeTo(0.925, 3),
+      matches: [[0, 3]],
+    });
 
-    console.log(
-      `  "c++" in "C++ Compiler" — cmdk: ${cmdkScore.toFixed(4)}, ours: ${ourScore.toFixed(4)}`,
-    );
-
-    // Both should handle special chars gracefully
-    expect(typeof cmdkScore).toBe('number');
-    expect(typeof ourScore).toBe('number');
+    // A regex metacharacter is data, never a pattern: no query throws
+    for (const query of ['(', '[a', '.*', '?', '+']) {
+      expect(() => scoreItem(query, item)).not.toThrow();
+    }
   });
 
   it('very long query that does not match', () => {
