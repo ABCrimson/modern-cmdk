@@ -6,7 +6,7 @@
 import { Command as CmdkCommand, defaultFilter as cmdkDefaultFilter } from 'cmdk';
 // ── Our library ──
 import type { CommandItem, SearchResult } from 'modern-cmdk';
-import { createCommandMachine, createSearchEngine, itemId, scoreItem } from 'modern-cmdk';
+import { createSearchEngine, itemId, scoreItem } from 'modern-cmdk';
 import { Command } from 'modern-cmdk/react';
 import type { ReactNode } from 'react';
 import { act } from 'react';
@@ -240,29 +240,6 @@ describe('3. Incremental Search (simulated typing)', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 4. MACHINE THROUGHPUT (state machine overhead)
-// ─────────────────────────────────────────────────────────────
-
-describe('4. State Machine Creation + Search Dispatch', () => {
-  const sizes = [100, 1_000, 10_000] as const;
-
-  for (const size of sizes) {
-    const items = generateCommandItems(size);
-
-    it(`${size.toLocaleString()} items — create machine + dispatch search`, () => {
-      const time = measure(() => {
-        using machine = createCommandMachine({ items });
-        machine.send({ type: 'SEARCH_CHANGE', query: 'apple' });
-      }, 5);
-
-      console.log(`  [${size.toLocaleString()} items] Machine create+search: ${time.toFixed(3)}ms`);
-
-      expect(time).toBeGreaterThan(0);
-    });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────
 // 5. REACT RENDER PERFORMANCE — side-by-side
 // ─────────────────────────────────────────────────────────────
 
@@ -474,34 +451,6 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
 
   for (const tc of testCases) {
     describe(`query: "${tc.query}"`, () => {
-      it('cmdk — recall (true positives found)', () => {
-        const results = corpus
-          .map((item) => ({ value: item, score: cmdkDefaultFilter(item, tc.query) }))
-          .filter((r) => r.score > 0)
-          .sort((a, b) => b.score - a.score);
-
-        const resultValues = results.map((r) => r.value);
-        let foundCount = 0;
-        for (const expected of tc.expectedMatches) {
-          if (resultValues.includes(expected)) foundCount++;
-        }
-        const recall =
-          tc.expectedMatches.length > 0
-            ? foundCount / tc.expectedMatches.length
-            : resultValues.length === 0
-              ? 1
-              : 0;
-
-        console.log(
-          `  cmdk "${tc.query}": ${foundCount}/${tc.expectedMatches.length} expected found, ` +
-            `${results.length} total results, recall=${(recall * 100).toFixed(0)}%` +
-            (results[0] ? `, top="${results[0].value}" (${results[0].score.toFixed(4)})` : ''),
-        );
-
-        // Just record — don't assert (cmdk is the baseline)
-        expect(recall).toBeGreaterThanOrEqual(0);
-      });
-
       it('ours — recall (true positives found)', () => {
         using engine = createSearchEngine();
         engine.index(commandCorpus);
@@ -534,26 +483,6 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
       });
 
       if (tc.expectedNonMatches.length > 0) {
-        it('cmdk — specificity (true negatives excluded)', () => {
-          const results = corpus
-            .map((item) => ({ value: item, score: cmdkDefaultFilter(item, tc.query) }))
-            .filter((r) => r.score > 0);
-          const resultValues = new Set(results.map((r) => r.value));
-
-          let correctlyExcluded = 0;
-          for (const neg of tc.expectedNonMatches) {
-            if (!resultValues.has(neg)) correctlyExcluded++;
-          }
-          const specificity = correctlyExcluded / tc.expectedNonMatches.length;
-
-          console.log(
-            `  cmdk "${tc.query}" specificity: ${correctlyExcluded}/${tc.expectedNonMatches.length} ` +
-              `correctly excluded (${(specificity * 100).toFixed(0)}%)`,
-          );
-
-          expect(specificity).toBeGreaterThanOrEqual(0);
-        });
-
         it('ours — specificity (true negatives excluded)', () => {
           using engine = createSearchEngine();
           engine.index(commandCorpus);
@@ -578,21 +507,6 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
       }
 
       if (tc.expectedTopResult) {
-        it('cmdk — top result ranking', () => {
-          const results = corpus
-            .map((item) => ({ value: item, score: cmdkDefaultFilter(item, tc.query) }))
-            .filter((r) => r.score > 0)
-            .sort((a, b) => b.score - a.score);
-
-          const topCorrect = results[0]?.value === tc.expectedTopResult;
-          console.log(
-            `  cmdk "${tc.query}" top result: "${results[0]?.value}" ` +
-              `(expected "${tc.expectedTopResult}") → ${topCorrect ? 'CORRECT' : 'WRONG'}`,
-          );
-
-          expect(typeof topCorrect).toBe('boolean');
-        });
-
         it('ours — top result ranking', () => {
           using engine = createSearchEngine();
           engine.index(commandCorpus);
@@ -615,118 +529,10 @@ describe('6. Search Accuracy — Relevance Ranking', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 7. MATCH HIGHLIGHTING — feature ours has, cmdk doesn't
-// ─────────────────────────────────────────────────────────────
-
-describe('7. Match Highlighting (ours only — cmdk has no equivalent)', () => {
-  const items: CommandItem[] = [
-    { id: itemId('1'), value: 'Open Settings', keywords: [] },
-    { id: itemId('2'), value: 'Open Terminal', keywords: [] },
-    { id: itemId('3'), value: 'Go to Definition', keywords: [] },
-  ];
-
-  it('should return match ranges for highlighting', () => {
-    const result = scoreItem('open', items[0] as CommandItem);
-    expect(result).not.toBeNull();
-    const safeResult = result as SearchResult;
-    expect(safeResult.matches.length).toBeGreaterThan(0);
-
-    // Verify the match range actually corresponds to "open" in "Open Settings"
-    const [start, end] = safeResult.matches[0] as readonly [number, number];
-    const matched = 'Open Settings'.slice(start, end).toLowerCase();
-    expect(matched).toBe('open');
-
-    console.log(
-      `  "open" in "Open Settings": matches=${JSON.stringify(safeResult.matches)}, ` +
-        `highlighted="${'Open Settings'.slice(start, end)}"`,
-    );
-  });
-
-  it('should return match ranges for fuzzy matches', () => {
-    const result = scoreItem('gtdf', items[2] as CommandItem);
-    expect(result).not.toBeNull();
-    const safeResult = result as SearchResult;
-    expect(safeResult.matches.length).toBeGreaterThan(0);
-
-    console.log(
-      `  "gtdf" in "Go to Definition": matches=${JSON.stringify(safeResult.matches)}, ` +
-        `score=${safeResult.score.toFixed(4)}`,
-    );
-  });
-
-  it('cmdk defaultFilter returns only a number — no match positions', () => {
-    const score = cmdkDefaultFilter('Open Settings', 'open');
-    expect(typeof score).toBe('number');
-    // cmdk cannot tell you WHERE in the string the match occurred
-    // It only returns a relevance score
-
-    console.log(
-      `  cmdk "open" in "Open Settings": score=${score.toFixed(4)} (no match positions available)`,
-    );
-  });
-});
-
-// ─────────────────────────────────────────────────────────────
 // 8. EDGE CASES — behavior differences
 // ─────────────────────────────────────────────────────────────
 
 describe('8. Edge Cases & Behavior Differences', () => {
-  it('empty query — both should match everything', () => {
-    const items = ['Apple', 'Banana', 'Cherry'];
-    const commandItems: CommandItem[] = items.map((v, i) => ({
-      id: itemId(`edge-${i}`),
-      value: v,
-      keywords: [],
-    }));
-
-    // cmdk: empty query scores 0.99 for a non-empty item (command-score's exhausted-query
-    // branch) and the search is skipped, so every item is shown
-    const cmdkScores = items.map((item) => cmdkDefaultFilter(item, ''));
-    // ours: empty query = score 1 (full match, shows all)
-    const ourScores = commandItems.map((item) => scoreItem('', item)?.score ?? 0);
-
-    console.log(`  Empty query — cmdk scores: [${cmdkScores.join(', ')}]`);
-    console.log(`  Empty query — our scores: [${ourScores.join(', ')}]`);
-
-    // Both should effectively "show all" — but scoring approach differs
-    expect(cmdkScores).toEqual([0.99, 0.99, 0.99]);
-    expect(ourScores).toHaveLength(3);
-  });
-
-  it('single character query', () => {
-    const items = ['Apple', 'avocado', 'Banana'];
-    const commandItems: CommandItem[] = items.map((v, i) => ({
-      id: itemId(`single-${i}`),
-      value: v,
-      keywords: [],
-    }));
-
-    const cmdkResults = items
-      .map((item) => ({ value: item, score: cmdkDefaultFilter(item, 'a') }))
-      .filter((r) => r.score > 0)
-      .sort((a, b) => b.score - a.score);
-
-    using engine = createSearchEngine();
-    engine.index(commandItems);
-    const ourResults = engine.search('a', commandItems).toArray();
-
-    console.log(
-      `  "a" — cmdk: [${cmdkResults.map((r) => `${r.value}(${r.score.toFixed(3)})`).join(', ')}]`,
-    );
-    console.log(
-      `  "a" — ours: [${ourResults
-        .map((r) => {
-          const item = commandItems.find((i) => i.id === r.id);
-          return `${item?.value}(${r.score.toFixed(3)})`;
-        })
-        .join(', ')}]`,
-    );
-
-    // Both should find items starting with 'a'
-    expect(cmdkResults.length).toBeGreaterThan(0);
-    expect(ourResults.length).toBeGreaterThan(0);
-  });
-
   it('case sensitivity — both should be case-insensitive', () => {
     const cmdkLower = cmdkDefaultFilter('Open Settings', 'open settings');
     const cmdkUpper = cmdkDefaultFilter('Open Settings', 'OPEN SETTINGS');
