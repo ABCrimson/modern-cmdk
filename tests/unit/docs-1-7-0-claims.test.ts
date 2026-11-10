@@ -1052,8 +1052,16 @@ describe('docs rows of 1.7.0', () => {
       ]),
     );
     queryParams.delete('');
+    // The hook signatures are cut out by position, so a parameter's declaration is not read as a use.
+    const hookSignature = /\b(?:onSearchComplete|onItemSelected)\b[^(\n]*\([^)]*\)/g;
     for (const f of samples) {
-      const body = f.code.replace(/\b(?:onSearchComplete|onItemSelected)\b[^(\n]*\([^)]*\)/g, '');
+      let body = '';
+      let from = 0;
+      for (const m of f.code.matchAll(hookSignature)) {
+        body += f.code.slice(from, m.index);
+        from = m.index + m[0].length;
+      }
+      body += f.code.slice(from);
       for (const name of queryParams) {
         expect(body, `SEC-47: ${name} is used only as ${name}.length`).not.toMatch(
           new RegExp(`(?<![\\w$])${name}(?![\\w$])(?!\\.length\\b)`),
