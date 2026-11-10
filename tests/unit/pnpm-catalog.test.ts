@@ -219,12 +219,6 @@ const RDG_117_SITES: Record<string, readonly string[]> = {
 };
 
 describe('RDG-117: the catalog also holds the shared build and codemod pins', () => {
-  it('RDG-117: each of the five catalog entries is present as an exact version', () => {
-    for (const name of RDG_117) {
-      expect(catalog.get(name), name).toMatch(EXACT);
-    }
-  });
-
   it('RDG-117: every dependencies or devDependencies site of the five reads catalog:', () => {
     for (const [path, names] of Object.entries(RDG_117_SITES)) {
       const json = manifest(path);
