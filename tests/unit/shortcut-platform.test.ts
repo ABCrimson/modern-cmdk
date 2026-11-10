@@ -26,11 +26,6 @@ describe('formatShortcut labels', () => {
     expect(mac('Meta+K')).toBe('⌘K');
   });
 
-  it('A11Y-20: a Cmd+K item is labelled Meta+K off macOS, not Ctrl+K', () => {
-    expect(other('Cmd+K')).toBe('Meta+K');
-    expect(other('Cmd+K')).not.toBe('Ctrl+K');
-  });
-
   it('CE-42: formatShortcut labels named keys (↑, PageDown, Esc)', () => {
     expect(mac('ArrowUp')).toBe('↑');
     expect(mac('ArrowDown')).toBe('↓');

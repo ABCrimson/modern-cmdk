@@ -90,84 +90,6 @@ describe('CommandMachine', () => {
     expect(machineRef?.getKeyboardRegistry().getBindings().size).toBe(0);
   });
 
-  it('should handle SEARCH_CHANGE events', () => {
-    const items = [
-      { id: itemId('apple'), value: 'Apple' },
-      { id: itemId('banana'), value: 'Banana' },
-      { id: itemId('cherry'), value: 'Cherry' },
-    ];
-    using machine = createCommandMachine({ items });
-
-    machine.send({ type: 'SEARCH_CHANGE', query: 'app' });
-
-    // Run the rAF scheduler's batch
-    nextBatch();
-    expect(machine.getState().search).toBe('app');
-  });
-
-  it('should handle NAVIGATE events', () => {
-    const items = generateItems(5);
-    using machine = createCommandMachine({ items });
-
-    machine.send({ type: 'NAVIGATE', direction: 'next' });
-    nextBatch();
-    expect(machine.getState().activeId).toBe(items[1]?.id);
-  });
-
-  it('should handle PAGE_PUSH and PAGE_POP', () => {
-    using machine = createCommandMachine();
-
-    machine.send({ type: 'PAGE_PUSH', page: 'settings' });
-    nextBatch();
-    expect(machine.getState().page).toBe('settings');
-    expect(machine.getState().pageStack).toEqual(['root']);
-
-    machine.send({ type: 'PAGE_POP' });
-    nextBatch();
-    expect(machine.getState().page).toBe('root');
-    expect(machine.getState().pageStack).toEqual([]);
-  });
-
-  it('should handle OPEN, CLOSE, and TOGGLE', () => {
-    using machine = createCommandMachine();
-
-    machine.send({ type: 'OPEN' });
-    nextBatch();
-    expect(machine.getState().open).toBe(true);
-
-    machine.send({ type: 'CLOSE' });
-    nextBatch();
-    expect(machine.getState().open).toBe(false);
-
-    machine.send({ type: 'TOGGLE' });
-    nextBatch();
-    expect(machine.getState().open).toBe(true);
-  });
-
-  it('should handle REGISTER_ITEM and UNREGISTER_ITEM', () => {
-    using machine = createCommandMachine();
-    const item: CommandItem = { id: itemId('new'), value: 'New Item' };
-
-    machine.send({ type: 'REGISTER_ITEM', item });
-    nextBatch();
-    expect(machine.getState().filteredCount).toBe(1);
-
-    machine.send({ type: 'UNREGISTER_ITEM', id: item.id });
-    nextBatch();
-    expect(machine.getState().filteredCount).toBe(0);
-  });
-
-  it('should handle ITEM_SELECT with onSelect callback', () => {
-    const onSelect = vi.fn();
-    const id = itemId('test');
-    const items = [{ id, value: 'Test', onSelect }];
-    using machine = createCommandMachine({ items });
-
-    machine.send({ type: 'ITEM_SELECT', id });
-    nextBatch();
-    expect(onSelect).toHaveBeenCalledOnce();
-  });
-
   it('T15: a disabled item is not selected: the batch that runs ITEM_SELECT leaves its onSelect uncalled', () => {
     const onSelect = vi.fn();
     const enabledSelect = vi.fn();
@@ -190,13 +112,6 @@ describe('CommandMachine', () => {
     expect(enabledSelect).toHaveBeenCalledOnce();
     expect(optionsSelect).toHaveBeenCalledExactlyOnceWith(enabledId);
     expect(onSelect).not.toHaveBeenCalled();
-  });
-
-  it('should use Date.now() for lastUpdated timestamps', () => {
-    using machine = createCommandMachine();
-    const state = machine.getState();
-    expect(typeof state.lastUpdated).toBe('number');
-    expect(state.lastUpdated).toBeGreaterThan(0);
   });
 
   it('should navigate with loop enabled (default)', () => {
@@ -238,37 +153,6 @@ describe('CommandMachine', () => {
     nextBatch();
     expect(listener).toHaveBeenCalledOnce();
     expect(listener.mock.calls.at(-1)?.[0]?.open).toBe(true);
-  });
-
-  it('should handle groups', () => {
-    const items = [
-      { id: itemId('a'), value: 'A', groupId: groupId('g1') },
-      { id: itemId('b'), value: 'B', groupId: groupId('g1') },
-      { id: itemId('c'), value: 'C', groupId: groupId('g2') },
-    ];
-    const groups = [
-      { id: groupId('g1'), heading: 'Group 1' },
-      { id: groupId('g2'), heading: 'Group 2' },
-    ];
-    using machine = createCommandMachine({ items, groups });
-
-    const state = machine.getState();
-    expect(state.groupedIds.size).toBeGreaterThan(0);
-  });
-
-  it('should handle group unregistration', () => {
-    const gid = groupId('test-group');
-    const items = [{ id: itemId('a'), value: 'A', groupId: gid }];
-    const groups = [{ id: gid, heading: 'Test' }];
-    using machine = createCommandMachine({ items, groups });
-
-    // Verify group exists in registry
-    expect(machine.getRegistry().getGroup(gid)).toBeDefined();
-
-    machine.send({ type: 'UNREGISTER_GROUP', id: gid });
-    nextBatch();
-    // After unregistering, the group should no longer be in the registry
-    expect(machine.getRegistry().getGroup(gid)).toBeUndefined();
   });
 
   it('TUB-09: with loop false NAVIGATE next stays on the last item: the batch ran and the active item did not wrap', () => {

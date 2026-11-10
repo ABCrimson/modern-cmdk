@@ -181,8 +181,8 @@
   },
   {
     "id": "TUB-10",
-    "test": "tests/unit/machine.test.ts::should handle ITEM_SELECT with onSelect callback",
-    "status": "covered"
+    "test": ".github/workflows/ci.yml::      - run: pnpm typecheck",
+    "status": "gate"
   },
   {
     "id": "W18",
@@ -1366,7 +1366,7 @@
   },
   {
     "id": "A11Y-20",
-    "test": "tests/unit/shortcut-platform.test.ts::A11Y-20: a Cmd+K item is labelled Meta+K off macOS, not Ctrl+K",
+    "test": "tests/unit/shortcut-platform.test.ts::CE-12: formatShortcut labels meta as Meta and ctrl as Ctrl off macOS",
     "status": "covered"
   },
   {

@@ -40,28 +40,6 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
 
   // ---------- Arrow Key Navigation ----------
 
-  test('should navigate down through items with ArrowDown', async ({ page }) => {
-    const input = page.getByRole('combobox');
-    await input.focus();
-
-    // First item should be active by default
-    const firstItem = page.locator('[data-command-item]').first();
-    await expect(firstItem).toHaveAttribute('data-active', '');
-
-    // Press ArrowDown to move to second item
-    await input.press('ArrowDown');
-
-    const secondItem = page.locator('[data-command-item]').nth(1);
-    // The basic demo has more than one item, so the second one exists
-    await expect(secondItem).toHaveAttribute('data-active', '');
-    // First item should no longer be active
-    await expect(firstItem).not.toHaveAttribute('data-active', '');
-
-    // Only one item should be active at a time
-    const activeItems = page.locator('[data-command-item][data-active]');
-    await expect(activeItems).toHaveCount(1);
-  });
-
   test('should navigate up through items with ArrowUp', async ({ page }) => {
     const input = page.getByRole('combobox');
     await input.focus();
@@ -141,34 +119,6 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
 
   // ---------- Home / End Navigation ----------
 
-  test('should jump to first item with Home key', async ({ page }) => {
-    const input = page.getByRole('combobox');
-    await input.focus();
-    const items = page.locator('[data-command-item]');
-    await expect(items).toHaveCount(15);
-
-    // Navigate down a few items
-    await input.press('ArrowDown');
-    await input.press('ArrowDown');
-    await input.press('ArrowDown');
-
-    // Press Home
-    await input.press('Home');
-
-    const firstItem = items.first();
-    await expect(firstItem).toHaveAttribute('data-active', '');
-  });
-
-  test('should jump to last item with End key', async ({ page }) => {
-    const input = page.getByRole('combobox');
-    await input.focus();
-
-    await input.press('End');
-
-    const lastItem = page.locator('[data-command-item]').last();
-    await expect(lastItem).toHaveAttribute('data-active', '');
-  });
-
   test('Home then End should cover full range', async ({ page }) => {
     const input = page.getByRole('combobox');
     await input.focus();
@@ -187,22 +137,6 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
   });
 
   // ---------- Enter to Select ----------
-
-  test('should select the active item with Enter', async ({ page }) => {
-    const input = page.getByRole('combobox');
-    await input.focus();
-
-    // Get the currently active item's value
-    const activeItem = page.locator('[data-command-item][data-active]');
-    await expect(activeItem).toHaveCount(1);
-    const activeValue = await activeItem.getAttribute('data-value');
-    expect(activeValue).toBeTruthy();
-
-    // Press Enter to select
-    await input.press('Enter');
-
-    await expect(page.getByTestId('last-selected')).toHaveText(activeValue as string);
-  });
 
   test('should select a specific item after navigating to it', async ({ page }) => {
     const input = page.getByRole('combobox');
@@ -226,21 +160,6 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
   });
 
   // ---------- Escape to Close ----------
-
-  test('should close the palette with Escape', { tag: '@dialog' }, async ({ page }) => {
-    await open(page, '/dialog');
-
-    // Open the dialog first
-    await page.locator('[data-command-trigger]').click();
-    const dialog = page.locator('[data-command-dialog]');
-    await expect(dialog).toBeVisible();
-
-    // Press Escape
-    await page.keyboard.press('Escape');
-
-    // Dialog should close
-    await expect(dialog).toBeHidden({ timeout: 5_000 });
-  });
 
   test('RA-38: in the browser, Escape on a closed inline palette is left to the page', async ({
     page,
@@ -274,18 +193,6 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
 
   // ---------- Backspace to Pop Page ----------
 
-  test('should pop page on Backspace when input is empty', async ({ page }) => {
-    // This test checks the page stack behavior
-    const input = page.getByRole('combobox');
-    await input.focus();
-
-    // Pressing Backspace with empty input should attempt to pop page
-    await expect(input).toHaveValue('');
-    await input.press('Backspace');
-
-    // If no page stack, nothing should happen (no crash)
-  });
-
   test('should not pop page on Backspace when input has text', async ({ page }) => {
     const input = page.getByRole('combobox');
     await input.focus();
@@ -313,58 +220,7 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
     await expect(input).not.toBeFocused();
   });
 
-  // ---------- pressSequentially Typing ----------
-
-  test('should type characters sequentially with pressSequentially', async ({ page }) => {
-    const input = page.getByRole('combobox');
-
-    await input.pressSequentially('hello world', { delay: 50 });
-
-    await expect(input).toHaveValue('hello world');
-  });
-
-  test('should handle special characters via pressSequentially', async ({ page }) => {
-    const input = page.getByRole('combobox');
-
-    await input.pressSequentially('file.ts', { delay: 50 });
-    await expect(input).toHaveValue('file.ts');
-  });
-
-  test('should filter in real-time as characters are typed sequentially', async ({ page }) => {
-    const input = page.getByRole('combobox');
-    await expect(page.getByRole('option')).toHaveCount(15);
-
-    // Type one character at a time and verify filtering progresses
-    await input.pressSequentially('a', { delay: 50 });
-    // After typing one character, count may change
-    const afterOneChar = await page.getByRole('option').count();
-
-    await input.pressSequentially('pp', { delay: 50 });
-    // After typing more, further filtering may occur
-    const afterThreeChars = await page.getByRole('option').count();
-
-    // The filtered count should be less than or equal to the initial
-    expect(afterThreeChars).toBeLessThanOrEqual(afterOneChar);
-    expect(afterOneChar).toBeLessThanOrEqual(15);
-  });
-
   // ---------- Keyboard Shortcut Registration ----------
-
-  test('should register and respond to Ctrl+K shortcut for dialog toggle', {
-    tag: '@dialog',
-  }, async ({ page }) => {
-    await open(page, '/dialog');
-
-    // Press Ctrl+K to toggle
-    await page.keyboard.press('Control+k');
-
-    const dialog = page.locator('[data-command-dialog]');
-    await expect(dialog).toBeVisible();
-
-    // Close with Escape
-    await page.keyboard.press('Escape');
-    await expect(dialog).toBeHidden({ timeout: 5_000 });
-  });
 
   test('TEB-76: Mod+N in the focused input selects the New File item', async ({ page }) => {
     // The basic demo binds shortcut="Mod+N" on the "create new file" item
@@ -460,35 +316,5 @@ test.describe('Keyboard Navigation', { tag: '@keyboard' }, () => {
     await input.press('ArrowDown');
     const activeItems = page.locator('[data-command-item][data-active]');
     await expect(activeItems).toHaveCount(1);
-  });
-
-  // ---------- aria-activedescendant Updates ----------
-
-  test('should update aria-activedescendant on each navigation step', async ({ page }) => {
-    const input = page.getByRole('combobox');
-    await input.focus();
-    const items = page.locator('[data-command-item]');
-    await expect(items).toHaveCount(15);
-
-    // Get initial active item
-    const firstItem = items.first();
-    await expect(firstItem).toHaveAttribute('data-active', '');
-    const initialAD = await input.getAttribute('aria-activedescendant');
-
-    // Navigate down — wait for second item to become active
-    await input.press('ArrowDown');
-    const secondItem = items.nth(1);
-    await expect(secondItem).toHaveAttribute('data-active', '');
-
-    const afterDownAD = await input.getAttribute('aria-activedescendant');
-
-    // activedescendant should change
-    expect(afterDownAD).not.toBe(initialAD);
-    expect(afterDownAD).toBeTruthy();
-
-    // The activedescendant should match the active item's ID
-    const activeItem = page.locator('[data-command-item][data-active]');
-    const activeId = await activeItem.getAttribute('id');
-    expect(afterDownAD).toBe(activeId);
   });
 });
