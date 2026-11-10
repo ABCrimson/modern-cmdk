@@ -146,7 +146,9 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
     }
 
     const activeItem = page.locator('[data-command-item][data-active]');
+    await expect(activeItem).toHaveId('virt-item-2');
     await expect(activeItem).toHaveCount(1);
+    await expect(input).toHaveAttribute('aria-activedescendant', 'virt-item-2');
   });
 
   test('should jump to first item with Home in virtualized list', async ({ page }) => {
@@ -264,14 +266,21 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
     // Type a search query
     await input.pressSequentially('item 5', { delay: 50 });
 
-    // Locator-first assertion instead of waitForTimeout
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
-
-    // Items should be filtered
-    const filteredCount = await page.locator('[data-command-item]').count();
-    expect(filteredCount).toBeGreaterThan(0);
-    // Should still be virtualized (not showing all matching items)
-    expect(filteredCount).toBeLessThan(200);
+    await expect(page.locator('#virt-item-0')).toHaveCount(0);
+    await expect
+      .poll(() =>
+        page
+          .locator('[data-command-item]')
+          .evaluateAll(
+            (rows) =>
+              rows.length > 0 &&
+              rows.every((row) =>
+                /5/.test((row.getAttribute('data-value') ?? '').split(' ')[1] ?? ''),
+              ),
+          ),
+      )
+      .toBe(true);
+    await expect.poll(() => page.locator('[data-command-item]').count()).toBeLessThan(100);
   });
 
   test('should clear filter and restore full virtualized list', async ({ page }) => {
@@ -280,18 +289,15 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
 
     // Filter
     await input.pressSequentially('item 5', { delay: 50 });
-    // Locator-first assertion instead of waitForTimeout
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
+    await expect(page.locator('#virt-item-0')).toHaveCount(0);
 
     // Clear
     await input.press('Control+a');
     await input.press('Backspace');
-    // Locator-first assertion instead of waitForTimeout
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
-
-    // Should return to approximately the same DOM count
-    const afterClearCount = await page.locator('[data-command-item]').count();
-    expect(afterClearCount).toBe(initialCount);
+    await expect(input).toHaveValue('');
+    await expect(page.locator('[data-command-item]').first()).toHaveId('virt-item-0');
+    await expect(page.locator('#virt-item-1')).toHaveCount(1);
+    await expect.poll(() => page.locator('[data-command-item]').count()).toBe(initialCount);
   });
 
   // ---------- Performance ----------
@@ -381,13 +387,11 @@ test.describe('Virtualization — Large Item Set', { tag: '@virtual' }, () => {
     // Simulate mouse wheel by scrolling the element
     await list.hover();
     await page.mouse.wheel(0, 500);
-    // Locator-first assertion instead of waitForTimeout
-    await expect(page.locator('[data-command-item]').first()).toBeVisible();
+    await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
 
     const items = page.locator('[data-command-item]');
-    const count = await items.count();
-    expect(count).toBeGreaterThan(0);
-    expect(count).toBeLessThan(100);
+    await expect.poll(() => items.count()).toBeLessThan(100);
+    expect(await items.count()).toBeGreaterThan(0);
   });
 
   test('should render correctly when list container is resized', async ({ page }) => {

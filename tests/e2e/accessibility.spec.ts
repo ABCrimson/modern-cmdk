@@ -214,7 +214,7 @@ test.describe('Accessibility — WCAG 2.1 AA', { tag: '@a11y' }, () => {
   test('should have aria-atomic on live region for complete announcements', async ({ page }) => {
     const liveRegion = page.locator('[data-command-aria-live]');
     // aria-atomic ensures the entire region content is announced, not just changes
-    await expect(liveRegion).toHaveAttribute('aria-atomic', /(true|)/);
+    await expect(liveRegion).toHaveAttribute('aria-atomic', 'true');
   });
 
   // ---------- Disabled Items ----------
@@ -402,7 +402,7 @@ test.describe('Accessibility — WCAG 2.1 AA', { tag: '@a11y' }, () => {
       await expect(group).toHaveAttribute('aria-labelledby', headingId as string);
 
       // Heading should be aria-hidden (since it's referenced by aria-labelledby)
-      await expect(heading).toHaveAttribute('aria-hidden', /(true|)/);
+      await expect(heading).toHaveAttribute('aria-hidden', 'true');
     }
   });
 
@@ -423,10 +423,10 @@ test.describe('Accessibility — WCAG 2.1 AA', { tag: '@a11y' }, () => {
 
   test('should match ARIA snapshot after filtering to single result', async ({ page }) => {
     const input = page.getByRole('combobox');
-    await input.pressSequentially('app', { delay: 50 });
+    await input.pressSequentially('banana', { delay: 50 });
 
     // Wait for filtered results
-    await expect(page.getByRole('option').first()).toBeVisible();
+    await expect(page.getByRole('option')).toHaveCount(1);
 
     const root = page.locator('[data-command-root]');
     await expect(root).toMatchAriaSnapshot(`
@@ -434,7 +434,7 @@ test.describe('Accessibility — WCAG 2.1 AA', { tag: '@a11y' }, () => {
         - combobox
         - listbox:
           - group:
-            - option
+            - option /Banana/
     `);
   });
 
