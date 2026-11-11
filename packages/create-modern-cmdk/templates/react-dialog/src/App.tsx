@@ -5,10 +5,8 @@ import { useEffect, useState } from 'react';
 
 export function App(): ReactElement {
   const [open, setOpen] = useState(false);
-  const [last, setLast] = useState<string | null>(null);
 
-  // Mod+K is Cmd+K on Apple platforms and Ctrl+K elsewhere; matchesShortcut compares the key
-  // lower-cased, so Caps Lock does not matter.
+  // Mod+K is Cmd+K on Apple platforms and Ctrl+K elsewhere; matchesShortcut ignores Caps Lock.
   useEffect((): (() => void) => {
     const toggle = parseShortcut('Mod+K');
     const controller = new AbortController();
@@ -24,29 +22,23 @@ export function App(): ReactElement {
     return (): void => controller.abort();
   }, []);
 
-  const choose = (name: string): void => {
-    setLast(name);
-    setOpen(false);
-  };
-
   return (
     <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>
       <h1>Command Palette</h1>
       <p>
         Press <Command.Shortcut shortcut="Mod+K" /> to open.
       </p>
-      <p role="status">Chosen: {last ?? 'nothing yet'}</p>
       <Command.Dialog open={open} onOpenChange={setOpen}>
         <Command.Input placeholder="Search commands..." />
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
-          <Command.Item value="home" onSelect={(): void => choose('Home')}>
+          <Command.Item value="home" onSelect={(): void => alert('Home!')}>
             Home
           </Command.Item>
-          <Command.Item value="settings" onSelect={(): void => choose('Settings')}>
+          <Command.Item value="settings" onSelect={(): void => alert('Settings!')}>
             Settings
           </Command.Item>
-          <Command.Item value="profile" onSelect={(): void => choose('Profile')}>
+          <Command.Item value="profile" onSelect={(): void => alert('Profile!')}>
             Profile
           </Command.Item>
         </Command.List>

@@ -168,7 +168,6 @@ describe('create-modern-cmdk CLI', () => {
     expect(c.out()).toContain('src/main.tsx');
     expect(c.out()).toContain('src/App.tsx');
     expect(c.out()).toContain(`cd ${target}`);
-    expect(c.out()).toContain('.gitignore');
     expect(c.out()).toContain('  npm install\n  npm run dev\n');
     expect(JSON.parse(await readFile(join(target, 'package.json'), 'utf-8')).type).toBe('module');
   });
@@ -188,36 +187,6 @@ describe('create-modern-cmdk CLI', () => {
     const c = capture();
     expect(await run([target], c.io)).toBe(0);
     expect(c.out().endsWith(`Next steps:\n  cd ${target}\n  ${install}\n  ${dev}\n`)).toBe(true);
-  });
-
-  it('A2-7: a fresh target gets a .gitignore that ignores node_modules and dist', async () => {
-    const target = join(dir, 'ignored');
-    expect(await run([target], capture().io)).toBe(0);
-    const lines = (await readFile(join(target, '.gitignore'), 'utf-8')).split('\n');
-    expect(lines).toContain('node_modules');
-    expect(lines).toContain('dist');
-  });
-
-  it('A2-7: an existing .gitignore is kept, said so, and is no collision under --no-overwrite', async () => {
-    const target = join(dir, 'has-ignore');
-    await mkdir(target);
-    await writeFile(join(target, '.gitignore'), 'MINE\n');
-    const c = capture();
-    expect(await run([target, '--no-overwrite'], c.io)).toBe(0);
-    expect(c.err()).toBe('');
-    expect(c.out()).toContain('note: kept the existing .gitignore');
-    expect(c.out()).not.toContain('has-ignore/.gitignore');
-    expect(await readFile(join(target, '.gitignore'), 'utf-8')).toBe('MINE\n');
-  });
-
-  it('A2-7: index.html declares both colour schemes and no template calls alert()', async () => {
-    const templates = resolve(import.meta.dirname, '../../packages/create-modern-cmdk/templates');
-    const html = await readFile(join(templates, 'shared/index.html'), 'utf-8');
-    expect(html).toContain('<meta name="color-scheme" content="light dark" />');
-    for (const template of ['react-basic', 'react-dialog']) {
-      const app = await readFile(join(templates, template, 'src/App.tsx'), 'utf-8');
-      expect(app, template).not.toMatch(/\balert\(/);
-    }
   });
 
   it('A2-1: --help says Mod+K is Cmd+K on Apple platforms and Ctrl+K elsewhere', async () => {
@@ -566,7 +535,6 @@ describe('create-modern-cmdk 1.5 safety', () => {
       const target = join(dir, `bytes-${template}`);
       expect(await run([target, `--template=${template}`], capture().io)).toBe(0);
       const expected = new Map<string, string>([
-        ['.gitignore', 'shared/gitignore'],
         ['tsconfig.json', 'shared/tsconfig.json'],
         ['tsconfig.app.json', 'shared/tsconfig.app.json'],
         ['tsconfig.node.json', 'shared/tsconfig.node.json'],

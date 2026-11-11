@@ -8,7 +8,6 @@
 // the output paths and list the files this run will overwrite on stderr, refuse under
 // --no-overwrite when any collides, then create directories and write. Nothing is written before
 // those checks pass; a failed write removes only the files and directories this run created.
-// A .gitignore is the ninth file, written only when the target has none; an existing one is kept.
 // The next steps use the package manager named by npm_config_user_agent (npm when it names none).
 //
 // Exit codes. Without --strict (the 1.x defaults): 0 for --help and a missing project name; 1 for
@@ -25,7 +24,6 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
 import { parseArgs, styleText } from 'node:util';
 import basicApp from '../templates/react-basic/src/App.tsx?raw';
 import dialogApp from '../templates/react-dialog/src/App.tsx?raw';
-import sharedGitignore from '../templates/shared/gitignore?raw';
 import sharedIndexHtml from '../templates/shared/index.html?raw';
 import sharedMain from '../templates/shared/src/main.tsx?raw';
 import sharedTsconfigApp from '../templates/shared/tsconfig.app.json?raw';
@@ -112,8 +110,6 @@ const OUTPUT_FILES: readonly string[] = [
   join('src', 'App.tsx'),
 ];
 const DEPRECATED_ALIAS = 'react-full';
-/** Written beside the other files unless the target already has one; never overwritten. */
-const GITIGNORE = '.gitignore';
 
 /** The two commands "Next steps" prints after `cd`. */
 export interface NextSteps {
@@ -326,9 +322,6 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       }
     }
 
-    // An existing .gitignore is the project's own: it is kept, never listed as a collision.
-    const keepGitignore = await pathExists(join(projectDir, GITIGNORE));
-
     // Record what this run creates so a failure removes only that.
     const createdDirs: string[] = []; // deepest first
     const createdFiles: string[] = [];
@@ -379,7 +372,7 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
 
     const appContent = template === 'react-dialog' ? dialogApp : basicApp;
 
-    const contents = new Map<string, string>([
+    const contents: ReadonlyMap<string, string> = new Map([
       ['package.json', `${JSON.stringify(pkg, null, 2)}\n`],
       ['tsconfig.json', sharedTsconfig],
       ['tsconfig.app.json', sharedTsconfigApp],
@@ -389,7 +382,6 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       [join('src', 'main.tsx'), sharedMain],
       [join('src', 'App.tsx'), appContent],
     ]);
-    if (!keepGitignore) contents.set(GITIGNORE, sharedGitignore);
     const preExisting = new Set(collisions);
     const flag = noOverwrite ? 'wx' : 'w';
     const results = await Promise.allSettled(
@@ -423,7 +415,6 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
     out(styleText('green', `Created ${projectName} from ${template}:`, { stream: io.stdout }));
     for (const f of written)
       out(`  ${projectName}/${relative(projectDir, f).replaceAll('\\', '/')}`);
-    if (keepGitignore) out(`note: kept the existing ${GITIGNORE}`);
     out('');
     out('Next steps:');
     out(`  cd ${/\s/.test(projectName) ? `"${projectName}"` : projectName}`);

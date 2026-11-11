@@ -12,7 +12,7 @@ Scaffold a Vite, React 19 and TypeScript project with a modern-cmdk command pale
 npm create modern-cmdk@latest my-palette
 ```
 
-Two templates · writes 9 files · every dependency pinned to an exact version · no dependencies of its own · Node ≥ 26.4.0
+Two templates · writes 8 files · every dependency pinned to an exact version · no dependencies of its own · Node ≥ 26.4.0
 
 <p align="center">
   <a href="https://abcrimson.github.io/modern-cmdk/"><strong>Documentation</strong></a> ·
@@ -41,7 +41,6 @@ npm run dev
 
 ```text
 my-palette/
-├── .gitignore          node_modules, dist and local env files
 ├── index.html
 ├── package.json        exact versions; dev, build, typecheck, preview
 ├── tsconfig.json       references the two projects below (tsc -b)
@@ -53,20 +52,16 @@ my-palette/
     └── App.tsx         the palette
 ```
 
-`npm run build` runs `tsc -b && vite build`. A target that already has a `.gitignore` keeps it. The `react-basic` template begins `src/App.tsx` like this:
+`npm run build` runs `tsc -b && vite build`. The `react-basic` template begins `src/App.tsx` like this:
 
 ```tsx fragment
 import { Command } from 'modern-cmdk/react';
 import type { ReactElement } from 'react';
-import { useState } from 'react';
 
 export function App(): ReactElement {
-  const [last, setLast] = useState<string | null>(null);
-
   return (
     <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>
       <h1>Command Palette</h1>
-      <p role="status">Chosen: {last ?? 'nothing yet'}</p>
       <Command label="Command menu">
         <Command.Input placeholder="Search..." />
         <Command.List>
@@ -74,7 +69,7 @@ export function App(): ReactElement {
           <Command.Group heading="Actions">
 ```
 
-`modern-cmdk` is pinned to the version that was current when this scaffolder was built; the other pins are in [`src/versions.ts`](https://github.com/ABCrimson/modern-cmdk/blob/VERSIONS_COMMIT_PLACEHOLDER/packages/create-modern-cmdk/src/versions.ts).
+`modern-cmdk` is pinned to the modern-cmdk version this scaffolder was released with, read from the repository when it was built; the other pins are in [`src/versions.ts`](https://github.com/ABCrimson/modern-cmdk/blob/48bff2bf82125afd289067557127160b47909c3e/packages/create-modern-cmdk/src/versions.ts).
 
 ## Options
 
@@ -101,7 +96,7 @@ Without `--strict`, an unknown option is warned about and ignored when a project
 <details>
 <summary>A target that already holds files, and names</summary>
 
-Before it writes anything, the scaffolder checks the files it would write. In 1.x a target that already holds any of them is listed on stderr (`warning: <dir> is not empty; this run will overwrite N files:`, then one path per line) and the run carries on and overwrites them. With `--no-overwrite` the same list is printed as an error, nothing is written and the exit code is `1`. An existing `.gitignore` is never overwritten and never counts as a collision: the scaffolder keeps it and says so.
+Before it writes anything, the scaffolder checks the files it would write. In 1.x a target that already holds any of them is listed on stderr (`warning: <dir> is not empty; this run will overwrite N files:`, then one path per line) and the run carries on and overwrites them. With `--no-overwrite` the same list is printed as an error, nothing is written and the exit code is `1`.
 
 The directory you name is the project directory. The package name in the generated `package.json` is derived from it and sanitized: lower-cased, every run of characters npm does not allow becomes `-`, and leading `.`, `_` and `-` are dropped (a valid scoped name such as `@scope/app` is kept as given). The scaffolder prints `note: package name "<name>" (from "<directory>")` when it changed the name. Only a name that derives to nothing, or one over 214 characters, is refused. On Windows a directory name with a character Windows cannot use (`<`, `>`, `:`, `"`, `|`, `?`, `*` or a control character) or a reserved device name (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9`, `LPT1`-`LPT9`) is refused before anything is written.
 
