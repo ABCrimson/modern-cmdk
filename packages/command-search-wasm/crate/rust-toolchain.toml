@@ -1,6 +1,6 @@
-# Pinned to the nightly of 2026-11-10 (rustc 1.102.0-nightly, ac8310ba6, built 2026-11-09) so builds and lints are reproducible.
+# Pinned to the nightly of 2026-11-11 (rustc 1.102.0-nightly, 9c5648833, built 2026-11-10) so builds and lints are reproducible.
 [toolchain]
-channel = "nightly-2026-11-10"
+channel = "nightly-2026-11-11"
 targets = ["wasm32-unknown-unknown"]
 components = ["rustfmt", "clippy"]
 profile = "minimal"

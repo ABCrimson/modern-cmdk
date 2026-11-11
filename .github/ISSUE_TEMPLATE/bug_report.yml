@@ -69,9 +69,9 @@ body:
         OS: macOS 26
         modern-cmdk: 1.4.0
         modern-cmdk-codemod: (if used)
-        React: 0.0.0-experimental-4ae637b6-20261109
-        TypeScript: 7.1.0-dev.20261109.1
-        Vite: 8.3.7
+        React: 0.0.0-experimental-b05c0b75-20261109
+        TypeScript: 7.1.0-dev.20261111.1
+        Vite: 8.3.8
     validations:
       required: false
 

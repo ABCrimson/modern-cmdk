@@ -1,5 +1,5 @@
 // Exact pins for the dependencies of a scaffolded app, the npm `latest` dist-tag of each package
-// (pnpm view <pkg> dist-tags --json) on 2026-11-10. A consumer app never pins the workspace
+// (pnpm view <pkg> dist-tags --json) on 2026-11-11. A consumer app never pins the workspace
 // catalog's experimental React or a TypeScript dev build; the hold is recorded in
 // .peak-modern-holds.json. modern-cmdk's own version is not here: tsdown.config.ts injects it
 // at build time (MODERN_CMDK_VERSION). Re-resolve at every release candidate.
@@ -15,7 +15,7 @@ export const DEV_DEPENDENCIES = {
   '@types/react-dom': '19.3.0',
   '@vitejs/plugin-react': '6.3.0',
   typescript: '7.0.2',
-  vite: '8.3.7',
+  vite: '8.3.8',
 } as const;
 
 /**

@@ -378,7 +378,7 @@ The optional WASM engine implements the core's `SearchEngine` interface; you pas
 - **`createWorkerSearchEngine()`** (`src/worker-engine.ts`) -- runs the same engine in a Web Worker; scores travel in a `SharedArrayBuffer` only when the page is cross-origin isolated, otherwise they are structured-cloned. Its synchronous `search()` yields the results of the most recent `searchAsync()` call, and nothing in `createCommandMachine` calls `searchAsync()`, so pair it with explicit `await engine.searchAsync(query)` calls. This file uses `Promise.withResolvers` (ES2024) for the worker-ready signal and for per-request tracking; `packages/modern-cmdk/src` does not use it, and the codemod uses it in `packages/modern-cmdk-codemod/src/cli.ts` and `files.ts`.
 - **Edit distance** -- `crate/src/scorer.rs` (Levenshtein helpers) is compiled under `cfg(test)` only and is not part of the search path.
 
-**Measurements.** The `.wasm` binary is 113,236 bytes raw and 52,107 bytes under `gzip -9` (measured 2026-11-10 on the `pkg/command_search_wasm_bg.wasm` that wasm-pack 0.15.1 builds with the nightly of 2026-11-10, rustc 1.102.0-nightly ac8310ba6; the 2026-11-09 nightly gave 113,239 and 52,096, the 2026-11-08 nightly 113,492 and 52,188), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
+**Measurements.** The `.wasm` binary is 113,236 bytes raw and 52,111 bytes under `gzip -9` (measured 2026-11-11 on the `pkg/command_search_wasm_bg.wasm` that wasm-pack 0.15.1 builds with the nightly of 2026-11-11, rustc 1.102.0-nightly 9c5648833; the 2026-11-10 nightly gave 113,236 and 52,107, the 2026-11-09 nightly 113,239 and 52,096, the 2026-11-08 nightly 113,492 and 52,188), so "about 52 kB gzip". **No search-latency figure has been measured for the WASM engine**; `benchmarks/wasm-search.bench.ts` exists but asserts nothing and its numbers are not published. Any latency stated elsewhere is a target, not a result.
 
 ---
 
@@ -604,7 +604,7 @@ rule driven by it. Both are wrapped in `@supports (animation-timeline: scroll())
 }
 ```
 
-The guard is there because Safari before 26 and Firefox before 159 lack `animation-timeline` (styles.css:432; web-features 3.45.0-dev-20261103105955-64427e2, `scroll-driven-animations`): without it a time-based run would settle in its end state. At the Safari 18.4 / Firefox 131 floor the fade edges and the progress bar therefore stay static.
+The guard is there because Safari before 26 and Firefox before 159 lack `animation-timeline` (styles.css:432; web-features 3.45.0-dev-20261110231328-ed6bd69, `scroll-driven-animations`): without it a time-based run would settle in its end state. At the Safari 18.4 / Firefox 131 floor the fade edges and the progress bar therefore stay static.
 
 No JavaScript scroll event listeners. Zero main-thread cost where the timeline is supported.
 
@@ -747,7 +747,7 @@ Building a production-quality dialog from scratch would add significant bundle s
 
 ### Why Vite for the playground?
 
-The interactive playground (`apps/playground`) uses **Vite 8.3.7** with `@vitejs/plugin-react` 6.3.0 and `build.target: 'esnext'`, so Iterator Helpers and `using` syntax are not downleveled. Vite passes CSS nesting, `@layer` and `@starting-style` through unchanged.
+The interactive playground (`apps/playground`) uses **Vite 8.3.8** with `@vitejs/plugin-react` 6.3.0 and `build.target: 'esnext'`, so Iterator Helpers and `using` syntax are not downleveled. Vite passes CSS nesting, `@layer` and `@starting-style` through unchanged.
 
 ### Why `@starting-style` over JavaScript animations?
 

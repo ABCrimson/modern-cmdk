@@ -106,7 +106,7 @@ describe('rewriteDependency', () => {
       version: '0.1.0',
       scripts: { build: 'vite build' },
       dependencies: { 'modern-cmdk': '1.2.3', react: '19.0.0' },
-      devDependencies: { vite: '8.3.7' },
+      devDependencies: { vite: '8.3.8' },
     };
     const before = structuredClone(pkg);
     const out = rewriteDependency(pkg, '/tmp/packs/modern-cmdk-1.2.3.tgz');
@@ -156,17 +156,17 @@ describe('buildTempWorkspaceYaml', () => {
       '  - "."',
       'minimumReleaseAge: 1440',
       'minimumReleaseAgeExclude:',
-      '  - "vite@8.3.7"',
-      '  - "typescript@7.1.0-dev.20261109.1"',
+      '  - "vite@8.3.8"',
+      '  - "typescript@7.1.0-dev.20261111.1"',
       '',
     ].join('\n');
     const copied = parseWorkspaceYaml(buildTempWorkspaceYaml(twoEntries));
     expect(copied.minimumReleaseAgeExclude).toEqual([
-      'vite@8.3.7',
-      'typescript@7.1.0-dev.20261109.1',
+      'vite@8.3.8',
+      'typescript@7.1.0-dev.20261111.1',
     ]);
     // The assertion bites: a one-entry list is not what a two-entry root yields.
-    expect(copied.minimumReleaseAgeExclude).not.toEqual(['vite@8.3.7']);
+    expect(copied.minimumReleaseAgeExclude).not.toEqual(['vite@8.3.8']);
     // A root without the key yields none: the script has no list of its own.
     const withoutList = parseWorkspaceYaml(
       buildTempWorkspaceYaml('packages:\n  - "."\nminimumReleaseAge: 1440\n'),

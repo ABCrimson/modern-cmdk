@@ -92,7 +92,7 @@ my-command-palette/
   vite.config.ts     # Vite + React plugin
 ```
 
-The generated `package.json` pins every dependency to an exact version, with no caret or tilde range (pinned by the test titled `SEC-13, DT-07, RP-23, F31: every generated dependency is an exact version`). The pins of the other packages are in [`src/versions.ts`](https://github.com/ABCrimson/modern-cmdk/blob/main/packages/create-modern-cmdk/src/versions.ts), each the npm `latest` dist-tag on 2026-11-10: `react` and `react-dom` 19.3.1, `radix-ui` 1.8.1, `typescript` 7.0.2, `vite` 8.3.7, `@vitejs/plugin-react` 6.3.0, `@types/node` 26.6.6, `@types/react` and `@types/react-dom` 19.3.0. `modern-cmdk` itself is pinned to the version of the `modern-cmdk` package in the release that ships the scaffolder, read when create-modern-cmdk is built.
+The generated `package.json` pins every dependency to an exact version, with no caret or tilde range (pinned by the test titled `SEC-13, DT-07, RP-23, F31: every generated dependency is an exact version`). The pins of the other packages are in [`src/versions.ts`](https://github.com/ABCrimson/modern-cmdk/blob/main/packages/create-modern-cmdk/src/versions.ts), each the npm `latest` dist-tag on 2026-11-11: `react` and `react-dom` 19.3.1, `radix-ui` 1.8.1, `typescript` 7.0.2, `vite` 8.3.8, `@vitejs/plugin-react` 6.3.0, `@types/node` 26.6.6, `@types/react` and `@types/react-dom` 19.3.0. `modern-cmdk` itself is pinned to the version of the `modern-cmdk` package in the release that ships the scaffolder, read when create-modern-cmdk is built.
 
 - [`modern-cmdk`](https://www.npmjs.com/package/modern-cmdk) -- core engine + React 19 adapter
 - [`radix-ui`](https://www.npmjs.com/package/radix-ui) -- the dialog primitive, a required peer of `modern-cmdk` in 1.x

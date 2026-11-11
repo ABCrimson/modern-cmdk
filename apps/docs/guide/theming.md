@@ -212,7 +212,7 @@ selecting on one is a reliable way to style only one virtualization mode.
 > `styles.css` also ships rules for `[data-command-virtual-item]` and
 > `[data-command-scroll-indicator]`, but **no component currently emits either attribute**.
 > They are styling hooks reserved for custom rows built on the `useVirtualizer` hook; the
-> built-in list does not render a scroll-progress element. The scroll-driven timelines of the list fade edges and of `[data-command-scroll-indicator]` sit inside `@supports (animation-timeline: scroll())` (Chrome and Edge 115, Firefox 159, Safari 26, web-features `scroll-driven-animations` 3.45.0-dev-20261103105955-64427e2): below that the fade edges stay at `opacity: 0`.
+> built-in list does not render a scroll-progress element. The scroll-driven timelines of the list fade edges and of `[data-command-scroll-indicator]` sit inside `@supports (animation-timeline: scroll())` (Chrome and Edge 115, Firefox 159, Safari 26, web-features `scroll-driven-animations` 3.45.0-dev-20261110231328-ed6bd69): below that the fade edges stay at `opacity: 0`.
 
 </details>
 
