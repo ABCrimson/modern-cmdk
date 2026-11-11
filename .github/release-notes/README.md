@@ -2,13 +2,15 @@
 
 Each GitHub release of a package gets a body that `scripts/compose-release-notes.ts` composes after
 `changeset publish` has created the release. A person writes one part of it, the summary file, and
-the version PR carries it.
+it ships in the released commit.
 
 ## The summary file
 
-Add `.github/release-notes/<package>@<version>.md` to the version PR, for every package the PR
-releases. The name is the release tag: `modern-cmdk@1.7.0.md` for the release tagged
-`modern-cmdk@1.7.0`. A release without its summary file fails the `release-notes` job, and its
+Add `.github/release-notes/<package>@<version>.md` for every package a release publishes, in a pull
+request to `main` that merges before the version PR, or as a commit on the version PR itself. The
+release workflow rebuilds the version PR branch from `main` on every push to `main`, which drops a
+commit made on that branch, so a file committed there must be re-added after any later merge. The
+name is the release tag: `modern-cmdk@1.7.0.md` for the release tagged `modern-cmdk@1.7.0`. A release without its summary file fails the `release-notes` job, and its
 release keeps the changelog body that `changeset publish` gave it until someone composes the body by
 hand (see Try it) and sets it with `gh release edit <tag> --notes-file <file>`. Re-running the job
 does not help: it checks out the commit that was released, which lacks a file added later.
@@ -47,7 +49,7 @@ For `create-modern-cmdk`, a `**Scaffolds:** modern-cmdk <version>` line follows 
 names the `modern-cmdk` version in the same checkout, the one the build bakes into the scaffolder.
 
 Last, the job marks the highest `modern-cmdk` release as the repository's Latest release, so a
-release of `create-modern-cmdk` or `modern-cmdk-codemod` in the same run never holds it.
+release of `create-modern-cmdk` or `modern-cmdk-codemod` in the same run does not keep it.
 
 ## Rules for the text
 
@@ -61,7 +63,7 @@ release of `create-modern-cmdk` or `modern-cmdk-codemod` in the same run never h
 From the repository root, with the release tags in a file:
 
 ```sh
-gh release list --limit 1000 --json tagName --jq '.[].tagName' > tags.txt
+gh release list --limit 1000 --json tagName,isDraft --jq '.[] | select(.isDraft | not) | .tagName' > tags.txt
 node scripts/compose-release-notes.ts compose --tag <package>@<version> \
   --tags-file tags.txt --commit "$(git rev-parse HEAD)"
 ```
