@@ -59,19 +59,31 @@ describe('packed create-modern-cmdk', () => {
     const manifest = JSON.parse(
       readTarball(tarball).get('package/package.json')?.toString('utf8') ?? '',
     ) as {
+      description?: string;
       homepage?: string;
       bugs?: { url?: string };
       keywords?: string[];
       repository?: { type?: string; url?: string; directory?: string };
       engines?: { node?: string };
     };
+    expect(manifest.description).toBe(
+      'Scaffold a Vite, React 19 and TypeScript project with a modern-cmdk command palette.',
+    );
     expect(manifest.homepage).toBe(
-      'https://github.com/ABCrimson/modern-cmdk/tree/main/packages/create-modern-cmdk#readme',
+      'https://abcrimson.github.io/modern-cmdk/guide/getting-started.html',
     );
     expect(manifest.bugs).toEqual({ url: 'https://github.com/ABCrimson/modern-cmdk/issues' });
-    expect(manifest.keywords).toEqual(
-      expect.arrayContaining(['create', 'scaffold', 'modern-cmdk']),
-    );
+    expect(manifest.keywords).toEqual([
+      'create',
+      'scaffold',
+      'vite',
+      'react',
+      'react-19',
+      'typescript',
+      'modern-cmdk',
+      'command-palette',
+      'cmdk',
+    ]);
     expect(manifest.repository).toEqual({
       type: 'git',
       url: 'git+https://github.com/ABCrimson/modern-cmdk.git',

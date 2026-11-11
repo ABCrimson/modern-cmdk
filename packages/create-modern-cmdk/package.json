@@ -2,9 +2,9 @@
   "name": "create-modern-cmdk",
   "version": "1.4.0",
   "type": "module",
-  "description": "Scaffold a new modern-cmdk project",
+  "description": "Scaffold a Vite, React 19 and TypeScript project with a modern-cmdk command palette.",
   "license": "MIT",
-  "homepage": "https://github.com/ABCrimson/modern-cmdk/tree/main/packages/create-modern-cmdk#readme",
+  "homepage": "https://abcrimson.github.io/modern-cmdk/guide/getting-started.html",
   "bugs": {
     "url": "https://github.com/ABCrimson/modern-cmdk/issues"
   },
@@ -32,10 +32,13 @@
   "keywords": [
     "create",
     "scaffold",
+    "vite",
+    "react",
+    "react-19",
+    "typescript",
     "modern-cmdk",
     "command-palette",
-    "react",
-    "vite"
+    "cmdk"
   ],
   "repository": {
     "type": "git",
