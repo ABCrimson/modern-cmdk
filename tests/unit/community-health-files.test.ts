@@ -89,8 +89,9 @@ describe('CODE_OF_CONDUCT.md', () => {
   it('keeps no template note and sends reports to GitHub Support, the only route a personal account has', () => {
     expect(text).not.toContain('[NOTE');
     expect(text).toContain(
-      "use GitHub's **Report content** option on the comment, issue, pull request or discussion and choose **Report abuse to GitHub Support**.",
+      "use GitHub's **Report content** option on the comment, issue, pull request or discussion; the report goes to GitHub Support.",
     );
+    expect(text).not.toContain('Report abuse to GitHub Support');
     expect(text).toContain(
       'This repository belongs to a personal account, for which GitHub offers no reports to maintainers.',
     );
