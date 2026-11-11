@@ -78,6 +78,12 @@ describe('create-modern-cmdk templates', () => {
     expect(container.querySelector('p kbd')?.textContent).toBe('Ctrl+K');
   });
 
+  it('A2-1: on Apple platforms the hint under the heading is ⌘K', async () => {
+    vi.stubGlobal('navigator', { platform: 'MacIntel' });
+    await render(<DialogApp />);
+    expect(container.querySelector('p kbd')?.textContent).toBe('⌘K');
+  });
+
   it('CV-25: the react-basic template renders its items', async () => {
     await render(<BasicApp />);
     const items = [...document.querySelectorAll('[role="option"]')].map((e) => e.textContent);
