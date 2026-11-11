@@ -398,8 +398,8 @@ jobs:
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
 
   # changeset publish creates one GitHub release per published package with the package's CHANGELOG section as its body. This
-  # job replaces each body with the one scripts/compose-release-notes.ts composes (the summary file a person adds to the Version
-  # PR, the size line for modern-cmdk, the CHANGELOG section in <details>, the footer links); a release with no summary file
+  # job replaces each body with the one scripts/compose-release-notes.ts composes (the summary file a person adds in a pull request to main that merges
+  # before the Version PR, or on the Version PR itself; the size line for modern-cmdk, the CHANGELOG section in <details>, the footer links); a release with no summary file
   # fails the step after the others are done. It holds contents: write for `gh release edit` and nothing else: no id-token, no
   # npm credential, no install.
   # The publish sub-action (changesets/action v2.1.2: inputs github-token, script, pack-dir-artifact-id, create-github-releases,
