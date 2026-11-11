@@ -29,13 +29,23 @@
 // full gate. A checkout without the wasm build uses it locally.
 //
 // A fence whose info string has the word `fragment` is a deliberate excerpt that cannot stand alone and
-// is skipped and counted. Exit codes: 0 = every sample type-checks, 1 = a diagnostic, no sample found or
-// tsc failed to run, 2 = usage error.
+// is skipped and counted.
+//
+// The three published package READMEs (packages/modern-cmdk, create-modern-cmdk and modern-cmdk-codemod, by their path
+// relative to the scanned root) also carry the layout rules of scripts/readme-rules.ts, printed as page:line: message
+// before tsc's diagnostics: no line of any fence (a ts sample, a shell line, a text tree) is wider than 78 characters,
+// and no inline code span with no space in it is longer than 28 characters. npm prints a README in a 763 px column
+// (343 px on a phone) in a monospace face, so a wider fence scrolls sideways and a longer unbreakable span widens the
+// page. The root README, the docs and the private packages' READMEs are not bound by them.
+//
+// Exit codes: 0 = every sample type-checks and the layout rules hold, 1 = a diagnostic or a layout violation, no
+// sample found or tsc failed to run, 2 = usage error.
 
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { parseArgs } from 'node:util';
+import { isPublishedReadme, readmeTextViolations } from './readme-rules.ts';
 
 const ROOT: string = resolve(import.meta.dirname, '..');
 const OUT_DIR: string = join(ROOT, 'node_modules/.cache/doc-samples');
@@ -192,9 +202,18 @@ function main(): number {
   let count = 0;
   let fragments = 0;
   let wasmSkipped = 0;
+  let readmes = 0;
+  const layout: string[] = [];
   for (const file of files) {
     const page: string = relative(dir, file).split(sep).join('/');
-    const extraction: Extraction = extractSamples(readFileSync(file, 'utf8'), page);
+    const markdown: string = readFileSync(file, 'utf8');
+    if (isPublishedReadme(page)) {
+      readmes++;
+      for (const { line, message } of readmeTextViolations(markdown, page)) {
+        layout.push(`${page}:${line}: ${message}`);
+      }
+    }
+    const extraction: Extraction = extractSamples(markdown, page);
     fragments += extraction.fragments;
     for (const sample of extraction.samples) {
       if (values['skip-wasm'] && importsWasm(sample.code)) {
@@ -236,14 +255,20 @@ function main(): number {
       diagnostics.push(raw);
     }
   }
+  if (layout.length > 0) process.stderr.write(`${layout.join('\n')}\n`);
   if (diagnostics.length > 0) process.stderr.write(`${diagnostics.join('\n')}\n`);
+  if (readmes > 0) {
+    process.stdout.write(
+      `check-doc-samples: ${readmes} published READMEs checked for layout, ${layout.length} violations\n`,
+    );
+  }
   const wasmClause: string = values['skip-wasm']
     ? `, ${wasmSkipped} wasm samples skipped (--skip-wasm)`
     : '';
   process.stdout.write(
     `check-doc-samples: ${count} samples checked, ${fragments} fragments skipped${wasmClause}\n`,
   );
-  return diagnostics.length > 0 || result.status !== 0 ? 1 : 0;
+  return diagnostics.length > 0 || layout.length > 0 || result.status !== 0 ? 1 : 0;
 }
 
 if (import.meta.main) process.exitCode = main();
