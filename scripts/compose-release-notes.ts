@@ -392,7 +392,7 @@ export async function probeImages(options: ProbeOptions): Promise<string[]> {
   let waited = 0;
   for (const { name, version } of options.published) {
     const label = `${name}@${version}`;
-    const url = `${registry}/${name.replace('/', '%2F')}`;
+    const url = `${registry}/${name.replaceAll('/', '%2F')}`;
     let readme: unknown;
     let listed = false;
     while (!listed) {
