@@ -414,21 +414,27 @@ export const SPELLING_PROBLEM = `write the repository as ${RAW_HOST} or ${REPO_H
 
 /**
  * This repository's raw.githubusercontent.com and github.com URL in any spelling (any letter case, http, www.,
- * a trailing .git): the host serves `raw.githubusercontent.com/abcrimson/modern-cmdk/main/...` with HTTP 200, so a
+ * a trailing .git, or no scheme at all: `//raw.githubusercontent.com/...`, which npm and GitHub resolve to https): the host serves `raw.githubusercontent.com/abcrimson/modern-cmdk/main/...` with HTTP 200, so a
  * case variant would otherwise slip past the checks that read the canonical spelling.
  */
 export const REPO_URL_ANY_CASE =
-  /https?:\/\/(?:raw\.githubusercontent\.com|(?:www\.)?github\.com)\/abcrimson\/modern-cmdk(?:\.git)?(?![\w-]|\.\w)/gi;
+  /(?:https?:|(?<![\w:/.-]))\/\/(?:raw\.githubusercontent\.com|(?:www\.)?github\.com)\/abcrimson\/modern-cmdk(?:\.git)?(?![\w-]|\.\w)/gi;
 
-/** Every URL of this repository in a published README that is not spelled exactly `https://raw.githubusercontent.com/ABCrimson/modern-cmdk` or `https://github.com/ABCrimson/modern-cmdk` (a trailing .git is allowed); fences are read too, HTML comments are not. */
-export function repoUrlSpellingViolations(markdown: string): (Violation & { url: string })[] {
+/** Why a protocol-relative URL of this repository is refused in a published README. */
+export const PROTOCOL_RELATIVE_PROBLEM = `a protocol-relative repository URL (no scheme); write the full https URL pinned to a commit: ${RAW_HOST}/<40-hex commit>/<path> or ${REPO_HOST}/blob/<40-hex commit>/<path> (npm and GitHub resolve // to https, and the pin check does not read it)`;
+
+/** Every URL of this repository in a published README that is not spelled exactly `https://raw.githubusercontent.com/ABCrimson/modern-cmdk` or `https://github.com/ABCrimson/modern-cmdk` (a trailing .git is allowed), a protocol-relative `//` one included; fences are read too, HTML comments are not. */
+export function repoUrlSpellingViolations(
+  markdown: string,
+): (Violation & { url: string; problem: string })[] {
   const text: string = blankComments(markdown);
-  const found: (Violation & { url: string })[] = [];
+  const found: (Violation & { url: string; problem: string })[] = [];
   for (const match of text.matchAll(REPO_URL_ANY_CASE)) {
     const url: string = match[0];
     const bare: string = url.replace(/\.git$/, '');
     if (bare === RAW_HOST || bare === REPO_HOST) continue;
-    found.push({ line: lineOf(text, match.index), url, message: `${url}: ${SPELLING_PROBLEM}` });
+    const problem: string = url.startsWith('//') ? PROTOCOL_RELATIVE_PROBLEM : SPELLING_PROBLEM;
+    found.push({ line: lineOf(text, match.index), url, problem, message: `${url}: ${problem}` });
   }
   return found;
 }

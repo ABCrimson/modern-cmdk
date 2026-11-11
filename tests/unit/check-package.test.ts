@@ -502,6 +502,25 @@ describe('readmeImageFailures', () => {
     expect(readmeImageFailures(hero(`${RAW}/${SHA}/${FILE}`), where('present'))).toEqual([]);
   });
 
+  it('B1: fails a protocol-relative repository URL pinned to main, in <img>, <source srcset> and a Markdown image, naming the line', () => {
+    const cases: readonly [string, string][] = [
+      [`<img src="//raw.githubusercontent.com/ABCrimson/modern-cmdk/main/${FILE}" alt="x">`, '1'],
+      [`<source srcset="//raw.githubusercontent.com/ABCrimson/modern-cmdk/main/${FILE}">`, '1'],
+      [`![x](//raw.githubusercontent.com/ABCrimson/modern-cmdk/main/${FILE})`, '1'],
+    ];
+    for (const [markup, line] of cases) {
+      const failures = readmeImageFailures(markup, where('present'));
+      expect(failures, markup).toHaveLength(1);
+      expect(failures[0], markup).toContain(`README URLs: README.md:${line}:`);
+      expect(failures[0], markup).toContain('protocol-relative repository URL');
+      expect(failures[0], markup).toContain('write the full https URL pinned to a commit');
+    }
+    // the same address written in full https and pinned to a commit passes
+    expect(
+      readmeImageFailures(`<img src="${RAW}/${SHA}/${FILE}" alt="x">`, where('present')),
+    ).toEqual([]);
+  });
+
   it('A1-12: reads a reference-style image: no alt text and a relative definition both fail', () => {
     const failures = readmeImageFailures(
       '![][hero]\n\n[hero]: ../../apps/docs/public/og-image.svg\n',

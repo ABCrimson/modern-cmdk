@@ -18,6 +18,7 @@ import {
   isMainPinnedPath,
   isPublishedReadme,
   linkTargets,
+  PROTOCOL_RELATIVE_PROBLEM,
   PUBLISHED_READMES,
   parseRepoFileUrl,
   pinProblem,
@@ -32,6 +33,7 @@ import {
 const SHA = '380e25e826341cebc46c8a844a524542fd1f8337';
 const RAW = 'https://raw.githubusercontent.com/ABCrimson/modern-cmdk';
 const REPO = 'https://github.com/ABCrimson/modern-cmdk';
+const HERO = 'apps/docs/public/brand/readme/modern-cmdk-dark.png';
 
 describe('the column limits', () => {
   it('are 78 for a code line and 28 for an unbreakable inline code span, pinned by value', () => {
@@ -401,6 +403,40 @@ describe('repoUrlSpellingViolations', () => {
     expect(found.map((v) => v.line)).toEqual([1, 3, 6, 10, 15, 21, 28]);
     expect(found[0]?.message).toContain('another spelling of the URL escapes the pin check');
     expect(found[0]?.message).toContain(`write the repository as ${RAW} or ${REPO}`);
+  });
+
+  it('B1: fails a protocol-relative repository URL in an <img src>, a <source srcset>, a Markdown image and a link, naming the line and asking for the pinned https URL', () => {
+    const md = [
+      `<img src="//raw.githubusercontent.com/ABCrimson/modern-cmdk/main/${HERO}" alt="x">`, // 1
+      `<source srcset="//raw.githubusercontent.com/ABCrimson/modern-cmdk/main/${HERO}">`, // 2
+      `![x](//raw.githubusercontent.com/ABCrimson/modern-cmdk/main/${HERO})`, // 3
+      '[repo](//github.com/ABCrimson/modern-cmdk/blob/main/LICENSE)', // 4
+      '[www](//www.github.com/abcrimson/modern-cmdk)', // 5
+    ].join('\n');
+    const found = repoUrlSpellingViolations(md);
+    expect(found.map((v) => v.line)).toEqual([1, 2, 3, 4, 5]);
+    expect(found.map((v) => v.url)).toEqual([
+      '//raw.githubusercontent.com/ABCrimson/modern-cmdk',
+      '//raw.githubusercontent.com/ABCrimson/modern-cmdk',
+      '//raw.githubusercontent.com/ABCrimson/modern-cmdk',
+      '//github.com/ABCrimson/modern-cmdk',
+      '//www.github.com/abcrimson/modern-cmdk',
+    ]);
+    for (const v of found) {
+      expect(v.message).toContain('protocol-relative repository URL');
+      expect(v.message).toContain('write the full https URL pinned to a commit');
+      expect(v.message).toContain(`${RAW}/<40-hex commit>/<path>`);
+      expect(v.problem).toBe(PROTOCOL_RELATIVE_PROBLEM);
+    }
+  });
+
+  it('B1: reads a // inside a longer URL or another host as that URL, not as a protocol-relative one of this repository', () => {
+    const md = [
+      'https://example.com//github.com/ABCrimson/modern-cmdk/x',
+      '//github.com/ABCrimson/other/x and //raw.githubusercontent.com/someone/modern-cmdk/x',
+      `${RAW}/${SHA}/a.png`,
+    ].join('\n');
+    expect(repoUrlSpellingViolations(md)).toEqual([]);
   });
 
   it('does not read a URL inside an HTML comment', () => {

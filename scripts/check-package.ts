@@ -502,7 +502,7 @@ export type CommitPath = 'present' | 'missing-path' | 'missing-commit';
  * instead), and an image from this repository whose ref is not a full 40-hex commit or whose commit does not
  * hold the file. `where` answers the last question (git, in main()). Images from other hosts are not checked.
  * Any URL of this repository spelled other than exactly https://raw.githubusercontent.com/ABCrimson/modern-cmdk or
- * https://github.com/ABCrimson/modern-cmdk also fails: another spelling (the host serves a lowercase owner) would
+ * https://github.com/ABCrimson/modern-cmdk also fails (a protocol-relative `//raw.githubusercontent.com/...` too): another spelling (the host serves a lowercase owner) would
  * escape the ref checks below.
  */
 export function readmeImageFailures(
