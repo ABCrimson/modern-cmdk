@@ -513,6 +513,23 @@ describe('check-repo-links: the pins of the published READMEs', () => {
     expect(lines[3]).toContain(`${PACKAGE_README}:4: docs/x.md — `);
   });
 
+  it('B1: fails a protocol-relative repository URL, which npm resolves to https and the pin rule would otherwise not read', async () => {
+    await readme(
+      '<img src="//raw.githubusercontent.com/ABCrimson/modern-cmdk/main/apps/docs/public/og-image.svg" alt="x">', // 1
+      '[repo](//github.com/ABCrimson/modern-cmdk/blob/main/LICENSE)', // 2
+    );
+    const result = await scan(repo, '--main-ref', 'main');
+    expect(result.code).toBe(1);
+    const lines = result.stderr.trim().split('\n');
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain(`${PACKAGE_README}:1: `);
+    expect(lines[1]).toContain(`${PACKAGE_README}:2: `);
+    for (const line of lines) {
+      expect(line).toContain('protocol-relative repository URL');
+      expect(line).toContain('write the full https URL pinned to a commit');
+    }
+  });
+
   it('reads the relative links of the published READMEs only and not their fences or comments, but a spelling in a fence', async () => {
     await readme(
       '```md',

@@ -71,7 +71,6 @@ import {
   RAW_URL_PATTERN,
   relativeLinkProblem,
   repoUrlSpellingViolations,
-  SPELLING_PROBLEM,
 } from './readme-rules.ts';
 
 const run = promisify(execFile);
@@ -537,8 +536,8 @@ export function extractLinksOf(markdown: string, published: boolean): ExtractedL
         links.push({ url: match[0].replace(/[.,;:!?*~]+$/, ''), line: i + 1 });
       }
     }
-    for (const { line, url } of repoUrlSpellingViolations(markdown)) {
-      links.push({ url, line, problem: SPELLING_PROBLEM });
+    for (const { line, url, problem } of repoUrlSpellingViolations(markdown)) {
+      links.push({ url, line, problem });
     }
     for (const { line, target } of linkTargets(markdown)) {
       const problem: string | undefined = relativeLinkProblem(target);
