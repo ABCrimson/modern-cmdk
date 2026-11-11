@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="200" viewBox="0 0 760 200" role="img" aria-label="create-modern-cmdk, part of modern-cmdk: start a project with a palette in it. A terminal runs npm create modern-cmdk and lists the files it adds.">
+  <title>create-modern-cmdk, part of modern-cmdk: start a project with a palette in it. A terminal runs npm create modern-cmdk and lists the files it adds.</title>
+  <style>.s{font-family:'Instrument Sans Variable','Instrument Sans Fallback',Arial,sans-serif}.m{font-family:'Geist Mono Variable','Geist Mono Fallback','Courier New',monospace}</style>
+  <defs>
+    <linearGradient id="acc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dc2626"/><stop offset="1" stop-color="#f87171"/></linearGradient>
+    <radialGradient id="glow" gradientUnits="userSpaceOnUse" cx="700" cy="190" r="320"><stop offset="0" stop-color="#dc2626" stop-opacity=".18"/><stop offset="1" stop-color="#dc2626" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="760" height="200" rx="20" fill="#0a0e27"/>
+  <rect width="760" height="200" rx="20" fill="url(#glow)"/>
+  <rect x="0.75" y="0.75" width="758.5" height="198.5" rx="19.25" fill="none" stroke="#5b627b" stroke-opacity=".7" stroke-width="1.5"/>
+  <g transform="translate(36 36) scale(0.75)">
+    <rect x="1" y="1" width="62" height="62" rx="14" fill="#0a0e27" stroke="#242a42" stroke-width="2"/>
+    <rect x="10" y="10" width="44" height="44" rx="11" fill="none" stroke="url(#acc)" stroke-width="4"/>
+    <path d="M16 50h32" stroke="#dc2626" stroke-opacity=".45" stroke-width="2" stroke-linecap="round"/>
+    <path d="M25.5 21.5v21M38.5 21.5 27 32l11.5 10.5" fill="none" stroke="url(#acc)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text class="s" x="98" y="72" font-size="30" font-weight="650" letter-spacing="-0.9" fill="#eaecf5" data-max-end="440">create-modern-cmdk</text>
+  <text class="s" x="36" y="116" font-size="18" font-weight="500" fill="#b5bacb" data-max-end="440">Start a project with a palette in it.</text>
+  <g data-max-end="440">
+    <rect x="36.75" y="134.75" width="58.5" height="28.5" rx="14.25" fill="#141935" stroke="#242a42" stroke-width="1.5"/><text class="m" x="66" y="154" font-size="15" font-weight="500" text-anchor="middle" fill="#eaecf5" data-max-advance="36">Vite</text>
+    <rect x="106.75" y="134.75" width="94.5" height="28.5" rx="14.25" fill="#141935" stroke="#242a42" stroke-width="1.5"/><text class="m" x="154" y="154" font-size="15" font-weight="500" text-anchor="middle" fill="#eaecf5" data-max-advance="72">React 19</text>
+    <rect x="212.75" y="134.75" width="112.5" height="28.5" rx="14.25" fill="#141935" stroke="#242a42" stroke-width="1.5"/><text class="m" x="269" y="154" font-size="15" font-weight="500" text-anchor="middle" fill="#eaecf5" data-max-advance="90">TypeScript</text>
+    </g>
+  <rect x="470" y="28" width="254" height="144" rx="14" fill="#0f1430" stroke="#5b627b" stroke-opacity=".6" stroke-width="1.5"/>
+    <text class="m" x="488" y="54" font-size="13" fill="#eaecf5"><tspan fill="#9297ab">$</tspan> npm create modern-cmdk</text>
+    <path d="M471 68H723" stroke="#242a42" stroke-width="1"/>
+    <rect x="478" y="78" width="238" height="20" rx="5" fill="#6ad895" fill-opacity=".12"/>
+    <text class="m" x="488" y="92" font-size="13" fill="#b5bacb"><tspan fill="#6ad895">+</tspan> src/App.tsx</text>
+    <text class="m" x="488" y="112" font-size="13" fill="#b5bacb"><tspan fill="#6ad895">+</tspan> src/main.tsx</text>
+    <text class="m" x="488" y="132" font-size="13" fill="#b5bacb"><tspan fill="#6ad895">+</tspan> vite.config.ts</text>
+    <text class="m" x="488" y="152" font-size="13" fill="#b5bacb"><tspan fill="#6ad895">+</tspan> package.json</text>
+</svg>
