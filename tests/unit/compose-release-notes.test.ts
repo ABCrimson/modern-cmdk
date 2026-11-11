@@ -632,12 +632,32 @@ describe('probeImages', () => {
   it('fails a version the registry never lists, and a packument without a readme', async () => {
     const never = fakeFetch(asset('a.png'), {}, [['1.7.0']]);
     expect(await probeImages(options(never.fetchImpl))).toEqual([
-      'modern-cmdk@1.7.1: the registry did not list the version in 30 attempts',
+      'modern-cmdk@1.7.1: the registry did not list the version within 26 minutes; npm can take longer, so re-run this job once https://registry.example/modern-cmdk/1.7.1 answers 200',
     ]);
     const bare = fakeFetch(undefined, {});
     expect(await probeImages(options(bare.fetchImpl))).toEqual([
       'modern-cmdk@1.7.1: the packument has no readme',
     ]);
+  });
+
+  it('waits long enough for a registry that lists the version after 20 min 10 s (modern-cmdk 1.5.0)', async () => {
+    let clock = 0;
+    const fetchImpl: typeof fetch = () =>
+      Promise.resolve(
+        Response.json({
+          versions: clock > 20 * 60_000 + 10_000 ? { '1.7.1': {} } : {},
+          readme: '# plain',
+        }),
+      );
+    const problems = await probeImages({
+      ...options(fetchImpl),
+      sleep: (ms: number) => {
+        clock += ms;
+        return Promise.resolve();
+      },
+    });
+    expect(problems).toEqual([]);
+    expect(clock).toBeGreaterThan(20 * 60_000 + 10_000);
   });
 
   it('passes with a notice for a readme that holds no raw.githubusercontent.com URL', async () => {

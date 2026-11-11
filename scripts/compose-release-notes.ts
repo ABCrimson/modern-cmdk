@@ -8,7 +8,7 @@
 //   node scripts/compose-release-notes.ts probe-images [--published <json>] [--registry <url>]
 //
 // compose writes the body of one GitHub release (stdout, or --out) from four parts, in the order of the release-notes
-// template: the summary file `.github/release-notes/<name>@<version>.md` that a person adds to the Version PR (its
+// template: the summary file `.github/release-notes/<name>@<version>.md` that a person adds in a pull request to main before the Version PR, or on the Version PR itself (its
 // first paragraph is the `**Upgrade:**` line, then the summary, `### Before you upgrade` and `### Highlights`); for
 // modern-cmdk, the size line read from `benchmarks/size-history/<version>.json`; the package's CHANGELOG section
 // inside <details>; and the footer links. For create-modern-cmdk a `**Scaffolds:**` line, the modern-cmdk version in
@@ -365,8 +365,11 @@ export interface ProbeOptions {
   readonly log?: (line: string) => void;
 }
 
-const REGISTRY_ATTEMPTS = 30;
-const REGISTRY_PAUSE_MS = 10_000;
+// npm accepts an upload and lists the version later: 20 min 10 s for modern-cmdk 1.5.0 and 18 min 23 s for 1.7.0, from the
+// end of the publish step to the packument's `time` entry, and the packument is served with max-age=300. One budget for
+// the whole run, shared by the packages.
+const REGISTRY_WAIT_MS = 26 * 60_000;
+const REGISTRY_PAUSE_MS = 15_000;
 const IMAGE_ATTEMPTS = 3;
 const IMAGE_PAUSE_MS = 5_000;
 
@@ -386,12 +389,13 @@ export async function probeImages(options: ProbeOptions): Promise<string[]> {
     options.sleep ?? ((ms: number): Promise<void> => new Promise((done) => setTimeout(done, ms)));
   const log = options.log ?? ((line: string): void => void process.stdout.write(`${line}\n`));
   const problems: string[] = [];
+  let waited = 0;
   for (const { name, version } of options.published) {
     const label = `${name}@${version}`;
     const url = `${registry}/${name.replace('/', '%2F')}`;
     let readme: unknown;
     let listed = false;
-    for (let attempt = 1; attempt <= REGISTRY_ATTEMPTS && !listed; attempt++) {
+    while (!listed) {
       try {
         const response = await request(url, { headers: { accept: 'application/json' } });
         if (response.status === 200) {
@@ -409,11 +413,13 @@ export async function probeImages(options: ProbeOptions): Promise<string[]> {
       } catch {
         // a network error is retried like a version the registry does not list yet
       }
-      if (!listed && attempt < REGISTRY_ATTEMPTS) await sleep(REGISTRY_PAUSE_MS);
+      if (listed || waited >= REGISTRY_WAIT_MS) break;
+      await sleep(REGISTRY_PAUSE_MS);
+      waited += REGISTRY_PAUSE_MS;
     }
     if (!listed) {
       problems.push(
-        `${label}: the registry did not list the version in ${REGISTRY_ATTEMPTS} attempts`,
+        `${label}: the registry did not list the version within ${REGISTRY_WAIT_MS / 60_000} minutes; npm can take longer, so re-run this job once ${url}/${version} answers 200`,
       );
       continue;
     }

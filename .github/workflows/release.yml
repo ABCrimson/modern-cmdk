@@ -407,7 +407,7 @@ jobs:
   # the release created last: modern-cmdk-codemod@1.0.1 two seconds after modern-cmdk@1.6.0. The last step therefore marks the
   # highest modern-cmdk release Latest again, and runs even when the step before it failed.
   release-notes:
-    if: needs.publish.outputs.published == 'true'
+    if: ${{ !cancelled() && needs.publish.outputs.published == 'true' }}
     needs: publish
     runs-on: ubuntu-26.04
     timeout-minutes: 10
@@ -435,15 +435,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          tags=$(jq -r '.[] | "\(.name)@\(.version)"' <<< "$PUBLISHED")
+          [ -n "$tags" ] || { echo "::error::published-packages lists no package: $PUBLISHED"; exit 1; }
           failed=0
           while IFS= read -r tag; do
             if node scripts/compose-release-notes.ts compose --tag "$tag" --tags-file "$RUNNER_TEMP/release-tags.txt" --commit "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" --out "$RUNNER_TEMP/release-notes.md"; then
-              gh release edit "$tag" --notes-file "$RUNNER_TEMP/release-notes.md"
-              echo "Set the notes of $tag"
+              if ! gh release edit "$tag" --notes-file "$RUNNER_TEMP/release-notes.md"; then
+                failed=1
+              else
+                echo "Set the notes of $tag"
+              fi
             else
               failed=1
             fi
-          done < <(jq -r '.[] | "\(.name)@\(.version)"' <<< "$PUBLISHED")
+          done <<< "$tags"
           exit "$failed"
       - name: Keep modern-cmdk the Latest release
         if: ${{ !cancelled() && steps.tags.outcome == 'success' }}
@@ -454,15 +459,15 @@ jobs:
           gh release edit "$latest" --latest
 
   # npm renders the readme of the packument, and its images are raw.githubusercontent.com URLs pinned to a commit. This job
-  # waits for the registry to list each published version, then requests every such URL in the packument's readme without
+  # waits up to 26 minutes in all for the registry to list each published version (npm has taken 20), then requests every such URL in the packument's readme without
   # following redirects and fails on anything but HTTP 200. It cannot undo the publish; it makes a broken image visible
   # (the README of a published version cannot be edited, so the fix is a new version). It needs no credential beyond reading
   # the repository.
   readme-images:
-    if: needs.publish.outputs.published == 'true'
+    if: ${{ !cancelled() && needs.publish.outputs.published == 'true' }}
     needs: publish
     runs-on: ubuntu-26.04
-    timeout-minutes: 25
+    timeout-minutes: 35
     permissions:
       contents: read # actions/checkout
     env:
