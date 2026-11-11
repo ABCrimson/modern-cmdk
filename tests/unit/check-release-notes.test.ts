@@ -71,6 +71,13 @@ describe('releaseNoteProblems', () => {
   it('numbers lines from 1 across CRLF and LF', () => {
     expect(kinds('a\r\nb\r\nSEC-1')).toEqual(['3:ledger id:SEC-1']);
   });
+
+  it('lets a public advisory id pass and still finds a ledger id on the same line', () => {
+    expect(
+      kinds('Fixes CVE-2026-12345 (GHSA-ab12-cd34-ef56), reported once as CVE-2026-1234567.'),
+    ).toEqual([]);
+    expect(kinds('CVE-2026-12345 closes SEC-13')).toEqual(['1:ledger id:SEC-13']);
+  });
 });
 
 describe('check-release-notes runs', () => {

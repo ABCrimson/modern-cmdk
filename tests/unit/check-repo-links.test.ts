@@ -493,6 +493,46 @@ describe('check-repo-links: the pins of the published READMEs', () => {
     expect(result.stderr).toContain('ref main is not a full 40-hex commit');
   });
 
+  it('A1-3: fails a lowercase-owner main hero and a relative record link, which the pin rule would otherwise miss', async () => {
+    await readme(
+      '<img src="https://raw.githubusercontent.com/abcrimson/modern-cmdk/main/apps/docs/public/og-image.svg" alt="x">', // 1
+      '[record](../../benchmarks/size-history/1.7.0.json)', // 2
+      '[ref]: ../../benchmarks/baseline.json', // 3
+      '<a href="docs/x.md">x</a>', // 4
+      `[ok](${BASE}/blob/${asset}/benchmarks/size-history/1.7.0.json) [top](#top)`, // 5
+    );
+    const result = await scan(repo, '--main-ref', 'main');
+    expect(result.code).toBe(1);
+    const lines = result.stderr.trim().split('\n');
+    expect(lines).toHaveLength(4);
+    expect(lines[0]).toContain(`${PACKAGE_README}:1: `);
+    expect(lines[0]).toContain('another spelling of the URL escapes the pin check');
+    expect(lines[1]).toContain(`${PACKAGE_README}:2: ../../benchmarks/size-history/1.7.0.json — `);
+    expect(lines[1]).toContain('a relative link, which npm resolves to the HEAD of main');
+    expect(lines[2]).toContain(`${PACKAGE_README}:3: ../../benchmarks/baseline.json — `);
+    expect(lines[3]).toContain(`${PACKAGE_README}:4: docs/x.md — `);
+  });
+
+  it('reads the relative links of the published READMEs only and not their fences or comments, but a spelling in a fence', async () => {
+    await readme(
+      '```md',
+      '[a](../a.md) https://github.com/abcrimson/modern-cmdk/blob/main/LICENSE',
+      '```',
+      '<!-- [b](../b.md) -->',
+      `[ok](${BASE}/blob/main/LICENSE)`,
+    );
+    await writeFile(join(repo, 'README.md'), '[a](docs/a.md)\n');
+    const result = await scan(repo, '--main-ref', 'main');
+    await rm(join(repo, 'README.md'));
+    expect(result.stderr).toContain(
+      `${PACKAGE_README}:2: https://github.com/abcrimson/modern-cmdk — `,
+    );
+    expect(result.stderr.trim().split('\n')).toHaveLength(1);
+    expect(result.stderr).not.toContain('../a.md');
+    expect(result.stderr).not.toContain('../b.md');
+    expect(result.stderr).not.toContain('docs/a.md');
+  });
+
   it('fails a HEAD, tag, branch or abbreviated-hash reference, in the raw and the blob form', async () => {
     const short = asset.slice(0, 7);
     await readme(

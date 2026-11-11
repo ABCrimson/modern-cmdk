@@ -7,23 +7,45 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  blankComments,
   COMMIT_SHA,
   extractImageRefs,
   FENCE_COLUMNS,
   fenceWidthViolations,
   INLINE_CODE_COLUMNS,
+  indentedCodeViolations,
   inlineCodeViolations,
   isMainPinnedPath,
   isPublishedReadme,
+  linkTargets,
   PUBLISHED_READMES,
   parseRepoFileUrl,
   pinProblem,
+  preWidthViolations,
   readmeTextViolations,
+  relativeLinkProblem,
+  relativeLinkViolations,
+  repoUrlSpellingViolations,
   scanMarkdown,
 } from '../../scripts/readme-rules.ts';
 
 const SHA = '380e25e826341cebc46c8a844a524542fd1f8337';
 const RAW = 'https://raw.githubusercontent.com/ABCrimson/modern-cmdk';
+const REPO = 'https://github.com/ABCrimson/modern-cmdk';
+
+describe('the column limits', () => {
+  it('are 78 for a code line and 28 for an unbreakable inline code span, pinned by value', () => {
+    expect(FENCE_COLUMNS).toBe(78);
+    expect(INLINE_CODE_COLUMNS).toBe(28);
+  });
+
+  it('measure the limits by literal widths, not by the constants', () => {
+    expect(fenceWidthViolations(['```text', 'a'.repeat(78), '```'].join('\n'))).toEqual([]);
+    expect(fenceWidthViolations(['```text', 'a'.repeat(79), '```'].join('\n'))).toHaveLength(1);
+    expect(inlineCodeViolations(`\`${'b'.repeat(28)}\``)).toEqual([]);
+    expect(inlineCodeViolations(`\`${'c'.repeat(29)}\``)).toHaveLength(1);
+  });
+});
 
 describe('PUBLISHED_READMES', () => {
   it('binds exactly the three published packages, not the root README or the private packages', () => {
@@ -274,5 +296,223 @@ describe('pinProblem', () => {
       expect(pinProblem(ref), ref).toContain('is not a full 40-hex commit');
     }
     expect(pinProblem('')).toBe('the URL names no commit');
+  });
+});
+
+describe('extractImageRefs: reference-style images', () => {
+  it('resolves the full, the collapsed and the shortcut form against their definitions', () => {
+    const md = [
+      '![Full alt][a]', // 1
+      '![collapsed][]', // 2
+      '![shortcut]', // 3
+      '', // 4
+      `[a]: ${RAW}/${SHA}/a.png`, // 5
+      `[Collapsed]: <${RAW}/${SHA}/b.png> "title"`, // 6
+      `[shortcut]: ${RAW}/${SHA}/c.png`, // 7
+    ].join('\n');
+    expect(extractImageRefs(md).map((r) => [r.line, r.alt, r.url])).toEqual([
+      [1, 'Full alt', `${RAW}/${SHA}/a.png`],
+      [2, 'collapsed', `${RAW}/${SHA}/b.png`],
+      [3, 'shortcut', `${RAW}/${SHA}/c.png`],
+    ]);
+  });
+
+  it('keeps an empty alt and a relative target visible: ![][hero] with a relative definition', () => {
+    const md = '![][hero]\n\n[hero]: ../../apps/docs/public/og-image.svg\n';
+    expect(extractImageRefs(md)).toEqual([
+      { tag: 'markdown', line: 1, url: '../../apps/docs/public/og-image.svg', alt: '' },
+    ]);
+  });
+
+  it('gives an image whose label has no definition an empty url, which means no src', () => {
+    const md = '![alt][missing]\n![alt][]\n![nothing]\n[other]: x.png\n';
+    expect(extractImageRefs(md).map((r) => [r.line, r.url])).toEqual([
+      [1, ''],
+      [2, ''],
+      [3, ''],
+    ]);
+  });
+
+  it('does not take an inline image or a footnote definition for a reference', () => {
+    const md = [`![inline](${RAW}/${SHA}/a.png)`, 'Text[^1].', '', '[^1]: a footnote x.png'].join(
+      '\n',
+    );
+    expect(extractImageRefs(md)).toHaveLength(1);
+  });
+
+  it('matches a label without regard to case and inner spacing', () => {
+    const md = '![x][My  Label]\n[my label]: y.png\n';
+    expect(extractImageRefs(md).map((r) => r.url)).toEqual(['y.png']);
+  });
+});
+
+describe('extractImageRefs: HTML comments', () => {
+  it('does not report an <img> or a markdown image inside a comment, and keeps the line numbers', () => {
+    const md = [
+      '<!--', // 1
+      '<img src="x.png">', // 2
+      '![a](y.png)', // 3
+      '-->', // 4
+      '<img src="z.png" alt="z">', // 5
+    ].join('\n');
+    expect(extractImageRefs(md).map((r) => [r.url, r.line])).toEqual([['z.png', 5]]);
+  });
+
+  it('blankComments keeps every newline', () => {
+    const md = 'a<!-- one\ntwo -->b\nc';
+    const blanked = blankComments(md);
+    expect(blanked.split('\n')).toHaveLength(3);
+    expect(blanked).not.toContain('one');
+  });
+});
+
+describe('repoUrlSpellingViolations', () => {
+  it('passes the two canonical spellings, with a .git, a path, a fragment and a sibling repository', () => {
+    const md = [
+      `${RAW}/${SHA}/a.png`,
+      `[a](${REPO}/blob/main/LICENSE) <${REPO}.git> ${REPO}#readme.`,
+      'https://github.com/ABCrimson/modern-cmdk-codemod and https://github.com/ABCrimson/other',
+    ].join('\n');
+    expect(repoUrlSpellingViolations(md)).toEqual([]);
+  });
+
+  it('A1-3: fails a lowercase owner, another letter case, http, www. and .GIT, naming the line', () => {
+    const spellings = [
+      'https://raw.githubusercontent.com/abcrimson/modern-cmdk/main/apps/docs/public/og-image.svg',
+      'https://raw.githubusercontent.com/ABCrimson/Modern-Cmdk/main/x.png',
+      'https://github.com/abcrimson/modern-cmdk/blob/main/LICENSE',
+      'https://GitHub.com/ABCrimson/modern-cmdk',
+      'http://github.com/ABCrimson/modern-cmdk',
+      'https://www.github.com/ABCrimson/modern-cmdk',
+      'https://github.com/ABCrimson/modern-cmdk.GIT',
+    ];
+    const found = repoUrlSpellingViolations(
+      spellings.map((s, i) => `${'x\n'.repeat(i)}<${s}>`).join('\n'),
+    );
+    expect(found.map((v) => v.url)).toEqual([
+      'https://raw.githubusercontent.com/abcrimson/modern-cmdk',
+      'https://raw.githubusercontent.com/ABCrimson/Modern-Cmdk',
+      'https://github.com/abcrimson/modern-cmdk',
+      'https://GitHub.com/ABCrimson/modern-cmdk',
+      'http://github.com/ABCrimson/modern-cmdk',
+      'https://www.github.com/ABCrimson/modern-cmdk',
+      'https://github.com/ABCrimson/modern-cmdk.GIT',
+    ]);
+    expect(found.map((v) => v.line)).toEqual([1, 3, 6, 10, 15, 21, 28]);
+    expect(found[0]?.message).toContain('another spelling of the URL escapes the pin check');
+    expect(found[0]?.message).toContain(`write the repository as ${RAW} or ${REPO}`);
+  });
+
+  it('does not read a URL inside an HTML comment', () => {
+    expect(
+      repoUrlSpellingViolations('<!-- https://github.com/abcrimson/modern-cmdk/blob/main/x -->'),
+    ).toEqual([]);
+  });
+});
+
+describe('linkTargets and relativeLinkProblem', () => {
+  it('collects inline links, definitions, href, src and srcset, and nothing from fences, code spans or comments', () => {
+    const md = [
+      '[a](../a.md) and ![b](./b.png "t")', // 1
+      '[ref]: ../ref.md', // 2
+      '<a href="../d.md">d</a> <img src="e.png" alt="e"> <source srcset="f.png 1x, g.png 2x">', // 3
+      '`arr[0](nope)` and <!-- [h](../h.md) -->', // 4
+      '```md', // 5
+      '[i](../i.md)', // 6
+      '```', // 7
+    ].join('\n');
+    expect(linkTargets(md).map((t) => [t.line, t.target])).toEqual([
+      [1, '../a.md'],
+      [1, './b.png'],
+      [2, '../ref.md'],
+      [3, '../d.md'],
+      [3, 'e.png'],
+      [3, 'f.png'],
+      [3, 'g.png'],
+    ]);
+  });
+
+  it('A1-3: fails a relative link to a record, in the inline, definition and href forms', () => {
+    const md = [
+      'See [the record](../../benchmarks/size-history/1.7.0.json).',
+      '[baseline]: ../../benchmarks/baseline.json',
+      '<a href="docs/guide.md">guide</a>',
+      '[root](/docs/x.md) and [bare](x.md)',
+    ].join('\n');
+    const found = relativeLinkViolations(md);
+    expect(found.map((v) => v.line)).toEqual([1, 2, 3, 4, 4]);
+    expect(found[0]?.message).toContain(
+      '../../benchmarks/size-history/1.7.0.json is a relative link, which npm resolves to the HEAD of main',
+    );
+    expect(found[0]?.message).toContain(`name ${REPO}/blob/<40-hex commit>/<path>`);
+  });
+
+  it('passes absolute URLs, mailto:, #fragments, protocol-relative URLs, empty targets and footnotes', () => {
+    const md = [
+      `[a](${REPO}/blob/${SHA}/x.json) [b](mailto:a@example.test) [c](#usage) [d](//example.test/x)`,
+      '[e]() Text[^1].',
+      '',
+      '[^1]: Footnote text, not a link target.',
+      '[f]: https://example.test/f',
+    ].join('\n');
+    expect(relativeLinkViolations(md)).toEqual([]);
+    expect(relativeLinkProblem('npm:foo')).toBeUndefined();
+    expect(relativeLinkProblem('../x')).toContain('a relative link');
+  });
+});
+
+describe('the code-line rules beyond fences', () => {
+  it('counts a tab as the columns to the next multiple of 8', () => {
+    const fits = `\t${'a'.repeat(70)}`; // 8 + 70 = 78
+    const wide = `\t${'a'.repeat(71)}`; // 79
+    expect(fenceWidthViolations(['```text', fits, '```'].join('\n'))).toEqual([]);
+    expect(fenceWidthViolations(['```text', wide, '```'].join('\n'))).toHaveLength(1);
+    expect(
+      fenceWidthViolations(['```text', `ab\t${'a'.repeat(71)}`, '```'].join('\n')),
+    ).toHaveLength(1);
+  });
+
+  it('fails a four-space indented code block line over 78 columns and passes 78', () => {
+    const md = ['Text', '', `    ${'a'.repeat(78)}`, `    ${'b'.repeat(79)}`, '', '\tshort'].join(
+      '\n',
+    );
+    expect(indentedCodeViolations(md).map((v) => v.line)).toEqual([4]);
+    expect(indentedCodeViolations(md)[0]?.message).toContain('79 characters');
+  });
+
+  it('leaves list continuations, lazy lines and fenced code alone', () => {
+    const md = [
+      '- item',
+      '',
+      `    ${'a'.repeat(100)}`, // continuation of the item: a list paragraph, not code
+      '',
+      'Paragraph',
+      `    ${'b'.repeat(100)}`, // lazy continuation of a paragraph
+      '',
+      '```text',
+      `    ${'c'.repeat(100)}`,
+      '```',
+    ].join('\n');
+    expect(indentedCodeViolations(md)).toEqual([]);
+  });
+
+  it('fails a <pre> line over 78 columns, not counting the <code> wrapper, and decodes entities', () => {
+    const md = [
+      'Text',
+      `<pre><code class="language-ts">${'a'.repeat(78)}`, // 2: 78, fits
+      `${'b'.repeat(79)}`, // 3
+      `${'&lt;'.repeat(20)}</code></pre>`, // 4: 20 columns after decoding
+    ].join('\n');
+    const found = preWidthViolations(md);
+    expect(found.map((v) => v.line)).toEqual([3]);
+    expect(found[0]?.message).toContain('79 characters');
+  });
+
+  it('applies all of them, with the inline rule, to a published README only', () => {
+    const md = ['Text', '', `    ${'a'.repeat(90)}`, `<pre>${'b'.repeat(90)}</pre>`].join('\n');
+    expect(readmeTextViolations(md, 'packages/modern-cmdk/README.md').map((v) => v.line)).toEqual([
+      3, 4,
+    ]);
+    expect(readmeTextViolations(md, 'README.md')).toEqual([]);
   });
 });
