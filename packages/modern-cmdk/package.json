@@ -1,6 +1,6 @@
 {
   "name": "modern-cmdk",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "type": "module",
   "description": "Headless command palette engine: a framework-agnostic TypeScript core with fuzzy search, frecency ranking and keyboard shortcuts, plus a React 19 adapter.",
   "license": "MIT",
