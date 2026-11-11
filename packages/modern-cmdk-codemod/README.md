@@ -108,7 +108,7 @@ A report is printed as `<path>: <message>` on stderr, counted in the summary, an
 | Option | Effect |
 |---|---|
 | `--dry-run` | Write nothing; print a unified diff of every file that would change |
-| `--force` | Write into a tree with uncommitted changes, or outside git |
+| `--force` | Write into a dirty tree, or outside git |
 | `--strict` | The default: exit `2` on a usage error, `1` when a file errors or nothing matches |
 | `--lenient` | Lenient exit codes and no git check; not with `--strict` |
 | `--concurrency=N` | Files processed at once (default: the smaller of 8 and the cores) |
