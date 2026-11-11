@@ -32,8 +32,11 @@ import { CommandShortcut } from './shortcut.js';
 export interface CommandRootProps
   extends CommandMachineOptions,
     Omit<ComponentPropsWithRef<'div'>, keyof CommandMachineOptions | 'children'> {
+  /** The palette parts to render inside the root (`Command.Input`, `Command.List` and the rest) */
   readonly children?: ReactNode | undefined;
+  /** Class name of the root element (`data-command-root`) */
   readonly className?: string | undefined;
+  /** Accessible name of the root, set as its `aria-label` (default: 'Command palette') */
   readonly label?: string | undefined;
 }
 
@@ -129,10 +132,13 @@ function CommandRoot({
   );
 }
 
+// The `Object.assign` call below carries a pure annotation: its only effect is on `CommandRoot`, which is reachable only
+// through `Command`, so a bundle that imports one part (such as `CommandSeparator`) drops the root and every other
+// component the statics reference.
 /**
- * Compound component namespace. The `Object.assign` call below carries a pure annotation: its only effect is on
- * `CommandRoot`, which is reachable only through `Command`, so a bundle that imports one part (such as
- * `CommandSeparator`) drops the root and every other component the statics reference.
+ * The command palette root. It provides the state machine to its parts, which are its properties: `Command.Input`,
+ * `.List`, `.Item`, `.Group`, `.Empty`, `.Loading`, `.Separator`, `.Dialog`, `.Highlight`, `.Shortcut`, `.Badge`,
+ * `.Page`, `.AsyncItems` and `.Activity`. Its props are the machine options plus any attribute of a `div`.
  */
 export const Command: typeof CommandRoot & {
   readonly Input: typeof CommandInput;

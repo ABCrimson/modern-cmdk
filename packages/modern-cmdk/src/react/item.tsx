@@ -14,12 +14,20 @@ import { use, useCallback, useLayoutEffect, useRef } from 'react';
 import { CommandGroupContext, useStableContext, useStateContext } from './context.js';
 import { useRegisterItem } from './hooks/use-register.js';
 
+/** Props of {@link CommandItem}: the registration data of one palette entry, plus any attribute of a `div`. */
 export interface CommandItemProps extends Omit<ComponentPropsWithRef<'div'>, 'onSelect' | 'value'> {
+  /** The text the search matches against (also the `data-value` attribute). Render the label as `children`. */
   readonly value: string;
+  /** Extra search terms: matched, never displayed. */
   readonly keywords?: readonly string[] | undefined;
   /** Called when the item is selected by click, Enter or shortcut (no argument in 1.x; the value arrives in 2.0) */
   readonly onSelect?: (() => void) | undefined;
+  /** Skipped by navigation and selection, with its shortcut unbound; rendered with `aria-disabled` (default: `false`) */
   readonly disabled?: boolean | undefined;
+  /**
+   * A keyboard shortcut such as `Mod+K`, bound while the item is mounted and set as `aria-keyshortcuts`. It runs
+   * `onSelect`; the `shortcutAction` prop of `Command` decides whether it selects the item. `Command.Shortcut` shows it.
+   */
   readonly shortcut?: string | undefined;
   /** The registration id and the DOM id; defaults to a `useId` id. Wins over the deprecated `forceId`. */
   readonly id?: string | undefined;

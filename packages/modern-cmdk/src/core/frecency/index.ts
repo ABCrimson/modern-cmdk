@@ -239,7 +239,7 @@ export class FrecencyEngine implements Disposable, AsyncDisposable {
 
   #warn = (error: unknown): void => {
     // biome-ignore lint/suspicious/noConsole: Save-time diagnostic for production debugging
-    console.warn('[modern-cmdk] save failed:', error);
+    console.warn('[modern-cmdk] frecency save failed:', error);
   };
 
   /** Get the raw frecency data */

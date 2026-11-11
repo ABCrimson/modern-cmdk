@@ -6,6 +6,7 @@
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { useStateContext } from './context.js';
 
+/** Props of {@link CommandLoading}: any attribute of a `div`, plus a `loading` override. */
 export interface CommandLoadingProps extends ComponentPropsWithRef<'div'> {
   /** Override the loading state detection */
   readonly loading?: boolean | undefined;

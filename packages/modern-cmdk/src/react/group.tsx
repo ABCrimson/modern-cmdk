@@ -9,6 +9,7 @@ import type { CommandGroupContextValue } from './context.js';
 import { CommandGroupContext, useStableContext, useStateContext } from './context.js';
 import { useRegisterGroup } from './hooks/use-register.js';
 
+/** Props of {@link CommandGroup}: a heading, a priority and any attribute of a `div`. */
 export interface CommandGroupProps extends ComponentPropsWithRef<'div'> {
   /** Heading text displayed above the group */
   readonly heading?: string | undefined;

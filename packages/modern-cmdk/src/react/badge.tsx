@@ -5,6 +5,7 @@
 
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 
+/** Props of {@link CommandBadge}: any attribute of a `span`. */
 export interface CommandBadgeProps extends ComponentPropsWithRef<'span'> {}
 
 /** Inline badge for categorization or status indicators on command items. */

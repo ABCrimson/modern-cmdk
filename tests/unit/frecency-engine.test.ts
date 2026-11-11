@@ -110,7 +110,7 @@ describe('FrecencyEngine debounced save', () => {
 
     expect(storage.save).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0]?.[0]).toEqual(expect.stringContaining('[modern-cmdk]'));
+    expect(warn.mock.calls[0]?.[0]).toBe('[modern-cmdk] frecency save failed:');
     expect(warn.mock.calls[0]?.[1]).toBe(failure);
   });
 });

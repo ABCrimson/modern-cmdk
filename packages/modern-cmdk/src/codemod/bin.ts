@@ -20,7 +20,7 @@ export type Run = (
 
 /** The one line this bin writes to stderr before it runs. */
 export const DEPRECATION_WARNING =
-  'warning: the modern-cmdk bin is deprecated and leaves in modern-cmdk 2.0; use npx modern-cmdk-codemod (strict by default). This bin runs the bundled codemod with the 1.x lenient exit codes unless --strict is given.';
+  'warning: the modern-cmdk bin is deprecated; use npx modern-cmdk-codemod (strict by default). This bin runs the bundled codemod with the 1.x lenient exit codes unless --strict is given.';
 
 /** The argv handed to the bundled CLI: --lenient is put first unless the caller gave --strict (the two flags exclude each other). */
 export function shimArgv(argv: readonly string[]): readonly string[] {

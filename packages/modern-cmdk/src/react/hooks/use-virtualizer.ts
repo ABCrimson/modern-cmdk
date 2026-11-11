@@ -5,8 +5,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+/** Options of {@link useVirtualizer}: the row count, the row height and the scroll container. */
 export interface VirtualizerOptions {
+  /** The number of rows */
   readonly count: number;
+  /** The height of a row in pixels, used until `measureElement` has measured the row */
   readonly estimateSize: number;
   /**
    * Rows rendered beyond the viewport (default 8). Before it the count is rows: the window starts
@@ -17,19 +20,29 @@ export interface VirtualizerOptions {
    * a row that starts exactly at the bottom edge plus the allowance.
    */
   readonly overscan?: number | undefined;
+  /** The scrolling element whose offset and height the window follows; `null` until it mounts */
   readonly scrollElement: HTMLElement | null;
+  /** With `false` the virtualizer is off: no virtual items, a total size of 0, no scrolling or measuring (default: `true`) */
   readonly enabled?: boolean | undefined;
 }
 
+/** One row of the virtual window. */
 export interface VirtualItem {
+  /** The row's index among all rows */
   readonly index: number;
+  /** The row's offset from the top of the list, in pixels */
   readonly start: number;
+  /** The row's height in pixels: its measured height, else the estimate */
   readonly size: number;
+  /** A stable React key for the row */
   readonly key: number;
 }
 
+/** What {@link useVirtualizer} returns: the rows in the window and the helpers to place and measure them. */
 export interface VirtualizerReturn {
+  /** The rows to render: those in or near the viewport */
   readonly virtualItems: readonly VirtualItem[];
+  /** The height of all rows together, in pixels */
   readonly totalSize: number;
   /**
    * Scrolls the element to a row. `align` is `'start'` (the default: `scrollTop` becomes the row's offset among the
@@ -38,6 +51,7 @@ export interface VirtualizerReturn {
    * above meets the top edge, and a row below or partly below meets the bottom edge).
    */
   readonly scrollToIndex: (index: number, align?: 'start' | 'nearest' | undefined) => void;
+  /** A ref callback that measures a rendered row from its `data-index` attribute and its height */
   readonly measureElement: (element: HTMLElement | null) => void;
 }
 

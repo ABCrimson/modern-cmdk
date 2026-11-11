@@ -12,6 +12,7 @@ import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { useStableContext, useStateContext } from './context.js';
 
+/** Props of {@link CommandInput}: any attribute of an `input` except `onChange`, `type` and `role`, plus a controlled `value`. */
 export interface CommandInputProps
   extends Omit<ComponentPropsWithRef<'input'>, 'onChange' | 'type' | 'role'> {
   /**

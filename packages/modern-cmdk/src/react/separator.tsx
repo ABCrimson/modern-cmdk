@@ -7,6 +7,7 @@ import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { use } from 'react';
 import { CommandStateContext } from './context.js';
 
+/** Props of {@link CommandSeparator}: any attribute of a `div`, plus `alwaysRender`. */
 export interface CommandSeparatorProps extends ComponentPropsWithRef<'div'> {
   /**
    * Render the separator while a search is active (cmdk's `alwaysRender`). With `false` it renders nothing

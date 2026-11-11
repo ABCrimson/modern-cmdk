@@ -55,6 +55,7 @@ export interface CommandTelemetryHooks {
     | undefined;
 }
 
+/** Telemetry hooks wrapped as four callbacks that report the palette session: open, close, search and select. */
 export interface TelemetryMiddleware {
   /** Starts the session clock and calls `onPaletteOpen`. */
   readonly onOpen: () => void;

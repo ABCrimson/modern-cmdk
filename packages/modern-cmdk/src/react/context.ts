@@ -70,10 +70,12 @@ export interface CommandStateContextValue {
   readonly virtualPositionMap: ReadonlyMap<ItemId, number> | null;
 }
 
+/** Context of the values that stay the same across searches and navigation: the machine, the ids and the label. */
 export const CommandStableContext: Context<CommandStableContextValue | null> =
   createContext<CommandStableContextValue | null>(null);
 CommandStableContext.displayName = 'CommandStableContext';
 
+/** Context of the values that change with the search and the active item: the state snapshot and the derived sets. */
 export const CommandStateContext: Context<CommandStateContextValue | null> =
   createContext<CommandStateContextValue | null>(null);
 CommandStateContext.displayName = 'CommandStateContext';
@@ -81,14 +83,14 @@ CommandStateContext.displayName = 'CommandStateContext';
 /** Consume stable context with a descriptive error — replaces 3-line boilerplate in every component */
 export function useStableContext(component: string): CommandStableContextValue {
   const ctx = use(CommandStableContext);
-  if (!ctx) throw new Error(`${component} must be used within a <Command> component`);
+  if (!ctx) throw new Error(`${component} must be used within <Command> or <Command.Dialog>`);
   return ctx;
 }
 
 /** Consume state context with a descriptive error — replaces 3-line boilerplate in every component */
 export function useStateContext(component: string): CommandStateContextValue {
   const ctx = use(CommandStateContext);
-  if (!ctx) throw new Error(`${component} must be used within a <Command> component`);
+  if (!ctx) throw new Error(`${component} must be used within <Command> or <Command.Dialog>`);
   return ctx;
 }
 

@@ -14,11 +14,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommandSetup } from './hooks/use-command-setup.js';
 
+/** Props of {@link CommandDialog}: the machine options plus the dialog's `open` state, class names and accessible text. */
 export interface CommandDialogProps extends CommandMachineOptions {
+  /** The palette parts to render inside the dialog (`Command.Input`, `Command.List` and the rest) */
   readonly children?: ReactNode | undefined;
+  /** Class name of the dialog content element (`data-command-dialog`) */
   readonly className?: string | undefined;
+  /** Class name of the overlay element (`data-command-overlay`) */
   readonly overlayClassName?: string | undefined;
+  /** Class name of the element that wraps the children (`data-command-dialog-content`) */
   readonly contentClassName?: string | undefined;
+  /** Accessible name of the dialog and of its search region (default: 'Command palette') */
   readonly label?: string | undefined;
   /**
    * Controlled open state. When defined, the dialog is open exactly while it is `true`: a request to open or close
