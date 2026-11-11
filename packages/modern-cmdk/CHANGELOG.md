@@ -1,5 +1,16 @@
 # modern-cmdk
 
+## 1.7.2
+
+### Patch Changes
+
+- [#78](https://github.com/ABCrimson/modern-cmdk/pull/78) [`7df21b0`](https://github.com/ABCrimson/modern-cmdk/commit/7df21b08a9d181223b204d9bfaf91ee07fedc900) Thanks [@ABCrimson](https://github.com/ABCrimson)! - The Options in the README on the npm page are a list instead of a table, so they read on a phone: the table's first column took most of a narrow screen and pushed "What it does" off the edge. The size and speed table fits a 360 px screen too. Nothing about the package changes except that page.
+  
+  **Changed**
+  
+  - The Options of `createCommandMachine`, which are also props of `<Command>` and `<Command.Dialog>`, are one list item per option, with the same text as before. The `telemetry` item now says the hooks are called at the end of each batch, in place of "once per batch", which fit `onPaletteOpen` and `onSearchComplete` but not `onItemSelected`: it is called for each select in the batch.
+  - In the size and speed table the search row reads "median 3.8 ms" in place of "3.8 ms median", with the same footnote.
+
 ## 1.7.1
 
 ### Patch Changes
