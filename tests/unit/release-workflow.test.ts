@@ -320,6 +320,16 @@ describe('release.yml release notes, Latest and the README image probe', () => {
     // A failed compose is remembered, the others still run, and the step exits non-zero at the end.
     expect(compose).toMatch(/\n {12}else\n {14}failed=1\n {12}fi\n/);
     expect(compose).toMatch(/\n {10}exit "\$failed"$/);
+    // The tag list is read before the loop, so a failing jq fails the step, and an empty list is an error.
+    expect(compose).toContain(
+      `          tags=$(jq -r '.[] | "\\(.name)@\\(.version)"' <<< "$PUBLISHED")\n          [ -n "$tags" ] || { echo "::error::published-packages lists no package: $PUBLISHED"; exit 1; }\n`,
+    );
+    expect(compose).toContain('\n          done <<< "$tags"\n');
+    expect(compose).not.toContain('< <(');
+    // A failed edit is remembered and the loop goes on to the next tag.
+    expect(compose).toContain(
+      '              if ! gh release edit "$tag" --notes-file "$RUNNER_TEMP/release-notes.md"; then\n                failed=1\n              else\n',
+    );
     // The release tags are listed after publish, before they are used.
     const tags = step(notes, 'List the release tags');
     expect(tags).toContain('gh release list --limit 1000 --json tagName,isDraft');
@@ -349,6 +359,8 @@ describe('release.yml release notes, Latest and the README image probe', () => {
       /run: node scripts\/compose-release-notes\.ts probe-images$/m,
     );
     expect(probe).not.toMatch(/continue-on-error|\|\| true/);
+    // 26 minutes of registry budget, the image retries and the setup fit in the job's timeout.
+    expect(probe).toMatch(/^ {4}timeout-minutes: 35$/m);
   });
 
   it('every action in the new jobs is pinned by a full commit SHA with its version comment', () => {
