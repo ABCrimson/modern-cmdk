@@ -17,12 +17,9 @@ body:
       options:
         - "modern-cmdk (core)"
         - "modern-cmdk/react"
-        - "modern-cmdk (WASM search)"
-        - "modern-cmdk (deprecated codemod bin)"
-        - "modern-cmdk-codemod"
-        - "New package"
+        - "modern-cmdk-codemod (also the deprecated modern-cmdk bin)"
+        - "create-modern-cmdk"
         - "Documentation"
-        - "Playground"
     validations:
       required: true
 
