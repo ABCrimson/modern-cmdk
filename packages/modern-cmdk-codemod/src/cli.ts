@@ -110,8 +110,8 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
           'Use: npx modern-cmdk-codemod <transform> <glob|dir>',
         ]
       : [
-          'modern-cmdk-codemod runs with --strict unless --lenient is given. A strict run without --dry-run',
-          'refuses to write when a matched file has uncommitted changes or lies outside a git work tree, unless --force is given.',
+          'modern-cmdk-codemod runs with --strict unless --lenient is given. A strict run without --dry-run or --force',
+          'refuses to write when a matched file has uncommitted changes or lies outside this git work tree, or git is missing.',
         ];
   return [
     `${bold('Usage:')} ${program} <transform> <glob|dir> [options]`,
