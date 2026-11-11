@@ -212,22 +212,20 @@ ESM only. The [Core API](https://abcrimson.github.io/modern-cmdk/api/command.htm
 <details>
 <summary><strong>Options</strong> of <code>createCommandMachine</code>, also props of <code>&lt;Command&gt;</code> and <code>&lt;Command.Dialog&gt;</code></summary>
 
-| Option | What it does |
-|---|---|
-| `items`, `groups` | Items and groups registered at creation; in React, `<Command.Item>` and `<Command.Group>` register themselves |
-| `filter` | Your scorer, `(item, query) => number \| false`, or `false` to turn filtering off |
-| `searchEngine` | A `SearchEngine` that replaces the built-in scorer; one you pass is yours to dispose |
-| `frecency` | `{ enabled, storage, namespace, decayConfig }`; history in memory by default, or `new IdbFrecencyStorage()` |
-| `shortcutAction` | `'direct'` (default): a shortcut calls the item's `onSelect`. `'select'`: it selects the item, so frecency and the root's `onSelect` run too |
-| `disabledItems` | `'show'` (default) lists disabled items without making them selectable; `'hide'` drops them |
-| `loop` | Arrow keys wrap from the last item to the first (default `true`) |
-| `activeId`, `onActiveChange` | Control the active item |
-| `open`, `onOpenChange` | The open state; `Command.Dialog` treats `open` as controlled |
-| `onSelect`, `onSearchChange` | Called on every select of an enabled item, and on every query |
-| `label` | The accessible name (default `'Command palette'`) |
-| `telemetry` | `onPaletteOpen`, `onPaletteClose`, `onSearchComplete`, `onItemSelected`, called once per batch |
-| `search` | Deprecated name of `searchEngine` |
-| `virtualizeThreshold` | Accepted but not read: the list virtualizes above 100 matches and stops at 50 or fewer |
+- `items`, `groups`: items and groups registered at creation; in React, `<Command.Item>` and `<Command.Group>` register themselves.
+- `filter`: your scorer, `(item, query) => number | false`, or `false` to turn filtering off.
+- `searchEngine`: a `SearchEngine` that replaces the built-in scorer; one you pass is yours to dispose.
+- `frecency`: `{ enabled, storage, namespace, decayConfig }`; history in memory by default, or `new IdbFrecencyStorage()`.
+- `shortcutAction`: `'direct'` (default): a shortcut calls the item's `onSelect`. `'select'`: it selects the item, so frecency and the root's `onSelect` run too.
+- `disabledItems`: `'show'` (default) lists disabled items without making them selectable; `'hide'` drops them.
+- `loop`: arrow keys wrap from the last item to the first (default `true`).
+- `activeId`, `onActiveChange`: control the active item.
+- `open`, `onOpenChange`: the open state; `Command.Dialog` treats `open` as controlled.
+- `onSelect`, `onSearchChange`: called on every select of an enabled item, and on every query.
+- `label`: the accessible name (default `'Command palette'`).
+- `telemetry`: `onPaletteOpen`, `onPaletteClose`, `onSearchComplete`, `onItemSelected`, called at the end of each batch.
+- `search`: deprecated name of `searchEngine`.
+- `virtualizeThreshold`: accepted but not read: the list virtualizes above 100 matches and stops at 50 or fewer.
 
 In React, `shortcutAction`, `frecency`, `searchEngine`, whether `filter` is a function and, on `<Command>`, `open` are read once, at mount.
 
