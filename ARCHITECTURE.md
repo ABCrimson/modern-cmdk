@@ -49,7 +49,6 @@ flowchart TB
 
     React["modern-cmdk/react<br/>React 19 · Compound Components"]
     Codemod["modern-cmdk-codemod<br/>cmdk → modern-cmdk migration CLI<br/>bin only · not imported by the runtime"]
-    Future["(future)<br/>Svelte / Vue / Solid adapters"]
 
     subgraph core ["modern-cmdk — Framework-Agnostic Core"]
         direction TB
@@ -71,7 +70,6 @@ flowchart TB
     WASM["modern-cmdk-search-wasm (private, unpublished)<br/>Rust / wasm-pack · Trigram index<br/>implements SearchEngine"]
 
     App --> React
-    App -.-> Future
     Codemod -.->|"rewrites the application source"| App
     React -->|"useSyncExternalStore"| core
     WASM -.->|"passed as the search option"| core
@@ -91,7 +89,7 @@ The architecture follows strict layering rules:
 
 4. **Tooling layer** (`modern-cmdk-codemod`) -- The cmdk to modern-cmdk migration CLI (bin: `modern-cmdk-codemod`; source `packages/modern-cmdk-codemod/src`). It is a separate package with `jscodeshift` as its own dependency, no `exports` and no `types`, and nothing in the runtime imports it. `modern-cmdk` keeps a deprecated `modern-cmdk` bin until 2.0 (see [Build output](#build-output-and-the-scoped-sideeffects-array)).
 
-Dependencies flow strictly downward. The core never imports from adapters or extensions.
+Dependencies flow strictly downward. The core never imports from adapters or extensions. The React adapter is the only framework adapter the package ships; the framework-agnostic core is what another framework builds on ([apps/docs/examples/vanilla.md](apps/docs/examples/vanilla.md) shows a Svelte 5 adapter built on it).
 
 ---
 
@@ -564,7 +562,7 @@ What resolves today:
 
 What is declared and inert until DT-19:
 
-The tokens are declared only in `[data-command-root]` (styles.css:45-103). The overlay and dialog elements sit outside it: `dialog.tsx` renders the Command root element inside the dialog content (dialog.tsx:144). Every `transition`, `backdrop-filter` and size declaration that reads an unset token is invalid at computed-value time, so the dialog and overlay open and close transitions (styles.css:312-374) do not run. DT-19 moves the tokens to a selector the overlay and dialog match. Until then an app sets all twelve tokens on `[data-command-overlay], [data-command-dialog]`; see `apps/docs/guide/theming.md` (Library Tokens).
+The tokens are declared only in `[data-command-root]` (styles.css:45-103). The overlay and dialog elements sit outside it: `dialog.tsx` renders the Command root element inside the dialog content (dialog.tsx:144). Every `transition`, `backdrop-filter` and size declaration that reads an unset token is invalid at computed-value time, so the dialog and overlay open and close transitions (styles.css:312-374) do not run. An app sets all twelve tokens on `[data-command-overlay], [data-command-dialog]`; see `apps/docs/guide/theming.md` (Library Tokens).
 
 ```
 declared (inert until DT-19)
@@ -657,7 +655,7 @@ Five custom properties are registered with `@property` (`--command-list-height`,
 | Search latency (10K items, TS scorer) | < 16 ms | Tripwire on the named task `search:ts-scorer-10k`: `pnpm bench:compare` against the record of the run's CPU in `benchmarks/baseline.json` warns above a 5% regression and fails (exit 2) above 15% or when the median exceeds the 16 ms `target_ms`; the CI bench job turns red only when a re-run also exits 2 (see below). |
 | Search latency (100K items, WASM engine) | none (unmeasured) | Target (not enforced); no figure has been measured |
 | Time to first render | < 50 ms | Target (not enforced). Not the metric the browser bench enforces (next row) |
-| 10K mount (Chromium, `<Command.Item>` children) | tripwire at 75 ms (D94), set from the runner's first measurement of 47.80 ms on an AMD EPYC 7763 (1.5x the 47.80 ms median, rounded up to the next 5 ms); the 1.7.0 RC measured 54.70 ms on an AMD EPYC 9V74 and the tripwire stands (D120) | **Enforced** by the `browser-bench` CI job as a regression tripwire on the median of 7 measured runs (after 1 warm-up) of the `mount` metric at N = 10 000 in Chromium, a different metric from time to first render (see below). The threshold is absolute: there is no relative comparison before the 1.9 CodSpeed gate |
+| 10K mount (Chromium, `<Command.Item>` children) | tripwire at 75 ms (D94), set from the runner's first measurement of 47.80 ms on an AMD EPYC 7763 (1.5x the 47.80 ms median, rounded up to the next 5 ms); the 1.7.0 RC measured 54.70 ms on an AMD EPYC 9V74 and the tripwire stands (D120) | **Enforced** by the `browser-bench` CI job as a regression tripwire on the median of 7 measured runs (after 1 warm-up) of the `mount` metric at N = 10 000 in Chromium, a different metric from time to first render (see below). The threshold is absolute: the job compares the median with the tripwire, not with an earlier run |
 | State update cycle (send -> re-render) | < 4 ms | Tripwire on `stateUpdate:searchChange` (the machine side only, 1K items; no re-render is timed); a median above the 4 ms `target_ms` exits 2 (the bench job turns red only when a re-run also exits 2) |
 | Filter 10K items (incremental) | < 2 ms | Target (not enforced); `benchmarks/filter-10k.bench.ts` prints timings and asserts nothing |
 | Memory per 10K items | < 5 MB | Target (not enforced) |

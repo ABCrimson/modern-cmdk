@@ -56,7 +56,7 @@ git clone https://github.com/ABCrimson/modern-cmdk.git
 cd modern-cmdk
 
 # Install dependencies (all packages + apps)
-pnpm install
+pnpm install --frozen-lockfile
 
 # Build all packages
 pnpm build
@@ -67,7 +67,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-Lefthook installs its git hooks via its own postinstall script, which pnpm is permitted to run through the `allowBuilds` entry in `pnpm-workspace.yaml`. Pre-commit and pre-push hooks are active immediately after `pnpm install`; if they are not, run `pnpm lefthook install`.
+Lefthook installs its git hooks via its own postinstall script, which pnpm is permitted to run through the `allowBuilds` entry in `pnpm-workspace.yaml`. Pre-commit and pre-push hooks are active immediately after `pnpm install --frozen-lockfile`; if they are not, run `pnpm lefthook install`.
 
 ---
 
@@ -177,7 +177,7 @@ modern-cmdk/
           trigram.rs              Trigram index
           scorer.rs               Fuzzy scorer
     |
-    create-modern-cmdk/           Project scaffolder (bin: create-modern-cmdk) -- 3 templates
+    create-modern-cmdk/           Project scaffolder (bin: create-modern-cmdk) -- 2 templates and the deprecated `react-full` alias
     vscode-modern-cmdk/           VS Code snippets extension (publisher: crimson-dev)
   |
   apps/
@@ -715,9 +715,9 @@ chore: bump Biome to 2.6.6
 
    "CI Summary" needs the other 19 jobs of `ci.yml` and fails unless every one succeeded.
 
-6. **Review** -- The `main` ruleset requires a pull request (0 approvals), the "CI Summary" check must pass, and force-pushes and deletion of `main` are blocked.
+6. **Review** -- The `main` ruleset requires a pull request (0 approvals) and three passing checks: "CI Summary" and the two CodeQL checks, "Analyze (javascript-typescript, none)" and "Analyze (actions, none)". Its code-scanning rule also stops a merge that adds a CodeQL error or a high-severity security alert. Force-pushes and deletion of `main` are blocked.
 
-7. **Merge** -- Squash merge into `main`. The commit message should follow conventional commits.
+7. **Merge** -- Squash merge into `main`; the ruleset also allows a rebase merge, and a merge commit is off. The commit message should follow conventional commits.
 
 ---
 
@@ -794,19 +794,26 @@ This prompts you to:
 
 The changeset is saved as a markdown file in `.changeset/`. Commit it with your PR.
 
+The text you write becomes the package's changelog entry, and the release page is built from the changelog, so write it for a person who is upgrading:
+
+- Start with a summary of one to three plain sentences: what someone upgrading will notice. The changelog shows the first line after the pull request link, so make that line the summary.
+- Then list what changed under the bold labels **Added**, **Changed** and **Fixed**, using only the ones that apply, with one bullet per change. A change that can break a working app, or that deprecates a name, says what to do about it.
+- Leave out internal vocabulary: no issue or ledger ids, workflow run ids and commit hashes. A link to a pull request or a documentation page is fine.
+
 ### Publishing
 
-When changesets are merged to `main`, the release workflow first waits (`ci-gate`) for the CI run on that same commit and stops unless it succeeded, so nothing is released for a commit whose CI is red or cancelled. It then:
+When changesets are merged to `main`, the release workflow first waits (`ci-gate`) for the CI run on that same commit and stops unless it succeeded, so nothing is released for a commit whose CI is red or cancelled. Then `select-mode` decides between two paths:
 
-1. Runs `pnpm version-packages` (`changeset version`, then `pnpm install --lockfile-only`) to update `package.json` versions, generate `CHANGELOG.md` entries and refresh `pnpm-lock.yaml`
-2. Creates a release PR (`chore: release packages`) with the version bumps
-3. When that PR is merged, builds the packages and runs `changeset publish` to publish to npm
+1. While changesets are pending, the `version` job runs `pnpm version-packages` (`changeset version`, then `pnpm install --lockfile-only`) to update `package.json` versions, generate `CHANGELOG.md` entries and refresh `pnpm-lock.yaml`, and opens or updates the release PR (`chore: release packages`) with the version bumps
+2. When that PR is merged, three jobs run in turn. `pack` builds and packs the packages. `attest` makes one build-provenance attestation covering every tarball, plus an SPDX SBOM and an SBOM attestation for each tarball. `publish` publishes those same tarballs with `changeset publish --from-pack-dir`, and a failed attestation stops the release before npm has the version
 
-Publishing authenticates via **npm OIDC Trusted Publishing** -- the workflow's `id-token: write` permission supplies a short-lived token, so no long-lived `NPM_TOKEN` secret exists. The publish job runs in the `npm` GitHub environment, which only the `main` branch may deploy to. Never push git tags manually; tag pushes can trigger publishing.
+Publishing authenticates via **npm OIDC Trusted Publishing** -- the `publish` job's `id-token: write` permission supplies a short-lived token, so no long-lived `NPM_TOKEN` secret exists. The job runs in the `npm` GitHub environment, which only the `main` branch may deploy to. Never push git tags manually; tag pushes can trigger publishing.
+
+The first version of a new package is the exception: npm trusted publishing can be configured only for a package that exists, so the owner publishes that version by hand and then adds the package's trusted publisher (`release.yml`, environment `npm`). Until npm knows the package, the `attest` job refuses any publish plan that holds it, and nothing is published. `modern-cmdk-codemod` 1.0.0 was published this way on 2026-11-10.
 
 ### Release tags
 
-The legacy tags `v1.1.5`, the `v0.x` tags and `vscode-modern-cmdk@1.0.0` are kept as history. Every tag from `modern-cmdk@1.2.3` and `create-modern-cmdk@1.2.2` on is created by the release workflow, never by hand.
+The legacy tags `v1.1.5`, the `v0.x` tags, `vscode-modern-cmdk@1.0.0` and the tags of the former `@crimson_dev` packages (`@crimson_dev/command@0.10.0`, `@crimson_dev/command-react@1.0.0`, `@crimson_dev/command-codemod@0.10.0`, `@crimson_dev/create-command@0.9.0` and `@crimson_dev/vscode-command@0.9.0`) are kept as history. Every tag from `modern-cmdk@1.2.3`, `create-modern-cmdk@1.2.2` and `modern-cmdk-codemod@1.0.1` on is created by the release workflow, never by hand. The exception is `modern-cmdk-codemod@1.0.0`: the owner published that version by hand and created its tag and GitHub release through the GitHub API afterwards, because `changeset publish` leaves out a version npm already has.
 
 ### Configuration
 
@@ -885,7 +892,7 @@ Run `pnpm size` locally to see the current sizes and identify what grew.
 ```bash
 # Clear build artifacts and reinstall
 rm -rf node_modules packages/*/dist
-pnpm install
+pnpm install --frozen-lockfile
 pnpm build
 pnpm typecheck
 ```
