@@ -83,13 +83,13 @@ export function App(): ReactElement {
 <details>
 <summary>Exit codes</summary>
 
-| Code | Default | `--strict` |
+| Code | Default | Strict |
 |---|---|---|
 | `0` | Success, `--help`, a missing project name, a malformed known option | Success, `--help` |
-| `1` | An unknown template, an unusable name, a `--no-overwrite` collision, a failed write | Only the collision and the failed write |
+| `1` | An unknown template, an unusable name, a collision, a file-system error | Only the collision and a file-system error |
 | `2` | Not used | Every usage error, and an unusable name |
 
-The Default column is a run without `--strict`; the `--strict` column is a run with it. Without `--strict`, an unknown option is warned about and ignored when a project name is given.
+The Default column is a run without `--strict`; the Strict column is a run with it. A collision is a run with `--no-overwrite` that finds a file it would write. Without `--strict`, an unknown option is warned about and ignored when a project name is given.
 
 </details>
 
