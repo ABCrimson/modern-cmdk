@@ -284,7 +284,7 @@ describe('codemod CLI: --concurrency', () => {
       .filter((l) => /^ {2}--lenient\b/.test(l));
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain('Lenient exit codes');
-    expect(lines[0]).toContain('clean-git-tree check');
+    expect(lines[0]).toContain('git check');
   });
 
   it('DG-134: --help says a directory argument excludes dot paths', async () => {
@@ -307,8 +307,7 @@ describe('codemod CLI: --concurrency', () => {
       const lines = c.out().split('\n');
       const lenient = lines.filter((l) => /^ {2}--lenient\b/.test(l));
       expect(lenient).toHaveLength(1);
-      expect(lenient[0]).toContain('clean-git-tree check');
-      expect(lenient[0]).toContain('clean-git-tree check (modern-cmdk-codemod only)');
+      expect(lenient[0]).toContain("skips modern-cmdk-codemod's git check");
       const dirty = lines.filter((l) => l.includes('refused dirty tree'));
       expect(dirty).toHaveLength(1);
       expect(dirty[0]).toContain('refused dirty tree (modern-cmdk-codemod only)');
