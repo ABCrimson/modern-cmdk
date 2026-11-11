@@ -25,11 +25,11 @@ This policy covers:
 
 - `modern-cmdk` (core engine)
 - `modern-cmdk/react` (React adapter)
-- `modern-cmdk-search-wasm` (WASM search; private and unreleased, not published to npm)
 - `modern-cmdk-codemod` (the migration codemod CLI, bin `modern-cmdk-codemod`)
-- the deprecated `modern-cmdk` codemod bin (`dist/codemod/bin.mjs`, until 2.0)
+- `create-modern-cmdk` (the project scaffolder, bin `create-modern-cmdk`)
+- the deprecated `modern-cmdk` codemod bin (`dist/codemod/bin.mjs`)
+- `modern-cmdk-search-wasm` (WASM search; private and unreleased, not published to npm)
 - Documentation site (https://abcrimson.github.io/modern-cmdk/)
-- Interactive playground
 
 ## Known Security Considerations
 
@@ -51,10 +51,17 @@ Releases are published by the `Release` GitHub Actions workflow, which first wai
 
 ## Verifying a release
 
-The `Release` workflow makes an SPDX SBOM and a build-provenance attestation for each packed tarball (`modern-cmdk`, `create-modern-cmdk` and `modern-cmdk-codemod`) before anything is published. To check that a tarball was built by this repository's workflow, download it and run:
+The `Release` workflow makes an SPDX SBOM and a build-provenance attestation for each packed tarball (`modern-cmdk`, `create-modern-cmdk` and `modern-cmdk-codemod`) before anything is published. To check that a published version was built by this repository's workflow, download its tarball from the registry with `npm pack`, then verify the file:
 
-```bash
-gh attestation verify <tgz> -R ABCrimson/modern-cmdk
+```sh
+npm pack <name>@<version>
+gh attestation verify <name>-<version>.tgz -R ABCrimson/modern-cmdk
 ```
 
-The command exits non-zero when no attestation of this repository matches the file's digest. The first `modern-cmdk-codemod` tarball is published by the owner by hand from the artifact the workflow attested, so verify it the same way.
+For example, `npm pack modern-cmdk@1.7.0` writes `modern-cmdk-1.7.0.tgz`. The `gh` command exits non-zero when no attestation of this repository matches the file's digest.
+
+How each version reached npm:
+
+- `modern-cmdk-codemod` 1.0.0 was published by the owner by hand on 2026-11-10, from a tarball that the workflow built and attested. It has the GitHub build-provenance and SBOM attestations, so `gh attestation verify` passes. It has no npm provenance.
+- `modern-cmdk-codemod` 1.0.1 and every later version are published by the workflow through npm trusted publishing, with npm provenance as well as the attestations. Releases of `modern-cmdk` and `create-modern-cmdk` that the workflow made are published the same way.
+- The first version of any new package is published by hand the same way, because npm configures trusted publishing per existing package.
