@@ -33,13 +33,13 @@ updates:
       - dependency-name: 'react'
       - dependency-name: 'react-dom'
       - dependency-name: 'scheduler'
-      # @playwright/test is pinned to a 1.x.0-alpha-<date> build from the next dist-tag, and a scheduled
-      # re-resolution outside Dependabot keeps it current. Dependabot cannot order Playwright's alpha builds: they carry either a date
-      # (1.66.0-alpha-2026-11-08) or a millisecond timestamp (1.66.0-alpha-1793916328000), and it proposed
-      # the older timestamp build over the newer date build in PRs #14, #50 and #67. The `versions` key of an
-      # npm ignore takes semver ranges, not globs like `*-alpha-*`, so no range can single out the alpha
-      # builds and the rule ignores the whole package family. Remove it when the catalog pins a stable
-      # Playwright release.
+      # @playwright/test is pinned to a 1.x.0-alpha-<date> prerelease build, and a scheduled re-resolution
+      # outside Dependabot keeps it current. Dependabot cannot order Playwright's alpha builds: they carry
+      # either a date (1.66.0-alpha-2026-11-08) or a millisecond timestamp (1.66.0-alpha-1793916328000), and
+      # it proposed the older timestamp build over the newer date build in PRs #14, #50 and #67. The
+      # `versions` key of an npm ignore takes semver ranges, not globs like `*-alpha-*`, so no range can
+      # single out the alpha builds and the rule ignores the whole package family. Remove it when the
+      # catalog pins a stable Playwright release.
       - dependency-name: '@playwright/*'
       - dependency-name: 'playwright'
       - dependency-name: 'playwright-core'
