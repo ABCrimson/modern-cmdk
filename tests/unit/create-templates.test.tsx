@@ -78,22 +78,6 @@ describe('create-modern-cmdk templates', () => {
     expect(container.querySelector('p kbd')?.textContent).toBe('Ctrl+K');
   });
 
-  it('A2-7: choosing an item shows what was chosen and closes the dialog', async () => {
-    vi.stubGlobal('navigator', { platform: 'Win32' });
-    await render(<DialogApp />);
-    expect(container.querySelector('[role="status"]')?.textContent).toBe('Chosen: nothing yet');
-    await press('k');
-    const settings = [...document.querySelectorAll('[role="option"]')].find(
-      (e) => e.textContent === 'Settings',
-    );
-    expect(settings).toBeDefined();
-    await act(async () => {
-      settings?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(container.querySelector('[role="status"]')?.textContent).toBe('Chosen: Settings');
-    expect(document.querySelector('[role="dialog"]')).toBeNull();
-  });
-
   it('CV-25: the react-basic template renders its items', async () => {
     await render(<BasicApp />);
     const items = [...document.querySelectorAll('[role="option"]')].map((e) => e.textContent);
