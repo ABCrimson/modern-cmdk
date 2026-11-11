@@ -7,7 +7,7 @@
 //        modern-cmdk-codemod --help | --version
 //   e.g. npx modern-cmdk-codemod import-rewrite "./src/**/*.tsx"   or   npx modern-cmdk-codemod import-rewrite ./src
 // This file is also bundled into the modern-cmdk tarball (dist/codemod/cli.mjs) behind the deprecated modern-cmdk bin shim (bin.mjs) until 2.0.
-// Available transforms: import-rewrite, data-attrs, forward-ref, should-filter
+// Available transforms, in the order to run them: should-filter, forward-ref, data-attrs, import-rewrite
 //
 // Two program profiles share this file (CliDeps.program): the deprecated `modern-cmdk` bin runs
 // lenient unless --strict is given; `modern-cmdk-codemod` runs strict unless --lenient is given.
@@ -47,11 +47,13 @@ import { createApiFactory, type FileOutcome, transformFile, type WorkerInit } fr
 
 // --- Transform registry ---------------------------------------------------
 
+// The order is the order to run them in: import-rewrite goes last, because should-filter recognises a cmdk
+// `filter` function only while the import still reads 'cmdk'. --help prints it numbered.
 const AVAILABLE_TRANSFORMS: Map<string, string> = new Map<string, string>([
-  ['import-rewrite', 'Rewrites cmdk imports to modern-cmdk/react'],
-  ['data-attrs', 'Converts [cmdk-*] selectors to [data-command-*]'],
+  ['should-filter', 'Converts the shouldFilter prop to filter'],
   ['forward-ref', 'Removes React.forwardRef wrappers (React 19)'],
-  ['should-filter', 'Converts shouldFilter prop to filter'],
+  ['data-attrs', 'Converts [cmdk-*] selectors to [data-command-*]'],
+  ['import-rewrite', 'Rewrites cmdk imports to modern-cmdk/react'],
 ]);
 
 type TransformFn = (fileInfo: FileInfo, api: API) => string;
@@ -116,18 +118,18 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
     '',
     ...profile,
     '',
-    bold('Transforms:'),
+    bold('Transforms, in the order to run them (one per run):'),
     ...AVAILABLE_TRANSFORMS.entries()
-      .map(([name, description]) => `  ${opt(name)}${description}`)
+      .map(([name, description], index) => `  ${index + 1}. ${opt(name)}${description}`)
       .toArray(),
     '',
     bold('Options:'),
-    `  ${opt('--dry-run')}List the files that would change; write nothing`,
+    `  ${opt('--dry-run')}Write nothing; print a unified diff of every file that would change`,
+    `  ${opt('--force')}Write into a tree with uncommitted changes, or outside git (modern-cmdk ignores it)`,
     `  ${opt('--strict')}Exit 2 on usage errors (incl. unknown options), 1 on file errors`,
+    `  ${opt('--lenient')}Lenient exit codes, no clean-git-tree check (modern-cmdk-codemod only); not with --strict`,
     `  ${opt('--concurrency=N')}Files processed at once (default: min(8, available cores))`,
     `  ${opt('-h, --help')}Show this help`,
-    `  ${opt('--lenient')}Keep the lenient exit codes below (cannot be combined with --strict) and skip the clean-git-tree check (modern-cmdk-codemod only)`,
-    `  ${opt('--force')}Skip the clean-git-tree check (modern-cmdk-codemod only; modern-cmdk ignores it)`,
     `  ${opt('-v, --version')}Print the package name and version`,
     '',
     bold('Exit codes:'),
@@ -139,7 +141,6 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
     '',
     'Files run on worker threads when --concurrency is above 1; --concurrency=1 runs them on the main thread.',
     'A directory argument covers its .ts .tsx .mts .cts .js .jsx .mjs .cjs .css .scss files (dot paths excluded).',
-    '--dry-run also prints a unified diff of every file that would change.',
     '',
     NODE_FLOOR_LINES[program],
     '',

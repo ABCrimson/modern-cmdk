@@ -283,7 +283,7 @@ describe('codemod CLI: --concurrency', () => {
       .split('\n')
       .filter((l) => /^ {2}--lenient\b/.test(l));
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain('lenient exit codes');
+    expect(lines[0]).toContain('Lenient exit codes');
     expect(lines[0]).toContain('clean-git-tree check');
   });
 
@@ -343,7 +343,7 @@ describe('codemod CLI: errors', () => {
     const c = capture();
     expect(await run(['nope', glob], c.io, deps)).toBe(1);
     expect(c.err()).toContain('unknown transform "nope"');
-    expect(c.err()).toContain('import-rewrite, data-attrs, forward-ref, should-filter');
+    expect(c.err()).toContain('should-filter, forward-ref, data-attrs, import-rewrite');
     expect(await run(['nope', glob, '--strict'], capture().io, deps)).toBe(2);
   });
 
@@ -612,15 +612,78 @@ describe('codemod CLI: program profiles', () => {
     ).toHaveLength(1);
   });
 
-  it('CLI-ARGS: the --dry-run, --strict and -h help lines are unchanged', async () => {
+  it('CLI-ARGS: the --dry-run, --strict and -h help lines read as pinned here', async () => {
     const c = capture();
     expect(await run(['--help'], c.io, deps)).toBe(0);
     const lines = c.out().split('\n');
-    expect(lines).toContain('  --dry-run        List the files that would change; write nothing');
+    expect(lines).toContain(
+      '  --dry-run        Write nothing; print a unified diff of every file that would change',
+    );
     expect(lines).toContain(
       '  --strict         Exit 2 on usage errors (incl. unknown options), 1 on file errors',
     );
     expect(lines).toContain('  -h, --help       Show this help');
+  });
+
+  it('--help promises --dry-run once: its option line says it prints the diff and no later line repeats it', async () => {
+    for (const d of [deps, codemodDeps]) {
+      const c = capture();
+      expect(await run(['--help'], c.io, d)).toBe(0);
+      const lines = c.out().split('\n');
+      expect(lines.filter((l) => l.includes('unified diff'))).toHaveLength(1);
+      expect(lines.some((l) => l.startsWith('--dry-run also'))).toBe(false);
+    }
+  });
+
+  it('--help numbers the transforms in the order to run them, import-rewrite last, in both programs', async () => {
+    for (const d of [deps, codemodDeps]) {
+      const c = capture();
+      expect(await run(['--help'], c.io, d)).toBe(0);
+      const lines = c.out().split('\n');
+      const at = lines.indexOf('Transforms, in the order to run them (one per run):');
+      expect(at).toBeGreaterThan(-1);
+      expect(lines.slice(at + 1, at + 5)).toEqual([
+        '  1. should-filter    Converts the shouldFilter prop to filter',
+        '  2. forward-ref      Removes React.forwardRef wrappers (React 19)',
+        '  3. data-attrs       Converts [cmdk-*] selectors to [data-command-*]',
+        '  4. import-rewrite   Rewrites cmdk imports to modern-cmdk/react',
+      ]);
+    }
+  });
+
+  it('--help lists the options in the order of the README Options table, and the README pastes no help block', async () => {
+    const c = capture();
+    expect(await run(['--help'], c.io, codemodDeps)).toBe(0);
+    const start = c.out().indexOf('Options:\n');
+    const section = c.out().slice(start, c.out().indexOf('\n\n', start));
+    const longest = (names: readonly string[]): string =>
+      [...names].sort((x, y) => y.length - x.length)[0]?.replace(/=N$/, '') ?? '';
+    const inHelp = [...section.matchAll(/^ {2}(-[\w-]+(?:=N)?(?:, -[\w-]+)?)/gm)].map((m) =>
+      longest((m[1] as string).split(', ')),
+    );
+    const readme = await readFile(
+      join(import.meta.dirname, '../../packages/modern-cmdk-codemod/README.md'),
+      'utf-8',
+    );
+    const table = readme.slice(readme.indexOf('| Option | Effect |'));
+    const inReadme = table
+      .slice(0, table.indexOf('\n\n'))
+      .split('\n')
+      .slice(2)
+      .map((row) =>
+        longest([...(row.split('|')[1] ?? '').matchAll(/`([^`]+)`/g)].map((m) => m[1] as string)),
+      );
+    expect(inHelp).toEqual([
+      '--dry-run',
+      '--force',
+      '--strict',
+      '--lenient',
+      '--concurrency',
+      '--help',
+      '--version',
+    ]);
+    expect(inReadme).toEqual(inHelp);
+    expect(readme).not.toContain('Usage: modern-cmdk-codemod');
   });
 
   it('RP-19, SEC-07: --dry under modern-cmdk-codemod exits 2 and writes nothing', async () => {
