@@ -1,6 +1,6 @@
 {
   "name": "create-modern-cmdk",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "type": "module",
   "description": "Scaffold a Vite, React 19 and TypeScript project with a modern-cmdk command palette.",
   "license": "MIT",
