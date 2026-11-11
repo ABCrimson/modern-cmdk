@@ -678,6 +678,7 @@ describe.skipIf(!built)('CLI-TEST: built bins over temp copies', () => {
 
   describe('SEC-52: create-modern-cmdk', () => {
     const SCAFFOLD = [
+      '.gitignore',
       'index.html',
       'package.json',
       'src/App.tsx',
