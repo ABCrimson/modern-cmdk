@@ -85,7 +85,7 @@ Typing filters the items with the built-in fuzzy scorer; `keywords` are searched
 - **Fuzzy search** with match ranges for `Command.Highlight`; pass your own scorer or `SearchEngine`. [Basic usage](https://abcrimson.github.io/modern-cmdk/guide/basic-usage.html)
 - **Frecency ranking**, opt-in, kept in memory or in IndexedDB (`idb-keyval`, the one dependency, loads only then). [Frecency](https://abcrimson.github.io/modern-cmdk/guide/frecency.html)
 - **Keyboard shortcuts.** Write `Mod+K` once: it is parsed, shown as ⌘ on Apple platforms and Ctrl elsewhere, matched against key events and checked for conflicts. [Shortcuts](https://abcrimson.github.io/modern-cmdk/guide/shortcuts.html)
-- **React 19 adapter.** Compound `Command.*` components on `useSyncExternalStore`; `ref` is a prop, with no `forwardRef`; `Command.Activity` wraps React's `<Activity>`. [React API](https://abcrimson.github.io/modern-cmdk/api/command-react.html)
+- **React 19 adapter.** Compound `Command.*` components on `useSyncExternalStore`; `ref` is a prop, with no `forwardRef`; `Command.Activity` wraps React's `<Activity>` (React 19.2 and later). [React API](https://abcrimson.github.io/modern-cmdk/api/command-react.html)
 - **WAI-ARIA combobox and listbox** that announce the result count. [Accessibility](https://abcrimson.github.io/modern-cmdk/guide/accessibility.html)
 - **Virtualization** that switches on above 100 matches and off at 50 or fewer. [Virtualization](https://abcrimson.github.io/modern-cmdk/guide/virtualization.html)
 - **Async items** with Suspense through `Command.AsyncItems`. [Async items](https://abcrimson.github.io/modern-cmdk/guide/async-items.html)
@@ -209,7 +209,7 @@ export function mountPalette(
 | `modern-cmdk/react/dialog` | `CommandDialog` alone. `'use client'`. |
 | `modern-cmdk/styles.css` | The stylesheet. The only file with side effects. |
 
-ESM only. Every export is listed in the [Core API](https://abcrimson.github.io/modern-cmdk/api/command.html) and [React API](https://abcrimson.github.io/modern-cmdk/api/command-react.html) pages.
+ESM only. The [Core API](https://abcrimson.github.io/modern-cmdk/api/command.html) and [React API](https://abcrimson.github.io/modern-cmdk/api/command-react.html) pages document the functions, components and hooks of each entry.
 
 <details>
 <summary><strong>Options</strong> of <code>createCommandMachine</code>, also props of <code>&lt;Command&gt;</code> and <code>&lt;Command.Dialog&gt;</code></summary>
@@ -231,7 +231,7 @@ ESM only. Every export is listed in the [Core API](https://abcrimson.github.io/m
 | `search` | Deprecated name of `searchEngine` |
 | `virtualizeThreshold` | Accepted but not read: the list virtualizes above 100 matches and stops at 50 or fewer |
 
-In React, `shortcutAction`, `frecency`, `searchEngine` and whether `filter` is a function are read once, at mount.
+In React, `shortcutAction`, `frecency`, `searchEngine`, `open` and whether `filter` is a function are read once, at mount.
 
 </details>
 
@@ -257,9 +257,9 @@ A rewrite of [cmdk](https://github.com/dip/cmdk) for React 19.
 | `modern-cmdk/styles.css` | 4.0 kB gzip[^size] |
 | Search 10,000 items for one query | 3.8 ms median[^bench] |
 
-Most of the unpacked size npm lists, 3.15 MB, is the deprecated `modern-cmdk` bin and the packages it bundles; no application bundle imports it.
+Most of the unpacked size npm lists is the deprecated `modern-cmdk` bin and the packages it bundles (3.15 MB); no application bundle imports it.
 
-[^size]: size-limit with rolldown, minified with `NODE_ENV=production`, gzip; `react`, `react-dom` and `radix-ui` are not counted; 1 kB = 1,000 bytes. Record: [`size-history/1.7.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/380e25e826341cebc46c8a844a524542fd1f8337/benchmarks/size-history/1.7.0.json).
+[^size]: size-limit, gzip: the JavaScript entries bundled with rolldown and minified with `NODE_ENV=production`, the stylesheet as shipped; `react`, `react-dom` and `radix-ui` are not counted; 1 kB = 1,000 bytes. Record: [`size-history/1.7.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/380e25e826341cebc46c8a844a524542fd1f8337/benchmarks/size-history/1.7.0.json).
 [^bench]: `createSearchEngine()` searching an index of 10,000 items for `'apple'` and materialising the results; indexing is not timed. The median of five runs' p50 on a GitHub-hosted runner (AMD EPYC 7763, 4 cores), recorded on 2026-11-08; runner noise is ±20–40 %. Record: [`baseline.json`](https://github.com/ABCrimson/modern-cmdk/blob/380e25e826341cebc46c8a844a524542fd1f8337/benchmarks/baseline.json). Method: [Benchmarks](https://abcrimson.github.io/modern-cmdk/benchmarks.html).
 <!-- figures:end -->
 

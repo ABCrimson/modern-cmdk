@@ -207,7 +207,7 @@ describe('packages/modern-cmdk/README.md: the figures between the markers', () =
 
   it('says the unpacked size is mostly the deprecated bin, with the bin size from the record', () => {
     expect(figures).toContain(
-      `Most of the unpacked size npm lists, ${(bin.size / 1_000_000).toFixed(2)} MB, is the deprecated \`modern-cmdk\` bin`,
+      `Most of the unpacked size npm lists is the deprecated \`modern-cmdk\` bin and the packages it bundles (${(bin.size / 1_000_000).toFixed(2)} MB)`,
     );
   });
 
