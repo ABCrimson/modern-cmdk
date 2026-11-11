@@ -529,6 +529,12 @@ export function readmeImageFailures(
     }
     const file = parseRepoFileUrl(image.url);
     if (file === undefined) {
+      if (/^https:\/\/github\.com\/ABCrimson\/modern-cmdk\/tree\//i.test(image.url)) {
+        failures.push(
+          `README images: ${at}: ${image.url} is a page of the repository tree, not an image file (name a 40-hex commit in a raw.githubusercontent.com URL)`,
+        );
+        continue;
+      }
       if (!/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(image.url)) {
         failures.push(
           `README images: ${at}: ${image.url} is a relative path, which npm resolves to the HEAD of main (name a 40-hex commit in a raw.githubusercontent.com URL)`,
