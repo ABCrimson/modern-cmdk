@@ -62,6 +62,7 @@ For example, `npm pack modern-cmdk@1.7.0` writes `modern-cmdk-1.7.0.tgz`. The `g
 
 How each version reached npm:
 
+- `modern-cmdk-codemod` 0.0.0-stage was published by the owner by hand on 2026-11-10 to create the package on npm. It has neither npm provenance nor attestations; use 1.0.1 or later.
 - `modern-cmdk-codemod` 1.0.0 was published by the owner by hand on 2026-11-10, from a tarball that the workflow built and attested. It has the GitHub build-provenance and SBOM attestations, so `gh attestation verify` passes. It has no npm provenance.
 - `modern-cmdk-codemod` 1.0.1 and every later version are published by the workflow through npm trusted publishing, with npm provenance as well as the attestations. So are `modern-cmdk` from 1.4.0 and `create-modern-cmdk` from 1.3.1.
 - `modern-cmdk` 1.2.0 to 1.3.0 and `create-modern-cmdk` 1.2.0 to 1.3.0 were published by the workflow with npm provenance, before it made attestations, so `gh attestation verify` fails for them. Earlier versions were published by hand and have neither.

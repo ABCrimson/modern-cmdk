@@ -77,7 +77,7 @@ export function CommandPalette() {
 }
 ```
 
-Typing filters the items with the built-in fuzzy scorer; `keywords` are searched but not shown. The `shortcut` on an item binds the key for as long as the palette is mounted, wherever focus is, and stops the key's default action, so bind keys the page does not need. `Command.Shortcut` only displays it: ⌘⇧L on Apple platforms, Ctrl+Shift+L elsewhere.
+Typing filters the items with the built-in fuzzy scorer; `keywords` are searched but not shown. The `shortcut` on an item binds the key for as long as the palette is mounted, wherever focus is, and stops the key's default action and its propagation, so bind keys the page does not need. `Command.Shortcut` only displays it: ⌘⇧L on Apple platforms, Ctrl+Shift+L elsewhere.
 
 ## What it does
 
@@ -202,12 +202,10 @@ export function mountPalette(
 
 ## Entry points
 
-| Import | What it holds |
-|---|---|
-| `modern-cmdk` | The core: machine, search, frecency, shortcuts, telemetry. Imports no peer. |
-| `modern-cmdk/react` | `Command` and its parts, the hooks, `CommandErrorBoundary`. `'use client'`. |
-| `modern-cmdk/react/dialog` | `CommandDialog` alone. `'use client'`. |
-| `modern-cmdk/styles.css` | The stylesheet. The only file with side effects. |
+- `modern-cmdk`: the core (machine, search, frecency, shortcuts, telemetry). Imports no peer.
+- `modern-cmdk/react`: `Command` and its parts, the hooks, `CommandErrorBoundary`. `'use client'`.
+- `modern-cmdk/react/dialog`: `CommandDialog` alone. `'use client'`.
+- `modern-cmdk/styles.css`: the stylesheet, the only file with side effects.
 
 ESM only. The [Core API](https://abcrimson.github.io/modern-cmdk/api/command.html) and [React API](https://abcrimson.github.io/modern-cmdk/api/command-react.html) pages document the functions, components and hooks of each entry.
 
