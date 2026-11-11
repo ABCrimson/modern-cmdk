@@ -103,9 +103,9 @@ The [modern-cmdk README](packages/modern-cmdk/README.md), which is also its npm 
 | `modern-cmdk/styles.css` | 4.0 kB gzip[^size] |
 | Search 10,000 items for one query | 3.8 ms median[^bench] |
 
-Most of the unpacked size npm lists, 3.15 MB, is the deprecated `modern-cmdk` bin and the packages it bundles; no application bundle imports it.
+Most of the unpacked size npm lists is the deprecated `modern-cmdk` bin and the packages it bundles (3.15 MB); no application bundle imports it.
 
-[^size]: size-limit with rolldown, minified with `NODE_ENV=production`, gzip; `react`, `react-dom` and `radix-ui` are not counted; 1 kB = 1,000 bytes. Record: [`size-history/1.7.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/380e25e826341cebc46c8a844a524542fd1f8337/benchmarks/size-history/1.7.0.json).
+[^size]: size-limit, gzip: the JavaScript entries bundled with rolldown and minified with `NODE_ENV=production`, the stylesheet as shipped; `react`, `react-dom` and `radix-ui` are not counted; 1 kB = 1,000 bytes. Record: [`size-history/1.7.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/380e25e826341cebc46c8a844a524542fd1f8337/benchmarks/size-history/1.7.0.json).
 [^bench]: `createSearchEngine()` searching an index of 10,000 items for `'apple'` and materialising the results; indexing is not timed. The median of five runs' p50 on a GitHub-hosted runner (AMD EPYC 7763, 4 cores), recorded on 2026-11-08; runner noise is ±20–40 %. Record: [`baseline.json`](https://github.com/ABCrimson/modern-cmdk/blob/380e25e826341cebc46c8a844a524542fd1f8337/benchmarks/baseline.json). Method: [Benchmarks](https://abcrimson.github.io/modern-cmdk/benchmarks.html).
 <!-- figures:end -->
 
