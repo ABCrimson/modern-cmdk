@@ -10,16 +10,12 @@ concurrency:
 # Reset permissions; each job declares only what it needs.
 permissions: {}
 
-# Job graph. On a push to main: ci-gate -> select-mode -> (version -> first-publish-tarball -> first-publish-smoke -> first-publish-attest) | (pack -> attest -> publish).
+# Job graph. On a push to main: ci-gate -> select-mode -> version | (pack -> attest -> publish).
 #
-# D62, a third published package (modern-cmdk-codemod): npm's trusted publishing is configured per existing
-# package, so the owner first-publishes modern-cmdk-codemod 1.0.0 by hand. first-publish-tarball (version
-# mode, after the Version PR is opened or updated) builds, packs, checks, hashes and uploads that tarball from the
-# Version PR branch with source.txt, running no freshly resolved npm code; first-publish-smoke then downloads it,
-# checks the digest and smoke-tests it; first-publish-attest, which needs both, verifies the downloaded bytes
-# against the digest first-publish-tarball computed and attests them, for the owner to download and verify. The
-# attest job then refuses a publish plan that holds a package npm has never seen, so merging the Version
-# PR before the hand publish fails before anything is published; changeset publish skips an already-published version.
+# D62: npm's trusted publishing is configured per existing package, so the first version of a new package is
+# published by the owner by hand, never by this workflow. The attest job refuses a publish plan that holds a
+# package npm has never seen, so a push to main whose plan holds such a package (a merged Version PR, or any merge
+# that leaves no changeset pending) fails before anything is published.
 #
 # ci-gate holds every other job until the ci.yml run for the same commit has completed and
 # succeeded: nothing is published or released for a commit whose CI is red or cancelled. It also
@@ -35,16 +31,9 @@ permissions: {}
 # whether to version or publish; version opens/updates the release PR; pack builds the
 # tarballs without any write permission; attest makes an SPDX SBOM, a build-provenance attestation
 # and an SBOM attestation for each packed tarball; publish needs attest, so a failed attestation stops
-# the release before npm has the version, and uploads those same tarballs. attest, first-publish-attest and
-# publish are the only jobs holding id-token: write; attest and first-publish-attest take it for Sigstore with
-# attestations: write and artifact-metadata: write and hold no npm credential, while publish holds
-# contents: write and the npm OIDC publish. first-publish-smoke holds no id-token because it executes a
-# freshly resolved npm tree (the smoke test installs the codemod without a lockfile and runs it), and it runs
-# only after first-publish-tarball has hashed and uploaded the bytes; first-publish-tarball holds none because it
-# runs no freshly resolved code: the scope gate, npm view, the lockfile install (--frozen-lockfile --ignore-scripts),
-# the build, the pack and check-package.ts, then the hash and the upload or, for a version npm already has, an
-# entry-by-entry comparison with npm's tarball; first-publish-attest, which runs none of this repository's code,
-# signs the bytes it verified.
+# the release before npm has the version, and uploads those same tarballs. attest and publish are the only jobs
+# holding id-token: write; attest takes it for Sigstore with attestations: write and artifact-metadata: write
+# and holds no npm credential, while publish holds contents: write and the npm OIDC publish.
 # publish runs in the `npm` environment, whose deployment branches are restricted to main.
 #
 # Publish via npm OIDC Trusted Publishing — no long-lived token. An empty NPM_TOKEN /
@@ -53,8 +42,7 @@ permissions: {}
 # tags through the GitHub API with their default `github-token` (github.token); a
 # GITHUB_TOKEN env var is ignored. publish's `push-git-tags` and
 # `create-github-releases` default to true, so per-package tags and GitHub releases are
-# created after a publish; changeset publish drops a version npm already has from its publish plan, so the
-# hand-published modern-cmdk-codemod 1.0.0 gets its tag and GitHub release outside this workflow.
+# created after a publish.
 #
 # Per the changesets guide, git credentials are not persisted on disk and no job here restores the
 # pnpm cache (cache poisoning): setup-node keys it on the OS, architecture and lockfile hash alone,
@@ -154,395 +142,10 @@ jobs:
         with:
           # The action runs `script` without a shell, so the two commands live in the `version-packages` package.json script.
           # Every internal specifier is workspace:* and changeset version does not rewrite it (@changesets/apply-release-plan 8.1.1
-          # dist/index.mjs:180 skips workspace:*), so pnpm-lock.yaml does not change; the script still refreshes the lockfile, and the
-          # scope gate in first-publish-tarball fails if it ever does.
+          # dist/index.mjs:180 skips workspace:*), so pnpm-lock.yaml does not change; the script still refreshes the lockfile.
           script: pnpm version-packages
           commit-message: "chore: release packages"
           pr-title: "chore: release packages"
-
-  # D62: the owner first-publishes modern-cmdk-codemod 1.0.0 by hand (npm's trusted publishing is configured
-  # per existing package), and this job builds the tarball for that publish from the Version PR branch, checks it,
-  # hashes it and uploads it with source.txt; first-publish-smoke then smoke-tests the uploaded bytes and
-  # first-publish-attest attests them (build provenance plus SBOM). Owner steps:
-  # `gh run download <run id> -n first-publish-modern-cmdk-codemod`, `sha256sum -c`,
-  # `gh attestation verify <tgz> -R ABCrimson/modern-cmdk`, then the owner-gated first publish of that tarball.
-  # This job holds no npm credential, no id-token and restores no pnpm cache, so it can neither publish nor sign.
-  # It runs no freshly resolved npm code (SEC-63): the digest is taken before any such code runs anywhere in the
-  # run, and first-publish-smoke and first-publish-attest both check the downloaded bytes against it. It exposes
-  # the tarball name and its sha256 for them.
-  # This job runs inside the release run, before any approved CI on the bot PR can exist (the bot's
-  # pushes wait in `action_required`), so the scope gate is what ties the packed tree to the CI-green
-  # GITHUB_SHA plus the version edits: the branch must descend from GITHUB_SHA, may change only the "version"
-  # line of package.json files, CHANGELOG.md files and changeset files, and must leave the lockfile unchanged.
-  # Any other path, any other package.json line or any lockfile change fails the job.
-  # Once the version is on npm (the publish plan then skips it), the job compares that package's contents
-  # with a fresh pack of the branch instead and produces nothing to attest; a later version of a published package is skipped.
-  # Temporary: delete this job once the 1.5.0 post-cut gate has passed.
-  first-publish-tarball:
-    if: needs.select-mode.outputs.mode == 'version'
-    needs: [select-mode, version]
-    runs-on: ubuntu-26.04
-    timeout-minutes: 20
-    permissions:
-      contents: read # actions/checkout
-    outputs:
-      state: ${{ steps.registry.outputs.state }}
-      tarball: ${{ steps.hash.outputs.tarball }}
-      sha256: ${{ steps.hash.outputs.sha256 }}
-    steps:
-      # changesets/action/version pushes changeset-release/<base branch> (live ref: changeset-release/main) and
-      # opens the Version PR from it; its README documents pr-base-branch, which defaults to github.ref_name (main).
-      - name: Check out the Version PR branch
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: changeset-release/main
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Scope gate, the branch is GITHUB_SHA plus version edits only
-        id: scope
-        shell: bash
-        run: |
-          set -euo pipefail
-          base=$(git merge-base origin/main HEAD)
-          if [ "$base" != "$GITHUB_SHA" ]; then
-            echo "::error::The Version PR branch descends from $base, not from the CI-checked $GITHUB_SHA"
-            exit 1
-          fi
-          re='^(packages/[^/]+/(package\.json|CHANGELOG\.md)|\.changeset/[^/]+\.md|pnpm-lock\.yaml)$'
-          outside=$(git diff --name-only "$base" HEAD | re="$re" awk '$0 !~ ENVIRON["re"]')
-          if [ -n "$outside" ]; then
-            echo "::error::The Version PR branch changes paths outside the version edits:"
-            echo "$outside"
-            exit 1
-          fi
-          bad=$(git diff -U0 "$base" HEAD -- 'packages/*/package.json' | awk '/^(\+\+\+|---) /{next} /^[-+]/ && $0 !~ /^[-+]  "version": "[^"]+",$/')
-          if [ -n "$bad" ]; then
-            echo "::error::The Version PR branch edits a package.json beyond its \"version\" field:"
-            echo "$bad"
-            exit 1
-          fi
-          if ! git diff --quiet "$base" HEAD -- pnpm-lock.yaml; then
-            echo "::error::The Version PR branch changes pnpm-lock.yaml; every internal specifier is workspace:*, which changeset version does not rewrite"
-            git diff --stat "$base" HEAD -- pnpm-lock.yaml
-            exit 1
-          fi
-          echo "Scope gate passed: $(git diff --name-only "$base" HEAD | wc -l) changed path(s), all version edits"
-      - name: Read the version
-        id: package
-        shell: bash
-        run: |
-          set -euo pipefail
-          version=$(jq -er .version packages/modern-cmdk-codemod/package.json)
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-      # E404 on the package-level `npm view modern-cmdk-codemod version` means the package was never published
-      # (first). Otherwise a version npm has is published, and any other version is later: a version of an
-      # existing package is published by trusted publishing, not by hand, so this job neither attests nor uploads it.
-      - name: Ask npm whether this version is published
-        id: registry
-        shell: bash
-        env:
-          version: ${{ steps.package.outputs.version }}
-        run: |
-          set -euo pipefail
-          err=$(mktemp)
-          if ! npm view modern-cmdk-codemod version > /dev/null 2> "$err"; then
-            if grep -q 'E404' "$err"; then echo "state=first" >> "$GITHUB_OUTPUT"; exit 0; fi
-            echo "::error::npm view modern-cmdk-codemod failed: $(cat "$err")"; exit 1
-          fi
-          if out=$(npm view "modern-cmdk-codemod@$version" version 2> "$err") && [ "$out" = "$version" ]; then
-            echo "state=published" >> "$GITHUB_OUTPUT"
-          elif [ -z "${out:-}" ] || grep -q 'E404' "$err"; then
-            echo "state=later" >> "$GITHUB_OUTPUT"
-            echo "::notice::$version of an existing package is published by trusted publishing, not by hand"
-          else
-            echo "::error::npm view modern-cmdk-codemod@$version: ${out:-} $(cat "$err")"; exit 1
-          fi
-      - if: steps.registry.outputs.state != 'later'
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - if: steps.registry.outputs.state != 'later'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-      - if: steps.registry.outputs.state != 'later'
-        run: pnpm install --frozen-lockfile --ignore-scripts
-      - if: steps.registry.outputs.state != 'later'
-        run: pnpm --filter modern-cmdk-codemod run build
-      - name: Pack and check the tarball
-        if: steps.registry.outputs.state != 'later'
-        id: pack
-        shell: bash
-        env:
-          version: ${{ steps.package.outputs.version }}
-        run: |
-          set -euo pipefail
-          mkdir first-publish
-          pnpm --filter modern-cmdk-codemod pack --pack-destination "$GITHUB_WORKSPACE/first-publish"
-          tgz="first-publish/modern-cmdk-codemod-$version.tgz"
-          [ -f "$tgz" ] || { echo "::error::$tgz was not produced"; ls first-publish; exit 1; }
-          echo "tgz=$tgz" >> "$GITHUB_OUTPUT"
-          node scripts/check-package.ts --package modern-cmdk-codemod --tarball "$tgz"
-      # A pack is not byte-reproducible (gzip headers may differ), so the comparison is entry by entry:
-      # the same names with the same contents, or the job fails.
-      - name: Compare with the published version
-        if: steps.registry.outputs.state == 'published'
-        shell: bash
-        env:
-          version: ${{ steps.package.outputs.version }}
-          LOCAL_TGZ: ${{ steps.pack.outputs.tgz }}
-        run: |
-          set -euo pipefail
-          mkdir registry-tarball
-          npm pack "modern-cmdk-codemod@$version" --pack-destination registry-tarball
-          REMOTE_TGZ="registry-tarball/modern-cmdk-codemod-$version.tgz"
-          export REMOTE_TGZ
-          for file in "$LOCAL_TGZ" "$REMOTE_TGZ"; do
-            echo "sha512 $file: sha512-$(openssl dgst -sha512 -binary "$file" | base64 -w0)"
-          done
-          echo "npm view dist.integrity: $(npm view "modern-cmdk-codemod@$version" dist.integrity)"
-          node --input-type=module - <<'EOF'
-          import { readFileSync } from 'node:fs';
-          import { listTarEntries } from './scripts/check-package.ts';
-          const read = (path) => new Map(listTarEntries(readFileSync(path)).map((e) => [e.name, e.data]));
-          const local = read(process.env.LOCAL_TGZ);
-          const remote = read(process.env.REMOTE_TGZ);
-          const problems = [];
-          for (const name of local.keys()) if (!remote.has(name)) problems.push(`only in the new pack: ${name}`);
-          for (const name of remote.keys()) if (!local.has(name)) problems.push(`only on npm: ${name}`);
-          for (const [name, data] of local) {
-            const other = remote.get(name);
-            if (other !== undefined && !data.equals(other)) problems.push(`contents differ: ${name}`);
-          }
-          if (problems.length > 0) {
-            console.error(`::error::The branch's pack differs from the published version:\n${problems.join('\n')}`);
-            process.exit(1);
-          }
-          console.log(`${local.size} entries, identical names and bytes`);
-          EOF
-          echo "::notice::modern-cmdk-codemod@$version is already on npm and the branch packs to the same contents; nothing to hand-publish"
-      - name: Hash the tarball
-        if: steps.registry.outputs.state == 'first'
-        id: hash
-        shell: bash
-        env:
-          TGZ: ${{ steps.pack.outputs.tgz }}
-        run: |
-          set -euo pipefail
-          echo "tarball=$(basename "$TGZ")" >> "$GITHUB_OUTPUT"
-          echo "sha256=$(sha256sum -- "$TGZ" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
-      - name: Record the source
-        if: steps.registry.outputs.state == 'first'
-        shell: bash
-        run: |
-          set -euo pipefail
-          {
-            echo "ci-checked commit (GITHUB_SHA): $GITHUB_SHA"
-            echo "Version PR head: $(git rev-parse HEAD)"
-            echo "packages/modern-cmdk-codemod tree: $(git rev-parse HEAD:packages/modern-cmdk-codemod)"
-          } > first-publish/source.txt
-          cat first-publish/source.txt
-          (cd first-publish && sha256sum -- *.tgz > modern-cmdk-codemod.sha256)
-      - name: Upload the first-publish artifact
-        if: steps.registry.outputs.state == 'first'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: first-publish-modern-cmdk-codemod
-          path: |
-            first-publish/*.tgz
-            first-publish/*.sha256
-            first-publish/source.txt
-          retention-days: 30
-          if-no-files-found: error
-
-  # SEC-63: smoke-tests the tarball first-publish-tarball hashed and uploaded. The smoke executes the tarball's freshly
-  # resolved npm tree (no lockfile), which could rewrite a file it can reach, so it runs after the bytes are fixed and
-  # uploaded, in a job that holds no credential, uploads nothing and re-checks the downloaded bytes against the digest
-  # first. Its failure blocks first-publish-attest through needs.
-  # Temporary, like first-publish-tarball: delete this job with it.
-  first-publish-smoke:
-    if: needs.first-publish-tarball.outputs.state == 'first'
-    needs: first-publish-tarball
-    runs-on: ubuntu-26.04
-    timeout-minutes: 20
-    permissions:
-      contents: read # actions/checkout
-    steps:
-      # GITHUB_SHA, the CI-checked commit this run was triggered for, not the Version PR ref: the scope gate proved the
-      # Version PR head is GITHUB_SHA plus version edits (package.json version fields, CHANGELOGs, .changeset/*.md), so the
-      # smoke script and its fixtures are the same bytes here, and nothing pushed to the bot's branch between the two jobs
-      # can run in this job (a ref taken from another job's output is untrusted code to CodeQL's actions/untrusted-checkout
-      # and actions/cache-poisoning queries; SEC-68).
-      - name: Check out the CI-checked commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-      # scripts/codemod-tarball-smoke.ts imports listTarEntries from scripts/check-package.ts, whose top-level imports include publint.
-      - run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: Download the first-publish artifact
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: first-publish-modern-cmdk-codemod
-          path: first-publish
-      - name: Verify the tarball is the one the tarball job hashed
-        shell: bash
-        env:
-          TARBALL: ${{ needs.first-publish-tarball.outputs.tarball }}
-          EXPECTED_SHA256: ${{ needs.first-publish-tarball.outputs.sha256 }}
-        run: |
-          set -euo pipefail
-          if [ -z "$TARBALL" ] || [ -z "$EXPECTED_SHA256" ] || [ "$(basename "$TARBALL")" != "$TARBALL" ]; then
-            echo "::error::The tarball job did not name a tarball and its sha256"
-            exit 1
-          fi
-          if [ ! -f "first-publish/$TARBALL" ]; then
-            echo "::error::Expected first-publish/$TARBALL:"
-            ls first-publish
-            exit 1
-          fi
-          actual=$(sha256sum -- "first-publish/$TARBALL" | cut -d' ' -f1)
-          if [ "$actual" != "$EXPECTED_SHA256" ]; then
-            echo "::error::first-publish/$TARBALL has sha256 $actual, not the $EXPECTED_SHA256 the tarball job hashed"
-            exit 1
-          fi
-          echo "first-publish/$TARBALL matches the hashed sha256 $actual"
-      - name: Smoke-test the tarball
-        shell: bash
-        env:
-          TARBALL: ${{ needs.first-publish-tarball.outputs.tarball }}
-        run: node scripts/codemod-tarball-smoke.ts --codemod "first-publish/$TARBALL"
-
-  # D62: signs what first-publish-tarball built and hashed and first-publish-smoke tested, and nothing else. It checks out nothing
-  # (actions/attest and anchore/sbom-action read only the files named in their inputs), installs no dependency (it fetches only the syft binary, checked against a pinned sha256) and runs none of this
-  # repository's code, so the Sigstore credential never meets a freshly resolved npm tree. It refuses any tarball whose sha256
-  # differs from the digest first-publish-tarball recorded, taken before any freshly resolved npm code ran, and it needs
-  # first-publish-smoke, so a failed smoke blocks the attestation.
-  # Temporary, like first-publish-tarball: delete this job with it.
-  first-publish-attest:
-    if: needs.first-publish-tarball.outputs.state == 'first'
-    needs: [first-publish-tarball, first-publish-smoke]
-    runs-on: ubuntu-26.04
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      id-token: write # Sigstore signing certificate (actions/attest)
-      attestations: write # persist the attestations (actions/attest)
-      artifact-metadata: write # artifact storage record (actions/attest)
-    steps:
-      - name: Download the first-publish artifact
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: first-publish-modern-cmdk-codemod
-          path: first-publish
-      - name: Verify the tarball is the one the tarball job hashed
-        shell: bash
-        env:
-          TARBALL: ${{ needs.first-publish-tarball.outputs.tarball }}
-          EXPECTED_SHA256: ${{ needs.first-publish-tarball.outputs.sha256 }}
-        run: |
-          set -euo pipefail
-          if [ -z "$TARBALL" ] || [ -z "$EXPECTED_SHA256" ] || [ "$(basename "$TARBALL")" != "$TARBALL" ]; then
-            echo "::error::The tarball job did not name a tarball and its sha256"
-            exit 1
-          fi
-          count=$(find first-publish -maxdepth 1 -name '*.tgz' | wc -l)
-          if [ "$count" -ne 1 ] || [ ! -f "first-publish/$TARBALL" ]; then
-            echo "::error::Expected exactly first-publish/$TARBALL, found $count tarball(s):"
-            ls first-publish
-            exit 1
-          fi
-          actual=$(sha256sum -- "first-publish/$TARBALL" | cut -d' ' -f1)
-          if [ "$actual" != "$EXPECTED_SHA256" ]; then
-            echo "::error::first-publish/$TARBALL has sha256 $actual, not the $EXPECTED_SHA256 the tarball job hashed"
-            exit 1
-          fi
-          echo "first-publish/$TARBALL matches the hashed sha256 $actual"
-      # Same SBOM recipe as the attest job: syft reads package.json only for installed sources and a tarball
-      # holds no lockfile, so syft.yaml adds the javascript-package-cataloger; the tarball is unpacked on this
-      # Linux runner.
-      - name: Unpack the tarball for the SBOM scan
-        shell: bash
-        env:
-          TGZ: first-publish/${{ needs.first-publish-tarball.outputs.tarball }}
-        run: |
-          set -euo pipefail
-          mkdir sbom-src
-          tar -xzf "$TGZ" -C sbom-src
-          printf 'select-catalogers:\n  - "+javascript-package-cataloger"\n' > syft.yaml
-      # sbom-action looks for syft in the runner tool cache (actions/tool-cache find('syft', 'v1.57.0'), which semver.clean reduces to 1.57.0: the folder
-      # $RUNNER_TOOL_CACHE/syft/1.57.0/x64 with its x64.complete marker) and otherwise downloads syft's install.sh through
-      # @actions/tool-cache (three attempts) and, on a cache miss, install.sh fetches the checksums file and the tarball with one curl
-      # each; a GitHub release-host HTTP 504 failed CI's SBOM scan on four of five attempts. This job checks out nothing, so
-      # it cannot use the local install-release-binary action CI uses; it seeds the same folder from syft's release tarball (up to
-      # eight attempts, each gh release download, then the API asset route, then the direct release URL, and a pinned sha256) and the
-      # action finds syft and skips its download. The sha256 is the tarball's GitHub asset digest (re-resolve with: gh release view v1.57.0 -R anchore/syft --json
-      # assets --jq '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .digest'). Bump the tag, the digest and every
-      # syft-version below together with ci.yml.
-      - name: Install syft into the tool cache
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          tarball="$RUNNER_TEMP/syft.tar.gz"
-          fetch() {
-            gh release download v1.57.0 -R anchore/syft -p syft_1.57.0_linux_amd64.tar.gz -O "$tarball" --clobber && return 0
-            local id
-            id="$(curl --fail --silent --show-error --location --connect-timeout 15 --max-time 60 -H "Accept: application/vnd.github+json" ${GH_TOKEN:+-H "Authorization: Bearer $GH_TOKEN"} https://api.github.com/repos/anchore/syft/releases/tags/v1.57.0 | jq -r '.assets[] | select(.name == "syft_1.57.0_linux_amd64.tar.gz") | .id')" || id=
-            if [ -n "$id" ]; then
-              curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 --connect-timeout 15 --max-time 120 \
-                -H "Accept: application/octet-stream" ${GH_TOKEN:+-H "Authorization: Bearer $GH_TOKEN"} \
-                --output "$tarball" "https://api.github.com/repos/anchore/syft/releases/assets/$id" && return 0
-            fi
-            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-connrefused --retry-delay 5 --retry-max-time 60 --connect-timeout 15 --max-time 120 \
-              --output "$tarball" \
-              https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz
-          }
-          for attempt in 1 2 3 4 5 6 7 8; do
-            rm -f "$tarball"
-            fetch && break
-            [ "$attempt" -lt 8 ] || { echo "::error::could not download syft_1.57.0_linux_amd64.tar.gz from anchore/syft v1.57.0"; exit 1; }
-            sleep $((attempt * 5))
-          done
-          echo "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704  $tarball" | sha256sum --check
-          extract="$(mktemp -d "$RUNNER_TEMP/extract.XXXXXX")"
-          tar -xzf "$tarball" -C "$extract" syft
-          dest="$RUNNER_TOOL_CACHE/syft/1.57.0/x64"
-          rm -rf "$dest" "$dest.complete"
-          install -D -m 0755 "$extract/syft" "$dest/syft"
-          touch "$dest.complete"
-          rm -rf "$extract" "$tarball"
-          "$dest/syft" --version
-      - name: SBOM for modern-cmdk-codemod
-        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-        with:
-          path: sbom-src
-          format: spdx-json
-          config: syft.yaml
-          output-file: first-publish/modern-cmdk-codemod.spdx.json
-          upload-artifact: "false"
-          upload-release-assets: "false"
-          # syft itself, newest release (sbom-action v0.24.3 defaults to v1.54.0). Re-resolve with: gh release list -R anchore/syft -L 1
-          syft-version: v1.57.0
-      - name: Build provenance attestation
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-path: first-publish/*.tgz
-      - name: SBOM attestation
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-path: first-publish/*.tgz
-          sbom-path: first-publish/modern-cmdk-codemod.spdx.json
-      - name: Upload the SBOM
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: first-publish-modern-cmdk-codemod-sbom
-          path: first-publish/modern-cmdk-codemod.spdx.json
-          retention-days: 30
-          if-no-files-found: error
 
   pack:
     if: needs.select-mode.outputs.mode == 'publish'
@@ -572,7 +175,7 @@ jobs:
   # Supply chain: every tarball that pack produced (up to three: modern-cmdk, create-modern-cmdk and
   # modern-cmdk-codemod) gets an SPDX SBOM, a build-provenance attestation and an SBOM attestation, over
   # the exact bytes publish uploads (same artifact id, never re-packed). It also refuses a package npm
-  # has never published (D62: its first publish is the owner's, from the first-publish-tarball artifact).
+  # has never published (D62: the first publish of a new package is the owner's, by hand).
   # publish needs this job, so an attestation failure or that refusal stops the release before npm has the version.
   # Permissions follow the actions/attest README ("Ensure that the following permissions are set"):
   # id-token (Sigstore signing certificate), attestations (persist the attestation) and artifact-metadata
@@ -593,8 +196,8 @@ jobs:
           artifact-ids: ${{ needs.pack.outputs.pack-dir-artifact-id }}
           path: pack
       # Fails loudly unless the tarball set is exactly the publish plan, every tarball is one of the three
-      # published packages, npm already knows each package (D62: `npm view` E404 means never published, which
-      # is the owner's hand publish; any other npm error fails too) and its sha256 equals the plan's
+      # published packages, npm already knows each package (D62: `npm view` E404 means the package was never published,
+      # and its first publish is the owner's, by hand; any other npm error fails too) and its sha256 equals the plan's
       # integrity (the bytes publish will upload).
       # Each tarball is also unpacked under sbom-src/<package> for the SBOM scan. Syft's directory defaults leave out
       # javascript-package-cataloger (it reads package.json only for installed/image sources) and a tarball holds no
