@@ -8,7 +8,7 @@ import { mkdir, mkdtemp, readdir, rm, stat, symlink, writeFile } from 'node:fs/p
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   checkBlobFragment,
   checkLineFragment,
@@ -388,5 +388,190 @@ describe('check-repo-links runs', () => {
       (e: { code: number }) => e.code,
     );
     expect(result).toBe(2);
+  });
+});
+
+describe('check-repo-links: the pins of the published READMEs', () => {
+  const RAW = 'https://raw.githubusercontent.com/ABCrimson/modern-cmdk';
+  const PACKAGE_README = 'packages/modern-cmdk/README.md';
+  const dirs: string[] = [];
+  afterAll(async () => {
+    await Promise.all(dirs.map((d) => rm(d, { recursive: true, force: true })));
+  });
+
+  const git = (cwd: string, ...args: string[]): Promise<{ stdout: string; stderr: string }> =>
+    run('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.com', ...args], { cwd });
+
+  async function scan(
+    root: string,
+    ...args: string[]
+  ): Promise<{ code: number; stdout: string; stderr: string }> {
+    try {
+      const { stdout, stderr } = await run(process.execPath, [SCRIPT, '--root', root, ...args], {
+        cwd: root,
+      });
+      return { code: 0, stdout, stderr };
+    } catch (error) {
+      const e = error as { code: number; stdout: string; stderr: string };
+      return { code: e.code, stdout: e.stdout, stderr: e.stderr };
+    }
+  }
+
+  /**
+   * A repository whose branch `main` holds the asset commit (a picture and a record) and a second commit that
+   * deletes the record; `side` is a branch off the asset commit that main never merged.
+   */
+  let repo: string;
+  let asset: string;
+  let later: string;
+  let unmerged: string;
+  beforeAll(async () => {
+    repo = await mkdtemp(join(tmpdir(), 'check-repo-links-pins-'));
+    dirs.push(repo);
+    await git(repo, 'init', '-q', '-b', 'main');
+    await mkdir(join(repo, 'apps/docs/public/brand/readme'), { recursive: true });
+    await mkdir(join(repo, 'benchmarks/size-history'), { recursive: true });
+    await mkdir(join(repo, 'packages/modern-cmdk'), { recursive: true });
+    await writeFile(join(repo, 'apps/docs/public/brand/readme/modern-cmdk-dark.png'), 'png');
+    await writeFile(join(repo, 'benchmarks/size-history/1.7.0.json'), '{}\n');
+    await writeFile(join(repo, 'LICENSE'), 'MIT\n');
+    await writeFile(join(repo, 'packages/modern-cmdk/CHANGELOG.md'), '# Changelog\n');
+    await git(repo, 'add', '.');
+    await git(repo, 'commit', '-q', '-m', 'asset');
+    asset = (await git(repo, 'rev-parse', 'HEAD')).stdout.trim();
+    await git(repo, 'checkout', '-q', '-b', 'side');
+    await writeFile(join(repo, 'side.txt'), 'side\n');
+    await git(repo, 'add', '.');
+    await git(repo, 'commit', '-q', '-m', 'unmerged');
+    unmerged = (await git(repo, 'rev-parse', 'HEAD')).stdout.trim();
+    await git(repo, 'checkout', '-q', 'main');
+    await git(repo, 'rm', '-q', 'benchmarks/size-history/1.7.0.json');
+    await git(repo, 'commit', '-q', '-m', 'drop the record');
+    later = (await git(repo, 'rev-parse', 'HEAD')).stdout.trim();
+  });
+
+  const readme = (...lines: string[]): Promise<void> =>
+    writeFile(join(repo, PACKAGE_README), `${lines.join('\n')}\n`);
+
+  it('passes a README whose images and records name an ancestor of main that holds the path, and counts them', async () => {
+    await readme(
+      '<picture>',
+      `  <source media="(prefers-color-scheme: dark)" srcset="${RAW}/${asset}/apps/docs/public/brand/readme/modern-cmdk-dark.png">`,
+      `  <img src="${RAW}/${asset}/apps/docs/public/brand/readme/modern-cmdk-dark.png" alt="x">`,
+      '</picture>',
+      `[record](${BASE}/blob/${asset}/benchmarks/size-history/1.7.0.json)`,
+      `[changelog](${BASE}/blob/main/packages/modern-cmdk/CHANGELOG.md) [licence](${BASE}/blob/main/LICENSE)`,
+      `[folder](${BASE}/tree/main/packages/modern-cmdk#readme)`,
+    );
+    const result = await scan(repo, '--main-ref', 'main');
+    expect(result.stderr).toBe('');
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain(
+      'check-repo-links: 1 published READMEs, 3 references that must pin a commit on main',
+    );
+    expect(result.stdout).toContain('6 links checked in 2 files, 0 dead, 0 unchecked routes');
+  });
+
+  it('fails ASSET_COMMIT_PLACEHOLDER by name and says the release is not ready', async () => {
+    await readme(
+      `<img src="${RAW}/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-dark.png" alt="x">`,
+    );
+    const result = await scan(repo, '--main-ref', 'main');
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(`${PACKAGE_README}:1: ${RAW}/ASSET_COMMIT_PLACEHOLDER/`);
+    expect(result.stderr).toContain('ASSET_COMMIT_PLACEHOLDER is still a placeholder');
+    expect(result.stderr).toContain('the release is not ready');
+    expect(result.stderr.trim().split('\n')).toHaveLength(1);
+  });
+
+  it('A1-3: fails a hero that hot-links main, as the 1.7.0 READMEs did', async () => {
+    await readme(
+      `<img src="${RAW}/main/apps/docs/public/og-image.svg" alt="modern-cmdk" width="640" />`,
+    );
+    const result = await scan(repo, '--main-ref', 'main');
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain('ref main is not a full 40-hex commit');
+  });
+
+  it('fails a HEAD, tag, branch or abbreviated-hash reference, in the raw and the blob form', async () => {
+    const short = asset.slice(0, 7);
+    await readme(
+      `${RAW}/HEAD/LICENSE-less.png`, // 1
+      `${BASE}/blob/${short}/benchmarks/size-history/1.7.0.json`, // 2
+      `${BASE}/raw/side/side.txt`, // 3
+      `${BASE}/blob/modern-cmdk@1.7.0/benchmarks/size-history/1.7.0.json`, // 4
+    );
+    const result = await scan(repo, '--main-ref', 'main');
+    expect(result.code).toBe(1);
+    const lines = result.stderr.trim().split('\n');
+    expect(lines).toHaveLength(4);
+    for (const line of lines) expect(line).toContain('is not a full 40-hex commit');
+  });
+
+  it('fails a commit that is not an ancestor of main, naming main', async () => {
+    await readme(`${RAW}/${unmerged}/side.txt`);
+    const result = await scan(repo, '--main-ref', 'main');
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(`commit ${unmerged} is not an ancestor of main`);
+  });
+
+  it('fails an ancestor of main that does not hold the path, and a path main holds only later', async () => {
+    await readme(
+      `${RAW}/${asset}/apps/docs/public/brand/readme/missing.png`, // 1
+      `${RAW}/${later}/benchmarks/size-history/1.7.0.json`, // 2
+    );
+    const result = await scan(repo, '--main-ref', 'main');
+    expect(result.code).toBe(1);
+    const lines = result.stderr.trim().split('\n');
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain('does not exist at');
+    expect(lines[1]).toContain('does not exist at');
+  });
+
+  it('fails closed when the ref to compare with is not in the clone', async () => {
+    await readme(`${RAW}/${asset}/apps/docs/public/brand/readme/modern-cmdk-dark.png`);
+    const result = await scan(repo);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain('origin/main is not in this clone');
+    expect(result.stderr).toContain('fetch-depth: 0');
+  });
+
+  it('applies to the published READMEs only: the root README, a private package and the docs keep their links', async () => {
+    const link = `${RAW}/main/apps/docs/public/brand/readme/modern-cmdk-dark.png`;
+    await rm(join(repo, PACKAGE_README));
+    await mkdir(join(repo, 'packages/vscode-modern-cmdk'), { recursive: true });
+    await writeFile(join(repo, 'README.md'), `${link}\n[a](${BASE}/blob/main/LICENSE)\n`);
+    await writeFile(
+      join(repo, 'packages/vscode-modern-cmdk/README.md'),
+      `[a](${BASE}/blob/main/LICENSE)\n`,
+    );
+    const result = await scan(repo, '--main-ref', 'main');
+    expect(result.stderr).toBe('');
+    expect(result.code).toBe(0);
+    expect(result.stdout).not.toContain('published READMEs');
+  });
+
+  it('says in a shallow clone that the ancestry cannot be shown', async () => {
+    const base: string = await mkdtemp(join(tmpdir(), 'check-repo-links-shallow-'));
+    dirs.push(base);
+    const shallow: string = join(base, 'shallow');
+    await git(base, 'clone', '-q', '--depth=1', '--no-local', '-b', 'main', repo, shallow);
+    await mkdir(join(shallow, 'packages/modern-cmdk'), { recursive: true });
+    await writeFile(
+      join(shallow, PACKAGE_README),
+      `${RAW}/${asset}/apps/docs/public/brand/readme/modern-cmdk-dark.png\n`,
+    );
+    const result = await scan(shallow);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain('this clone is shallow');
+    expect(result.stderr).toContain('fetch-depth: 0');
+  });
+
+  it('accepts --main-ref and rejects an unknown flag with exit 2', async () => {
+    const code = await run(process.execPath, [SCRIPT, '--main-ref']).then(
+      () => 0,
+      (e: { code: number }) => e.code,
+    );
+    expect(code).toBe(2);
   });
 });

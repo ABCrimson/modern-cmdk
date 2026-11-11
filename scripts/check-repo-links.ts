@@ -4,7 +4,7 @@
 // left the paths into this repository unchecked; this script closes that gap. Runs with Node's native type stripping,
 // needs no build and no install:
 //
-//   node scripts/check-repo-links.ts [--root <dir>]
+//   node scripts/check-repo-links.ts [--root <dir>] [--main-ref <ref>]
 //
 // Files (default): README.md, packages/*/README.md, CONTRIBUTING.md, SECURITY.md, ARCHITECTURE.md,
 // apps/docs/**/*.md (node_modules, cache, dist and .git excluded), CHANGELOG.md, packages/*/CHANGELOG.md and
@@ -34,6 +34,18 @@
 // wiki, the bare repository URL) is a route GitHub serves from repository state, not from the tree: it is counted
 // and its distinct prefixes are printed as unchecked.
 //
+// The three published package READMEs (packages/modern-cmdk, create-modern-cmdk and modern-cmdk-codemod, by their path
+// relative to the root; scripts/readme-rules.ts lists them) carry one more rule, because npm prints a README frozen at
+// its version and a link to `main` or a tag then shows whatever main holds later. In them every raw or blob reference to
+// a file of this repository (https://raw.githubusercontent.com/ABCrimson/modern-cmdk/<ref>/<path>, and the github.com
+// blob/ and raw/ forms) must name a full 40-hex commit that is an ancestor of origin/main (--main-ref <ref> names
+// another ref) and holds the path. Three kinds of reference are exempt: a CHANGELOG.md, the LICENSE and every tree/
+// link, which stay on `main` because a reader wants the newest of them (the generic checks above still apply to
+// them). A ref that is not 40-hex fails; the placeholder tokens a release has not filled in (ASSET_COMMIT_PLACEHOLDER
+// and the like) fail by name, with a message that the release is not ready. The ancestry needs history and the ref
+// to compare against: in a shallow clone, or one without origin/main, the reference is reported dead (fail closed:
+// a pin this gate passes in error cannot be repaired on npm). CI's Links job checks out with fetch-depth 0.
+//
 // Output: on stdout any fetch notes, the `unchecked:` lines and the `unchecked routes:` line, then one stderr line per
 // dead link, `file:line: <url> — <reason>` (a control, format or line/paragraph-separator character in any line
 // that carries link text, decoded or raw, is printed as a \u{..} escape), then on stdout
@@ -44,8 +56,17 @@ import { execFile } from 'node:child_process';
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
+import {
+  isMainPinnedPath,
+  isPublishedReadme,
+  parseRepoFileUrl,
+  pinProblem,
+  RAW_URL_PATTERN,
+} from './readme-rules.ts';
 
 const run = promisify(execFile);
+const DEFAULT_MAIN_REF = 'origin/main';
+const RAW_HOST = 'https://raw.githubusercontent.com/ABCrimson/modern-cmdk';
 const ROOT: string = resolve(import.meta.dirname, '..');
 const SKIP_DIRS: ReadonlySet<string> = new Set(['node_modules', 'cache', 'dist', '.git']);
 const REPO_URL = 'https://github.com/ABCrimson/modern-cmdk';
@@ -281,15 +302,85 @@ async function git(root: string, args: readonly string[]): Promise<string | unde
   }
 }
 
+/** The exit code of a git call (undefined when git did not start). */
+async function gitExit(root: string, args: readonly string[]): Promise<number | undefined> {
+  try {
+    await run('git', [...args], {
+      cwd: root,
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    });
+    return 0;
+  } catch (error) {
+    const code: unknown = (error as { code?: unknown }).code;
+    return typeof code === 'number' ? code : undefined;
+  }
+}
+
 /** Resolves paths of links against the working tree (main, HEAD) or a commit (any other ref). */
 class Checkout {
   readonly #root: string;
   readonly #commits = new Map<string, Promise<string | undefined>>();
+  readonly #pins = new Map<string, Promise<string | undefined>>();
   readonly notes: string[] = [];
   #shallow: boolean | undefined;
 
   constructor(root: string) {
     this.#root = root;
+  }
+
+  async #isShallow(): Promise<boolean> {
+    this.#shallow ??=
+      (await git(this.#root, ['rev-parse', '--is-shallow-repository']))?.trim() === 'true';
+    return this.#shallow;
+  }
+
+  /**
+   * Why a published README may not name `ref` as the commit it pins, or undefined when it may: `ref` is a full
+   * 40-hex commit (not a placeholder, branch, tag or short hash) that is an ancestor of `mainRef`.
+   */
+  pin(ref: string, mainRef: string): Promise<string | undefined> {
+    let verdict = this.#pins.get(ref);
+    if (verdict === undefined) {
+      verdict = this.#pinVerdict(ref, mainRef);
+      this.#pins.set(ref, verdict);
+    }
+    return verdict;
+  }
+
+  async #pinVerdict(ref: string, mainRef: string): Promise<string | undefined> {
+    const problem: string | undefined = pinProblem(ref);
+    if (problem !== undefined) return problem;
+    const commit: string | undefined = await this.#commit(ref);
+    if (commit === undefined) {
+      return `commit ${ref} is not in this clone and could not be fetched`;
+    }
+    const main: string | undefined = (
+      await git(this.#root, [
+        'rev-parse',
+        '--verify',
+        '--quiet',
+        '--end-of-options',
+        `${mainRef}^{commit}`,
+      ])
+    )?.trim();
+    if (main === undefined || main === '') {
+      return `cannot tell whether ${ref} is on main: ${mainRef} is not in this clone (fetch it, or check out with fetch-depth: 0)`;
+    }
+    const code: number | undefined = await gitExit(this.#root, [
+      'merge-base',
+      '--is-ancestor',
+      commit,
+      main,
+    ]);
+    if (code === 0) return undefined;
+    if (await this.#isShallow()) {
+      return `this clone is shallow, so ${ref} cannot be shown to be an ancestor of ${mainRef} (check out with fetch-depth: 0)`;
+    }
+    return code === 1
+      ? `commit ${ref} is not an ancestor of ${mainRef} (a commit of a branch that was squashed or never merged is not part of main's history; name the sha main holds)`
+      : `git merge-base --is-ancestor ${ref} ${mainRef} failed (${code === undefined ? 'git did not start' : `exit ${code}`})`;
   }
 
   #commit(ref: string): Promise<string | undefined> {
@@ -310,12 +401,10 @@ class Checkout {
       const known: string | undefined = await verify(candidate);
       if (known !== undefined) return known.trim();
     }
-    this.#shallow ??=
-      (await git(this.#root, ['rev-parse', '--is-shallow-repository']))?.trim() === 'true';
     const args: string[] = [
       'fetch',
       '--no-tags',
-      ...(this.#shallow ? ['--depth=1'] : []),
+      ...((await this.#isShallow()) ? ['--depth=1'] : []),
       '--end-of-options',
       'origin',
       ref,
@@ -422,6 +511,21 @@ async function checkLink(
   return checkBlobFragment(link.fragment, link.path, await entry.text());
 }
 
+/** The repository URLs of a page with their lines; a published README also lists its raw.githubusercontent.com URLs (images, records). */
+function extractLinksOf(markdown: string, published: boolean): ExtractedLink[] {
+  const links: ExtractedLink[] = extractLinks(markdown);
+  if (published) {
+    const lines: string[] = markdown.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      for (const match of (lines[i] ?? '').matchAll(RAW_URL_PATTERN)) {
+        links.push({ url: match[0].replace(/[.,;:!?*~]+$/, ''), line: i + 1 });
+      }
+    }
+    links.sort((a, b) => a.line - b.line);
+  }
+  return links;
+}
+
 async function collectMarkdown(dir: string, into: string[]): Promise<void> {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     if (entry.isDirectory()) {
@@ -461,15 +565,19 @@ async function defaultFiles(root: string): Promise<string[]> {
 }
 
 async function main(): Promise<number> {
-  let values: { root?: string | undefined };
+  let values: { root?: string | undefined; 'main-ref'?: string | undefined };
   try {
-    ({ values } = parseArgs({ options: { root: { type: 'string' } }, strict: true }));
+    ({ values } = parseArgs({
+      options: { root: { type: 'string' }, 'main-ref': { type: 'string' } },
+      strict: true,
+    }));
   } catch (error) {
     process.stderr.write(
-      `check-repo-links: ${(error as Error).message}\nusage: node scripts/check-repo-links.ts [--root <dir>]\n`,
+      `check-repo-links: ${(error as Error).message}\nusage: node scripts/check-repo-links.ts [--root <dir>] [--main-ref <ref>]\n`,
     );
     return 2;
   }
+  const mainRef: string = values['main-ref'] ?? DEFAULT_MAIN_REF;
   const root: string = values.root === undefined ? ROOT : resolve(values.root);
   if (!(await stat(root).catch(() => undefined))?.isDirectory()) {
     process.stderr.write(`check-repo-links: --root is not a directory (got ${root})
@@ -490,10 +598,28 @@ async function main(): Promise<number> {
   const uncheckedLines: string[] = [];
   let checked = 0;
   let routes = 0;
+  let pinned = 0;
+  let publishedReadmes = 0;
   for (const file of files) {
     const page: string = relative(root, file).split(sep).join('/');
-    for (const { url, line } of extractLinks(await readFile(file, 'utf8'))) {
-      const link: RepoLink = classifyLink(url);
+    const published: boolean = isPublishedReadme(page);
+    if (published) publishedReadmes++;
+    for (const { url, line } of extractLinksOf(await readFile(file, 'utf8'), published)) {
+      // In a published README a raw or blob reference (other than a CHANGELOG.md or the LICENSE) is a pin.
+      const repoFile = published ? parseRepoFileUrl(url) : undefined;
+      const isPin: boolean = repoFile !== undefined && !isMainPinnedPath(repoFile.path);
+      if (repoFile !== undefined && isPin) {
+        pinned++;
+        const problem: string | undefined = await checkout.pin(repoFile.ref, mainRef);
+        if (problem !== undefined) {
+          checked++;
+          deadLines.push(printable(`${page}:${line}: ${url} — ${problem}`));
+          continue;
+        }
+      }
+      const link: RepoLink = url.startsWith(RAW_HOST)
+        ? { kind: 'raw', ref: repoFile?.ref ?? '', path: repoFile?.path ?? '', fragment: '' }
+        : classifyLink(url);
       if (link.kind === 'route') {
         routes++;
         prefixes.add(link.prefix);
@@ -519,6 +645,11 @@ async function main(): Promise<number> {
     process.stdout.write(`${printable(`unchecked routes: ${[...prefixes].sort().join(' ')}`)}\n`);
   }
   if (deadLines.length > 0) process.stderr.write(`${deadLines.join('\n')}\n`);
+  if (publishedReadmes > 0) {
+    process.stdout.write(
+      `check-repo-links: ${publishedReadmes} published READMEs, ${pinned} references that must pin a commit on ${mainRef}\n`,
+    );
+  }
   process.stdout.write(
     `check-repo-links: ${checked} links checked in ${files.length} files, ${deadLines.length} dead, ${routes} unchecked routes\n`,
   );
