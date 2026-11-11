@@ -7,7 +7,7 @@
   </defs>
   <rect width="760" height="200" rx="20" fill="#fcfcfe"/>
   <rect width="760" height="200" rx="20" fill="url(#glow)"/>
-  <rect x="0.75" y="0.75" width="758.5" height="198.5" rx="19.25" fill="none" stroke="#dddfe8" stroke-opacity="1" stroke-width="1.5"/>
+  <rect x="0.75" y="0.75" width="758.5" height="198.5" rx="19.25" fill="none" stroke="#7b8090" stroke-opacity=".4" stroke-width="1.5"/>
   <g transform="translate(36 36) scale(0.75)">
     <rect width="64" height="64" rx="15" fill="#0a0e27"/>
     <rect x="10" y="10" width="44" height="44" rx="11" fill="none" stroke="url(#acc)" stroke-width="4"/>
