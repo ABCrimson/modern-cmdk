@@ -279,11 +279,15 @@ describe('the TypeScript nightly named in docs follows the catalog', () => {
     'tests/consumers/vite-app/package.json',
   ];
 
-  it('RDG-117: README.md carries the shields badge for the catalog pin once, and the typecheck row', () => {
+  it('RDG-117: README.md carries no toolchain badge and names no TypeScript nightly', () => {
+    // The root README no longer has a static TypeScript badge or a command table: a pin there read as a requirement
+    // (the peer range is what a consumer needs) and went stale at every bump.
     expect(pin).toMatch(EXACT);
     const readme = read('README.md');
-    expect(readme.split(`TypeScript-${badgePin}-`)).toHaveLength(2);
-    expect(readme).toContain(`(TypeScript ${pin})`);
+    expect(readme).not.toContain(`TypeScript-${badgePin}-`);
+    expect(readme).not.toContain(pin);
+    expect(readme.match(NIGHTLY) ?? []).toEqual([]);
+    expect(readme).not.toMatch(/img\.shields\.io\/badge\//);
   });
 
   it('RDG-117: every other doc site names the catalog pin', () => {
