@@ -27,7 +27,7 @@ const ogImage = `${siteUrl}og-image.png`;
 const description =
   'Headless command palette engine: a framework-agnostic TypeScript core with fuzzy search, frecency ranking and keyboard shortcuts, plus a React 19 adapter.';
 const ogImageAlt =
-  'modern-cmdk: one headless engine, any framework. A command palette filtering for ‘frec’.';
+  "modern-cmdk: one headless engine, any framework, with a TypeScript core and a React 19 adapter. A command palette filtering for 'frec'.";
 const version: string = pkg.version;
 const repoUrl = 'https://github.com/ABCrimson/modern-cmdk';
 

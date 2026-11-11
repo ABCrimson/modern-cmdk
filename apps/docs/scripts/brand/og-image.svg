@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="modern-cmdk: one headless engine, any framework. A command palette filtering for ‘frec’.">
-  <title>modern-cmdk: one headless engine, any framework. A command palette filtering for ‘frec’.</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="modern-cmdk: one headless engine, any framework, with a TypeScript core and a React 19 adapter. A command palette filtering for 'frec'.">
+  <!-- Fonts: Instrument Sans and Geist Mono, SIL Open Font License 1.1; see fonts-license.txt -->
+  <title>modern-cmdk: one headless engine, any framework, with a TypeScript core and a React 19 adapter. A command palette filtering for 'frec'.</title>
   <style>.s{font-family:'Instrument Sans Variable','Instrument Sans Fallback',Arial,sans-serif}.m{font-family:'Geist Mono Variable','Geist Mono Fallback','Courier New',monospace}</style>
   <defs>
     <linearGradient id="acc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dc2626"/><stop offset="1" stop-color="#f87171"/></linearGradient>
@@ -21,9 +22,7 @@
     <text class="s" x="72" y="262" font-size="64" font-weight="650" letter-spacing="-1.92" fill="#eaecf5">modern-cmdk</text>
     <text class="s" x="72" y="330" font-size="40" font-weight="500" fill="#b5bacb">One headless engine.</text>
     <text class="s" x="72" y="378" font-size="40" font-weight="500" fill="#b5bacb">Any framework.</text>
-    <rect x="72.75" y="446.75" width="168.5" height="38.5" rx="19.25" fill="#141935" stroke="#242a42" stroke-width="1.5"/><text class="m" x="157" y="472.12" font-size="18" text-anchor="middle" fill="#b5bacb">fuzzy search</text>
-    <rect x="254.75" y="446.75" width="124.5" height="38.5" rx="19.25" fill="#141935" stroke="#242a42" stroke-width="1.5"/><text class="m" x="317" y="472.12" font-size="18" text-anchor="middle" fill="#b5bacb">frecency</text>
-    <rect x="392.75" y="446.75" width="124.5" height="38.5" rx="19.25" fill="#141935" stroke="#242a42" stroke-width="1.5"/><text class="m" x="455" y="472.12" font-size="18" text-anchor="middle" fill="#b5bacb">WAI-ARIA</text>
+    <text class="s" x="72" y="440" font-size="32" font-weight="600" word-spacing="3" fill="#eaecf5" data-max-advance="540">TypeScript core · React 19 adapter</text>
     <text class="m" x="72" y="566" font-size="20" fill="#9297ab">abcrimson.github.io/modern-cmdk</text>
     <g transform="translate(640 96)">
     <rect x=".75" y=".75" width="486.5" height="436.5" rx="22" fill="#0f1430" stroke="#5b627b" stroke-opacity="0.6" stroke-width="1.5"/>
