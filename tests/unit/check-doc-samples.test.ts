@@ -189,3 +189,109 @@ describe('DEFAULT_FILES', () => {
     }
   });
 });
+
+// The layout rules of the published READMEs (scripts/readme-rules.ts, unit-tested in readme-rules.test.ts) run inside the gate:
+// a fixture root holds packages/<name>/README.md pages, the script prints page:line: message and exits 1.
+describe('check-doc-samples: the layout rules of the published READMEs', () => {
+  const repo: string = resolve(import.meta.dirname, '../..');
+  const script: string = join(repo, 'scripts/check-doc-samples.ts');
+  const created: string[] = [];
+
+  /** A fixture root with the given pages, each a path under the root and its lines. */
+  function fixture(pages: Record<string, string[]>): { root: string; out: string } {
+    mkdirSync(join(repo, 'node_modules/.cache'), { recursive: true });
+    const root: string = mkdtempSync(join(repo, 'node_modules/.cache/doc-samples-layout-'));
+    const out: string = `${root}-out`;
+    created.push(root, out);
+    for (const [page, lines] of Object.entries(pages)) {
+      mkdirSync(join(root, page, '..'), { recursive: true });
+      writeFileSync(join(root, page), `${lines.join('\n')}\n`);
+    }
+    return { root, out };
+  }
+
+  function run(
+    root: string,
+    out: string,
+  ): { status: number | null; stdout: string; stderr: string } {
+    const result = spawnSync(process.execPath, [script, '--root', root, '--out', out], {
+      cwd: repo,
+      encoding: 'utf8',
+    });
+    return { status: result.status, stdout: result.stdout, stderr: result.stderr };
+  }
+
+  afterAll(() => {
+    for (const dir of created) rmSync(dir, { recursive: true, force: true });
+  });
+
+  const sample = ['```ts', 'export const plain: number = 1;', '```'];
+
+  it('passes a published README whose fences are 78 columns or fewer and whose spans can wrap', () => {
+    const { root, out } = fixture({
+      'packages/modern-cmdk/README.md': [
+        ...sample,
+        '```sh',
+        `npm install ${'x'.repeat(78 - 'npm install '.length)}`,
+        '```',
+        'Use `modern-cmdk/react/dialog` for the dialog.',
+      ],
+    });
+    const result = run(root, out);
+    expect(result.stderr).toBe('');
+    expect(result.stdout).toContain(
+      'check-doc-samples: 1 published READMEs checked for layout, 0 violations',
+    );
+    expect(result.status).toBe(0);
+  });
+
+  it('A1-10: fails a sample line over 78 columns and an unbreakable span over 28, with page:line', () => {
+    const { root, out } = fixture({
+      'packages/modern-cmdk/README.md': [
+        'Figures come from `benchmarks/size-history/1.7.0.json`.', // 1
+        ...sample, // 2-4
+        '```ts', // 5
+        `export const wide = '${'w'.repeat(100)}';`, // 6
+        '```', // 7
+      ],
+    });
+    const result = run(root, out);
+    expect(result.status).toBe(1);
+    const lines: string[] = result.stderr.trim().split('\n');
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain(
+      'packages/modern-cmdk/README.md:1: inline code `benchmarks/size-history/1.7.0.json` is 34 characters',
+    );
+    expect(lines[1]).toContain(
+      'packages/modern-cmdk/README.md:6: fence line is 123 characters, the limit is 78',
+    );
+    expect(result.stdout).toContain('1 published READMEs checked for layout, 2 violations');
+  });
+
+  it('binds the three published READMEs and no other page', () => {
+    const wide = ['```text', 'y'.repeat(120), '```'];
+    const { root, out } = fixture({
+      'packages/modern-cmdk/README.md': sample,
+      'packages/create-modern-cmdk/README.md': wide,
+      'packages/modern-cmdk-codemod/README.md': wide,
+      'README.md': wide,
+      'packages/vscode-modern-cmdk/README.md': wide,
+      'guide/page.md': wide,
+    });
+    const result = run(root, out);
+    expect(result.status).toBe(1);
+    const lines: string[] = result.stderr.trim().split('\n');
+    expect(lines.map((l) => l.split(':')[0]).sort()).toEqual([
+      'packages/create-modern-cmdk/README.md',
+      'packages/modern-cmdk-codemod/README.md',
+    ]);
+    expect(result.stdout).toContain('3 published READMEs checked for layout, 2 violations');
+  });
+
+  it('says nothing about layout when the scanned root holds no published README', () => {
+    const { root, out } = fixture({ 'README.md': ['```text', 'z'.repeat(120), '```', ...sample] });
+    const result = run(root, out);
+    expect(result.status).toBe(0);
+    expect(result.stdout).not.toContain('published READMEs');
+  });
+});
