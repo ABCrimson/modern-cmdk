@@ -199,7 +199,7 @@ describe('packages/modern-cmdk/README.md: the figures between the markers', () =
     expect(runner, 'baseline.json has a record for the AMD EPYC 7763 runner').toBeDefined();
     const median = runner?.benchmarks.search['ts-scorer-10k']?.median_ms ?? Number.NaN;
     expect(line(figures, '| Search 10,000 items for one query |')).toBe(
-      `| Search 10,000 items for one query | ${median.toFixed(1)} ms median[^bench] |`,
+      `| Search 10,000 items for one query | median ${median.toFixed(1)} ms[^bench] |`,
     );
     expect(figures).toContain(`recorded on ${runner?.date}`);
     expect(figures).toContain(`(AMD EPYC 7763, ${runner?.environment.cpuCount} cores)`);
