@@ -519,7 +519,7 @@ Backfilled from the GitHub release body of `modern-cmdk@1.1.0` (published 2026-0
   - GPU-composited CSS animations
   - Full WAI-ARIA combobox pattern
   - Automatic virtualization at 100+ items
-  - Iterator Helpers (ES2025), Explicit Resource Management, cross-browser helpers [corrected 2026-11: iterator helpers are ES2025]
+  - Iterator Helpers (ES2025), Explicit Resource Management, ES2026 APIs such as Temporal and `Map.groupBy` [corrected 2026-11: iterator helpers are ES2025; 1.1.3 replaced the ES2026 APIs with cross-browser helpers]
 
 ## Before the rename (@crimson_dev/command)
 
