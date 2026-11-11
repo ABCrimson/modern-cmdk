@@ -31,7 +31,13 @@
 //      on Linux and win32), so this guards the published tarball, including a --tarball packed by another tool.
 //      The extracted dist's own modes are checked by tests/dist/manifest.test.ts;
 //   8. 'use client': every modern-cmdk dist/react/*.mjs starts with the directive, no modern-cmdk
-//      dist/core or dist/codemod .mjs and no modern-cmdk-codemod dist .mjs does.
+//      dist/core or dist/codemod .mjs and no modern-cmdk-codemod dist .mjs does;
+//   9. the packed README.md (the page npm prints, frozen at this version): every <img> and ![](...) has a non-empty
+//      alt, and every image it shows from this repository (<img src>, <source srcset>) names a full 40-hex commit
+//      (a placeholder such as ASSET_COMMIT_PLACEHOLDER fails by name, and so does a relative path, which npm resolves
+//      to the HEAD of main) and that commit holds the file. The commit is looked up with git in this checkout and,
+//      when it is not there, fetched once from origin (`git fetch --no-tags [--depth=1] origin <sha>`), so a shallow
+//      CI checkout works; whether the commit is an ancestor of origin/main is check-repo-links.ts's rule.
 // Every failure is printed, then the process exits.
 //
 // HOST TAR RULE: no host tar binary is ever run on a tarball. Git's GNU tar reads a drive-letter path
@@ -48,6 +54,7 @@ import { parseArgs } from 'node:util';
 import { gunzipSync } from 'node:zlib';
 import { publint } from 'publint';
 import { formatMessage } from 'publint/utils';
+import { extractImageRefs, parseRepoFileUrl, pinProblem } from './readme-rules.ts';
 
 const ROOT = resolve(import.meta.dirname, '..');
 export const PACKAGES = ['modern-cmdk', 'create-modern-cmdk', 'modern-cmdk-codemod'] as const;
@@ -481,6 +488,85 @@ export function clientDirectiveFailures(name: string, entries: readonly TarEntry
   return failures;
 }
 
+/** Where a commit stands in this checkout: the path is there, the commit lacks it, or the commit itself is unknown. */
+export type CommitPath = 'present' | 'missing-path' | 'missing-commit';
+
+/**
+ * Failure lines for the images of a packed README: an <img> or ![](...) without alt text, an image with no src, a
+ * relative path, and an image from this repository whose ref is not a full 40-hex commit or whose commit does not
+ * hold the file. `where` answers the last question (git, in main()). Images from other hosts are not checked.
+ */
+export function readmeImageFailures(
+  readme: string,
+  where: (sha: string, path: string) => CommitPath,
+): string[] {
+  const failures: string[] = [];
+  for (const image of extractImageRefs(readme)) {
+    const at = `README.md:${image.line}`;
+    if (image.tag !== 'source' && (image.alt ?? '').trim() === '') {
+      failures.push(`README images: ${at}: the image has no alt text`);
+    }
+    if (image.url === '') {
+      failures.push(`README images: ${at}: the image has no src`);
+      continue;
+    }
+    const file = parseRepoFileUrl(image.url);
+    if (file === undefined) {
+      if (!/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(image.url)) {
+        failures.push(
+          `README images: ${at}: ${image.url} is a relative path, which npm resolves to the HEAD of main (name a 40-hex commit in a raw.githubusercontent.com URL)`,
+        );
+      }
+      continue;
+    }
+    const problem: string | undefined = pinProblem(file.ref);
+    if (problem !== undefined) {
+      failures.push(`README images: ${at}: ${image.url} — ${problem}`);
+      continue;
+    }
+    const state: CommitPath = where(file.ref, file.path);
+    if (state === 'missing-commit') {
+      failures.push(
+        `README images: ${at}: commit ${file.ref} is not in this checkout and could not be fetched from origin`,
+      );
+    } else if (state === 'missing-path') {
+      failures.push(
+        `README images: ${at}: ${file.path || '(no path)'} does not exist at commit ${file.ref}`,
+      );
+    }
+  }
+  return failures;
+}
+
+const fetchedCommits = new Set<string>();
+
+/** Whether `git` in the repository root reaches the object (exit 0 of `git cat-file -e`). */
+function gitHas(spec: string): boolean {
+  return spawnSync('git', ['cat-file', '-e', spec], { cwd: ROOT, stdio: 'ignore' }).status === 0;
+}
+
+/** The README image lookup main() hands to readmeImageFailures: git in this checkout, with one fetch of a commit it lacks. */
+export function commitHasPath(sha: string, path: string): CommitPath {
+  if (!gitHas(`${sha}^{commit}`) && !fetchedCommits.has(sha)) {
+    fetchedCommits.add(sha);
+    const shallow = spawnSync('git', ['rev-parse', '--is-shallow-repository'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    }).stdout.trim();
+    write(
+      process.stdout,
+      `check-package: commit ${sha} is not in this checkout; fetching it from origin`,
+    );
+    spawnSync(
+      'git',
+      ['fetch', '--no-tags', ...(shallow === 'true' ? ['--depth=1'] : []), 'origin', sha],
+      { cwd: ROOT, stdio: 'ignore', env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
+    );
+  }
+  if (!gitHas(`${sha}^{commit}`)) return 'missing-commit';
+  return gitHas(`${sha}:${path}`) ? 'present' : 'missing-path';
+}
+
 function usage(message: string): never {
   write(process.stderr, `check-package: ${message}`);
   write(
@@ -553,6 +639,12 @@ async function main(): Promise<void> {
       );
     }
     found.push(...clientDirectiveFailures(name, entries));
+    const readme = entries.find((entry) => entry.name === 'README.md');
+    found.push(
+      ...(readme === undefined
+        ? ['README images: the tarball has no README.md']
+        : readmeImageFailures(readme.data.toString('utf8'), commitHasPath)),
+    );
     for (const line of found) write(process.stderr, `[${name}] FAIL ${line}`);
     failures.push(...found);
   }
