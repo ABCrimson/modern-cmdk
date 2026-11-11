@@ -54,7 +54,12 @@ import { parseArgs } from 'node:util';
 import { gunzipSync } from 'node:zlib';
 import { publint } from 'publint';
 import { formatMessage } from 'publint/utils';
-import { extractImageRefs, parseRepoFileUrl, pinProblem } from './readme-rules.ts';
+import {
+  extractImageRefs,
+  parseRepoFileUrl,
+  pinProblem,
+  repoUrlSpellingViolations,
+} from './readme-rules.ts';
 
 const ROOT = resolve(import.meta.dirname, '..');
 export const PACKAGES = ['modern-cmdk', 'create-modern-cmdk', 'modern-cmdk-codemod'] as const;
@@ -492,15 +497,21 @@ export function clientDirectiveFailures(name: string, entries: readonly TarEntry
 export type CommitPath = 'present' | 'missing-path' | 'missing-commit';
 
 /**
- * Failure lines for the images of a packed README: an <img> or ![](...) without alt text, an image with no src, a
- * relative path, and an image from this repository whose ref is not a full 40-hex commit or whose commit does not
+ * Failure lines for the images of a packed README: an <img> or a ![](...), ![][label] or ![label] image without alt
+ * text, an image with no src, a relative path, an image from the GitHub Pages copy of the site (a package README names the image at a commit
+ * instead), and an image from this repository whose ref is not a full 40-hex commit or whose commit does not
  * hold the file. `where` answers the last question (git, in main()). Images from other hosts are not checked.
+ * Any URL of this repository spelled other than exactly https://raw.githubusercontent.com/ABCrimson/modern-cmdk or
+ * https://github.com/ABCrimson/modern-cmdk also fails: another spelling (the host serves a lowercase owner) would
+ * escape the ref checks below.
  */
 export function readmeImageFailures(
   readme: string,
   where: (sha: string, path: string) => CommitPath,
 ): string[] {
-  const failures: string[] = [];
+  const failures: string[] = repoUrlSpellingViolations(readme).map(
+    ({ line, message }) => `README URLs: README.md:${line}: ${message}`,
+  );
   for (const image of extractImageRefs(readme)) {
     const at = `README.md:${image.line}`;
     if (image.tag !== 'source' && (image.alt ?? '').trim() === '') {
@@ -508,6 +519,12 @@ export function readmeImageFailures(
     }
     if (image.url === '') {
       failures.push(`README images: ${at}: the image has no src`);
+      continue;
+    }
+    if (/^https?:\/\/abcrimson\.github\.io(?:[/:?#]|$)/i.test(image.url)) {
+      failures.push(
+        `README images: ${at}: ${image.url} is the GitHub Pages copy of the site, which a package README does not use (name the image at a commit in a raw.githubusercontent.com URL)`,
+      );
       continue;
     }
     const file = parseRepoFileUrl(image.url);

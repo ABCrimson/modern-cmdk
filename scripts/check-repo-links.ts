@@ -45,6 +45,12 @@
 // and the like) fail by name, with a message that the release is not ready. The ancestry needs history and the ref
 // to compare against: in a shallow clone, or one without origin/main, the reference is reported dead (fail closed:
 // a pin this gate passes in error cannot be repaired on npm). CI's Links job checks out with fetch-depth 0.
+// Two more things fail in a published README, both because they would escape the pin rule: a URL of this repository in
+// any spelling other than exactly https://github.com/ABCrimson/modern-cmdk or
+// https://raw.githubusercontent.com/ABCrimson/modern-cmdk (the host serves the lowercase owner and any other letter case
+// with HTTP 200), and a relative link (an inline link, a [label]: definition, the href of an <a>, the src of an <img>,
+// a srcset) with no scheme that does not start with # or //, which npm resolves to the HEAD of main. Fences, inline
+// code spans and HTML comments are not read for the relative links.
 //
 // Output: on stdout any fetch notes, the `unchecked:` lines and the `unchecked routes:` line, then one stderr line per
 // dead link, `file:line: <url> — <reason>` (a control, format or line/paragraph-separator character in any line
@@ -59,9 +65,13 @@ import { parseArgs, promisify } from 'node:util';
 import {
   isMainPinnedPath,
   isPublishedReadme,
+  linkTargets,
   parseRepoFileUrl,
   pinProblem,
   RAW_URL_PATTERN,
+  relativeLinkProblem,
+  repoUrlSpellingViolations,
+  SPELLING_PROBLEM,
 } from './readme-rules.ts';
 
 const run = promisify(execFile);
@@ -87,6 +97,8 @@ const EMPHASIS = /(?<![\p{L}\p{N}_])(_+)(?![\s_])(.+?)(?<![\s_])\1(?![\p{L}\p{N}
 export interface ExtractedLink {
   readonly url: string;
   readonly line: number;
+  /** Set for a reference a published README may not hold at all (another spelling of the repository URL, a relative link): it is reported dead as it stands. */
+  readonly problem?: string;
 }
 
 export type RepoLink =
@@ -511,8 +523,12 @@ async function checkLink(
   return checkBlobFragment(link.fragment, link.path, await entry.text());
 }
 
-/** The repository URLs of a page with their lines; a published README also lists its raw.githubusercontent.com URLs (images, records). */
-function extractLinksOf(markdown: string, published: boolean): ExtractedLink[] {
+/**
+ * The repository URLs of a page with their lines; a published README also lists its raw.githubusercontent.com URLs
+ * (images, records), every URL of this repository spelled other than exactly `https://github.com/ABCrimson/modern-cmdk`
+ * or `https://raw.githubusercontent.com/ABCrimson/modern-cmdk`, and every relative link, the last two with a `problem`.
+ */
+export function extractLinksOf(markdown: string, published: boolean): ExtractedLink[] {
   const links: ExtractedLink[] = extractLinks(markdown);
   if (published) {
     const lines: string[] = markdown.split(/\r?\n/);
@@ -520,6 +536,13 @@ function extractLinksOf(markdown: string, published: boolean): ExtractedLink[] {
       for (const match of (lines[i] ?? '').matchAll(RAW_URL_PATTERN)) {
         links.push({ url: match[0].replace(/[.,;:!?*~]+$/, ''), line: i + 1 });
       }
+    }
+    for (const { line, url } of repoUrlSpellingViolations(markdown)) {
+      links.push({ url, line, problem: SPELLING_PROBLEM });
+    }
+    for (const { line, target } of linkTargets(markdown)) {
+      const problem: string | undefined = relativeLinkProblem(target);
+      if (problem !== undefined) links.push({ url: target, line, problem });
     }
     links.sort((a, b) => a.line - b.line);
   }
@@ -604,7 +627,15 @@ async function main(): Promise<number> {
     const page: string = relative(root, file).split(sep).join('/');
     const published: boolean = isPublishedReadme(page);
     if (published) publishedReadmes++;
-    for (const { url, line } of extractLinksOf(await readFile(file, 'utf8'), published)) {
+    for (const { url, line, problem: refused } of extractLinksOf(
+      await readFile(file, 'utf8'),
+      published,
+    )) {
+      if (refused !== undefined) {
+        checked++;
+        deadLines.push(printable(`${page}:${line}: ${url} — ${refused}`));
+        continue;
+      }
       // In a published README a raw or blob reference (other than a CHANGELOG.md or the LICENSE) is a pin.
       const repoFile = published ? parseRepoFileUrl(url) : undefined;
       const isPin: boolean = repoFile !== undefined && !isMainPinnedPath(repoFile.path);

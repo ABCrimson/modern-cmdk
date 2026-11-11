@@ -487,4 +487,53 @@ describe('readmeImageFailures', () => {
   it('ignores an image written inside a fence', () => {
     expect(readmeImageFailures('```html\n<img src="x.png">\n```\n', where('present'))).toEqual([]);
   });
+
+  it('A1-3: fails a lowercase-owner main hero, which the host serves, and any other spelling of the URL', () => {
+    for (const url of [
+      'https://raw.githubusercontent.com/abcrimson/modern-cmdk/main/apps/docs/public/og-image.svg',
+      'https://raw.githubusercontent.com/ABCrimson/Modern-Cmdk/main/apps/docs/public/og-image.svg',
+      'http://raw.githubusercontent.com/ABCrimson/modern-cmdk/main/apps/docs/public/og-image.svg',
+    ]) {
+      const failures = readmeImageFailures(hero(url, 'modern-cmdk'), where('present'));
+      expect(failures, url).toHaveLength(1);
+      expect(failures[0], url).toContain('README.md:2:');
+      expect(failures[0], url).toContain('another spelling of the URL escapes the pin check');
+    }
+    expect(readmeImageFailures(hero(`${RAW}/${SHA}/${FILE}`), where('present'))).toEqual([]);
+  });
+
+  it('A1-12: reads a reference-style image: no alt text and a relative definition both fail', () => {
+    const failures = readmeImageFailures(
+      '![][hero]\n\n[hero]: ../../apps/docs/public/og-image.svg\n',
+      where('present'),
+    );
+    expect(failures).toHaveLength(2);
+    expect(failures[0]).toBe('README images: README.md:1: the image has no alt text');
+    expect(failures[1]).toContain('../../apps/docs/public/og-image.svg is a relative path');
+  });
+
+  it('A1-12: a reference-style image with alt text and a pinned definition passes, an undefined label has no src', () => {
+    const seen: string[] = [];
+    const ok = `![Shortcut alt][hero]\n\n[hero]: ${RAW}/${SHA}/${FILE}\n`;
+    expect(readmeImageFailures(ok, where('present', seen))).toEqual([]);
+    expect(seen).toEqual([`${SHA}:${FILE}`]);
+    expect(readmeImageFailures('![Alt][nowhere]\n', where('present'))).toEqual([
+      'README images: README.md:1: the image has no src',
+    ]);
+  });
+
+  it('fails an image from the GitHub Pages copy of the site, which only the root README and the wiki use', () => {
+    const failures = readmeImageFailures(
+      hero('https://abcrimson.github.io/modern-cmdk/brand/readme/modern-cmdk-dark.png'),
+      where('present'),
+    );
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('is the GitHub Pages copy of the site');
+  });
+
+  it('does not report an <img> inside an HTML comment', () => {
+    expect(readmeImageFailures('<!-- <img src="x.png"> -->\n', where('missing-commit'))).toEqual(
+      [],
+    );
+  });
 });
