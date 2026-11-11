@@ -13,4 +13,4 @@
 
 **Fixed**
 
-- The `--help` text for the git check says what the check does: a run without `--dry-run` refuses to write when a matched file has uncommitted changes or lies outside a git work tree, unless `--force` is given.
+- The `--help` text for the git check says what the check does: a strict run (the default; `--lenient` turns it off) without `--dry-run` or `--force` refuses to write when a matched file has uncommitted changes or lies outside the git work tree it runs in, or when git is missing.
