@@ -236,8 +236,13 @@ describe('release.yml has no first-publish scaffolding', () => {
     for (const name of ['attest', 'publish']) {
       expect(job(name), name).not.toBe('');
       expect(job(name), name).not.toMatch(
-        /\bnpm (exec|install|ci)\b|\bnpx\b|codemod-tarball-smoke/,
+        /\bnpm (exec|x|install|i|ci|create|init)\b|\bnpx\b|\bpnpm (dlx|add|create)\b|codemod-tarball-smoke/,
       );
+      // The only install either job runs is publish's frozen one without scripts.
+      expect(
+        [...job(name).matchAll(/^\s+- run: (pnpm install.*)$/gm)].map((m) => m[1]),
+        name,
+      ).toEqual(name === 'publish' ? ['pnpm install --frozen-lockfile --ignore-scripts'] : []);
     }
   });
 });
@@ -267,7 +272,9 @@ describe('release.yml release notes, Latest and the README image probe', () => {
       ['readme-images', probe],
     ] as const) {
       expect(block, name).not.toBe('');
-      expect(block, name).toContain("    if: needs.publish.outputs.published == 'true'");
+      expect(block, name).toContain(
+        `    if: \${{ !cancelled() && needs.publish.outputs.published == 'true' }}`,
+      );
       expect(block, name).toContain('    needs: publish\n');
       expect(block, name).toMatch(
         /^ {6}PUBLISHED: \$\{\{ needs\.publish\.outputs\.published-packages \}\}$/m,
@@ -338,8 +345,8 @@ describe('release.yml release notes, Latest and the README image probe', () => {
   });
 
   it('readme-images probes the packument readme after publish and fails on anything but 200', () => {
-    expect(step(probe, 'Request every README image URL')).toContain(
-      'node scripts/compose-release-notes.ts probe-images',
+    expect(step(probe, 'Request every README image URL')).toMatch(
+      /run: node scripts\/compose-release-notes\.ts probe-images$/m,
     );
     expect(probe).not.toMatch(/continue-on-error|\|\| true/);
   });
@@ -352,6 +359,18 @@ describe('release.yml release notes, Latest and the README image probe', () => {
         expect(m[1], m[1]).toMatch(/^[\w-]+\/[\w-]+@[0-9a-f]{40}$/);
         expect(m[2], m[1]).toMatch(/^ # v\d+\.\d+\.\d+$/);
       }
+    }
+  });
+
+  it('both new jobs check out the released commit without keeping the token', () => {
+    for (const [name, block] of [
+      ['release-notes', notes],
+      ['readme-images', probe],
+    ] as const) {
+      expect(block, name).toMatch(
+        /- uses: actions\/checkout@[0-9a-f]{40} # v\d+\.\d+\.\d+\n {8}with:\n {10}persist-credentials: false\n/,
+      );
+      expect(block, name).not.toMatch(/^\s+ref:/m);
     }
   });
 
