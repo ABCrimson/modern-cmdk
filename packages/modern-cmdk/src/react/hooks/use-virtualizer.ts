@@ -34,7 +34,7 @@ export interface VirtualItem {
   readonly start: number;
   /** The row's height in pixels: its measured height, else the estimate */
   readonly size: number;
-  /** A stable React key for the row */
+  /** The row's React key: its index, so it follows the position, not the item */
   readonly key: number;
 }
 
