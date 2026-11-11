@@ -10,7 +10,7 @@ concurrency:
 # Reset permissions; each job declares only what it needs.
 permissions: {}
 
-# Job graph. On a push to main: ci-gate -> select-mode -> version | (pack -> attest -> publish).
+# Job graph. On a push to main: ci-gate -> select-mode -> version | (pack -> attest -> publish -> (release-notes | readme-images)).
 #
 # D62: npm's trusted publishing is configured per existing package, so the first version of a new package is
 # published by the owner by hand, never by this workflow. The attest job refuses a publish plan that holds a
@@ -35,6 +35,13 @@ permissions: {}
 # holding id-token: write; attest takes it for Sigstore with attestations: write and artifact-metadata: write
 # and holds no npm credential, while publish holds contents: write and the npm OIDC publish.
 # publish runs in the `npm` environment, whose deployment branches are restricted to main.
+#
+# release-notes and readme-images run after a publish, each in a job of its own, so that no step of them can sign or publish:
+# release-notes holds contents: write for `gh release edit` and readme-images contents: read, and neither holds id-token or
+# installs anything (scripts/compose-release-notes.ts uses Node built-ins only). release-notes replaces the body that
+# changeset publish gave each new GitHub release with the one the script composes from the summary file
+# .github/release-notes/<package>@<version>.md and the package's CHANGELOG section, then marks the newest modern-cmdk release
+# Latest. readme-images requests every raw.githubusercontent.com URL in each published packument's readme.
 #
 # Publish via npm OIDC Trusted Publishing — no long-lived token. An empty NPM_TOKEN /
 # NODE_AUTH_TOKEN would make npm/pnpm try an empty token and skip the OIDC fallback, so
@@ -370,6 +377,9 @@ jobs:
     permissions:
       contents: write # push tags and create GitHub releases (changesets/action/publish)
       id-token: write # npm trusted publishing (changesets/action/publish)
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
+      published-packages: ${{ steps.publish.outputs.published-packages }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -382,6 +392,87 @@ jobs:
       # No `script`: with a pack-dir artifact the sub-action runs `changeset publish
       # --from-pack-dir <dir>` itself (a custom script would bypass the packed tarballs).
       - name: Publish packages
+        id: publish
         uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+
+  # changeset publish creates one GitHub release per published package with the package's CHANGELOG section as its body. This
+  # job replaces each body with the one scripts/compose-release-notes.ts composes (the summary file a person adds to the Version
+  # PR, the size line for modern-cmdk, the CHANGELOG section in <details>, the footer links); a release with no summary file
+  # fails the step after the others are done. It holds contents: write for `gh release edit` and nothing else: no id-token, no
+  # npm credential, no install.
+  # The publish sub-action (changesets/action v2.1.2: inputs github-token, script, pack-dir-artifact-id, create-github-releases,
+  # push-git-tags, cwd; outputs published, published-packages) has no input that says which release is Latest, so GitHub marks
+  # the release created last: modern-cmdk-codemod@1.0.1 two seconds after modern-cmdk@1.6.0. The last step therefore marks the
+  # highest modern-cmdk release Latest again, and runs even when the step before it failed.
+  release-notes:
+    if: needs.publish.outputs.published == 'true'
+    needs: publish
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # gh release edit
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PUBLISHED: ${{ needs.publish.outputs.published-packages }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: List the release tags
+        id: tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release list --limit 1000 --json tagName,isDraft --jq '.[] | select(.isDraft | not) | .tagName' > "$RUNNER_TEMP/release-tags.txt"
+          echo "$(wc -l < "$RUNNER_TEMP/release-tags.txt") release tag(s)"
+      - name: Compose and set the release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          while IFS= read -r tag; do
+            if node scripts/compose-release-notes.ts compose --tag "$tag" --tags-file "$RUNNER_TEMP/release-tags.txt" --commit "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" --out "$RUNNER_TEMP/release-notes.md"; then
+              gh release edit "$tag" --notes-file "$RUNNER_TEMP/release-notes.md"
+              echo "Set the notes of $tag"
+            else
+              failed=1
+            fi
+          done < <(jq -r '.[] | "\(.name)@\(.version)"' <<< "$PUBLISHED")
+          exit "$failed"
+      - name: Keep modern-cmdk the Latest release
+        if: ${{ !cancelled() && steps.tags.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest=$(node scripts/compose-release-notes.ts newest --package modern-cmdk --tags-file "$RUNNER_TEMP/release-tags.txt")
+          gh release edit "$latest" --latest
+
+  # npm renders the readme of the packument, and its images are raw.githubusercontent.com URLs pinned to a commit. This job
+  # waits for the registry to list each published version, then requests every such URL in the packument's readme without
+  # following redirects and fails on anything but HTTP 200. It cannot undo the publish; it makes a broken image visible
+  # (the README of a published version cannot be edited, so the fix is a new version). It needs no credential beyond reading
+  # the repository.
+  readme-images:
+    if: needs.publish.outputs.published == 'true'
+    needs: publish
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    permissions:
+      contents: read # actions/checkout
+    env:
+      PUBLISHED: ${{ needs.publish.outputs.published-packages }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Request every README image URL
+        run: node scripts/compose-release-notes.ts probe-images
