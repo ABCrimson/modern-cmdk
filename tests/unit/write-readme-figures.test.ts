@@ -76,7 +76,7 @@ describe('figuresLine and figuresBlock', () => {
       '| Core, `modern-cmdk` | 7.7 kB gzip[^size] |',
       '| Core + `modern-cmdk/react` | 12.0 kB gzip[^size] |',
       '| `modern-cmdk/styles.css` | 4.0 kB gzip[^size] |',
-      '| Search 10,000 items for one query | 3.8 ms median[^bench] |',
+      '| Search 10,000 items for one query | median 3.8 ms[^bench] |',
     ]);
     expect(lines[7]).toBe(
       'Most of the unpacked size npm lists is the deprecated `modern-cmdk` bin and the packages it bundles (3.15 MB); no application bundle imports it.',

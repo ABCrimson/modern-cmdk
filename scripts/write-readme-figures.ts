@@ -217,7 +217,7 @@ export function figuresBlock(figures: Figures, sha: string): string {
     `| Core, \`modern-cmdk\` | ${kilobytes(figures.coreBytes)} kB gzip[^size] |`,
     `| Core + \`modern-cmdk/react\` | ${kilobytes(figures.reactBytes)} kB gzip[^size] |`,
     `| \`modern-cmdk/styles.css\` | ${kilobytes(figures.stylesBytes)} kB gzip[^size] |`,
-    `| Search 10,000 items for one query | ${figures.searchMs.toFixed(1)} ms median[^bench] |`,
+    `| Search 10,000 items for one query | median ${figures.searchMs.toFixed(1)} ms[^bench] |`,
     '',
     `Most of the unpacked size npm lists is the deprecated \`modern-cmdk\` bin and the packages it bundles (${megabytes(figures.binBytes)} MB); no application bundle imports it.`,
     '',
