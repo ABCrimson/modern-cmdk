@@ -715,7 +715,7 @@ chore: bump Biome to 2.6.6
 
    "CI Summary" needs the other 19 jobs of `ci.yml` and fails unless every one succeeded.
 
-6. **Review** -- The `main` ruleset requires a pull request (0 approvals) and three passing checks: "CI Summary" and the two CodeQL checks, "Analyze (javascript-typescript, none)" and "Analyze (actions, none)". Its code-scanning rule also stops a merge that adds a CodeQL error or a high-severity security alert. Force-pushes and deletion of `main` are blocked.
+6. **Review** -- The `main` ruleset requires a pull request (0 approvals) and three passing checks: "CI Summary" and the two CodeQL checks, "Analyze (javascript-typescript, none)" and "Analyze (actions, none)". Its code-scanning rule also stops a merge that adds a CodeQL error or a security alert of high or critical severity. Force-pushes and deletion of `main` are blocked.
 
 7. **Merge** -- Squash merge into `main`; the ruleset also allows a rebase merge, and a merge commit is off. The commit message should follow conventional commits.
 
@@ -796,7 +796,7 @@ The changeset is saved as a markdown file in `.changeset/`. Commit it with your 
 
 The text you write becomes the package's changelog entry, and the release page is built from the changelog, so write it for a person who is upgrading:
 
-- Start with a summary of one to three plain sentences: what someone upgrading will notice. The changelog shows the first line after the pull request link, so make that line the summary.
+- Start with a summary of one to three plain sentences: what someone upgrading will notice. Each changelog line starts with the pull request and commit links and a thanks, then the first line you write, so make that line the summary.
 - Then list what changed under the bold labels **Added**, **Changed** and **Fixed**, using only the ones that apply, with one bullet per change. A change that can break a working app, or that deprecates a name, says what to do about it.
 - Leave out internal vocabulary: no issue or ledger ids, workflow run ids and commit hashes. A link to a pull request or a documentation page is fine.
 
@@ -806,6 +806,9 @@ When changesets are merged to `main`, the release workflow first waits (`ci-gate
 
 1. While changesets are pending, the `version` job runs `pnpm version-packages` (`changeset version`, then `pnpm install --lockfile-only`) to update `package.json` versions, generate `CHANGELOG.md` entries and refresh `pnpm-lock.yaml`, and opens or updates the release PR (`chore: release packages`) with the version bumps
 2. When that PR is merged, three jobs run in turn. `pack` builds and packs the packages. `attest` makes one build-provenance attestation covering every tarball, plus an SPDX SBOM and an SBOM attestation for each tarball. `publish` publishes those same tarballs with `changeset publish --from-pack-dir`, and a failed attestation stops the release before npm has the version
+3. After `publish`, two more jobs run. `release-notes` replaces the body of each new GitHub release with one that `scripts/compose-release-notes.ts` composes from the summary file, the package's changelog section and the footer links, then marks the newest `modern-cmdk` release as Latest, so a release of `create-modern-cmdk` or `modern-cmdk-codemod` does not keep that mark. `readme-images` requests every `raw.githubusercontent.com` image URL in each published README and fails on anything but HTTP 200
+
+A person writes one part of each release body, the summary file. Add `.github/release-notes/<package>@<version>.md` for every package a release publishes, in a pull request to `main` that merges before the version PR, or as a commit on the version PR itself; [the release-notes README](.github/release-notes/README.md) says what the file holds. A release without its summary file fails the compose step and keeps the changelog body that `changeset publish` gave it.
 
 Publishing authenticates via **npm OIDC Trusted Publishing** -- the `publish` job's `id-token: write` permission supplies a short-lived token, so no long-lived `NPM_TOKEN` secret exists. The job runs in the `npm` GitHub environment, which only the `main` branch may deploy to. Never push git tags manually; tag pushes can trigger publishing.
 
