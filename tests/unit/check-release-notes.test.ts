@@ -39,6 +39,15 @@ describe('releaseNoteProblems', () => {
     ]);
   });
 
+  it('finds a ledger id whose number part starts with a letter, and not the standards next to it', () => {
+    expect(kinds('Focuses the input in a shadow root (RA-X3), as UTF-8 and ISO-8601 do.')).toEqual([
+      '1:ledger id:RA-X3',
+    ]);
+    expect(kinds('RA-X10 and B-Q6')).toEqual(['1:ledger id:RA-X10', '1:ledger id:B-Q6']);
+    // A letter-and-digit token that is not an id: lower-case words and a quarter.
+    expect(kinds('Lower-case x-y3, e-mail and Q3-2026')).toEqual([]);
+  });
+
   it('finds a workflow id', () => {
     expect(kinds('run wf_0a1b2c3d4e5f was green')).toEqual(['1:workflow id:wf_0a1b2c3d4e5f']);
   });

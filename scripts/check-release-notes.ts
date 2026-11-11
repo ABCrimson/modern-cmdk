@@ -11,7 +11,7 @@
 //
 // A line fails when it holds any of:
 //   - a ledger id: /\b[A-Z]{1,6}(?:-[A-Z]{1,4})?-\d+\b/ (DT-19, SEC-13, TUB-82 ...; the spec's patterns do not catch the W4-03
-//     and P03 shapes) or /\bD\d{2,3}\b/ (D109), except the allow-list UTF-8, UTF-16, SHA-256, SHA-512 and ISO-8601,
+//     and P03 shapes), /\b[A-Z]{1,6}-[A-Z]\d+\b/ (RA-X3: a number part that starts with a letter) or /\bD\d{2,3}\b/ (D109), except the allow-list UTF-8, UTF-16, SHA-256, SHA-512 and ISO-8601,
 //     which name standards, and the public advisory ids CVE-2026-12345 and GHSA-xxxx-xxxx-xxxx, which are blanked first;
 //   - a workflow id: wf_ followed by hex digits;
 //   - a bare commit hash: seven to forty hex digits holding a digit and a letter a to f, outside a URL (a hash inside
@@ -25,7 +25,7 @@ import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 const ROOT: string = resolve(import.meta.dirname, '..');
-const LEDGER_ID = /\b[A-Z]{1,6}(?:-[A-Z]{1,4})?-\d+\b|\bD\d{2,3}\b/g;
+const LEDGER_ID = /\b[A-Z]{1,6}(?:-[A-Z]{1,4})?-\d+\b|\b[A-Z]{1,6}-[A-Z]\d+\b|\bD\d{2,3}\b/g;
 const ALLOWED_IDS: ReadonlySet<string> = new Set([
   'UTF-8',
   'UTF-16',
