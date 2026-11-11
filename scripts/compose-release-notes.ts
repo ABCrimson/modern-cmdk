@@ -370,6 +370,9 @@ export interface ProbeOptions {
 // the whole run, shared by the packages.
 const REGISTRY_WAIT_MS = 26 * 60_000;
 const REGISTRY_PAUSE_MS = 15_000;
+// A request that hangs is abandoned and tried again; without a bound, one stalled connection would hold the job until its
+// timeout.
+const REQUEST_TIMEOUT_MS = 30_000;
 const IMAGE_ATTEMPTS = 3;
 const IMAGE_PAUSE_MS = 5_000;
 
@@ -397,7 +400,10 @@ export async function probeImages(options: ProbeOptions): Promise<string[]> {
     let listed = false;
     while (!listed) {
       try {
-        const response = await request(url, { headers: { accept: 'application/json' } });
+        const response = await request(url, {
+          headers: { accept: 'application/json' },
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
         if (response.status === 200) {
           const packument = (await response.json()) as {
             versions?: Record<string, unknown>;
@@ -436,7 +442,10 @@ export async function probeImages(options: ProbeOptions): Promise<string[]> {
       let status = 0;
       for (let attempt = 1; attempt <= IMAGE_ATTEMPTS; attempt++) {
         try {
-          const response = await request(image, { redirect: 'manual' });
+          const response = await request(image, {
+            redirect: 'manual',
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+          });
           status = response.status;
           await response.body?.cancel();
         } catch {

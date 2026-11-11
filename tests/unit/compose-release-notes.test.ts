@@ -660,6 +660,40 @@ describe('probeImages', () => {
     expect(clock).toBeGreaterThan(20 * 60_000 + 10_000);
   });
 
+  it('spends one registry budget of 26 minutes across the packages, not one each', async () => {
+    let clock = 0;
+    const fetchImpl: typeof fetch = () =>
+      Promise.resolve(Response.json({ versions: {}, readme: '# plain' }));
+    const problems = await probeImages({
+      ...options(fetchImpl),
+      published: [
+        { name: 'modern-cmdk', version: '1.7.1' },
+        { name: 'create-modern-cmdk', version: '1.4.1' },
+      ],
+      sleep: (ms: number) => {
+        clock += ms;
+        return Promise.resolve();
+      },
+    });
+    expect(problems).toHaveLength(2);
+    expect(clock).toBe(26 * 60_000);
+  });
+
+  it('gives the packument request and each image request a timeout signal', async () => {
+    const signals: (AbortSignal | null | undefined)[] = [];
+    const fetchImpl: typeof fetch = (input: FetchInput, init?: FetchInit) => {
+      signals.push(init?.signal);
+      return Promise.resolve(
+        String(input) === 'https://registry.example/modern-cmdk'
+          ? Response.json({ versions: { '1.7.1': {} }, readme: `![a](${asset('a.png')})` })
+          : new Response(null, { status: 200 }),
+      );
+    };
+    expect(await probeImages(options(fetchImpl))).toEqual([]);
+    expect(signals).toHaveLength(2);
+    for (const signal of signals) expect(signal).toBeInstanceOf(AbortSignal);
+  });
+
   it('passes with a notice for a readme that holds no raw.githubusercontent.com URL', async () => {
     const lines: string[] = [];
     const { fetchImpl, calls } = fakeFetch('# plain', {});
@@ -682,6 +716,6 @@ describe('probeImages', () => {
       return fetchImpl(input, init);
     };
     await probeImages(options(spy));
-    expect(seen).toEqual([{ redirect: 'manual' }]);
+    expect(seen.map((init) => init?.redirect)).toEqual(['manual']);
   });
 });
