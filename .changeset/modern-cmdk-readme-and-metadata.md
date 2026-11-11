@@ -16,5 +16,5 @@ The npm page of `modern-cmdk` is rewritten, and its package description, homepag
 - The Quick start binds its shortcut: the key goes on the `Command.Item` through `shortcut`, and `Command.Shortcut` only displays it. The old sample put `Command.Shortcut` inside items that had no `shortcut`, so Mod+C and Mod+V never fired.
 - The dialog sample opens with `matchesShortcut(event, parseShortcut('Mod+K'))` and an `AbortController` listener, so it works with Caps Lock on. The old sample compared `event.key` to a lowercase `k`.
 - The codemod example runs `should-filter` first, matching the order the text gives.
-- The sizes come from the repository's size record for 1.7.0 and say what was measured. The old text quoted the release candidate's tarball and commit hashes.
+- The size table keeps the 1.7.0 record's gzip figures, says what was measured, and drops the release candidate's tarball totals and the commit hashes from the prose.
 - The README no longer carries a repository-internal ledger id or a promise about a future version, and it links cmdk to its repository.
