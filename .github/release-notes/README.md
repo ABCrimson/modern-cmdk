@@ -18,7 +18,7 @@ does not help: it checks out the commit that was released, which lacks a file ad
 The file holds these parts and nothing else (the job adds the rest):
 
 ````markdown
-**Upgrade:** `npm install <package>@<version>` · **Breaking:** <none | the changes> · **Deprecated:** <none | the names>
+<lead> · **Breaking:** <none | the changes> · **Deprecated:** <none | the names>
 
 <One to three sentences: what someone upgrading will notice, in plain words.>
 
@@ -31,8 +31,19 @@ The file holds these parts and nothing else (the job adds the rest):
 - <three to five user-facing changes, one sentence each, each linking its docs page>
 ````
 
-The job refuses a file whose first paragraph is not the `**Upgrade:**` line with the exact install
-command of that tag, or that lacks either heading.
+The lead depends on the package, because only `modern-cmdk` is installed; the other two are run:
+
+````markdown
+**Upgrade:** `npm install modern-cmdk@<version>`
+**Run:** `npm create modern-cmdk@<version> my-palette`
+**Run:** `npx modern-cmdk-codemod@<version> --dry-run should-filter ./src`
+````
+
+The first line is the lead of `modern-cmdk`, the second of `create-modern-cmdk`, the third of
+`modern-cmdk-codemod`.
+
+The job refuses a file whose first paragraph does not begin with the lead of its package, with the
+version of that tag, or that lacks either heading.
 
 ## What the job adds
 
@@ -45,7 +56,7 @@ In this order, after the summary file:
 3. The footer: the full diff against the previous release of the same package, the npm page, the
    documentation and the changelog.
 
-For `create-modern-cmdk`, a `**Scaffolds:** modern-cmdk <version>` line follows the Upgrade line. It
+For `create-modern-cmdk`, a `**Scaffolds:** modern-cmdk <version>` line follows the lead line. It
 names the `modern-cmdk` version in the same checkout, the one the build bakes into the scaffolder.
 
 Last, the job marks the highest `modern-cmdk` release as the repository's Latest release, so a

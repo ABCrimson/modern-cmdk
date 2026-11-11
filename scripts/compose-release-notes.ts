@@ -9,10 +9,13 @@
 //
 // compose writes the body of one GitHub release (stdout, or --out) from four parts, in the order of the release-notes
 // template: the summary file `.github/release-notes/<name>@<version>.md` that a person adds in a pull request to main before the Version PR, or on the Version PR itself (its
-// first paragraph is the `**Upgrade:**` line, then the summary, `### Before you upgrade` and `### Highlights`); for
+// first paragraph is the lead line, then the summary, `### Before you upgrade` and `### Highlights`); for
 // modern-cmdk, the size line read from `benchmarks/size-history/<version>.json`; the package's CHANGELOG section
-// inside <details>; and the footer links. For create-modern-cmdk a `**Scaffolds:**` line, the modern-cmdk version in
-// the same checkout (what the build bakes in as MODERN_CMDK_VERSION), follows the Upgrade line. A release without a
+// inside <details>; and the footer links. The lead line depends on the package (see leadFor): `**Upgrade:**` with
+// `npm install modern-cmdk@<version>`, `**Run:**` with `npm create modern-cmdk@<version> my-palette` for
+// create-modern-cmdk, and `**Run:**` with `npx modern-cmdk-codemod@<version> --dry-run should-filter ./src` for the
+// codemod. For create-modern-cmdk a `**Scaffolds:**` line, the modern-cmdk version in
+// the same checkout (what the build bakes in as MODERN_CMDK_VERSION), follows the lead line. A release without a
 // summary file, or without a CHANGELOG section, is an error: exit 1 with a `::error::` line, nothing written.
 // --tags-file lists the repository's release tags, one per line; the previous tag of the Full diff link is the highest
 // lower version of the same package in it (no link when there is none). --commit is the 40-hex commit of the checkout:
@@ -40,6 +43,7 @@ export const DEFAULT_REPO = 'ABCrimson/modern-cmdk';
 export const DOCS_URL = 'https://abcrimson.github.io/modern-cmdk/';
 const SIZE_PACKAGE = 'modern-cmdk';
 const SCAFFOLD_PACKAGE = 'create-modern-cmdk';
+const CODEMOD_PACKAGE = 'modern-cmdk-codemod';
 const NPM_REGISTRY = 'https://registry.npmjs.org';
 const COMMIT = /^[0-9a-f]{40}$/;
 const RAW_URL = /https:\/\/raw\.githubusercontent\.com\/[^\s"'<>)\]]+/g;
@@ -200,14 +204,36 @@ export interface ComposeInput {
   readonly scaffoldsVersion?: string;
 }
 
+export interface Lead {
+  /** The bold label that opens the first paragraph of a summary file. */
+  readonly label: 'Upgrade' | 'Run';
+  /** The command of the lead, as written in a code span. */
+  readonly command: string;
+}
+
+/**
+ * The lead of a package's summary file. Whoever uses modern-cmdk installs it; nobody installs the scaffolder or the
+ * codemod, which their READMEs say to run.
+ */
+export function leadFor(name: string, version: string): Lead {
+  switch (name) {
+    case SCAFFOLD_PACKAGE:
+      return { label: 'Run', command: `npm create modern-cmdk@${version} my-palette` };
+    case CODEMOD_PACKAGE:
+      return { label: 'Run', command: `npx ${name}@${version} --dry-run should-filter ./src` };
+    default:
+      return { label: 'Upgrade', command: `npm install ${name}@${version}` };
+  }
+}
+
 /** Checks the summary file against the template and returns it as LF text without outer blank lines. */
 function checkedSummary(input: ComposeInput): string {
   const text = input.summary.replace(/\r\n/g, '\n').trim();
-  const install = `\`npm install ${input.name}@${input.version}\``;
+  const { label, command } = leadFor(input.name, input.version);
   const first = text.split(/\n\s*\n/, 1)[0] ?? '';
-  if (!first.startsWith('**Upgrade:** ') || !first.includes(install)) {
+  if (!first.startsWith(`**${label}:** \`${command}\``)) {
     throw new ReleaseNotesError(
-      `${input.summaryPath} must start with a paragraph "**Upgrade:** ${install} · **Breaking:** ... · **Deprecated:** ..."`,
+      `${input.summaryPath} must start with a paragraph "**${label}:** \`${command}\` · **Breaking:** ... · **Deprecated:** ..."`,
     );
   }
   for (const heading of ['### Before you upgrade', '### Highlights']) {
