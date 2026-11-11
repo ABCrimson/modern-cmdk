@@ -287,7 +287,7 @@ describe('the TypeScript nightly named in docs follows the catalog', () => {
     expect(readme).not.toContain(`TypeScript-${badgePin}-`);
     expect(readme).not.toContain(pin);
     expect(readme.match(NIGHTLY) ?? []).toEqual([]);
-    expect(readme).not.toMatch(/img\.shields\.io\/badge\//);
+    expect(readme).not.toContain('img.shields.io/badge/');
   });
 
   it('RDG-117: every other doc site names the catalog pin', () => {
