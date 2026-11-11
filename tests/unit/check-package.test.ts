@@ -17,12 +17,15 @@ import {
   bareImports,
   binFailures,
   blankNonCode,
+  type CommitPath,
   clientDirectiveFailures,
+  commitHasPath,
   diffFileList,
   importAllowListFailures,
   listTarEntries,
   PACKAGES,
   packedManifestFailures,
+  readmeImageFailures,
   startsWithUseClient,
   type TarEntry,
 } from '../../scripts/check-package.ts';
@@ -363,5 +366,125 @@ describe('clientDirectiveFailures', () => {
     expect(clientDirectiveFailures('modern-cmdk', [core])).toHaveLength(1);
     const ok = file('dist/react/index.mjs', "'use client';\nexport {};");
     expect(clientDirectiveFailures('modern-cmdk', [ok])).toEqual([]);
+  });
+});
+
+describe('readmeImageFailures', () => {
+  const SHA = '380e25e826341cebc46c8a844a524542fd1f8337';
+  const RAW = 'https://raw.githubusercontent.com/ABCrimson/modern-cmdk';
+  const FILE = 'apps/docs/public/brand/readme/modern-cmdk-dark.png';
+  const hero = (url: string, alt = 'modern-cmdk: a palette'): string =>
+    `<p align="center">\n  <img src="${url}" width="760" alt="${alt}">\n</p>\n`;
+  /** The lookup main() uses, with a fixed answer; `seen` collects the sha and path it was asked about. */
+  const where =
+    (answer: CommitPath, seen: string[] = []) =>
+    (sha: string, path: string): CommitPath => {
+      seen.push(`${sha}:${path}`);
+      return answer;
+    };
+
+  it('passes an image with alt text whose commit holds its file, and asks git about exactly that sha and path', () => {
+    const seen: string[] = [];
+    const readme = [
+      '<picture>',
+      `  <source media="(prefers-color-scheme: dark)" srcset="${RAW}/${SHA}/${FILE}">`,
+      `  <img src="${RAW}/${SHA}/${FILE}" alt="modern-cmdk, a palette" width="760">`,
+      '</picture>',
+    ].join('\n');
+    expect(readmeImageFailures(readme, where('present', seen))).toEqual([]);
+    expect(seen).toEqual([`${SHA}:${FILE}`, `${SHA}:${FILE}`]);
+  });
+
+  it('A1-12: fails an <img> with no alt, an empty alt or a blank alt, and a markdown image with an empty alt', () => {
+    for (const markup of [
+      `<img src="${RAW}/${SHA}/${FILE}">`,
+      `<img src="${RAW}/${SHA}/${FILE}" alt="">`,
+      `<img src="${RAW}/${SHA}/${FILE}" alt="   ">`,
+      `![](${RAW}/${SHA}/${FILE})`,
+    ]) {
+      const failures = readmeImageFailures(markup, where('present'));
+      expect(failures, markup).toEqual(['README images: README.md:1: the image has no alt text']);
+    }
+  });
+
+  it('does not ask a <source> for alt text', () => {
+    expect(
+      readmeImageFailures(`<source srcset="${RAW}/${SHA}/${FILE}">`, where('present')),
+    ).toEqual([]);
+  });
+
+  it('A1-3: fails the 1.7.0 hero, which hot-links main, and names the ref', () => {
+    const failures = readmeImageFailures(
+      hero(`${RAW}/main/apps/docs/public/og-image.svg`, 'modern-cmdk'),
+      where('present'),
+    );
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('README.md:2:');
+    expect(failures[0]).toContain('ref main is not a full 40-hex commit');
+  });
+
+  it('fails ASSET_COMMIT_PLACEHOLDER by name without asking git', () => {
+    const seen: string[] = [];
+    const failures = readmeImageFailures(
+      hero(`${RAW}/ASSET_COMMIT_PLACEHOLDER/${FILE}`),
+      where('present', seen),
+    );
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('ASSET_COMMIT_PLACEHOLDER is still a placeholder');
+    expect(failures[0]).toContain('the release is not ready');
+    expect(seen).toEqual([]);
+  });
+
+  it('fails a relative path, which npm resolves to the HEAD of main', () => {
+    const failures = readmeImageFailures(
+      hero('apps/docs/public/brand/readme/x.png'),
+      where('present'),
+    );
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('is a relative path');
+  });
+
+  it('fails an image with no src', () => {
+    expect(readmeImageFailures('<img alt="x">', where('present'))).toEqual([
+      'README images: README.md:1: the image has no src',
+    ]);
+  });
+
+  it('fails a commit that lacks the file and a commit that is not in the checkout', () => {
+    const url = `${RAW}/${SHA}/${FILE}`;
+    const missingPath = readmeImageFailures(hero(url), where('missing-path'));
+    expect(missingPath).toHaveLength(1);
+    expect(missingPath[0]).toContain(`${FILE} does not exist at commit ${SHA}`);
+    const missingCommit = readmeImageFailures(hero(url), where('missing-commit'));
+    expect(missingCommit).toHaveLength(1);
+    expect(missingCommit[0]).toContain(
+      `commit ${SHA} is not in this checkout and could not be fetched`,
+    );
+  });
+
+  it('reads the github.com blob form of an image the same way and leaves other hosts alone', () => {
+    const blob = `https://github.com/ABCrimson/modern-cmdk/blob/${SHA}/${FILE}?raw=true`;
+    const seen: string[] = [];
+    expect(readmeImageFailures(hero(blob), where('present', seen))).toEqual([]);
+    expect(seen).toEqual([`${SHA}:${FILE}`]);
+    expect(
+      readmeImageFailures(
+        hero('https://img.shields.io/npm/v/modern-cmdk'),
+        where('missing-commit'),
+      ),
+    ).toEqual([]);
+  });
+
+  it('commitHasPath answers from git in this checkout: the path is there, or the commit lacks it', () => {
+    const head = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
+    expect(head).toMatch(/^[0-9a-f]{40}$/);
+    expect(commitHasPath(head, 'package.json')).toBe('present');
+    expect(commitHasPath(head, 'apps/docs/public/brand/readme/not-a-file.png')).toBe(
+      'missing-path',
+    );
+  });
+
+  it('ignores an image written inside a fence', () => {
+    expect(readmeImageFailures('```html\n<img src="x.png">\n```\n', where('present'))).toEqual([]);
   });
 });
