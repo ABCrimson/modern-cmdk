@@ -98,7 +98,6 @@ const old = {
   bin: entry(previous, 'modern-cmdk codemod bin (installed size)'),
 };
 const rc = tarball('modern-cmdk@1.7-rc');
-const prior = tarball('modern-cmdk@1.6-rc', previous);
 const codemodPack = tarball('modern-cmdk-codemod@1.7-rc');
 
 describe('benchmarks/size-history/1.7.0.json: the record', () => {
@@ -150,55 +149,76 @@ describe('benchmarks/size-history/1.7.0.json: the record', () => {
   });
 });
 
-describe('packages/modern-cmdk/README.md: the Sizes section', () => {
-  const sizes = section(read('packages/modern-cmdk/README.md'), '## Sizes');
-  const rows: readonly [string, Entry][] = [
-    ['| `modern-cmdk` (core) |', core],
-    ['| `modern-cmdk/react`, adapter only |', adapter],
-    ['| `modern-cmdk` + `modern-cmdk/react` |', both],
-    ['| `modern-cmdk/react/dialog`, adapter only |', dialog],
-    ['| `modern-cmdk/react`, `CommandSeparator` only |', separator],
-    ['| `modern-cmdk/styles.css` |', styles],
-    ['| codemod bin (', bin],
-    ['| codemod shim (', shim],
-  ];
+describe('packages/modern-cmdk/README.md: the figures between the markers', () => {
+  const readme = read('packages/modern-cmdk/README.md');
+  const between = (start: string, end: string): string => {
+    const from = readme.indexOf(start);
+    const to = readme.indexOf(end);
+    if (from < 0 || to < from) throw new Error(`no ${start} ... ${end} block`);
+    return readme.slice(from + start.length, to);
+  };
+  const figures = between('<!-- figures:start -->', '<!-- figures:end -->');
+  const figuresLine = between('<!-- figures-line:start -->', '<!-- figures-line:end -->');
+  const baseline = JSON.parse(read('benchmarks/baseline.json')) as {
+    readonly records: Readonly<
+      Record<
+        string,
+        {
+          readonly date: string;
+          readonly environment: { readonly cpuCount: number };
+          readonly benchmarks: {
+            readonly search: Readonly<Record<string, { readonly median_ms: number }>>;
+          };
+        }
+      >
+    >;
+  };
+  const runner = baseline.records['AMD EPYC 7763 64-Core Processor'];
+  const kilobytes = (each: Entry): string => `${(each.size / 1000).toFixed(1)} kB`;
 
-  it('cites the record file, the measured sha, the date and the size-limit version', () => {
-    expect(sizes).toContain(`benchmarks/size-history/1.7.0.json`);
-    expect(sizes).toMatch(BLOB_LINK);
-    expect(sizes).toMatch(COMMITTED_IN);
-    expect(sizes).toContain(
-      `measured at \`${record.sha}\` on ${day} with size-limit ${record.sizeLimit}`,
+  it('quotes the gzip size of the core, the core with the React adapter and the stylesheet from the record', () => {
+    expect(line(figures, '| Core, `modern-cmdk` |')).toBe(
+      `| Core, \`modern-cmdk\` | ${kilobytes(core)} gzip[^size] |`,
+    );
+    expect(line(figures, '| Core + `modern-cmdk/react` |')).toBe(
+      `| Core + \`modern-cmdk/react\` | ${kilobytes(both)} gzip[^size] |`,
+    );
+    expect(line(figures, '| `modern-cmdk/styles.css` |')).toBe(
+      `| \`modern-cmdk/styles.css\` | ${kilobytes(styles)} gzip[^size] |`,
     );
   });
 
-  for (const [label, each] of rows) {
-    it(`quotes ${each.name} at ${label.trim()}`, () => {
-      expect(line(sizes, label)).toContain(`| ${each.size} | ${each.limit} |`);
-    });
-  }
+  it('repeats the core and core-plus-adapter figures in the one-line summary', () => {
+    expect(figuresLine).toContain(`**${kilobytes(core).replace(' kB', '')} kB** gzip core`);
+    expect(figuresLine).toContain(
+      `**${kilobytes(both).replace(' kB', '')} kB** with the React adapter`,
+    );
+  });
 
-  it('quotes the packed tarballs of the 1.6 release candidate, modern-cmdk 1.7 and modern-cmdk-codemod', () => {
-    expect(sizes).toContain(`(measured at \`${prior.sha}\`)`);
-    expect(sizes).toContain(
-      `is ${prior.tarballSize} B packed and ${prior.unpackedSize} B unpacked in ${prior.entryCount} entries`,
+  it('quotes the search benchmark median of the recorded runner, and its date and core count', () => {
+    expect(runner, 'baseline.json has a record for the AMD EPYC 7763 runner').toBeDefined();
+    const median = runner?.benchmarks.search['ts-scorer-10k']?.median_ms ?? Number.NaN;
+    expect(line(figures, '| Search 10,000 items for one query |')).toBe(
+      `| Search 10,000 items for one query | ${median.toFixed(1)} ms median[^bench] |`,
     );
-    expect(sizes).toContain(
-      `${prior.runtimeUnpackedSize} B is runtime and ${prior.codemodUnpackedSize} B is the codemod`,
+    expect(figures).toContain(`recorded on ${runner?.date}`);
+    expect(figures).toContain(`(AMD EPYC 7763, ${runner?.environment.cpuCount} cores)`);
+  });
+
+  it('says the unpacked size is mostly the deprecated bin, with the bin size from the record', () => {
+    expect(figures).toContain(
+      `Most of the unpacked size npm lists, ${(bin.size / 1_000_000).toFixed(2)} MB, is the deprecated \`modern-cmdk\` bin`,
     );
-    expect(sizes).toContain(
-      `${rc.tarballSize} B packed and ${rc.unpackedSize} B unpacked in ${rc.entryCount} entries`,
-    );
-    expect(sizes).toContain(
-      `${rc.runtimeUnpackedSize} B is runtime (${rc.runtimeUnpackedSizeWithoutNotices} B without`,
-    );
-    expect(sizes).toContain(`which is ${rc.thirdPartyNotices} B)`);
-    expect(sizes).toContain(
-      `${rc.codemodUnpackedSize} B is the codemod, including the ${rc.codemodShim} B shim`,
-    );
-    expect(sizes).toContain(
-      `${codemodPack.tarballSize} B packed and ${codemodPack.unpackedSize} B unpacked in ${codemodPack.entryCount} entries`,
-    );
+  });
+
+  it('links both records at a 40-character commit, and quotes no release-candidate tarball figure', () => {
+    const linked = [...figures.matchAll(/\/blob\/[0-9a-f]{40}\/([^)\s]+)\)/g)].map((m) => m[1]);
+    expect(linked).toEqual(['benchmarks/size-history/1.7.0.json', 'benchmarks/baseline.json']);
+    for (const stale of [rc.tarballSize, rc.unpackedSize, rc.runtimeUnpackedSize]) {
+      expect(readme, `the README quotes the release candidate figure ${stale}`).not.toContain(
+        String(stale),
+      );
+    }
   });
 });
 

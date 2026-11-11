@@ -236,7 +236,6 @@ describe('deprecated bin paragraphs', () => {
   const paragraphs: Record<string, string> = {
     guide: page,
     'codemod README': readFileSync(resolve(root, 'packages/modern-cmdk-codemod/README.md'), 'utf8'),
-    'modern-cmdk README': readFileSync(resolve(root, 'packages/modern-cmdk/README.md'), 'utf8'),
   };
 
   for (const [name, text] of Object.entries(paragraphs)) {
@@ -250,4 +249,18 @@ describe('deprecated bin paragraphs', () => {
       expect(paragraph).not.toContain('does not follow symlinked directories');
     });
   }
+
+  // The modern-cmdk README keeps the deprecation to two sentences and sends the file-discovery detail to the
+  // migration guide and the codemod README, which the loop above pins. What it does say stays pinned here.
+  it('DG-135: the modern-cmdk README calls the bin deprecated, warning and lenient, and makes no symlink claim', () => {
+    const readme: string = readFileSync(resolve(root, 'packages/modern-cmdk/README.md'), 'utf8');
+    const at: number = readme.indexOf('This package also ships a `modern-cmdk` bin');
+    expect(at, 'the README names the bin it ships').toBeGreaterThan(-1);
+    const paragraph: string = readme.slice(at, readme.indexOf('\n', at));
+    expect(paragraph).toContain(
+      'It is deprecated: it warns on every run and keeps lenient exit codes',
+    );
+    expect(paragraph).toContain('use `modern-cmdk-codemod`');
+    expect(readme).not.toMatch(/symlink/i);
+  });
 });

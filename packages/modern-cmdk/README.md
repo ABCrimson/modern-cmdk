@@ -1,240 +1,292 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/main/apps/docs/public/og-image.svg" alt="modern-cmdk" width="640" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-light.png">
+    <img src="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-dark.png" width="760" alt="modern-cmdk: one headless engine, any framework, with a TypeScript core and a React 19 adapter. Beside the name, a drawing of the documentation site's command palette, a Vue interface on the modern-cmdk core, with the query 'frec' and 'Frecency ranking' as the active result.">
+  </picture>
 </p>
 
-<p align="center">
-  <strong>modern-cmdk</strong><br/>
-  The definitive command palette engine for the modern web.
-</p>
+Headless command palette engine: a framework-agnostic TypeScript core with fuzzy search, frecency ranking and keyboard shortcuts, plus a React 19 adapter.
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/modern-cmdk"><img alt="npm version" src="https://img.shields.io/npm/v/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
-  <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
-  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
-</p>
-
-<p align="center">
-  <a href="https://abcrimson.github.io/modern-cmdk/">Documentation</a> &middot;
-  <a href="https://abcrimson.github.io/modern-cmdk/guide/getting-started.html">Getting Started</a> &middot;
-  <a href="https://abcrimson.github.io/modern-cmdk/api/command.html">API Reference</a> &middot;
-  <a href="https://abcrimson.github.io/modern-cmdk/examples/basic.html">Examples</a>
-</p>
-
----
-
-A ground-up rewrite of `cmdk` for **React 19**, written in modern ECMAScript: a framework-agnostic state machine (search, frecency ranking, keyboard shortcuts) in the core, and a thin React adapter on top.
-
-## Install
-
-```bash
-npm install modern-cmdk
+```sh
+npm install modern-cmdk react react-dom radix-ui
 ```
 
-The package exports four entry points:
+<!-- figures-line:start -->
+**7.7 kB** gzip core · **12.0 kB** with the React adapter · ESM only · React ≥ 19 · TypeScript ≥ 5.6 · [Requirements](#requirements)
+<!-- figures-line:end -->
 
-```ts
-import { createCommandMachine } from 'modern-cmdk';            // Core engine (no React)
-import { Command } from 'modern-cmdk/react';                    // React components
-import { CommandDialog } from 'modern-cmdk/react/dialog';       // CommandDialog alone
-import 'modern-cmdk/styles.css';                                 // Default styles
-```
+<p align="center">
+  <a href="https://abcrimson.github.io/modern-cmdk/"><strong>Documentation</strong></a> ·
+  <a href="https://abcrimson.github.io/modern-cmdk/guide/getting-started.html">Getting started</a> ·
+  <a href="https://abcrimson.github.io/modern-cmdk/api/command-react.html">React API</a> ·
+  <a href="https://abcrimson.github.io/modern-cmdk/api/command.html">Core API</a> ·
+  <a href="https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html">From cmdk</a> ·
+  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/packages/modern-cmdk/CHANGELOG.md">Changelog</a>
+</p>
 
-`modern-cmdk` is ESM-only. The core entry imports no peer. Every import of `modern-cmdk/react` and of `modern-cmdk/react/dialog` loads `react`, `react-dom` and `radix-ui` (the `radix-ui` import is static), so these are the peers:
-
-| Peer | Range | Status |
-|---|---|---|
-| `react` | `>=19.0.0 <21.0.0` | optional (only the React entries use it) |
-| `react-dom` | `>=19.0.0 <21.0.0` | optional (only the React entries use it) |
-| `radix-ui` | `>=1.4.0 <2.0.0` | required through 1.x |
-
-`radix-ui` is a required peer of `modern-cmdk` in 1.x, so npm 7+ and pnpm install it with `modern-cmdk` (or warn when they cannot), and with it its own required peers `react` and `react-dom`, even when you use only the core; `modern-cmdk` itself marks only `react` and `react-dom` optional. It becomes optional again in 2.0, when the barrel drops `Command.Dialog` and only `modern-cmdk/react/dialog` needs it. For the React entries, add the React peers yourself:
-
-```bash
-npm install modern-cmdk react react-dom
-```
-
-`Command.Dialog` stays on the `modern-cmdk/react` barrel through 1.x and leaves it in 2.0; `modern-cmdk/react/dialog` exports `CommandDialog` alone.
-
-`modern-cmdk-codemod` and `create-modern-cmdk` support Node >=26.4.0 and declare it in `engines`; the deprecated `modern-cmdk` bin is supported on it too. `modern-cmdk` itself declares no `engines`.
-
-`sideEffects` lists only `./dist/react/styles.css`; every JavaScript entry is side-effect-free for bundlers.
-
-## Quick Start
+## Quick start
 
 ```tsx
 'use client';
 
 import { Command } from 'modern-cmdk/react';
 import 'modern-cmdk/styles.css';
+
+function toggleColorScheme(): void {
+  const root = document.documentElement;
+  root.style.colorScheme =
+    root.style.colorScheme === 'dark' ? 'light' : 'dark';
+}
+
+export function CommandPalette() {
+  return (
+    <Command label="Commands">
+      <Command.Input placeholder="Type a command…" />
+      <Command.List>
+        <Command.Empty>No results.</Command.Empty>
+        <Command.Group heading="Page">
+          <Command.Item
+            value="Copy page link"
+            keywords={['url', 'share']}
+            onSelect={() => navigator.clipboard.writeText(location.href)}
+          >
+            Copy page link
+          </Command.Item>
+          <Command.Item
+            value="Toggle dark mode"
+            shortcut="Mod+Shift+L"
+            onSelect={toggleColorScheme}
+          >
+            Toggle dark mode
+            <Command.Shortcut shortcut="Mod+Shift+L" />
+          </Command.Item>
+        </Command.Group>
+        <Command.Group heading="Go to">
+          <Command.Item
+            value="Settings"
+            keywords={['preferences']}
+            onSelect={() => location.assign('/settings')}
+          >
+            Settings
+          </Command.Item>
+        </Command.Group>
+      </Command.List>
+    </Command>
+  );
+}
+```
+
+Typing filters the items with the built-in fuzzy scorer; `keywords` are searched but not shown. The `shortcut` on an item binds the key for as long as the palette is mounted, wherever focus is, and stops the key's default action, so bind keys the page does not need. `Command.Shortcut` only displays it: ⌘⇧L on Apple platforms, Ctrl+Shift+L elsewhere.
+
+## What it does
+
+- **Framework-agnostic core.** `createCommandMachine` is a typed state machine that imports no framework; DOM APIs are feature-detected, so it is safe to import on a server. [Core API](https://abcrimson.github.io/modern-cmdk/api/command.html)
+- **Fuzzy search** with match ranges for `Command.Highlight`; pass your own scorer or `SearchEngine`. [Basic usage](https://abcrimson.github.io/modern-cmdk/guide/basic-usage.html)
+- **Frecency ranking**, opt-in, kept in memory or in IndexedDB (`idb-keyval`, the one dependency, loads only then). [Frecency](https://abcrimson.github.io/modern-cmdk/guide/frecency.html)
+- **Keyboard shortcuts.** Write `Mod+K` once: it is parsed, shown as ⌘ on Apple platforms and Ctrl elsewhere, matched against key events and checked for conflicts. [Shortcuts](https://abcrimson.github.io/modern-cmdk/guide/shortcuts.html)
+- **React 19 adapter.** Compound `Command.*` components on `useSyncExternalStore`; `ref` is a prop, with no `forwardRef`; `Command.Activity` wraps React's `<Activity>`. [React API](https://abcrimson.github.io/modern-cmdk/api/command-react.html)
+- **WAI-ARIA combobox and listbox** that announce the result count. [Accessibility](https://abcrimson.github.io/modern-cmdk/guide/accessibility.html)
+- **Virtualization** that switches on above 100 matches and off at 50 or fewer. [Virtualization](https://abcrimson.github.io/modern-cmdk/guide/virtualization.html)
+- **Async items** with Suspense through `Command.AsyncItems`. [Async items](https://abcrimson.github.io/modern-cmdk/guide/async-items.html)
+- **A stylesheet for structure**, in `@layer command`: layout, motion, and rules for forced colours, increased contrast and reduced motion. The active row, surfaces and borders are yours to style. [Theming](https://abcrimson.github.io/modern-cmdk/guide/theming.html)
+- **SSR-safe**: the React entries carry `'use client'`. [SSR and Next.js](https://abcrimson.github.io/modern-cmdk/guide/ssr.html)
+- **Explicit resource management**: the machine is `Disposable` and `AsyncDisposable`, so `using` and `await using` release it; telemetry hooks, `useCommandDevtools` and `CommandErrorBoundary` are built in. [Core API](https://abcrimson.github.io/modern-cmdk/api/command.html)
+
+## Open it with ⌘K or Ctrl+K
+
+```tsx
+'use client';
+
+import { matchesShortcut, parseShortcut } from 'modern-cmdk';
+import { Command } from 'modern-cmdk/react';
 import { useEffect, useState } from 'react';
 
-function CommandPalette() {
+export function CommandMenu() {
   const [open, setOpen] = useState(false);
 
-  // Nothing opens the dialog for you: toggle it from a Mod+K listener (Cmd+K / Ctrl+K).
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setOpen((o) => !o);
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    const toggle = parseShortcut('Mod+K');
+    const controller = new AbortController();
+    document.addEventListener(
+      'keydown',
+      (event) => {
+        if (!matchesShortcut(event, toggle)) return;
+        event.preventDefault();
+        setOpen((isOpen) => !isOpen);
+      },
+      { signal: controller.signal },
+    );
+    return () => controller.abort();
   }, []);
 
+  const run = (action: () => void) => () => {
+    setOpen(false);
+    action();
+  };
+
   return (
-    <Command.Dialog open={open} onOpenChange={setOpen} label="Command Menu">
-      <Command.Input placeholder="Type a command..." />
+    <Command.Dialog open={open} onOpenChange={setOpen} label="Command menu">
+      <Command.Input placeholder="Search…" />
       <Command.List>
-        <Command.Empty>No results found.</Command.Empty>
-
-        <Command.Group heading="Actions">
-          <Command.Item value="copy" onSelect={() => setOpen(false)}>
-            Copy to Clipboard
-            <Command.Shortcut shortcut="Mod+C" />
-          </Command.Item>
-          <Command.Item value="paste" onSelect={() => setOpen(false)}>
-            Paste
-            <Command.Shortcut shortcut="Mod+V" />
-          </Command.Item>
-        </Command.Group>
-
-        <Command.Group heading="Navigation">
-          <Command.Item value="settings" onSelect={() => setOpen(false)}>
-            Settings
-            <Command.Badge>New</Command.Badge>
-          </Command.Item>
-        </Command.Group>
+        <Command.Empty>No results.</Command.Empty>
+        <Command.Item
+          value="Settings"
+          onSelect={run(() => location.assign('/settings'))}
+        >
+          Settings
+        </Command.Item>
+        <Command.Item value="Print this page" onSelect={run(() => print())}>
+          Print this page
+        </Command.Item>
       </Command.List>
     </Command.Dialog>
   );
 }
 ```
 
-`<Command label="Command menu">` takes the same children inline, with no dialog; `<Command.Highlight text={...} ranges={...} />` renders match highlighting from scorer ranges. To scaffold a project instead: `npm create modern-cmdk@latest my-palette -- --template=react-basic`.
+`Command.Dialog` binds no open key, so you pass `open`. `Mod+K` matches ⌘K on Apple platforms and Ctrl+K elsewhere, and Caps Lock does not break it. Escape and a click outside call `onOpenChange(false)`; selecting an item does not close the dialog by itself, so `run` closes it first.
 
-## Core API (no React)
+## Without React
 
 ```ts
 import { createCommandMachine, itemId } from 'modern-cmdk';
 
-const machine = createCommandMachine({
-  items: [
-    { id: itemId('copy'), value: 'Copy', shortcut: 'Mod+C', onSelect: () => navigator.clipboard.writeText(getSelection()?.toString() ?? '') },
-    { id: itemId('paste'), value: 'Paste', shortcut: 'Mod+V', onSelect: () => navigator.clipboard.readText().then((text) => console.log('Pasted:', text)) },
-  ],
-  frecency: { enabled: true },
-  loop: true,
-});
+const commands = new Map([
+  [itemId('new-file'), 'New file'],
+  [itemId('open-recent'), 'Open recent'],
+  [itemId('toggle-theme'), 'Toggle theme'],
+]);
 
-const unsubscribe = machine.subscribe(() => {
-  console.log(machine.getState());
-});
+/** Renders the filtered commands into `list` until disposed. */
+export function mountPalette(
+  input: HTMLInputElement,
+  list: HTMLUListElement,
+): Disposable {
+  const machine = createCommandMachine({
+    items: commands
+      .entries()
+      .map(([id, value]) => ({ id, value }))
+      .toArray(),
+  });
+  const controller = new AbortController();
 
-// send() is batched: the machine applies these three events on the next animation frame
-// (a microtask where requestAnimationFrame is absent, such as Node), commits one
-// stateChange for the batch (each SEARCH_CHANGE filters when it runs; registry events refilter once
-// per batch; with `frecency` on, the frecency load can commit one more stateChange when it settles
-// after the batch). getState() right after send() still returns the previous state.
-// The sample is for a browser: the copy item's onSelect uses getSelection() and navigator.clipboard.
-machine.send({ type: 'SEARCH_CHANGE', query: 'cop' });
-machine.send({ type: 'NAVIGATE', direction: 'next' });
-machine.send({ type: 'ITEM_SELECT', id: itemId('copy') });
+  const render = () => {
+    const rows = machine.getState().filteredIds.map((id) => {
+      const row = document.createElement('li');
+      row.textContent = commands.get(id) ?? '';
+      return row;
+    });
+    list.replaceChildren(...rows);
+  };
+  const subscription = machine.subscribeState(render);
+  render();
 
-// Teardown, when the palette goes away (not right after send(): dispose drops events still pending
-// and removes the global shortcut listener):
-export function teardown(): void {
-  unsubscribe();
-  machine[Symbol.dispose]();
+  input.addEventListener(
+    'input',
+    () => machine.send({ type: 'SEARCH_CHANGE', query: input.value }),
+    { signal: controller.signal },
+  );
+
+  return {
+    [Symbol.dispose]() {
+      controller.abort();
+      subscription[Symbol.dispose]();
+      machine[Symbol.dispose]();
+    },
+  };
 }
-
-// Do not write `using machine = ...` at module top level: it disposes the machine when the module
-// finishes evaluating, before the batch runs. `await using machine = ...` inside an async scope that
-// outlives the work also works, and additionally awaits a pending frecency save before it disposes.
 ```
 
-## What is in it
+`send()` is batched: the state changes on the next animation frame (a microtask where there is none), then subscribers run. `mountPalette` returns a `Disposable`, so a caller can write `using palette = mountPalette(input, list);`.
 
-- **Framework-agnostic core** -- a pure TypeScript state machine; DOM APIs are feature-detected and SSR-safe. The sole runtime dependency (`idb-keyval`) is lazy-loaded only if you opt into IndexedDB frecency persistence.
-- **React 19 adapter** -- compound components over `useSyncExternalStore` and `use()`. `Command.Activity` wraps its children in React's `<Activity>` where React exports it and renders nothing while hidden where it does not.
-- **Automatic virtualization** -- turns on when more than 100 items match and off again at 50 or fewer (fixed thresholds; force it with `<Command.List virtualize>` or `virtualize={false}`). The `virtualizeThreshold` option is accepted but not read yet.
-- **Fuzzy search and frecency** -- a built-in TypeScript scorer with match ranges, and frequency x recency ranking with memory or IndexedDB persistence. `modern-cmdk-search-wasm` is an experimental, unpublished workspace package that does not work yet.
-- **Keyboard shortcuts** -- a registry with a cross-platform `Mod` key. Two items bound to one key are a conflict: the later binding wins the keydown (disposing it restores the earlier one), `getConflicts()` lists the keys with two or more bindings and `getBindings()` returns the winning binding of each key.
-- **Accessibility** -- WAI-ARIA combobox pattern, `aria-live` announcements, `forced-colors`, `prefers-contrast`, `prefers-reduced-motion`.
-- **Animation** -- the stylesheet defines the dialog enter and exit on opacity, scale and translate, which are compositor-only; the overlay fades opacity and also transitions `--command-overlay-opacity`, its background alpha, which repaints, and the list height and item background-color transitions are not compositor-only either. In 1.x neither the dialog nor the overlay animates on enter or exit, because their duration and easing tokens are declared only on `[data-command-root]`, which sits inside the dialog (DT-19, planned for 1.8.0).
-- **Extras** -- `CommandErrorBoundary`, `useCommandDevtools()` and telemetry: the `telemetry` option of `createCommandMachine` and the `telemetry` prop of `Command` and `Command.Dialog` take `onPaletteOpen`, `onPaletteClose`, `onSearchComplete` and `onItemSelected` hooks, which the machine calls once per batch, after its state reports. Report counts and ids, not the raw query, which can hold personal data. `createTelemetryMiddleware()` is the helper for code that drives the same hooks itself.
+## Entry points
 
-Theming (CSS custom properties, `@layer command`) is covered in the [theming guide](https://abcrimson.github.io/modern-cmdk/guide/theming.html).
+| Import | What it holds |
+|---|---|
+| `modern-cmdk` | The core: machine, search, frecency, shortcuts, telemetry. Imports no peer. |
+| `modern-cmdk/react` | `Command` and its parts, the hooks, `CommandErrorBoundary`. `'use client'`. |
+| `modern-cmdk/react/dialog` | `CommandDialog` alone. `'use client'`. |
+| `modern-cmdk/styles.css` | The stylesheet. The only file with side effects. |
 
-## Sizes
+ESM only. Every export is listed in the [Core API](https://abcrimson.github.io/modern-cmdk/api/command.html) and [React API](https://abcrimson.github.io/modern-cmdk/api/command-react.html) pages.
 
-Figures come from [`benchmarks/size-history/1.7.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/b42c483/benchmarks/size-history/1.7.0.json) (committed in `b42c483`, measured at `a7838c9` on 2026-11-08 with size-limit 14.3.0 and `npm pack --dry-run --json`). Method: size-limit, gzip, peers (`react`, `react-dom`, `radix-ui`) ignored; the codemod entries are raw installed size of the files named.
+<details>
+<summary><strong>Options</strong> of <code>createCommandMachine</code>, also props of <code>&lt;Command&gt;</code> and <code>&lt;Command.Dialog&gt;</code></summary>
 
-| Entry | Bytes | Limit | Method |
-|---|---|---|---|
-| `modern-cmdk` (core) | 7742 | 7840 | gzip |
-| `modern-cmdk/react`, adapter only | 6491 | 6590 | gzip, `modern-cmdk` ignored |
-| `modern-cmdk` + `modern-cmdk/react` | 12038 | 12130 | gzip, core included |
-| `modern-cmdk/react/dialog`, adapter only | 2104 | 2200 | gzip, `modern-cmdk` ignored |
-| `modern-cmdk/react`, `CommandSeparator` only | 293 | 390 | gzip, `modern-cmdk` ignored; `Command` is a `/* @__PURE__ */ Object.assign`, so a bundle that imports only `CommandSeparator` drops `CommandDialog`, `CommandRoot` and the `radix-ui` import |
-| `modern-cmdk/styles.css` | 3986 | 4000 | gzip |
-| codemod bin (`dist/codemod/*.mjs` plus `dist/codemod/transforms/*.mjs`) | 3153027 | 3400000 | raw installed size, not gzip |
-| codemod shim (`dist/codemod/bin.mjs`) | 897 | 1000 | raw installed size, not gzip |
+| Option | What it does |
+|---|---|
+| `items`, `groups` | Items and groups registered at creation; in React, `<Command.Item>` and `<Command.Group>` register themselves |
+| `filter` | Your scorer, `(item, query) => number \| false`, or `false` to turn filtering off |
+| `searchEngine` | A `SearchEngine` that replaces the built-in scorer; one you pass is yours to dispose |
+| `frecency` | `{ enabled, storage, namespace, decayConfig }`; history in memory by default, or `new IdbFrecencyStorage()` |
+| `shortcutAction` | `'direct'` (default): a shortcut calls the item's `onSelect`. `'select'`: it selects the item, so frecency and the root's `onSelect` run too |
+| `disabledItems` | `'show'` (default) lists disabled items without making them selectable; `'hide'` drops them |
+| `loop` | Arrow keys wrap from the last item to the first (default `true`) |
+| `activeId`, `onActiveChange` | Control the active item |
+| `open`, `onOpenChange` | The open state; `Command.Dialog` treats `open` as controlled |
+| `onSelect`, `onSearchChange` | Called on every select of an enabled item, and on every query |
+| `label` | The accessible name (default `'Command palette'`) |
+| `telemetry` | `onPaletteOpen`, `onPaletteClose`, `onSearchComplete`, `onItemSelected`, called once per batch |
+| `search` | Deprecated name of `searchEngine` |
+| `virtualizeThreshold` | Accepted but not read: the list virtualizes above 100 matches and stops at 50 or fewer |
 
-The packed `modern-cmdk` tarball: the 1.6 release candidate (measured at `8c4feee`) is 969407 B packed and 3331514 B unpacked in 22 entries, of which 178487 B is runtime and 3153027 B is the codemod; the 1.7 release candidate is 983898 B packed and 3377805 B unpacked in 22 entries, of which 224778 B is runtime (211902 B without `THIRD-PARTY-NOTICES.md`, which is 12876 B) and 3153027 B is the codemod, including the 897 B shim. The codemod's own package, `modern-cmdk-codemod`, is 34216 B packed and 117172 B unpacked in 11 entries; `jscodeshift` is not in that tarball.
+In React, `shortcutAction`, `frecency`, `searchEngine` and whether `filter` is a function are read once, at mount.
 
-## Migration from cmdk
+</details>
 
-The codemods live in their own package, [`modern-cmdk-codemod`](https://github.com/ABCrimson/modern-cmdk/tree/main/packages/modern-cmdk-codemod) (Node >= 26.4.0; see its README for every option and exit code). Pass a transform name and a directory or a glob (quote the glob so your shell does not expand it). A real run needs a git work tree with the matched files committed, or `--force`; a dry run needs neither:
+## Coming from cmdk
 
-```bash
-npx modern-cmdk-codemod --help
-npx modern-cmdk-codemod --dry-run import-rewrite ./src
-git status --short   # empty: everything committed
-npx modern-cmdk-codemod import-rewrite ./src
+[cmdk](https://github.com/dip/cmdk) code moves over with [`modern-cmdk-codemod`](https://www.npmjs.com/package/modern-cmdk-codemod): four transforms, one per run, in this order: `should-filter`, `forward-ref`, `data-attrs`, `import-rewrite`. Start with a dry run, which writes nothing:
+
+```sh
+npx modern-cmdk-codemod --dry-run should-filter ./src
 ```
 
-Run all four in this order, committing after each: `should-filter`, `forward-ref`, `data-attrs`, `import-rewrite`.
+The [migration guide](https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html) covers what the codemods leave to you. This package also ships a `modern-cmdk` bin over the same transforms. It is deprecated: it warns on every run and keeps lenient exit codes, so use `modern-cmdk-codemod`. The ten third-party packages that bin bundles are listed with their licences in `THIRD-PARTY-NOTICES.md`, inside this package.
 
-| Transform | What it does |
+A rewrite of [cmdk](https://github.com/dip/cmdk) for React 19.
+
+## Size and speed
+
+<!-- figures:start -->
+| Measure | Value |
+|---|--:|
+| Core, `modern-cmdk` | 7.7 kB gzip[^size] |
+| Core + `modern-cmdk/react` | 12.0 kB gzip[^size] |
+| `modern-cmdk/styles.css` | 4.0 kB gzip[^size] |
+| Search 10,000 items for one query | 3.8 ms median[^bench] |
+
+Most of the unpacked size npm lists, 3.15 MB, is the deprecated `modern-cmdk` bin and the packages it bundles; no application bundle imports it.
+
+[^size]: size-limit with rolldown, minified with `NODE_ENV=production`, gzip; `react`, `react-dom` and `radix-ui` are not counted; 1 kB = 1,000 bytes. Record: [`size-history/1.7.0.json`](https://github.com/ABCrimson/modern-cmdk/blob/380e25e826341cebc46c8a844a524542fd1f8337/benchmarks/size-history/1.7.0.json).
+[^bench]: `createSearchEngine()` searching an index of 10,000 items for `'apple'` and materialising the results; indexing is not timed. The median of five runs' p50 on a GitHub-hosted runner (AMD EPYC 7763, 4 cores), recorded on 2026-11-08; runner noise is ±20–40 %. Record: [`baseline.json`](https://github.com/ABCrimson/modern-cmdk/blob/380e25e826341cebc46c8a844a524542fd1f8337/benchmarks/baseline.json). Method: [Benchmarks](https://abcrimson.github.io/modern-cmdk/benchmarks.html).
+<!-- figures:end -->
+
+## Requirements
+
+| | |
 |---|---|
-| `import-rewrite` | Rewrites imports, re-exports, `import()`, `require()` and `vi.mock` or `jest.mock` of `'cmdk'` to `'modern-cmdk/react'`; reports the names and subpaths `modern-cmdk/react` lacks |
-| `data-attrs` | Renames `cmdk-*` attributes to `data-command-*` and `--cmdk-list-height` to `--command-list-height` in JSX, in selectors inside JS/TS strings and in `.css` and `.scss` files; rewrites cmdk's state attributes beside them (`[data-selected="true"]` becomes `[data-active]`, `[data-disabled="true"]` becomes `[data-disabled]`) and the Tailwind variants on cmdk elements; reports what has no equivalent (`cmdk-label`, `cmdk-item-select`) or cannot be migrated automatically |
-| `forward-ref` | Unwraps `forwardRef` from `react` into a function component that takes `ref` as a prop (React 19) |
-| `should-filter` | Converts the `shouldFilter` prop to `filter` and wraps a cmdk `filter` function in an adapter to the `(item, query)` signature |
+| Module format | ESM only |
+| React | `react` and `react-dom` `>=19.0.0 <21.0.0`, for the React entries (optional peers) |
+| radix-ui | `>=1.4.0 <2.0.0`, a required peer: npm 7+ and pnpm install it, with `react` and `react-dom` as its own peers, even if you import only the core |
+| TypeScript | 5.6 or later, with `"lib": ["ESNext", "DOM"]` |
+| Browsers | Chrome and Edge 122, Firefox 131, Safari 18.4: the built code uses iterator helpers |
+| Node | No `engines` field; any Node with iterator helpers. The deprecated bin needs Node 26.4.0 or later |
+| Other package managers | `pnpm add` and `yarn add` take the same four names |
 
-Every site a transform cannot migrate is printed as `<path>: <message>` on stderr and left unchanged. Exit codes of `modern-cmdk-codemod`: `0` success (reports included), `1` a file errored or no file matched, `2` a usage error or a refused dirty tree.
+## The modern-cmdk packages
 
-### The deprecated `modern-cmdk` bin
-
-`modern-cmdk` still ships the old `modern-cmdk` bin until 2.0, as a shim (`dist/codemod/bin.mjs`) over the same four transforms. It is deprecated: it writes one deprecation warning to stderr per run and points to `modern-cmdk-codemod`. It keeps the 1.x behaviour: lenient exit codes unless argv carries `--strict` (without `--strict`, `0` for `--help`, missing arguments, usage errors and per-file errors; `1` for an unknown transform, no matching files and an uncaught error), 1.4's excludes (of the ten directories `modern-cmdk-codemod` skips, it skips only `node_modules`, `dist`, `build` and `.next`, and applies no `.gitignore`; like `modern-cmdk-codemod`, it reads only the ten script and stylesheet extensions from a directory, leaves out files and directories whose names start with a dot unless a pattern segment starts with that dot or a directory argument names that directory, descends no symlinked directory under `**` or a directory argument, reads no symlinked file and on Windows matches names case-insensitively; unlike it, it follows a symlinked directory that a pattern names or that a directory argument names, such as `"./src/link/*.tsx"` or `./src/link`), and no git check. The bin leaves in 2.0.
-
-### Third-party notices
-
-The ten packages bundled into `dist/codemod` are listed with their licences in `THIRD-PARTY-NOTICES.md`, which ships in the `modern-cmdk` tarball. It is generated by `scripts/third-party-notices.ts` and checked by `pnpm check:notices`.
-
-See the [full migration guide](https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html).
-
-## Documentation
-
-**[abcrimson.github.io/modern-cmdk](https://abcrimson.github.io/modern-cmdk/)** -- [Installation](https://abcrimson.github.io/modern-cmdk/guide/installation.html) | [Basic Usage](https://abcrimson.github.io/modern-cmdk/guide/basic-usage.html) | [SSR / Next.js](https://abcrimson.github.io/modern-cmdk/guide/ssr.html) | [Theming](https://abcrimson.github.io/modern-cmdk/guide/theming.html) | [Accessibility](https://abcrimson.github.io/modern-cmdk/guide/accessibility.html) | [Core API](https://abcrimson.github.io/modern-cmdk/api/command.html) | [React API](https://abcrimson.github.io/modern-cmdk/api/command-react.html) | [Benchmarks](https://abcrimson.github.io/modern-cmdk/benchmarks.html)
-
-**More guides:** [Async Items](https://abcrimson.github.io/modern-cmdk/guide/async-items.html) | [Frecency](https://abcrimson.github.io/modern-cmdk/guide/frecency.html) | [Shortcuts](https://abcrimson.github.io/modern-cmdk/guide/shortcuts.html) | [Virtualization](https://abcrimson.github.io/modern-cmdk/guide/virtualization.html) | [TypeScript](https://abcrimson.github.io/modern-cmdk/guide/typescript-integration.html) | [Controlled Dialog](https://abcrimson.github.io/modern-cmdk/guide/controlled-dialog.html) | [WASM Search (experimental)](https://abcrimson.github.io/modern-cmdk/guide/wasm-search.html) | [WASM Search API (experimental)](https://abcrimson.github.io/modern-cmdk/api/command-search-wasm.html)
-
-**Recipes:** [File Picker](https://abcrimson.github.io/modern-cmdk/recipes/file-picker.html) | [Emoji Picker](https://abcrimson.github.io/modern-cmdk/recipes/emoji-picker.html) | [AI Chat Commands](https://abcrimson.github.io/modern-cmdk/recipes/ai-chat-commands.html) | [Nested Commands](https://abcrimson.github.io/modern-cmdk/recipes/nested-commands.html) | [Spotlight Search](https://abcrimson.github.io/modern-cmdk/recipes/spotlight-search.html)
-
-## Related packages
-
-| Package | Status |
+| Package | Use it to |
 |---|---|
-| [`modern-cmdk-codemod`](https://github.com/ABCrimson/modern-cmdk/tree/main/packages/modern-cmdk-codemod) | The cmdk migration codemods as their own package from 1.5 (`npx modern-cmdk-codemod <transform> <dir or glob>`), strict by default. |
-| [`create-modern-cmdk`](https://www.npmjs.com/package/create-modern-cmdk) | Published. `npm create modern-cmdk@latest <name>` scaffolds a new project. |
-| `modern-cmdk-search-wasm` | Experimental Rust/WASM fuzzy search; private (0.9.0), not on npm. |
-| `vscode-modern-cmdk` | Not on the VS Code Marketplace. The npm 1.0.0 of that name was an accidental publish and is not the extension; the package is private from 1.4.0. |
+| [`modern-cmdk`](https://www.npmjs.com/package/modern-cmdk) | build the palette: core engine, React adapter, stylesheet |
+| [`create-modern-cmdk`](https://www.npmjs.com/package/create-modern-cmdk) | start a Vite, React 19 and TypeScript project with a palette in it |
+| [`modern-cmdk-codemod`](https://www.npmjs.com/package/modern-cmdk-codemod) | move code written for cmdk to modern-cmdk |
 
-The repository page, with development and contributing notes, is [github.com/ABCrimson/modern-cmdk](https://github.com/ABCrimson/modern-cmdk).
+## Links
+
+[Documentation](https://abcrimson.github.io/modern-cmdk/) · [Changelog](https://github.com/ABCrimson/modern-cmdk/blob/main/packages/modern-cmdk/CHANGELOG.md) · [Releases](https://github.com/ABCrimson/modern-cmdk/releases) · [Issues](https://github.com/ABCrimson/modern-cmdk/issues) · [Security policy](https://github.com/ABCrimson/modern-cmdk/security/policy) · [Repository](https://github.com/ABCrimson/modern-cmdk)
 
 ## License
 
-[MIT](https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE) -- Copyright (c) 2026 Albert Badalov
+[MIT](https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE) © 2026 Albert Badalov

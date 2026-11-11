@@ -2,9 +2,9 @@
   "name": "modern-cmdk",
   "version": "1.7.0",
   "type": "module",
-  "description": "The definitive command palette engine for the modern web",
+  "description": "Headless command palette engine: a framework-agnostic TypeScript core with fuzzy search, frecency ranking and keyboard shortcuts, plus a React 19 adapter.",
   "license": "MIT",
-  "homepage": "https://github.com/ABCrimson/modern-cmdk#readme",
+  "homepage": "https://abcrimson.github.io/modern-cmdk/",
   "bugs": {
     "url": "https://github.com/ABCrimson/modern-cmdk/issues"
   },
@@ -68,10 +68,21 @@
     "command-palette",
     "command-menu",
     "cmdk",
+    "cmd-k",
     "headless",
     "state-machine",
+    "combobox",
+    "wai-aria",
+    "accessibility",
+    "fuzzy-search",
+    "frecency",
+    "keyboard-shortcuts",
+    "virtualization",
+    "typescript",
+    "esm",
     "react",
-    "react-19"
+    "react-19",
+    "radix-ui"
   ],
   "repository": {
     "type": "git",
