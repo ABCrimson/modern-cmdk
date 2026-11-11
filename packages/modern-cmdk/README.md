@@ -231,7 +231,7 @@ ESM only. The [Core API](https://abcrimson.github.io/modern-cmdk/api/command.htm
 | `search` | Deprecated name of `searchEngine` |
 | `virtualizeThreshold` | Accepted but not read: the list virtualizes above 100 matches and stops at 50 or fewer |
 
-In React, `shortcutAction`, `frecency`, `searchEngine`, `open` and whether `filter` is a function are read once, at mount.
+In React, `shortcutAction`, `frecency`, `searchEngine`, whether `filter` is a function and, on `<Command>`, `open` are read once, at mount.
 
 </details>
 
