@@ -6,7 +6,7 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
-    # A dependency that matches more than one group joins the first one listed, so the four
+    # A dependency that matches more than one group joins the first one listed, so the three
     # specific groups come before the two catch-all groups.
     groups:
       typescript:
@@ -14,9 +14,6 @@ updates:
         update-types: [minor, patch]
       biome:
         patterns: ['@biomejs/*']
-        update-types: [minor, patch]
-      playwright:
-        patterns: ['@playwright/*', 'playwright', 'playwright-core']
         update-types: [minor, patch]
       vitest:
         patterns: ['vitest', '@vitest/*']
@@ -30,14 +27,14 @@ updates:
     ignore:
       # react and react-dom are pinned to a 0.0.0-experimental-* build in the pnpm-workspace.yaml catalog (the
       # overrides reference it as catalog:), and scheduler follows react-dom's exact dependency on the same
-      # build. The peak-modern sweep re-resolves them at every session start. Dependabot cannot order
+      # build. A scheduled re-resolution outside Dependabot keeps them current. Dependabot cannot order
       # 0.0.0-experimental-* builds: PR #48 (2026-11-02) proposed 0.14.10, a 2020 release that it sorts above
       # them. Ignored for every update type.
       - dependency-name: 'react'
       - dependency-name: 'react-dom'
       - dependency-name: 'scheduler'
-      # @playwright/test is pinned to a 1.x.0-alpha-<date> build from the next dist-tag, and the sweep
-      # re-resolves it. Dependabot cannot order Playwright's alpha builds: they carry either a date
+      # @playwright/test is pinned to a 1.x.0-alpha-<date> build from the next dist-tag, and a scheduled
+      # re-resolution outside Dependabot keeps it current. Dependabot cannot order Playwright's alpha builds: they carry either a date
       # (1.66.0-alpha-2026-11-08) or a millisecond timestamp (1.66.0-alpha-1793916328000), and it proposed
       # the older timestamp build over the newer date build in PRs #14, #50 and #67. The `versions` key of an
       # npm ignore takes semver ranges, not globs like `*-alpha-*`, so no range can single out the alpha

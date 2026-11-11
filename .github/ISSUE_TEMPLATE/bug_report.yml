@@ -81,7 +81,7 @@ body:
         - "Low -- cosmetic / minor inconvenience"
         - "Medium -- workaround exists"
         - "High -- blocks usage, no workaround"
-        - "Critical -- security or data loss"
+        - "Critical -- data loss"
       default: 1
     validations:
       required: false
