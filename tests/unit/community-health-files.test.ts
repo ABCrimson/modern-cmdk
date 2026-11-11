@@ -1,9 +1,10 @@
 // tests/unit/community-health-files.test.ts
 // The community health files say one thing about the repository's packages and how a release is checked:
-// CODE_OF_CONDUCT.md is the Contributor Covenant 3.0 with its reporting route filled in, SECURITY.md scopes the
-// published packages and says how each version reached npm, the issue forms and the pull request template offer
-// one package list (the published packages and the docs, never the private WASM crate or the playground), the
-// template keeps at most 8 checkboxes, and dependabot.yml leaves Playwright's alpha builds to the sweep.
+// CODE_OF_CONDUCT.md is the Contributor Covenant 3.0 with its reporting route filled in (GitHub Support, the only
+// route a personal account has), SECURITY.md scopes the published packages and says how each version reached npm,
+// the issue forms and the pull request template offer one package list (the published packages and the docs,
+// never the private WASM crate or the playground), the bug form never invites a security report, the template
+// keeps at most 8 checkboxes, and dependabot.yml leaves Playwright's alpha builds to a re-resolution outside it.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -76,9 +77,24 @@ describe('CODE_OF_CONDUCT.md', () => {
     expect(text).toContain('licensed under CC BY-SA 4.0');
   });
 
-  it('keeps no template note and names GitHub content reports, not a personal address', () => {
+  it('keeps the covenant pledge word for word', () => {
+    expect(text).toContain(
+      'We pledge to make our community welcoming, safe, and equitable for all.',
+    );
+    expect(text).toContain(
+      'The same privileges of participation are extended to everyone who participates in good faith and in accordance with this Covenant.',
+    );
+  });
+
+  it('keeps no template note and sends reports to GitHub Support, the only route a personal account has', () => {
     expect(text).not.toContain('[NOTE');
-    expect(text).toContain("GitHub's **Report content** option");
+    expect(text).toContain(
+      "use GitHub's **Report content** option on the comment, issue, pull request or discussion and choose **Report abuse to GitHub Support**.",
+    );
+    expect(text).toContain(
+      'This repository belongs to a personal account, for which GitHub offers no reports to maintainers.',
+    );
+    expect(text).not.toContain('privately to the repository');
     expect(text).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.]+/);
   });
 });
@@ -124,6 +140,21 @@ describe('one package list across the forms', () => {
   });
 });
 
+describe('security reports stay out of the public tracker', () => {
+  it('no bug form option invites a security report, and the issue chooser links the private route', () => {
+    const form = read('.github/ISSUE_TEMPLATE/bug_report.yml');
+    const severity = form.slice(form.indexOf('id: severity'), form.indexOf('id: checks'));
+    expect(severity).toContain('"Critical -- data loss"');
+    expect(severity).not.toMatch(/security/i);
+    const config = read('.github/ISSUE_TEMPLATE/config.yml');
+    expect(config).toContain('name: Report a security vulnerability');
+    expect(config).toContain(
+      'url: https://github.com/ABCrimson/modern-cmdk/security/advisories/new',
+    );
+    expect(config).toContain('about: Report security problems privately, never in a public issue');
+  });
+});
+
 describe('SECURITY.md', () => {
   const text = read('SECURITY.md');
   const scope = text.slice(
@@ -150,6 +181,28 @@ describe('SECURITY.md', () => {
     expect(text).toMatch(/1\.0\.1 and every later version are published by the workflow/);
     expect(text).not.toContain('is published by the owner by hand from the artifact');
   });
+
+  it('dates attestations per package: modern-cmdk from 1.4.0, create-modern-cmdk from 1.3.1', () => {
+    expect(text).toContain('So are `modern-cmdk` from 1.4.0 and `create-modern-cmdk` from 1.3.1.');
+    expect(text).toContain(
+      '`modern-cmdk` 1.2.0 to 1.3.0 and `create-modern-cmdk` 1.2.0 to 1.3.0 were published by the workflow with npm provenance, before it made attestations, so `gh attestation verify` fails for them. Earlier versions were published by hand and have neither.',
+    );
+    expect(text).not.toContain(
+      'Releases of `modern-cmdk` and `create-modern-cmdk` that the workflow made',
+    );
+  });
+
+  it('says a first version is published by hand with no provenance, and promises no attestation', () => {
+    expect(text).toContain(
+      'The first version of a new package is published by the owner by hand, because npm can set up trusted publishing only for a package that already exists. Such a version has no npm provenance.',
+    );
+    expect(text).not.toContain('published by hand the same way');
+  });
+
+  it('points to private reporting only', () => {
+    expect(text).toContain('**Do not** open a public GitHub issue');
+    expect(text).toContain('https://github.com/ABCrimson/modern-cmdk/security/advisories/new');
+  });
 });
 
 describe('dependabot.yml', () => {
@@ -166,7 +219,22 @@ describe('dependabot.yml', () => {
     );
   });
 
-  it('writes no `versions` glob: an npm ignore takes semver ranges, not patterns like *-alpha-*', () => {
-    expect(text).not.toMatch(/^\s+versions:/m);
+  it('gives the Playwright entries no `versions` glob: an npm ignore takes semver ranges, not *-alpha-*', () => {
+    const entries = [
+      ...npm.matchAll(
+        /^ {6}- dependency-name: '(?:@playwright\/\*|playwright|playwright-core)'\n((?: {8}\S.*\n)*)/gm,
+      ),
+    ];
+    expect(entries).toHaveLength(3);
+    for (const [entry] of entries) expect(entry).not.toMatch(/versions:/);
+  });
+
+  it('keeps no group for the ignored Playwright family', () => {
+    const groups = npm.slice(npm.indexOf('groups:'), npm.indexOf('ignore:'));
+    expect(groups).not.toMatch(/playwright/);
+  });
+
+  it('is public text: it names no sweep', () => {
+    expect(text).not.toMatch(/sweep|peak-modern/i);
   });
 });
