@@ -1,4 +1,4 @@
-**Upgrade:** `npm install create-modern-cmdk@1.4.1` · **Breaking:** none · **Deprecated:** none new
+**Run:** `npm create modern-cmdk@1.4.1 my-palette` · **Breaking:** none · **Deprecated:** none new
 
 create-modern-cmdk 1.4.1 makes the `react-dialog` template open on the key its text names and prints the next steps for your package manager.
 

@@ -16,6 +16,7 @@ import {
   composeBody,
   composeFromRepository,
   findPackageDir,
+  leadFor,
   newestTag,
   parsePublished,
   parseVersion,
@@ -37,9 +38,21 @@ const REPO = 'ABCrimson/modern-cmdk';
 const scratch = mkdtempSync(join(tmpdir(), 'compose-release-notes-'));
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
+/** The lead command of a summary file, per package: spelled out here, not derived from the composer. */
+const LEAD = (name: string, version: string): string => {
+  switch (name) {
+    case 'create-modern-cmdk':
+      return `**Run:** \`npm create modern-cmdk@${version} my-palette\``;
+    case 'modern-cmdk-codemod':
+      return `**Run:** \`npx modern-cmdk-codemod@${version} --dry-run should-filter ./src\``;
+    default:
+      return `**Upgrade:** \`npm install ${name}@${version}\``;
+  }
+};
+
 const SUMMARY = (name: string, version: string): string =>
   [
-    `**Upgrade:** \`npm install ${name}@${version}\` · **Breaking:** none · **Deprecated:** none`,
+    `${LEAD(name, version)} · **Breaking:** none · **Deprecated:** none`,
     '',
     `${name} ${version} fixes one thing.`,
     '',
@@ -227,7 +240,7 @@ describe('composeFromRepository', () => {
       root: dir,
     });
     const [upgrade, scaffolds, summary] = body.split('\n\n');
-    expect(upgrade).toMatch(/^\*\*Upgrade:\*\* `npm install create-modern-cmdk@1.4.1`/);
+    expect(upgrade).toMatch(/^\*\*Run:\*\* `npm create modern-cmdk@1\.4\.1 my-palette` · /);
     expect(scaffolds).toBe('**Scaffolds:** modern-cmdk 1.7.1');
     expect(summary).toBe('create-modern-cmdk 1.4.1 fixes one thing.');
   });
@@ -293,6 +306,94 @@ describe('composeFromRepository', () => {
       SUMMARY('modern-cmdk', '1.7.1').replace('### Before you upgrade', 'Before you upgrade'),
     );
     expect(() => composeFromRepository(options)).toThrow(/no "### Before you upgrade" heading/);
+  });
+
+  it('pins the lead of each package: modern-cmdk is installed, the scaffolder and the codemod are run', () => {
+    expect(leadFor('modern-cmdk', '1.7.2')).toEqual({
+      label: 'Upgrade',
+      command: 'npm install modern-cmdk@1.7.2',
+    });
+    expect(leadFor('create-modern-cmdk', '1.4.2')).toEqual({
+      label: 'Run',
+      command: 'npm create modern-cmdk@1.4.2 my-palette',
+    });
+    expect(leadFor('modern-cmdk-codemod', '1.0.2')).toEqual({
+      label: 'Run',
+      command: 'npx modern-cmdk-codemod@1.0.2 --dry-run should-filter ./src',
+    });
+  });
+
+  it('a composed body of each package opens with that package lead', () => {
+    const dir = fixture('leads');
+    const leads = {
+      'modern-cmdk@1.7.1': '**Upgrade:** `npm install modern-cmdk@1.7.1` · ',
+      'create-modern-cmdk@1.4.1': '**Run:** `npm create modern-cmdk@1.4.1 my-palette` · ',
+      'modern-cmdk-codemod@1.0.2':
+        '**Run:** `npx modern-cmdk-codemod@1.0.2 --dry-run should-filter ./src` · ',
+    };
+    for (const [tag, lead] of Object.entries(leads)) {
+      const body = composeFromRepository({
+        tag,
+        tags: TAGS,
+        commit: COMMIT,
+        repo: REPO,
+        root: dir,
+      });
+      expect(body.startsWith(lead), tag).toBe(true);
+    }
+  });
+
+  it('a lead that belongs to another package fails, and the message names the right one', () => {
+    const dir = fixture('wrong-leads');
+    const options = { tags: TAGS, commit: COMMIT, repo: REPO, root: dir };
+    const install = (name: string, version: string): string =>
+      SUMMARY(name, version).replace(
+        LEAD(name, version),
+        `**Upgrade:** \`npm install ${name}@${version}\``,
+      );
+    // The scaffolder and the codemod with the install line they had before.
+    for (const [name, version, right] of [
+      ['create-modern-cmdk', '1.4.1', '**Run:** `npm create modern-cmdk@1.4.1 my-palette`'],
+      [
+        'modern-cmdk-codemod',
+        '1.0.2',
+        '**Run:** `npx modern-cmdk-codemod@1.0.2 --dry-run should-filter ./src`',
+      ],
+    ] as const) {
+      write(join(dir, `.github/release-notes/${name}@${version}.md`), install(name, version));
+      expect(() => composeFromRepository({ ...options, tag: `${name}@${version}` }), name).toThrow(
+        right,
+      );
+    }
+    // modern-cmdk with the scaffolder's line, and each lead with the wrong version.
+    write(
+      join(dir, '.github/release-notes/modern-cmdk@1.7.1.md'),
+      SUMMARY('modern-cmdk', '1.7.1').replace(
+        LEAD('modern-cmdk', '1.7.1'),
+        LEAD('create-modern-cmdk', '1.7.1'),
+      ),
+    );
+    expect(() => composeFromRepository({ ...options, tag: 'modern-cmdk@1.7.1' })).toThrow(
+      '**Upgrade:** `npm install modern-cmdk@1.7.1`',
+    );
+    write(
+      join(dir, '.github/release-notes/create-modern-cmdk@1.4.1.md'),
+      SUMMARY('create-modern-cmdk', '1.4.1').replace('@1.4.1', '@1.4.0'),
+    );
+    expect(() => composeFromRepository({ ...options, tag: 'create-modern-cmdk@1.4.1' })).toThrow(
+      /must start with a paragraph "\*\*Run:\*\*/,
+    );
+    // The command must lead the paragraph, not just appear in it.
+    write(
+      join(dir, '.github/release-notes/modern-cmdk-codemod@1.0.2.md'),
+      SUMMARY('modern-cmdk-codemod', '1.0.2').replace(
+        LEAD('modern-cmdk-codemod', '1.0.2'),
+        `**Run:** run it · ${LEAD('modern-cmdk-codemod', '1.0.2')}`,
+      ),
+    );
+    expect(() => composeFromRepository({ ...options, tag: 'modern-cmdk-codemod@1.0.2' })).toThrow(
+      /must start with a paragraph/,
+    );
   });
 
   it('rejects a tag that is not <package>@<version>, a short commit and an unknown package', () => {

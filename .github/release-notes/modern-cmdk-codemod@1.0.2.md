@@ -1,4 +1,4 @@
-**Upgrade:** `npm install modern-cmdk-codemod@1.0.2` · **Breaking:** none · **Deprecated:** none new
+**Run:** `npx modern-cmdk-codemod@1.0.2 --dry-run should-filter ./src` · **Breaking:** none · **Deprecated:** none new
 
 modern-cmdk-codemod 1.0.2 tells you in `--help` and in the README the order to run the four transforms. Nothing in how a transform rewrites code changes.
 
