@@ -1,14 +1,6 @@
 <h1 align="center">modern-cmdk-search-wasm</h1>
 
-<p align="center">
-  <strong>WASM-accelerated fuzzy search for <code>modern-cmdk</code></strong>
-  <br />
-  Rust &middot; Trigram index &middot; Web Worker support &middot; SharedArrayBuffer
-</p>
-
-<p align="center">
-  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-dc2626?style=flat-square&labelColor=0a0e27" alt="license" /></a>
-</p>
+<p align="center"><strong>An experimental Rust/WASM search engine for modern-cmdk</strong><br>Rust · trigram index · Web Worker · SharedArrayBuffer</p>
 
 > **Status:** private 0.9.0, not published to npm. Build it from source with `pnpm build:wasm` (requires `wasm-pack`). It does not work yet: the factories never call the wasm-bindgen init function, so `createWasmSearchEngine()` always returns the TypeScript fallback (`isWasm: false`), and `createWorkerSearchEngine()` never receives the worker's `ready` message and falls back to that same TypeScript scorer. The examples below show the intended API, not today's behaviour.
 
@@ -94,13 +86,13 @@ export async function main(): Promise<void> {
 ## Architecture
 
 ```
-+--------------------+     +-------------------------+
++---------------------+     +--------------------------+
 |    Main Thread      |     |      Web Worker          |
 |                     |     |                          |
 |  createCommand      |---->|  WASM trigram index      |
 |  Machine()          |<----|  scores (SAB or clone)   |
 |                     |     |                          |
-+--------------------+     +-------------------------+
++---------------------+     +--------------------------+
 ```
 
 The Rust crate builds a trigram index at startup, which gives an O(1) hash lookup of each query trigram's posting list; candidates come from walking those lists. A result's score is the number of query-trigram hits in the item's `value` divided by the number of query trigrams. Results at or below 0.1 are dropped, there is no exact or prefix tier, and match ranges are exact substring hits. The edit-distance helpers in `crate/src/scorer.rs` are compiled for tests only and are not used in search.
