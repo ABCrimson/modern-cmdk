@@ -131,7 +131,7 @@ The last line of a run is the summary: `N changed, N unchanged, N errors` count 
 <details>
 <summary>Which files are read</summary>
 
-A directory argument covers its `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and `.scss` files. A quoted glob works too: `"./src/**/*.{tsx,css}"`. Skipped: `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static`, `.vercel`, every path your `.gitignore` covers, files reached through a symlinked directory, and names that start with a dot unless a pattern segment or a directory argument names them.
+A directory argument covers its `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and `.scss` files. A quoted glob works too: `"./src/**/*.{tsx,css}"`. Skipped: `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static`, `.vercel`, every path your `.gitignore` covers (when git is found), files reached through a symlinked directory, and names that start with a dot unless a pattern segment or a directory argument names them.
 
 </details>
 
