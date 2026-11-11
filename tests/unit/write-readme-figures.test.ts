@@ -79,7 +79,10 @@ describe('figuresLine and figuresBlock', () => {
       '| Search 10,000 items for one query | 3.8 ms median[^bench] |',
     ]);
     expect(lines[7]).toBe(
-      'Most of the unpacked size npm lists, 3.15 MB, is the deprecated `modern-cmdk` bin and the packages it bundles; no application bundle imports it.',
+      'Most of the unpacked size npm lists is the deprecated `modern-cmdk` bin and the packages it bundles (3.15 MB); no application bundle imports it.',
+    );
+    expect(lines[9]).toContain(
+      '[^size]: size-limit, gzip: the JavaScript entries bundled with rolldown and minified with `NODE_ENV=production`, the stylesheet as shipped; `react`, `react-dom` and `radix-ui` are not counted; 1 kB = 1,000 bytes.',
     );
     expect(lines[9]).toContain(
       `Record: [\`size-history/1.7.0.json\`](https://github.com/ABCrimson/modern-cmdk/blob/${SHA}/benchmarks/size-history/1.7.0.json).`,

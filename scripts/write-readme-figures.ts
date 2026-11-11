@@ -219,9 +219,9 @@ export function figuresBlock(figures: Figures, sha: string): string {
     `| \`modern-cmdk/styles.css\` | ${kilobytes(figures.stylesBytes)} kB gzip[^size] |`,
     `| Search 10,000 items for one query | ${figures.searchMs.toFixed(1)} ms median[^bench] |`,
     '',
-    `Most of the unpacked size npm lists, ${megabytes(figures.binBytes)} MB, is the deprecated \`modern-cmdk\` bin and the packages it bundles; no application bundle imports it.`,
+    `Most of the unpacked size npm lists is the deprecated \`modern-cmdk\` bin and the packages it bundles (${megabytes(figures.binBytes)} MB); no application bundle imports it.`,
     '',
-    `[^size]: size-limit with rolldown, minified with \`NODE_ENV=production\`, gzip; \`react\`, \`react-dom\` and \`radix-ui\` are not counted; 1 kB = 1,000 bytes. Record: [\`size-history/${figures.version}.json\`](${REPO_BLOB}/${sha}/benchmarks/size-history/${figures.version}.json).`,
+    `[^size]: size-limit, gzip: the JavaScript entries bundled with rolldown and minified with \`NODE_ENV=production\`, the stylesheet as shipped; \`react\`, \`react-dom\` and \`radix-ui\` are not counted; 1 kB = 1,000 bytes. Record: [\`size-history/${figures.version}.json\`](${REPO_BLOB}/${sha}/benchmarks/size-history/${figures.version}.json).`,
     `[^bench]: \`createSearchEngine()\` searching an index of 10,000 items for \`'apple'\` and materialising the results; indexing is not timed. The median of five runs' p50 on ${machine}, recorded on ${figures.recorded}; runner noise is ±20–40 %. Record: [\`baseline.json\`](${REPO_BLOB}/${sha}/benchmarks/baseline.json). Method: [Benchmarks](${BENCHMARKS_PAGE}).`,
   ].join('\n');
 }
