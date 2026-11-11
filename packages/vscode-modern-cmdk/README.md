@@ -1,14 +1,8 @@
-<h1 align="center">Modern CMDK</h1>
+<h1 align="center">vscode-modern-cmdk</h1>
 
-<p align="center">
-  <strong>VS Code snippets for <code>modern-cmdk/react</code></strong>
-</p>
+<p align="center"><strong>VS Code snippets for modern-cmdk</strong></p>
 
-<p align="center">
-  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license" /></a>
-</p>
-
----
+<p align="center">Private: build and install it from source. It is not on the VS Code Marketplace or Open VSX, and the <code>vscode-modern-cmdk</code> 1.0.0 on npm was published by mistake.</p>
 
 ## What is this?
 
@@ -22,7 +16,7 @@ A VS Code extension that provides snippets for building command palettes with `m
 | `cmd-dialog` | Command palette in a dialog overlay, toggled with Cmd/Ctrl+K | `.tsx`, `.jsx` |
 | `cmd-item` | Command palette item | `.tsx`, `.jsx` |
 | `cmd-group` | Command palette group | `.tsx`, `.jsx` |
-| `cmd-shortcut` | Command item with keyboard shortcut | `.tsx`, `.jsx` |
+| `cmd-shortcut` | Command item that binds a shortcut and shows it per platform | `.tsx`, `.jsx` |
 | `cmd-frecency` | Command palette with frecency ranking | `.tsx`, `.jsx` |
 | `cmd-async` | Async items resolved from a promise, with a loading fallback | `.tsx`, `.jsx` |
 | `cmd-page` | Command palette page (nested navigation) | `.tsx`, `.jsx` |
@@ -33,11 +27,11 @@ A VS Code extension that provides snippets for building command palettes with `m
 | `cmd-optimistic` | React 19 `useOptimistic`: the selected item shows as pending while it is saved | `.tsx`, `.jsx` |
 | `cmd-action` | React 19 `useActionState` | `.tsx`, `.jsx` |
 
-The four React 19 snippets (`cmd-component-ref`, `cmd-use`, `cmd-optimistic`, `cmd-action`) are contributed twice: a TypeScript form for `.tsx` (`src/snippets-tsx.json`) and a plain JavaScript form for `.jsx` (`src/snippets-jsx.json`). The WASM snippet `cmd-wasm` was removed: `modern-cmdk-search-wasm` does not work yet.
+The four React 19 snippets (`cmd-component-ref`, `cmd-use`, `cmd-optimistic`, `cmd-action`) are contributed twice: a TypeScript form for `.tsx` (`src/snippets-tsx.json`) and a plain JavaScript form for `.jsx` (`src/snippets-jsx.json`). The WASM snippet `cmd-wasm` was removed, because the experimental `modern-cmdk-search-wasm` is not functional.
 
 ## Install
 
-The extension is not on the VS Code Marketplace; install it from source. The npm package `vscode-modern-cmdk@1.0.0` was an accidental publish and is not the extension (this package is private and is never published to npm).
+The extension is not on the VS Code Marketplace; install it from source.
 
 ### From source
 

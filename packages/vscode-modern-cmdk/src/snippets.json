@@ -142,14 +142,14 @@
     "body": [
       "<Command.Item",
       "  value=\"${1:action}\"",
-      "  shortcut=\"${2:Ctrl+Shift+P}\"",
+      "  shortcut=\"${2:Mod+Shift+P}\"",
       "  onSelect={() => ${3:console.log('selected')}}",
       ">",
       "  ${4:Action}",
-      "  <Command.Shortcut>${2:Ctrl+Shift+P}</Command.Shortcut>",
+      "  <Command.Shortcut shortcut=\"${2:Mod+Shift+P}\" />",
       "</Command.Item>"
     ],
-    "description": "Command item with keyboard shortcut"
+    "description": "Command item that binds a shortcut and shows it per platform"
   },
   "Command Page": {
     "prefix": "cmd-page",
