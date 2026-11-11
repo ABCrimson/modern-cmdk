@@ -14,8 +14,12 @@
 //                 docs-2026-11/social-preview.png; the file is never committed or served)
 //
 // Outputs (all under apps/docs/public): og-image.png, og-image.svg, apple-touch-icon.png, favicon.svg (through svgo),
-// brand/banner-dark.png, brand/banner-light.png. Every size and dimension is asserted on the
-// rendered buffer before anything is written: a miss writes nothing for that asset and the run exits 1.
+// brand/banner-dark.png, brand/banner-light.png and the six README heroes brand/readme/<package>-{dark,light}.png
+// (modern-cmdk, create-modern-cmdk, modern-cmdk-codemod; 1520 x 400, shown at 760 x 200). Every size and dimension is
+// asserted on the rendered buffer before anything is written: a miss writes nothing for that asset and the run exits 1.
+// Before the screenshot, the text of each source is measured in the page: an element with data-max-end ends at or
+// before that x (user units), one with data-max-advance has at most that advance width, and every character stays
+// inside the fonts' Latin subsets.
 // Chromium runs with --use-angle=d3d11 on Windows outside CI (the host's GPU path), with default flags elsewhere.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -66,6 +70,22 @@ interface Job {
   readonly transparent: boolean;
   readonly maxBytes: number;
 }
+
+const readmePackages = ['modern-cmdk', 'create-modern-cmdk', 'modern-cmdk-codemod'] as const;
+const readmeHeroes: readonly Job[] = readmePackages.flatMap((pkg) =>
+  (['dark', 'light'] as const).map(
+    (scheme): Job => ({
+      name: `readme-${pkg}-${scheme}`,
+      source: join('readme', `${pkg}-${scheme}.svg`),
+      out: join(publicDir, 'brand', 'readme', `${pkg}-${scheme}.png`),
+      width: 760,
+      height: 200,
+      scale: 2,
+      transparent: true,
+      maxBytes: 150 * KB,
+    }),
+  ),
+);
 
 const jobs: readonly Job[] = [
   {
@@ -118,6 +138,7 @@ const jobs: readonly Job[] = [
     transparent: true,
     maxBytes: 300 * KB,
   },
+  ...readmeHeroes,
 ];
 
 const failures: string[] = [];
@@ -193,6 +214,45 @@ try {
         document.fonts.check('400 20px "Geist Mono Variable"'),
     );
     const fontsOk = check(loaded, `${job.name}: the inlined fonts did not load`);
+    const layoutProblems = await page.evaluate(() => {
+      const problems: string[] = [];
+      const label = (el: Element): string =>
+        `<${el.tagName} "${(el.textContent ?? '').trim().slice(0, 40)}">`;
+      const endOf = (el: SVGGraphicsElement): number => {
+        if (el instanceof SVGTextPositioningElement) {
+          return el.x.baseVal.getItem(0).value + el.getComputedTextLength();
+        }
+        const box = el.getBBox();
+        return box.x + box.width;
+      };
+      for (const el of document.querySelectorAll<SVGGraphicsElement>('[data-max-end]')) {
+        const limit = Number(el.dataset.maxEnd);
+        const end = endOf(el);
+        if (end > limit) problems.push(`${label(el)} ends at x ${end.toFixed(2)}, limit ${limit}`);
+      }
+      for (const el of document.querySelectorAll<SVGTextContentElement>('[data-max-advance]')) {
+        const limit = Number(el.dataset.maxAdvance);
+        const advance = el.getComputedTextLength();
+        if (advance > limit)
+          problems.push(`${label(el)} advance ${advance.toFixed(2)}, limit ${limit}`);
+      }
+      // The Fontsource Latin subsets: U+0000-00FF, U+2000-206F, U+2191, U+2193, U+2212 (and a few more).
+      const inLatinSubset = (cp: number): boolean =>
+        cp <= 0xff ||
+        (cp >= 0x2000 && cp <= 0x206f) ||
+        cp === 0x2191 ||
+        cp === 0x2193 ||
+        cp === 0x2212;
+      for (const el of document.querySelectorAll('text')) {
+        if (![...(el.textContent ?? '')].every((ch) => inLatinSubset(ch.codePointAt(0) ?? 0)))
+          problems.push(`${label(el)} has a character outside the Latin subsets`);
+      }
+      return problems;
+    });
+    const layoutOk = check(
+      layoutProblems.length === 0,
+      `${job.name}: ${layoutProblems.join('; ')}`,
+    );
     const png = await page.screenshot({ type: 'png', omitBackground: job.transparent });
     await page.close();
 
@@ -207,7 +267,7 @@ try {
       png.length <= job.maxBytes,
       `${job.name}: ${png.length} B exceeds ${job.maxBytes} B`,
     );
-    if (fontsOk && dimsOk && bytesOk) {
+    if (fontsOk && layoutOk && dimsOk && bytesOk) {
       writeOut(job.out, png);
       say(`${job.name}: ${size.width} x ${size.height}, ${png.length} B -> ${job.out}`);
     } else {
@@ -218,8 +278,12 @@ try {
   await browser.close();
 }
 
-// og-image.svg ships at its path (create-modern-cmdk's README links it by raw URL) with the fonts inlined.
-const ogSvg = withFonts(readFileSync(join(brandDir, 'og-image.svg'), 'utf8'));
+// og-image.svg ships at its path (create-modern-cmdk's README links it by raw URL) with the fonts inlined and without
+// the data-max-* measuring attributes.
+const ogSvg = withFonts(readFileSync(join(brandDir, 'og-image.svg'), 'utf8')).replace(
+  / data-max-(?:end|advance)="[^"]*"/g,
+  '',
+);
 if (check(!ogSvg.includes('oklch('), 'og-image.svg contains oklch(')) {
   writeOut(join(publicDir, 'og-image.svg'), ogSvg);
   say(`og-image.svg: ${Buffer.byteLength(ogSvg)} B -> ${join(publicDir, 'og-image.svg')}`);
