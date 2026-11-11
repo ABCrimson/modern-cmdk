@@ -69,7 +69,7 @@ export function App(): ReactElement {
           <Command.Group heading="Actions">
 ```
 
-`modern-cmdk` is pinned to the modern-cmdk version this scaffolder was released with, read from the repository when it was built; the other pins are in [`src/versions.ts`](https://github.com/ABCrimson/modern-cmdk/blob/48bff2bf82125afd289067557127160b47909c3e/packages/create-modern-cmdk/src/versions.ts).
+`modern-cmdk` is pinned to the modern-cmdk version this scaffolder was released with, read from the repository when it was built; the other pins are in [`src/versions.ts`](https://github.com/ABCrimson/modern-cmdk/blob/910a9af7655135ae1672bbdaa3ee70d3e21fcd93/packages/create-modern-cmdk/src/versions.ts).
 
 ## Options
 
@@ -83,13 +83,13 @@ export function App(): ReactElement {
 <details>
 <summary>Exit codes</summary>
 
-| Code | Default | With `--strict` |
+| Code | Default | `--strict` |
 |---|---|---|
 | `0` | Success, `--help`, a missing project name, a malformed known option | Success, `--help` |
-| `1` | An unknown template, an unusable name, a `--no-overwrite` collision, a failed write | A `--no-overwrite` collision, a failed write |
+| `1` | An unknown template, an unusable name, a `--no-overwrite` collision, a failed write | Only the collision and the failed write |
 | `2` | Not used | Every usage error, and an unusable name |
 
-Without `--strict`, an unknown option is warned about and ignored when a project name is given.
+The Default column is a run without `--strict`; the `--strict` column is a run with it. Without `--strict`, an unknown option is warned about and ignored when a project name is given.
 
 </details>
 
@@ -104,7 +104,7 @@ The directory you name is the project directory. The package name in the generat
 
 ## Requirements
 
-Node 26.4.0 or later; npm, pnpm or yarn.
+Node 26.4.0 or later; npm, pnpm, yarn or bun.
 
 ## The modern-cmdk packages
 
