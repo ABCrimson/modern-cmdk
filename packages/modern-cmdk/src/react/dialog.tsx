@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CommandStableContext, CommandStateContext } from './context.js';
 import { useCommandSetup } from './hooks/use-command-setup.js';
 
-/** Props of {@link CommandDialog}: the machine options plus the dialog's `open` state, class names and accessible text. */
+/** Props of {@link CommandDialog}: the machine options plus the dialog's `open` state, class names, portal `container` and accessible text. */
 export interface CommandDialogProps extends CommandMachineOptions {
   /** The palette parts to render inside the dialog (`Command.Input`, `Command.List` and the rest) */
   readonly children?: ReactNode | undefined;

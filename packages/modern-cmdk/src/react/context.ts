@@ -70,7 +70,7 @@ export interface CommandStateContextValue {
   readonly virtualPositionMap: ReadonlyMap<ItemId, number> | null;
 }
 
-/** Context of the values that stay the same across searches and navigation: the machine, the ids and the label. */
+/** Context of the values that stay the same across searches and navigation: the machine, the ids, the label and the `updateSearch` and `setOptimisticActiveId` helpers. */
 export const CommandStableContext: Context<CommandStableContextValue | null> =
   createContext<CommandStableContextValue | null>(null);
 CommandStableContext.displayName = 'CommandStableContext';
@@ -94,6 +94,7 @@ export function useStateContext(component: string): CommandStateContextValue {
   return ctx;
 }
 
+/** The group an item registers under: its id and the id of its heading */
 export interface CommandGroupContextValue {
   readonly groupId: string;
   readonly headingId: string;
