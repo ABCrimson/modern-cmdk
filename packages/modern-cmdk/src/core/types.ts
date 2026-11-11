@@ -4,6 +4,7 @@
 
 import { ensureWellFormed } from './utils/string-wellformed.js';
 
+declare const __itemIdBrand: unique symbol;
 /**
  * Branded type for command item IDs.
  * Prevents accidental mixing with plain strings at the type level.
@@ -14,14 +15,13 @@ import { ensureWellFormed } from './utils/string-wellformed.js';
  * // id has type ItemId, not string — catches type errors at compile time
  * ```
  */
-declare const __itemIdBrand: unique symbol;
 export type ItemId = string & { readonly [__itemIdBrand]: never };
 
+declare const __groupIdBrand: unique symbol;
 /**
  * Branded type for group IDs.
  * Prevents accidental mixing with plain strings or ItemId at the type level.
  */
-declare const __groupIdBrand: unique symbol;
 export type GroupId = string & { readonly [__groupIdBrand]: never };
 
 /**

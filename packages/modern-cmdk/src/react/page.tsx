@@ -13,9 +13,11 @@ import { useStateContext } from './context.js';
  */
 export type CommandPageId = string;
 
+/** Props of {@link CommandPage}: the page id and the content to show while that page is current. */
 export interface CommandPageProps {
   /** Page identifier */
   readonly id: string;
+  /** Rendered only while the machine's current page is `id` */
   readonly children?: ReactNode | undefined;
 }
 

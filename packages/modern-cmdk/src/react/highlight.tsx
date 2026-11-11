@@ -5,6 +5,7 @@
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 
+/** Props of {@link CommandHighlight}: the text and the ranges of it to mark. */
 export interface CommandHighlightProps {
   /** The full text to display */
   readonly text: string;

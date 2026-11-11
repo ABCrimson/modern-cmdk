@@ -23,6 +23,7 @@ import {
 import { useHydrated } from './hooks/use-hydrated.js';
 import { useVirtualizer } from './hooks/use-virtualizer.js';
 
+/** Props of {@link CommandList}: any attribute of a `div`, plus the virtualization and announcement options. */
 export interface CommandListProps extends ComponentPropsWithRef<'div'> {
   /** Override automatic virtualization (default: auto at >100 items, false to opt-out) */
   readonly virtualize?: boolean | undefined;

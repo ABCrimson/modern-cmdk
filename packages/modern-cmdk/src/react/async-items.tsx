@@ -19,6 +19,7 @@ export const CommandAsyncItemsContext: Context<readonly CommandItem[] | null> = 
 >(null);
 CommandAsyncItemsContext.displayName = 'CommandAsyncItemsContext';
 
+/** Props of {@link CommandAsyncItems}: the promise of items, a fallback while it settles, and a render function. */
 export interface CommandAsyncItemsProps {
   /** Promise that resolves to items; keep it stable across renders (state, a ref, or `useMemo`) or the boundary re-suspends on every render */
   readonly items: Promise<readonly CommandItem[]>;

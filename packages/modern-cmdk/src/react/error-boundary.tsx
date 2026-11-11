@@ -4,6 +4,7 @@
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
+/** Props of {@link CommandErrorBoundary}: the subtree to guard, what to show after an error, and an error callback. */
 export interface CommandErrorBoundaryProps {
   readonly children: ReactNode;
   /**
@@ -16,6 +17,7 @@ export interface CommandErrorBoundaryProps {
    * `Object.is`; a different length counts as a change) clears the error and renders the children again.
    */
   readonly resetKeys?: readonly unknown[] | undefined;
+  /** Called with the error and React's `errorInfo` when the boundary catches an error from its subtree */
   readonly onError?: ((error: Error, errorInfo: ErrorInfo) => void) | undefined;
 }
 

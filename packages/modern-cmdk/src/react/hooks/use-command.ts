@@ -7,7 +7,9 @@ import type { CommandMachine, CommandState, ItemId } from 'modern-cmdk';
 import { useCallback, useId, useMemo, useSyncExternalStore } from 'react';
 import type { CommandRootId } from '../context.js';
 
+/** What {@link useCommand} returns: the machine's state snapshot and the helpers that act on the machine. */
 export interface UseCommandReturn {
+  /** The machine's current state snapshot; the same object until the machine commits a change */
   readonly state: CommandState;
   /**
    * Always `false`: the active item is the machine's own, so no render is pending on it, and search updates run on the machine's scheduler tick, outside React.
@@ -23,6 +25,7 @@ export interface UseCommandReturn {
   readonly setOptimisticActiveId: (id: ItemId | null) => void;
   /** O(1) membership set for filtered items — used by Item component */
   readonly filteredIdSet: ReadonlySet<ItemId>;
+  /** A stable id for this hook's caller, from React's `useId` */
   readonly id: CommandRootId;
 }
 

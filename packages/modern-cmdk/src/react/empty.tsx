@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom';
 import { CommandListStatusContext, useStateContext } from './context.js';
 import { useHydrated } from './hooks/use-hydrated.js';
 
+/** Props of {@link CommandEmpty}: any attribute of a `div`. */
 export interface CommandEmptyProps extends ComponentPropsWithRef<'div'> {}
 
 /** Rendered when no items match the current search query; nothing renders before hydration or while a source is loading. */

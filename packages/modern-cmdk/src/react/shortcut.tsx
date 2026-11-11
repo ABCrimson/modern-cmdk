@@ -8,6 +8,7 @@ import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { useSyncExternalStore } from 'react';
 import { subscribeNever } from './hooks/use-hydrated.js';
 
+/** Props of {@link CommandShortcut}: any attribute of a `kbd`, plus the shortcut to display. */
 export interface CommandShortcutProps extends ComponentPropsWithRef<'kbd'> {
   /** Shortcut string to display (e.g., "Mod+K"). Without it the component renders its `children`. */
   readonly shortcut?: string | undefined;

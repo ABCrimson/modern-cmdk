@@ -34,13 +34,17 @@ type MachineEvents = {
 
 /** Command machine — explicit resource management via `using` */
 export interface CommandMachine extends Disposable {
+  /** The current state snapshot; the same object until the machine commits a change */
   getState(): CommandState;
+  /** Queues an event; the machine applies it on its next scheduler tick */
   send(event: CommandEvent): void;
   /** Subscribe to state changes — useSyncExternalStore-compatible (returns cleanup function) */
   subscribe(listener: () => void): () => void;
   /** Subscribe to full state changes — returns Disposable for `using` pattern */
   subscribeState(listener: (state: CommandState) => void): Disposable;
+  /** The registry that holds the items and groups */
   getRegistry(): CommandRegistry;
+  /** The registry that holds the keyboard shortcut bindings */
   getKeyboardRegistry(): KeyboardShortcutRegistry;
   /** Get the current set of filtered item IDs — O(1) membership checks */
   getFilteredIdSet(): ReadonlySet<ItemId>;

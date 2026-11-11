@@ -78,7 +78,7 @@ describe('sameOutput', () => {
 
 describe('countDeprecationLines', () => {
   const warning =
-    'warning: the modern-cmdk bin is deprecated and leaves in modern-cmdk 2.0; use npx modern-cmdk-codemod (strict by default).';
+    'warning: the modern-cmdk bin is deprecated; use npx modern-cmdk-codemod (strict by default).';
 
   it('counts only lines starting with the deprecated-bin warning', () => {
     expect(countDeprecationLines(`${warning}\nchanged src/a.tsx\n`)).toBe(1);
