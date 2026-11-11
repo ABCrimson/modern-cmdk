@@ -28,7 +28,7 @@
     <path d="M471 72H723" stroke="#242a42" stroke-width="1"/>
     <text class="s" x="488" y="90" font-size="13" font-weight="600" letter-spacing="1.56" fill="#9297ab">TOPICS</text>
     <rect x="478" y="97" width="238" height="32" rx="9" fill="#fb7475" fill-opacity=".14"/>
-    <rect x="478" y="103" width="2.5" height="20" rx="1.25" fill="#dc2626"/>
-    <text class="s" x="492" y="118" font-size="15" font-weight="600" fill="#eaecf5"><tspan fill="#fb7475" style="text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px">Frec</tspan><tspan>ency ranking</tspan></text>
-    <text class="s" x="492" y="154" font-size="15" font-weight="500" fill="#eaecf5">Core API</text>
+    <rect x="480" y="105" width="2.5" height="16" rx="1.25" fill="#dc2626"/>
+    <text class="s" x="488" y="118" font-size="15" font-weight="600" fill="#eaecf5"><tspan fill="#fb7475" style="text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px">Frec</tspan><tspan>ency ranking</tspan></text>
+    <text class="s" x="488" y="154" font-size="15" font-weight="500" fill="#eaecf5">Core API</text>
 </svg>
