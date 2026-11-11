@@ -15,7 +15,7 @@ npm create modern-cmdk@latest my-palette
 Two templates · writes 8 files · every dependency pinned to an exact version · no dependencies of its own · Node ≥ 26.4.0
 
 <p align="center">
-  <a href="https://abcrimson.github.io/modern-cmdk/"><strong>Documentation</strong></a> ·
+  <strong><a href="https://abcrimson.github.io/modern-cmdk/">Documentation</a></strong> ·
   <a href="https://abcrimson.github.io/modern-cmdk/guide/getting-started.html">Getting started</a> ·
   <a href="https://www.npmjs.com/package/modern-cmdk">modern-cmdk</a> ·
   <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/packages/create-modern-cmdk/CHANGELOG.md">Changelog</a>

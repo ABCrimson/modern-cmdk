@@ -17,7 +17,7 @@ npm install modern-cmdk react react-dom radix-ui
 <!-- figures-line:end -->
 
 <p align="center">
-  <a href="https://abcrimson.github.io/modern-cmdk/"><strong>Documentation</strong></a> ·
+  <strong><a href="https://abcrimson.github.io/modern-cmdk/">Documentation</a></strong> ·
   <a href="https://abcrimson.github.io/modern-cmdk/guide/getting-started.html">Getting started</a> ·
   <a href="https://abcrimson.github.io/modern-cmdk/api/command-react.html">React API</a> ·
   <a href="https://abcrimson.github.io/modern-cmdk/api/command.html">Core API</a> ·
@@ -265,7 +265,7 @@ Most of the unpacked size npm lists is the deprecated `modern-cmdk` bin and the 
 
 ## Requirements
 
-| | |
+| Area | Requirement |
 |---|---|
 | Module format | ESM only |
 | React | `react` and `react-dom` `>=19.0.0 <21.0.0`, for the React entries (optional peers) |

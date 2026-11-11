@@ -15,7 +15,7 @@ npx modern-cmdk-codemod --dry-run should-filter ./src
 Four transforms · `--dry-run` writes nothing and prints a diff · by default writes only files that git has committed · Node ≥ 26.4.0
 
 <p align="center">
-  <a href="https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html"><strong>Migration guide</strong></a> ·
+  <strong><a href="https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html">Migration guide</a></strong> ·
   <a href="https://www.npmjs.com/package/modern-cmdk">modern-cmdk</a> ·
   <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/packages/modern-cmdk-codemod/CHANGELOG.md">Changelog</a>
 </p>
