@@ -380,7 +380,7 @@
 
 - **chore: bleeding-edge evergreen upgrade** — Moved the entire toolchain and dependencies to their newest releases: TypeScript 7.0.1-rc (native compiler), React 19.3 canary, radix-ui 1.6.0, Vite 8.1, Vitest 5, Playwright 1.62, Biome 2.5.1, pnpm 11.9, tsdown 0.22.3, and the Rust/WASM crate to edition 2024 + wasm-bindgen 0.2.126. Raised `engines.node` to `>=26.4.0` and bumped the `idb-keyval` runtime dependency to 6.2.5. No public API or behavior changes.
 
-- **chore: size-limit measures own code** — The React adapter budget now externalizes the `react`/`react-dom`/`radix-ui` peers and reports the adapter's own gzipped size (~10.2 KB), so the gate stays stable across peer version bumps.
+- **chore: size-limit measures own code** — The React adapter budget now externalizes the `react`/`react-dom`/`radix-ui` peers and reports the adapter bundle's gzipped size (~10.2 KB) [corrected 2026-11: that file inlined the core; the adapter alone is 6.5 kB gzip at 1.7.0], so the gate stays stable across peer version bumps.
 
 - **chore: CI and test fixes** — CI actions moved to checkout v7, pnpm/action-setup v6, codeql v4, upload-pages-artifact v5 and deploy-pages v5. Fixed the Vitest 5 benchmark migration (fixture API with `.run()`, `it.sequential` to `it`, oxc transform), radix 1.6 dialog dismissal in the unit tests (a full outside click is dispatched) and the WASM build guard (Node `existsSync` instead of the POSIX `[ -f ]`). CI runs Node 26.4.0 on `ubuntu-26.04`; VitePress moved to 2.0.0-alpha.17; wasm-pack 0.15 builds the crate with wasm-opt feature flags; the React size-limit budget is 12 KB. Carried from the root CHANGELOG's 1.2.0 section ([`bd772ce`](https://github.com/ABCrimson/modern-cmdk/commit/bd772ce)).
 
@@ -416,7 +416,7 @@
 
 - **fix(react): virtualization now removes off-screen items from the DOM** — Items check `visibleIdSet` before rendering, reducing DOM nodes from thousands to ~30 in virtualized lists. Latch-based auto-virtualization with hysteresis (more than 100 items enables it, 50 or fewer disables it) prevents race conditions ([`6b340b4`](https://github.com/ABCrimson/modern-cmdk/commit/6b340b4)).
 
-- **fix(core): replace browser-incompatible ES2026 APIs with cross-browser helpers** — Replaced `Temporal.Now.instant()` / `Temporal.Duration` with `Date.now()`, `Math.sumPrecise` with `+=` loops, `Map.groupBy` / `Object.groupBy` with helper functions, `Set.intersection` / `.difference` / `.union` / `.isSubsetOf` with set operation helpers, `Promise.try` with `Promise.resolve().then()`, `String.isWellFormed` / `.toWellFormed` with regex-based surrogate replacement. All Iterator Helpers, `using`/`await using`, `Promise.withResolvers`, and `RegExp.escape` remain (supported in target browsers).
+- **fix(core): replace browser-incompatible ES2026 APIs with cross-browser helpers** — Replaced `Temporal.Now.instant()` / `Temporal.Duration` with `Date.now()`, `Math.sumPrecise` with `+=` loops, `Map.groupBy` / `Object.groupBy` with helper functions, `Set.intersection` / `.difference` / `.union` / `.isSubsetOf` with set operation helpers, `Promise.try` with `Promise.resolve().then()`, `String.isWellFormed` / `.toWellFormed` with regex-based surrogate replacement. Iterator Helpers and `using`/`await using` remain (supported in target browsers). [Corrected 2026-11: the source uses neither `Promise.withResolvers` nor `RegExp.escape`.]
 
 - **fix(css): WCAG 2.1 AA contrast compliance** — Updated OKLCH color values in dark mode (`--text-muted: oklch(0.83)`, `--text-secondary: oklch(0.75)`) and light mode (`--text-secondary: oklch(0.38)`, `--text-muted: oklch(0.48)`, `--accent: oklch(0.45)`) to meet 4.5:1 contrast ratio requirements. Re-enabled axe-core color-contrast checks in E2E tests.
 
@@ -489,7 +489,7 @@ Backfilled from the GitHub release body of `modern-cmdk@1.1.0` (published 2026-0
   - GPU-composited CSS animations
   - Full WAI-ARIA combobox pattern
   - Automatic virtualization at 100+ items
-  - ES2026: Iterator Helpers, Explicit Resource Management, cross-browser helpers
+  - Iterator Helpers (ES2025), Explicit Resource Management, cross-browser helpers [corrected 2026-11: iterator helpers are ES2025]
 
 ## Before the rename (@crimson_dev/command)
 
