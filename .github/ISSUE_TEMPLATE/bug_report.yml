@@ -17,12 +17,9 @@ body:
       options:
         - "modern-cmdk (core)"
         - "modern-cmdk/react"
-        - "modern-cmdk (WASM search)"
-        - "modern-cmdk (deprecated codemod bin)"
-        - "modern-cmdk-codemod"
+        - "modern-cmdk-codemod (also the deprecated modern-cmdk bin)"
         - "create-modern-cmdk"
         - "Documentation"
-        - "Playground"
       default: 0
     validations:
       required: true
@@ -42,7 +39,7 @@ body:
       label: Reproduction
       description: Steps to reproduce, or a link to a minimal reproduction (StackBlitz, CodeSandbox, or GitHub repo).
       placeholder: |
-        1. Install modern-cmdk/react
+        1. Install modern-cmdk
         2. Create a Command with ...
         3. Type "..." in the input
         4. See error
@@ -61,13 +58,13 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Node, browser, OS, and package versions.
+      description: Node, browser, OS, and package versions. `npm ls modern-cmdk react typescript` prints the package versions.
       render: shell
       placeholder: |
         Node: v28.0.0-nightly20261107a43bfb5bb2
         Browser: Chrome 158
         OS: macOS 26
-        modern-cmdk: 1.6.0
+        modern-cmdk: 1.7.0
         modern-cmdk-codemod: (if used)
         React: 0.0.0-experimental-5b610964-20261106
         TypeScript: 7.1.0-dev.20261108.1

@@ -1,6 +1,6 @@
 ## Summary
 
-<!-- Brief description of what this PR does and why. Link to related issues. -->
+<!-- What this PR does and why. Say whether it fixes a bug, adds a feature, improves performance, refactors or changes docs, tests or tooling. Link related issues. -->
 
 ## Changes
 
@@ -8,43 +8,23 @@
 
 -
 
-## Type
-
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Performance improvement
-- [ ] Refactoring (no behavior change)
-- [ ] Documentation
-- [ ] Tests
-- [ ] CI / Build / Tooling
-
-## Packages Affected
+## Packages affected
 
 - [ ] `modern-cmdk` (core)
 - [ ] `modern-cmdk/react`
-- [ ] WASM search (internal)
-- [ ] Codemods
-- [ ] Documentation (apps/docs)
-- [ ] Playground (apps/playground)
+- [ ] `modern-cmdk-codemod`
+- [ ] `create-modern-cmdk`
+- [ ] Documentation (`apps/docs`)
 
 ## Testing
 
-<!-- How did you verify this change works? -->
-
-- [ ] Unit tests added/updated
-- [ ] E2E tests added/updated
-- [ ] Manually tested in playground
+<!-- How did you verify this change works? Name the tests you added or updated, and anything you tried by hand. -->
 
 ## Checklist
 
-- [ ] Tests pass (`pnpm test`)
-- [ ] Types check (`pnpm typecheck`)
-- [ ] Linting passes (`pnpm lint`)
-- [ ] Bundle size within budget (`pnpm size`)
-- [ ] Benchmarks not regressed (`pnpm bench`)
-- [ ] Changeset added (if publishing change) (`pnpm changeset`)
-- [ ] Documentation updated (if applicable)
-- [ ] Accessibility verified (`forced-colors`, `prefers-reduced-motion`, keyboard nav)
+- [ ] Tests, types and lint pass (`pnpm test`, `pnpm typecheck`, `pnpm lint`)
+- [ ] A changeset is added for a change to a published package (`pnpm changeset`)
+- [ ] Documentation is updated where the change affects it
 
 ## Screenshots / Recordings
 
@@ -53,7 +33,3 @@
 ## Related Issues
 
 <!-- Closes #123, Fixes #456 -->
-
-## Additional Context
-
-<!-- Any other context about the PR -->
