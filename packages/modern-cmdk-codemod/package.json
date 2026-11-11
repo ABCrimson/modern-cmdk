@@ -1,6 +1,6 @@
 {
   "name": "modern-cmdk-codemod",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "Codemods that migrate cmdk code to modern-cmdk: four jscodeshift transforms that report every site they cannot migrate instead of guessing.",
   "license": "MIT",
