@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-light.png">
-    <img src="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-dark.png" width="760" alt="modern-cmdk: one headless engine, any framework, with a TypeScript core and a React 19 adapter. Beside the name, a drawing of the documentation site's command palette, a Vue interface on the modern-cmdk core, with the query 'frec' and 'Frecency ranking' as the active result.">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/5d3cad159e4a509376b1a4f796a4e6bf6603b65d/apps/docs/public/brand/readme/modern-cmdk-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/5d3cad159e4a509376b1a4f796a4e6bf6603b65d/apps/docs/public/brand/readme/modern-cmdk-light.png">
+    <img src="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/5d3cad159e4a509376b1a4f796a4e6bf6603b65d/apps/docs/public/brand/readme/modern-cmdk-dark.png" width="760" alt="modern-cmdk: one headless engine, any framework, with a TypeScript core and a React 19 adapter. Beside the name, a drawing of the documentation site's command palette, a Vue interface on the modern-cmdk core, with the query 'frec' and 'Frecency ranking' as the active result.">
   </picture>
 </p>
 

@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-codemod-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-codemod-light.png">
-    <img src="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-codemod-dark.png" width="760" alt="modern-cmdk-codemod, part of modern-cmdk: move code written for cmdk to modern-cmdk, with a dry run, a clean-tree check and jscodeshift. Beside the name, a diff turns shouldFilter={false} into filter={false}, [cmdk-item] into [data-command-item], and an import from 'cmdk' into one from 'modern-cmdk/react'.">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/5d3cad159e4a509376b1a4f796a4e6bf6603b65d/apps/docs/public/brand/readme/modern-cmdk-codemod-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/5d3cad159e4a509376b1a4f796a4e6bf6603b65d/apps/docs/public/brand/readme/modern-cmdk-codemod-light.png">
+    <img src="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/5d3cad159e4a509376b1a4f796a4e6bf6603b65d/apps/docs/public/brand/readme/modern-cmdk-codemod-dark.png" width="760" alt="modern-cmdk-codemod, part of modern-cmdk: move code written for cmdk to modern-cmdk, with a dry run, a clean-tree check and jscodeshift. Beside the name, a diff turns shouldFilter={false} into filter={false}, [cmdk-item] into [data-command-item], and an import from 'cmdk' into one from 'modern-cmdk/react'.">
   </picture>
 </p>
 
