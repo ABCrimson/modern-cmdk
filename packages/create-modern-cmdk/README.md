@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/5d3cad159e4a509376b1a4f796a4e6bf6603b65d/apps/docs/public/brand/readme/create-modern-cmdk-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/5d3cad159e4a509376b1a4f796a4e6bf6603b65d/apps/docs/public/brand/readme/create-modern-cmdk-light.png">
-    <img src="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/5d3cad159e4a509376b1a4f796a4e6bf6603b65d/apps/docs/public/brand/readme/create-modern-cmdk-dark.png" width="760" alt="create-modern-cmdk, part of modern-cmdk: start a project with a palette in it, with Vite, React 19 and TypeScript. Beside the name, a terminal runs npm create modern-cmdk and lists the files it adds: src/App.tsx, src/main.tsx, vite.config.ts and package.json.">
+    <img src="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/5d3cad159e4a509376b1a4f796a4e6bf6603b65d/apps/docs/public/brand/readme/create-modern-cmdk-dark.png" width="760" alt="create-modern-cmdk, part of modern-cmdk: start a project with a palette in it, with Vite, React 19 and TypeScript. Beside the name, a terminal runs npm create modern-cmdk app and lists four of the files it adds: app/package.json, app/vite.config.ts, app/src/main.tsx and app/src/App.tsx.">
   </picture>
 </p>
 
