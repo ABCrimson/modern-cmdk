@@ -2,9 +2,9 @@
   "name": "modern-cmdk-codemod",
   "version": "1.0.1",
   "type": "module",
-  "description": "Codemods that migrate cmdk code to modern-cmdk",
+  "description": "Codemods that migrate cmdk code to modern-cmdk: four jscodeshift transforms that report every site they cannot migrate instead of guessing.",
   "license": "MIT",
-  "homepage": "https://github.com/ABCrimson/modern-cmdk/tree/main/packages/modern-cmdk-codemod#readme",
+  "homepage": "https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html",
   "bugs": {
     "url": "https://github.com/ABCrimson/modern-cmdk/issues"
   },
@@ -41,7 +41,8 @@
     "modern-cmdk",
     "migration",
     "command-palette",
-    "react"
+    "react",
+    "react-19"
   ],
   "repository": {
     "type": "git",

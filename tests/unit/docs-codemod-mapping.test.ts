@@ -235,7 +235,6 @@ describe('migration guide: removed claims', () => {
 describe('deprecated bin paragraphs', () => {
   const paragraphs: Record<string, string> = {
     guide: page,
-    'codemod README': readFileSync(resolve(root, 'packages/modern-cmdk-codemod/README.md'), 'utf8'),
   };
 
   for (const [name, text] of Object.entries(paragraphs)) {
@@ -251,7 +250,7 @@ describe('deprecated bin paragraphs', () => {
   }
 
   // The modern-cmdk README keeps the deprecation to two sentences and sends the file-discovery detail to the
-  // migration guide and the codemod README, which the loop above pins. What it does say stays pinned here.
+  // migration guide (the loop above pins it) and the codemod README (the next test pins it). What it does say stays pinned here.
   it('DG-135: the modern-cmdk README calls the bin deprecated, warning and lenient, and makes no symlink claim', () => {
     const readme: string = readFileSync(resolve(root, 'packages/modern-cmdk/README.md'), 'utf8');
     const at: number = readme.indexOf('This package also ships a `modern-cmdk` bin');
@@ -262,5 +261,27 @@ describe('deprecated bin paragraphs', () => {
     );
     expect(paragraph).toContain('use `modern-cmdk-codemod`');
     expect(readme).not.toMatch(/symlink/i);
+  });
+
+  it('the codemod README section on the deprecated bin names what the code does: a warning, lenient exit codes unless --strict, fewer skipped directories, no .gitignore, no git check', () => {
+    const readme: string = readFileSync(
+      resolve(root, 'packages/modern-cmdk-codemod/README.md'),
+      'utf8',
+    );
+    const at: number = readme.indexOf('## The deprecated `modern-cmdk` bin');
+    expect(at).toBeGreaterThan(-1);
+    const end: number = readme.indexOf('\n## ', at + 1);
+    const section: string = readme.slice(at, end === -1 ? undefined : end);
+    for (const needle of [
+      'It is deprecated: it warns on every run',
+      'keeps lenient exit codes unless `--strict` is given',
+      'skips fewer directories',
+      'reads no `.gitignore`',
+      'makes no git check',
+      'Use `modern-cmdk-codemod`',
+    ]) {
+      expect(section, needle).toContain(needle);
+    }
+    expect(section).not.toContain('2.0');
   });
 });

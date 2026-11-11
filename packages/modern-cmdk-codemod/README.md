@@ -1,76 +1,98 @@
-# modern-cmdk-codemod
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-codemod-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-codemod-light.png">
+    <img src="https://raw.githubusercontent.com/ABCrimson/modern-cmdk/ASSET_COMMIT_PLACEHOLDER/apps/docs/public/brand/readme/modern-cmdk-codemod-dark.png" width="760" alt="modern-cmdk-codemod, part of modern-cmdk: move code written for cmdk to modern-cmdk, with a dry run, a clean-tree check and jscodeshift. Beside the name, a diff turns shouldFilter={false} into filter={false}, [cmdk-item] into [data-command-item], and an import from 'cmdk' into one from 'modern-cmdk/react'.">
+  </picture>
+</p>
 
-Codemods that migrate code written for [cmdk](https://github.com/dip/cmdk) to [modern-cmdk](https://www.npmjs.com/package/modern-cmdk). Four transforms, one per run, each reporting every site it cannot migrate instead of guessing.
+Codemods that migrate cmdk code to modern-cmdk: four jscodeshift transforms that report every site they cannot migrate instead of guessing.
 
-Nothing to install: run it with `npx` (or `pnpm dlx`) from the root of a git work tree.
-
-```bash
-npx modern-cmdk-codemod <transform> <dir|glob>
-```
-
-Requires Node >= 26.4.0 (`engines.node` of this package).
-
-## Safe first run: a dry run
-
-`--dry-run` needs no git tree, writes nothing and prints a unified diff of every file that would change:
-
-```bash
+```sh
 npx modern-cmdk-codemod --dry-run should-filter ./src
 ```
 
-## Real runs need a clean git tree
+Four transforms · `--dry-run` writes nothing and prints a diff · by default writes only files that git has committed · Node ≥ 26.4.0
 
-A run that writes needs a git work tree in which every matched file is committed. If a matched file is modified, staged, deleted or untracked, lies outside the work tree, or git cannot be found, nothing is written and the exit code is `2`:
+<p align="center">
+  <a href="https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html"><strong>Migration guide</strong></a> ·
+  <a href="https://www.npmjs.com/package/modern-cmdk">modern-cmdk</a> ·
+  <a href="https://github.com/ABCrimson/modern-cmdk/blob/main/packages/modern-cmdk-codemod/CHANGELOG.md">Changelog</a>
+</p>
 
-```text
-error: refusing to write: 1 matched file has uncommitted changes:
-  src/Palette.tsx
-Commit or stash them, or pass --force to write anyway (--dry-run previews without writing).
+## Quick start
+
+Nothing to install: `npx` (or `pnpm dlx`) runs it. Start from a committed tree and commit after each transform, so every step is a diff you can review:
+
+```sh
+npx modern-cmdk-codemod should-filter ./src && git commit -am should-filter
+npx modern-cmdk-codemod forward-ref ./src && git commit -am forward-ref
+npx modern-cmdk-codemod data-attrs ./src && git commit -am data-attrs
+npx modern-cmdk-codemod import-rewrite ./src && git commit -am import-rewrite
 ```
 
-Outside a git tree: `error: refusing to write outside a git work tree: nothing could undo it. Pass --force to write anyway.`
+`import-rewrite` goes last: `should-filter` recognises a cmdk `filter` function only while the import still reads `'cmdk'`. A run that writes refuses to start when a file it matched has uncommitted changes or git is missing, unless you pass `--force`.
 
-So every real run below starts from a committed tree, and you commit after each transform so the next run starts clean and each step is a reviewable diff. To write into a tree that is not clean, or outside git, pass `--force`; a bad run then cannot be undone with git.
+## What each transform changes
 
-```bash
-git status --short                          # empty: everything is committed
-npx modern-cmdk-codemod should-filter ./src
-git commit -am "codemod: should-filter"
-npx modern-cmdk-codemod forward-ref ./src
-git commit -am "codemod: forward-ref"
-npx modern-cmdk-codemod data-attrs ./src
-git commit -am "codemod: data-attrs"
-npx modern-cmdk-codemod import-rewrite ./src
-git commit -am "codemod: import-rewrite"
+**1. `should-filter`**: `shouldFilter={false}` becomes `filter={false}`, `shouldFilter={expr}` becomes `filter={expr ? undefined : false}`, and a cmdk `filter` function is wrapped to take `(item, query)`.
+
+<!-- fixture: should-filter/SF-1-values -->
+```diff
+-export const C = () => <Command label="c" shouldFilter={false} />;
++export const C = () => <Command label="c" filter={false} />;
 ```
 
-```bash
-# a tree that is not clean, or not in git: you accept that nothing can undo the run
-npx modern-cmdk-codemod --force should-filter ./src
+**2. `forward-ref`**: `forwardRef` is unwrapped into a component that takes `ref` as a prop (React 19), keeping the props and ref types.
+
+<!-- fixture: forward-ref/FR-2-props-annotation-only -->
+```diff
+-import { forwardRef, useImperativeHandle } from 'react';
++import { useImperativeHandle, type Ref } from 'react';
+ type Props = { label: string };
+-export const Tag = forwardRef((props: Props, ref) => {
++export const Tag = (
++  {
++    ref,
++    ...props
++  }: Props & {
++    ref?: Ref<unknown>;
++  }
++) => {
+   useImperativeHandle(ref, () => ({}));
+   return <span>{props.label}</span>;
+-});
++};
 ```
 
-Run the transforms in this order. `import-rewrite` goes last: `should-filter` adapts a cmdk `filter` function only on elements bound to a `'cmdk'` import, and once the import reads `'modern-cmdk/react'` a cmdk filter can no longer be told from a migrated one.
+**3. `data-attrs`**: `cmdk-*` attributes and `--cmdk-list-height` become their `data-command-*` and `--command-*` names in JSX, in selector strings and in `.css` and `.scss` files, with the state attributes beside them.
 
-## Which files are read
-
-A directory argument covers every `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and `.scss` file below it. Files and directories whose names start with a dot (`.storybook/`, `src/.palette.tsx`) are not matched by a directory argument or by a wildcard (`*` or `**`). Name them with a pattern whose segment starts with the dot, such as `"./.storybook/*.tsx"` or `"./src/.*.tsx"`, or give the dot directory itself as the directory argument (`./.storybook`). A glob works too; quote it so your shell passes it to the CLI:
-
-```bash
-npx modern-cmdk-codemod --dry-run data-attrs "./src/**/*.{tsx,css}"
+<!-- fixture: data-attrs/19-css -->
+```diff
+-[cmdk-item][data-selected="true"],
+-[cmdk-item]:hover {
++[data-command-item][data-active],
++[data-command-item]:hover {
+   background: #eee;
+ }
 ```
 
-The codemod skips `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static` and `.vercel`, every path your `.gitignore` covers (asked of `git check-ignore` in the innermost repository, so a submodule nested in a submodule works) and every file reached through a symlinked directory, and every file or directory whose name starts with a dot (unless a pattern segment starts with that dot or a directory argument names that directory, such as `./.storybook`).
+**4. `import-rewrite`**: `'cmdk'` becomes `'modern-cmdk/react'` in imports, re-exports, `import()`, `require()` and `vi.mock` or `jest.mock`.
 
-## The four transforms
+<!-- fixture: import-rewrite/IR-3-existing-forms -->
+```diff
+-import { Command } from 'cmdk';
+-import 'cmdk';
+-export { CommandItem } from 'cmdk';
++import { Command } from 'modern-cmdk/react';
++import 'modern-cmdk/react';
++export { CommandItem } from 'modern-cmdk/react';
+```
 
-| Transform | Scope and limits |
-|---|---|
-| `should-filter` | On `Command`, `Command.Dialog`, `CommandRoot` and `CommandDialog` imported from `'cmdk'` or `'modern-cmdk/react'`: `shouldFilter={false}` becomes `filter={false}`, `shouldFilter` and `shouldFilter={true}` are removed, `shouldFilter={expr}` becomes `filter={expr ? undefined : false}`. On an element bound to `'cmdk'` only, a cmdk `filter` function (`(value, search, keywords) => number`) is wrapped in an adapter to `(item, query) => number \| false`. A `filter` on an element bound to `'modern-cmdk/react'` is left alone without a report. Other components named `Command`, and any other element, are not touched. |
-| `forward-ref` | Unwraps `forwardRef(...)` from `react` into a function component that takes `ref` as a prop (React 19), keeping the props and ref types. |
-| `data-attrs` | Renames cmdk's `cmdk-*` attributes and `--cmdk-list-height` in JSX attributes, in selectors inside JS/TS string and template literals, and in `.css` and `.scss` files. Next to a cmdk attribute it rewrites the state attributes (`[data-selected="true"]` becomes `[data-active]`, `[data-selected="false"]` becomes `:not([data-active])`, and the same for `data-disabled`), and the Tailwind value variants on cmdk elements (`data-[selected=true]:` becomes `data-active:`, `data-[disabled=true]:` becomes `data-disabled:`). Attribute names match case-insensitively, as in an HTML document (`[CMDK-ITEM]`, a `CMDK-ROOT` JSX attribute, `data-[Selected=true]:`); the rewrite writes the lowercase `data-command-*` name, and a report keeps the spelling of the source. The Tailwind variants that test the state of another element, `group-`, `peer-` and `in-` data variants (with their `-has-` and `not-` forms), are reported and left unchanged, on a cmdk-bound element and, in a file that references cmdk, in the class lists of other elements too: an ancestor or a sibling need not be a cmdk element. The element's own `data-[selected=true]:` is still rewritten. |
-| `import-rewrite` | Rewrites imports, re-exports, `import()`, `require()` and `vi.mock` or `jest.mock` of `'cmdk'` to `'modern-cmdk/react'`. `CommandRoot` and a default import become `Command`. |
+A site a transform cannot migrate is printed as `<path>: <message>` on stderr, counted in the summary and left as it was.
 
-### What each transform reports
+<details>
+<summary>Every message a transform can report</summary>
 
 A report is printed as `<path>: <message>` on stderr, counted in the summary, and never changes the exit code; the site is left as it was for you to migrate by hand. These are the messages as the code writes them (`<...>` is filled in per site):
 
@@ -79,66 +101,60 @@ A report is printed as `<path>: <message>` on stderr, counted in the summary, an
 - `data-attrs`: `<attr> has no modern-cmdk equivalent: <reason>; left unchanged` (`cmdk-label`, which cmdk renders as a visually hidden `<label>` while modern-cmdk puts the label on the root as `aria-label`, and `cmdk-item-select`, a DOM event that has no counterpart: use the item `onSelect` prop); `<selector> beside a cmdk attribute cannot be migrated automatically: ...; left unchanged` for a state attribute with a value other than `"true"` or `"false"`; `<selector> under a rule whose selectors only partly hold a cmdk attribute cannot be migrated automatically; left unchanged` (SCSS); `<variant>: on a cmdk element cannot be migrated automatically: ...; left unchanged` (Tailwind `data-[selected]:` and `data-[disabled]:` presence forms); `<attr> is a cmdk attribute name outside a selector; modern-cmdk renders <data-command-attr>; left unchanged` (a bare attribute name in a string); `<variant>: has no modern-cmdk equivalent, <presence> is a presence attribute with no false value (use not-<presence>:); left unchanged` (Tailwind `data-[selected=false]:` and `data-[disabled=false]:`). `<variant>: styles this element by the state of another element (an ancestor or a sibling) that need not be a cmdk element, so it cannot be migrated automatically; left unchanged: check it by hand` (a `group-`, `peer-` or `in-` data variant, such as `group-data-[selected=true]:`, `peer-has-data-[...]:` or `not-in-data-[...]:`; migrate it by hand once you know which element carries the state).
 - `import-rewrite`: `<name> has no modern-cmdk/react export; left on the cmdk import` (`defaultFilter`, `CommandProps`); `useCommandState was rewritten, but its state is modern-cmdk's CommandState, not cmdk's; review the selector`; `'cmdk/<subpath>' is a cmdk subpath with no modern-cmdk/react counterpart; left unchanged`; `declare module 'cmdk' was left unchanged; move the declaration to 'modern-cmdk/react' by hand`; `the mock factory for 'cmdk' names ..., which modern-cmdk/react does not export under that name; the factory body is not rewritten, check it by hand`; `<name> has no modern-cmdk/react export; left on the cmdk export`; `<name> has no modern-cmdk/react export; used through <namespace or binding>`; `<name> has no modern-cmdk/react export; used through import('cmdk')`; `<name> has no modern-cmdk/react export under that name; destructured from the cmdk module`; `export * from 'cmdk' re-exported names that modern-cmdk/react lacks (CommandRoot, defaultFilter); re-export the modern-cmdk/react names by hand` (and the same for `export * as K from 'cmdk'`).
 
-A real run from a committed tree whose `./src` holds only `src/palette.css`, with `[cmdk-root]`, `[cmdk-item][data-selected="true"]` and `[cmdk-label]` rules, printed:
+</details>
 
-```text
-$ npx modern-cmdk-codemod data-attrs ./src
-src/palette.css: line 3: cmdk-label has no modern-cmdk equivalent: cmdk renders a visually hidden <label>; modern-cmdk puts the label on the root as aria-label and renders no label element; left unchanged
-changed src/palette.css
-1 changed, 0 unchanged, 0 errors, 1 reported
-```
+## Options
 
-which left `[data-command-root] { ... }`, `[data-command-item][data-active] { ... }` and the untouched `[cmdk-label] { display: none; }`.
+| Option | Effect |
+|---|---|
+| `--dry-run` | Write nothing; print a unified diff of every file that would change |
+| `--force` | Write into a tree with uncommitted changes, or outside git |
+| `--strict` | The default: exit `2` on a usage error, `1` when a file errors or nothing matches |
+| `--lenient` | Lenient exit codes and no git check; not with `--strict` |
+| `--concurrency=N` | Files processed at once (default: the smaller of 8 and the cores) |
+| `-h`, `--help` | Print the usage |
+| `-v`, `--version` | Print the package name and version |
 
-## Options and exit codes
+The last line of a run is the summary: `N changed, N unchanged, N errors` count files. `, N skipped` counts files the transform does not read (a `.css` file under `should-filter`, for example) and `, N reported` counts the reports printed; each appears only above zero. A dry run ends the line with ` (dry run, nothing written)`.
 
-Pasted from `node dist/cli.mjs --help` of this package's build:
+<details>
+<summary>Exit codes</summary>
 
-```text
-Usage: modern-cmdk-codemod <transform> <glob|dir> [options]
+| Code | Default (strict) | `--lenient` |
+|---|---|---|
+| `0` | Success, reports included; `--help` | `--help`, missing arguments, usage errors and per-file errors |
+| `1` | A file errored, no file matched, or the run failed | An unknown transform, no matching files, an uncaught error |
+| `2` | A usage error, or a refused dirty tree | `--strict` given with `--lenient` |
 
-modern-cmdk-codemod runs with --strict unless --lenient is given. A strict run without --dry-run
-refuses to write into a git tree with uncommitted changes (or outside a git tree) unless --force is given.
+</details>
 
-Transforms:
-  import-rewrite   Rewrites cmdk imports to modern-cmdk/react
-  data-attrs       Converts [cmdk-*] selectors to [data-command-*]
-  forward-ref      Removes React.forwardRef wrappers (React 19)
-  should-filter    Converts shouldFilter prop to filter
+<details>
+<summary>Which files are read</summary>
 
-Options:
-  --dry-run        List the files that would change; write nothing
-  --strict         Exit 2 on usage errors (incl. unknown options), 1 on file errors
-  --concurrency=N  Files processed at once (default: min(8, available cores))
-  -h, --help       Show this help
-  --lenient        Keep the lenient exit codes below (cannot be combined with --strict) and skip the clean-git-tree check (modern-cmdk-codemod only)
-  --force          Skip the clean-git-tree check (modern-cmdk-codemod only; modern-cmdk ignores it)
-  -v, --version    Print the package name and version
+A directory argument covers its `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and `.scss` files. A quoted glob works too: `"./src/**/*.{tsx,css}"`. Skipped: `node_modules`, `dist`, `build`, `.next`, `.git`, `coverage`, `.turbo`, `out`, `storybook-static`, `.vercel`, every path your `.gitignore` covers, files reached through a symlinked directory, and names that start with a dot unless a pattern segment or a directory argument names them.
 
-Exit codes:
-  strict   0 success (reports included); 1 a file errored, no file matched or the run failed;
-           2 usage error (unknown or malformed option, unknown transform, missing argument,
-           --strict with --lenient) or a refused dirty tree (modern-cmdk-codemod only)
-  lenient  0 for --help, missing arguments, usage errors and per-file errors; 1 for an unknown
-           transform, no matching files and an uncaught error
+</details>
 
-Files run on worker threads when --concurrency is above 1; --concurrency=1 runs them on the main thread.
-A directory argument covers its .ts .tsx .mts .cts .js .jsx .mjs .cjs .css .scss files (dot paths excluded).
---dry-run also prints a unified diff of every file that would change.
+## The deprecated `modern-cmdk` bin
 
-Node >= 26.4.0 (the engines.node of modern-cmdk-codemod)
-```
+`modern-cmdk` also ships a `modern-cmdk` bin that runs the same four transforms. It is deprecated: it warns on every run, keeps lenient exit codes unless `--strict` is given, skips fewer directories, reads no `.gitignore` and makes no git check. Use `modern-cmdk-codemod`.
 
-`modern-cmdk-codemod` is a new CLI with no earlier contract, so it is strict by default. `--lenient` (which also skips the git check) restores the exit codes of the deprecated `modern-cmdk` bin.
+## Requirements
 
-## Relation to the deprecated `modern-cmdk` bin
+Node 26.4.0 or later; git for a run that writes, unless you pass `--force` or `--lenient`. One dependency: `jscodeshift`.
 
-`modern-cmdk` still ships a `modern-cmdk` bin that runs the same four transforms, bundled. It is deprecated and leaves in modern-cmdk 2.0: it writes one deprecation warning to stderr per run, keeps the 1.x exit codes (lenient unless argv carries `--strict`) and 1.4's excludes (of the ten directories `modern-cmdk-codemod` skips, it skips only `node_modules`, `dist`, `build` and `.next`, and applies no `.gitignore`; like `modern-cmdk-codemod`, it reads only the ten script and stylesheet extensions from a directory, leaves out files and directories whose names start with a dot unless a pattern segment starts with that dot or a directory argument names that directory, descends no symlinked directory under `**` or a directory argument, reads no symlinked file and on Windows matches names case-insensitively; unlike it, it follows a symlinked directory that a pattern names or that a directory argument names, such as `"./src/link/*.tsx"` or `./src/link`), and makes no git check. Use `modern-cmdk-codemod` instead. The bundled codemod dependencies and their licences are listed in the `THIRD-PARTY-NOTICES.md` that `modern-cmdk` ships.
+## The modern-cmdk packages
 
-## More
+| Package | Use it to |
+|---|---|
+| [`modern-cmdk`](https://www.npmjs.com/package/modern-cmdk) | build the palette: core engine, React adapter, stylesheet |
+| [`create-modern-cmdk`](https://www.npmjs.com/package/create-modern-cmdk) | start a Vite, React 19 and TypeScript project with a palette in it |
+| [`modern-cmdk-codemod`](https://www.npmjs.com/package/modern-cmdk-codemod) | move code written for cmdk to modern-cmdk |
 
-The [migration guide](https://abcrimson.github.io/modern-cmdk/guide/migration-from-cmdk.html) has the attribute table, the CSS, SCSS and Tailwind rules and every breaking change.
+## Links
+
+[Documentation](https://abcrimson.github.io/modern-cmdk/) · [Changelog](https://github.com/ABCrimson/modern-cmdk/blob/main/packages/modern-cmdk-codemod/CHANGELOG.md) · [Releases](https://github.com/ABCrimson/modern-cmdk/releases) · [Issues](https://github.com/ABCrimson/modern-cmdk/issues) · [Security policy](https://github.com/ABCrimson/modern-cmdk/security/policy) · [Repository](https://github.com/ABCrimson/modern-cmdk)
 
 ## License
 
-[MIT](https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE)
+[MIT](https://github.com/ABCrimson/modern-cmdk/blob/main/LICENSE) © 2026 Albert Badalov
