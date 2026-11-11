@@ -447,7 +447,10 @@ function decodeSegment(segment: string): string {
   }
 }
 
-/** Splits `https://raw.githubusercontent.com/ABCrimson/modern-cmdk/<ref>/<path>` and `https://github.com/ABCrimson/modern-cmdk/(blob|raw)/<ref>/<path>` into ref and path; any other URL is undefined. A raw URL with no ref has an empty ref. */
+/** Splits `https://raw.githubusercontent.com/ABCrimson/modern-cmdk/<ref>/<path>` and `https://github.com/ABCrimson/modern-cmdk/(blob|raw)/<ref>/<path>` into ref and path; any other URL is undefined. A raw URL with no ref has an empty ref.
+ * A `tree/<ref>/` link is undefined on purpose: it names a directory page, not a file, so it is neither a pin nor an image or record, and
+ * a navigation link to the repository tree stays on `main` (scripts/check-repo-links.ts, which still checks that the path exists).
+ * An image whose URL is such a link is refused by readmeImageFailures in scripts/check-package.ts, not here. */
 export function parseRepoFileUrl(url: string): RepoFileUrl | undefined {
   let kind: 'raw' | 'blob';
   let rest: string;

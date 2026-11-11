@@ -444,6 +444,17 @@ describe('readmeImageFailures', () => {
     expect(failures[0]).toContain('is a relative path');
   });
 
+  it('fails an image whose URL is a tree/ page of the repository, which parseRepoFileUrl leaves alone by design', () => {
+    for (const ref of ['main', 'HEAD', SHA]) {
+      const failures = readmeImageFailures(
+        hero(`https://github.com/ABCrimson/modern-cmdk/tree/${ref}/${FILE}`),
+        where('present'),
+      );
+      expect(failures, ref).toHaveLength(1);
+      expect(failures[0], ref).toContain('is a page of the repository tree, not an image file');
+    }
+  });
+
   it('fails an image with no src', () => {
     expect(readmeImageFailures('<img alt="x">', where('present'))).toEqual([
       'README images: README.md:1: the image has no src',

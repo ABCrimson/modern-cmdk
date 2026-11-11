@@ -241,9 +241,14 @@ describe('parseRepoFileUrl', () => {
   });
 
   it('leaves tree links, routes, other repositories and other hosts alone', () => {
-    expect(
-      parseRepoFileUrl('https://github.com/ABCrimson/modern-cmdk/tree/main/packages'),
-    ).toBeUndefined();
+    // A tree/ link is a navigation link to a directory page and stays on main by design (check-repo-links.ts exempts it
+    // from the pin); it is no pin and no image. The same URL as an image is refused by readmeImageFailures.
+    for (const ref of ['main', 'HEAD', SHA]) {
+      expect(
+        parseRepoFileUrl(`https://github.com/ABCrimson/modern-cmdk/tree/${ref}/packages`),
+        ref,
+      ).toBeUndefined();
+    }
     expect(parseRepoFileUrl('https://github.com/ABCrimson/modern-cmdk/issues/1')).toBeUndefined();
     expect(
       parseRepoFileUrl('https://raw.githubusercontent.com/other/repo/main/x.png'),
