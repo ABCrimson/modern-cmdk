@@ -15,6 +15,7 @@ export type ActivityMode = 'visible' | 'hidden';
 export interface CommandActivityProps {
   /** Whether the wrapped content is active (visible) */
   readonly mode: ActivityMode;
+  /** The content that `mode` shows or hides */
   readonly children: ReactNode;
 }
 

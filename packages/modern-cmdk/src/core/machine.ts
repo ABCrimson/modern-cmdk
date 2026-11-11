@@ -34,7 +34,7 @@ type MachineEvents = {
 
 /** Command machine — explicit resource management via `using` */
 export interface CommandMachine extends Disposable {
-  /** The current state snapshot; the same object until the machine commits a change */
+  /** The current state snapshot: a new object each time the machine applies a change, so compare it by identity */
   getState(): CommandState;
   /** Queues an event; the machine applies it on its next scheduler tick */
   send(event: CommandEvent): void;

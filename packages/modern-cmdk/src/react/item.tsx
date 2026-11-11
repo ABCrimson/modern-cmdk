@@ -22,11 +22,12 @@ export interface CommandItemProps extends Omit<ComponentPropsWithRef<'div'>, 'on
   readonly keywords?: readonly string[] | undefined;
   /** Called when the item is selected by click, Enter or shortcut (no argument in 1.x; the value arrives in 2.0) */
   readonly onSelect?: (() => void) | undefined;
-  /** Skipped by navigation and selection, with its shortcut unbound; rendered with `aria-disabled` (default: `false`) */
+  /** Skipped by navigation and selection, with its shortcut unbound; listed with `aria-disabled` unless `disabledItems` is `'hide'` (default: `false`) */
   readonly disabled?: boolean | undefined;
   /**
-   * A keyboard shortcut such as `Mod+K`, bound while the item is mounted and set as `aria-keyshortcuts`. It runs
-   * `onSelect`; the `shortcutAction` prop of `Command` decides whether it selects the item. `Command.Shortcut` shows it.
+   * A keyboard shortcut such as `Mod+K`, set as `aria-keyshortcuts`. It is bound while the item is mounted and
+   * enabled: by default (`shortcutAction` `'direct'`) only when the item has an `onSelect`, which the key calls;
+   * with `shortcutAction` `'select'` the key selects the item. Display it with `<Command.Shortcut shortcut="Mod+K" />`.
    */
   readonly shortcut?: string | undefined;
   /** The registration id and the DOM id; defaults to a `useId` id. Wins over the deprecated `forceId`. */

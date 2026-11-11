@@ -9,7 +9,7 @@ import type { CommandRootId } from '../context.js';
 
 /** What {@link useCommand} returns: the machine's state snapshot and the helpers that act on the machine. */
 export interface UseCommandReturn {
-  /** The machine's current state snapshot; the same object until the machine commits a change */
+  /** The current state snapshot: a new object each time the machine applies a change, so compare it by identity */
   readonly state: CommandState;
   /**
    * Always `false`: the active item is the machine's own, so no render is pending on it, and search updates run on the machine's scheduler tick, outside React.
