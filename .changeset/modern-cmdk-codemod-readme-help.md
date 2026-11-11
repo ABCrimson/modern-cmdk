@@ -3,7 +3,7 @@
 'modern-cmdk': patch
 ---
 
-`modern-cmdk-codemod --help` now lists the transforms in the order to run them, numbered, with `import-rewrite` last, and the package README, description and keywords match what the tool does. Nothing in how a transform rewrites code changes. The deprecated `modern-cmdk` bin is built from the same source and prints the same help.
+`modern-cmdk-codemod --help` now lists the transforms in the order to run them, numbered, with `import-rewrite` last, and the package README, description and keywords match what the tool does. Nothing in how a transform rewrites code changes. The deprecated `modern-cmdk` bin is built from the same source and lists the transforms and options the same way.
 
 **Changed**
 

@@ -31,7 +31,7 @@ npx modern-cmdk-codemod data-attrs ./src && git commit -am data-attrs
 npx modern-cmdk-codemod import-rewrite ./src && git commit -am import-rewrite
 ```
 
-`import-rewrite` goes last: `should-filter` recognises a cmdk `filter` function only while the import still reads `'cmdk'`. A run that writes refuses to start when a file it matched has uncommitted changes or git is missing, unless you pass `--force`.
+`import-rewrite` goes last: `should-filter` recognises a cmdk `filter` function only while the import still reads `'cmdk'`. A run that writes refuses to start when a file it matched has uncommitted changes or lies outside a git work tree, or when git is missing, unless you pass `--force`.
 
 ## What each transform changes
 

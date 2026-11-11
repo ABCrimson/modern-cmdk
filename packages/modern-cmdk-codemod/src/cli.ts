@@ -111,7 +111,7 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
         ]
       : [
           'modern-cmdk-codemod runs with --strict unless --lenient is given. A strict run without --dry-run',
-          'refuses to write into a git tree with uncommitted changes (or outside a git tree) unless --force is given.',
+          'refuses to write when a matched file has uncommitted changes or lies outside a git work tree, unless --force is given.',
         ];
   return [
     `${bold('Usage:')} ${program} <transform> <glob|dir> [options]`,
@@ -127,7 +127,7 @@ function usageText(stream: NodeJS.WritableStream, program: Program): string {
     `  ${opt('--dry-run')}Write nothing; print a unified diff of every file that would change`,
     `  ${opt('--force')}Write into a tree with uncommitted changes, or outside git (modern-cmdk ignores it)`,
     `  ${opt('--strict')}Exit 2 on usage errors (incl. unknown options), 1 on file errors`,
-    `  ${opt('--lenient')}Lenient exit codes, no clean-git-tree check (modern-cmdk-codemod only); not with --strict`,
+    `  ${opt('--lenient')}Lenient exit codes; skips modern-cmdk-codemod's git check; not with --strict`,
     `  ${opt('--concurrency=N')}Files processed at once (default: min(8, available cores))`,
     `  ${opt('-h, --help')}Show this help`,
     `  ${opt('-v, --version')}Print the package name and version`,
