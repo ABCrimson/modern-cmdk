@@ -29,6 +29,7 @@
     "check:snippets": "node scripts/check-snippets.ts",
     "check:repo-links": "node scripts/check-repo-links.ts",
     "check:notices": "node scripts/third-party-notices.ts --check",
+    "readme:figures": "node scripts/write-readme-figures.ts",
     "test:consumers": "node scripts/consumer-smoke.ts",
     "test:templates": "node scripts/template-smoke.ts",
     "test:codemod-tarball": "node scripts/codemod-tarball-smoke.ts",
