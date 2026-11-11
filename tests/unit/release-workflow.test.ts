@@ -166,7 +166,16 @@ describe('release.yml has no backfill job and no dispatch trigger (D73)', () => 
   const header = workflow.slice(0, workflow.indexOf('\njobs:'));
 
   it('D73: the backfill job is absent and the job graph is the push graph alone', () => {
-    expect(jobNames()).toEqual(['ci-gate', 'select-mode', 'version', 'pack', 'attest', 'publish']);
+    expect(jobNames()).toEqual([
+      'ci-gate',
+      'select-mode',
+      'version',
+      'pack',
+      'attest',
+      'publish',
+      'release-notes',
+      'readme-images',
+    ]);
     expect(job('backfill')).toBe('');
     expect(workflow).not.toMatch(/backfill/i);
   });
@@ -193,6 +202,8 @@ describe('release.yml has no backfill job and no dispatch trigger (D73)', () => 
       pack: ['select-mode'],
       attest: ['select-mode', 'pack'],
       publish: ['pack', 'attest'],
+      'release-notes': ['publish'],
+      'readme-images': ['publish'],
     });
     expect(job('select-mode')).not.toMatch(/^ {4}if:/m);
     expect(job('version')).toContain("if: needs.select-mode.outputs.mode == 'version'");
@@ -216,7 +227,7 @@ describe('release.yml has no first-publish scaffolding', () => {
     );
     expect(uploads).toEqual(['sbom-spdx']);
     expect(workflow).not.toContain('first-publish');
-    // The graph line lists every job once: ci-gate -> select-mode -> version | (pack -> attest -> publish).
+    // The graph line lists every job once: ci-gate -> select-mode -> version | (pack -> attest -> publish -> (release-notes | readme-images)).
     const graph = /^# Job graph\. On a push to main: (.+)$/m.exec(workflow)?.[1] ?? '';
     expect([...new Set(graph.match(/[a-z][a-z-]*/g))].sort()).toEqual([...names].sort());
   });
@@ -228,6 +239,135 @@ describe('release.yml has no first-publish scaffolding', () => {
         /\bnpm (exec|install|ci)\b|\bnpx\b|codemod-tarball-smoke/,
       );
     }
+  });
+});
+
+describe('release.yml release notes, Latest and the README image probe', () => {
+  const notes = job('release-notes');
+  const probe = job('readme-images');
+  const publish = job('publish');
+
+  /** The permissions a job grants, as `key:value`. */
+  const granted = (block: string): string[] => {
+    const perms = block.match(/^ {4}permissions:\n((?: {6}.*\n)+)/m)?.[1] ?? '';
+    return [...perms.matchAll(/^ {6}([\w-]+): (\w+)/gm)].map((m) => `${m[1]}:${m[2]}`);
+  };
+
+  it('publish exposes what the changesets publish action reports, from a step with an id', () => {
+    expect(publish).toMatch(/^ {6}published: \$\{\{ steps\.publish\.outputs\.published \}\}$/m);
+    expect(publish).toMatch(
+      /^ {6}published-packages: \$\{\{ steps\.publish\.outputs\.published-packages \}\}$/m,
+    );
+    expect(step(publish, 'Publish packages')).toMatch(/^ {8}id: publish$/m);
+  });
+
+  it('B-20: release-notes and readme-images run only after a publish and need publish alone', () => {
+    for (const [name, block] of [
+      ['release-notes', notes],
+      ['readme-images', probe],
+    ] as const) {
+      expect(block, name).not.toBe('');
+      expect(block, name).toContain("    if: needs.publish.outputs.published == 'true'");
+      expect(block, name).toContain('    needs: publish\n');
+      expect(block, name).toMatch(
+        /^ {6}PUBLISHED: \$\{\{ needs\.publish\.outputs\.published-packages \}\}$/m,
+      );
+    }
+  });
+
+  it('release-notes holds contents: write alone, readme-images contents: read alone; neither holds id-token', () => {
+    expect(granted(notes)).toEqual(['contents:write']);
+    expect(granted(probe)).toEqual(['contents:read']);
+    for (const block of [notes, probe]) {
+      expect(block).not.toMatch(
+        /id-token|attestations|artifact-metadata|secrets\.|NPM_TOKEN|NODE_AUTH_TOKEN/,
+      );
+    }
+  });
+
+  it('SEC-60: release-notes and readme-images install nothing and run no freshly resolved npm code', () => {
+    for (const [name, block] of [
+      ['release-notes', notes],
+      ['readme-images', probe],
+    ] as const) {
+      expect(block, name).not.toMatch(
+        /\b(npm|pnpm|yarn|corepack)\b|\bnpx\b|pnpm\/action-setup|codemod-tarball-smoke/,
+      );
+    }
+    // The script they run imports Node built-ins only.
+    const script = readFileSync(resolve(root, 'scripts/compose-release-notes.ts'), 'utf8');
+    const imports = [...script.matchAll(/^import .* from '([^']+)';$/gm)].map((m) => m[1]);
+    expect(imports.length).toBeGreaterThan(0);
+    for (const specifier of imports) expect(specifier, specifier).toMatch(/^node:/);
+  });
+
+  it('B-20: release-notes composes each published release, sets its notes, and a missing summary fails the step', () => {
+    const compose = step(notes, 'Compose and set the release notes');
+    expect(compose).toContain('node scripts/compose-release-notes.ts compose --tag "$tag"');
+    expect(compose).toContain('--tags-file "$RUNNER_TEMP/release-tags.txt"');
+    expect(compose).toContain('--commit "$GITHUB_SHA"');
+    expect(compose).toContain(
+      'gh release edit "$tag" --notes-file "$RUNNER_TEMP/release-notes.md"',
+    );
+    expect(compose).toContain(`jq -r '.[] | "\\(.name)@\\(.version)"' <<< "$PUBLISHED"`);
+    // A failed compose is remembered, the others still run, and the step exits non-zero at the end.
+    expect(compose).toMatch(/\n {12}else\n {14}failed=1\n {12}fi\n/);
+    expect(compose).toMatch(/\n {10}exit "\$failed"$/);
+    // The release tags are listed after publish, before they are used.
+    const tags = step(notes, 'List the release tags');
+    expect(tags).toContain('gh release list --limit 1000 --json tagName,isDraft');
+    expect(notes.indexOf('- name: List the release tags')).toBeLessThan(
+      notes.indexOf('- name: Compose and set the release notes'),
+    );
+    expect(tags).toMatch(/^ {8}id: tags$/m);
+  });
+
+  it('B-20: the last step marks the highest modern-cmdk release Latest, and runs after a failed compose step', () => {
+    const latest = step(notes, 'Keep modern-cmdk the Latest release');
+    expect(latest).toMatch(
+      /^ {8}if: \$\{\{ !cancelled\(\) && steps\.tags\.outcome == 'success' \}\}$/m,
+    );
+    expect(latest).toContain(
+      'node scripts/compose-release-notes.ts newest --package modern-cmdk --tags-file "$RUNNER_TEMP/release-tags.txt"',
+    );
+    expect(latest).toContain('gh release edit "$latest" --latest');
+    const names = [...notes.matchAll(/^ {6}- name: (.+)$/gm)].map((m) => m[1]);
+    expect(names.at(-1)).toBe('Keep modern-cmdk the Latest release');
+    // The satellite packages are never marked: the only --latest in the workflow is the modern-cmdk one.
+    expect(workflow.match(/--latest/g)).toHaveLength(1);
+  });
+
+  it('readme-images probes the packument readme after publish and fails on anything but 200', () => {
+    expect(step(probe, 'Request every README image URL')).toContain(
+      'node scripts/compose-release-notes.ts probe-images',
+    );
+    expect(probe).not.toMatch(/continue-on-error|\|\| true/);
+  });
+
+  it('every action in the new jobs is pinned by a full commit SHA with its version comment', () => {
+    for (const block of [notes, probe]) {
+      const uses = [...block.matchAll(/^\s+- uses: (\S+)(.*)$/gm)];
+      expect(uses.length).toBeGreaterThan(0);
+      for (const m of uses) {
+        expect(m[1], m[1]).toMatch(/^[\w-]+\/[\w-]+@[0-9a-f]{40}$/);
+        expect(m[2], m[1]).toMatch(/^ # v\d+\.\d+\.\d+$/);
+      }
+    }
+  });
+
+  it('every job-level and step-level uses: in the workflow is pinned by a full commit SHA', () => {
+    const unpinned = [...workflow.matchAll(/^\s+(?:- )?uses: (\S+)/gm)]
+      .map((m) => m[1] ?? '')
+      .filter((ref) => !/@[0-9a-f]{40}$/.test(ref));
+    expect(unpinned).toEqual([]);
+  });
+
+  it('the header says what the two jobs do and that neither holds id-token', () => {
+    const prose = headerProse();
+    expect(prose).toMatch(
+      /release-notes and readme-images run after a publish, each in a job of its own/,
+    );
+    expect(prose).toMatch(/neither holds id-token/);
   });
 });
 
