@@ -14,8 +14,8 @@ catalog:
   '@types/react-dom': 19.3.0
   jscodeshift: 17.4.0
   radix-ui: 1.8.2-rc.1791984254107
-  react: 0.0.0-experimental-b05c0b75-20261109
-  react-dom: 0.0.0-experimental-b05c0b75-20261109
+  react: 0.0.0-experimental-1620f7b9-20261111
+  react-dom: 0.0.0-experimental-1620f7b9-20261111
   tsdown: 0.23.7
   typescript: 7.1.0-dev.20261111.1
   vite: 8.3.8
@@ -33,7 +33,7 @@ allowBuilds:
   # 2026-11-04: @vscode/vsce-sign (postinstall fetches a signing binary) arrives with @vscode/vsce; signing is publish-only and
   # `vsce package --no-dependencies` does not use it, so its build stays off (W2-03; .vsix listing proves packaging works).
   '@vscode/vsce-sign': false
-# Agent skills (pnpm 12.19.0 `pnpm approve`): tsdown ships a skills/ directory and pnpm links an approved skill into
+# Agent skills (pnpm 12.20.0 `pnpm approve`): tsdown ships a skills/ directory and pnpm links an approved skill into
 # .claude/skills/<name> on install (skills.dirs below), writing the managed .gitignore block there (committed). Approved by the owner on 2026-11-07 (G-43);
 # nothing else awaits approval (`pnpm install` lists any new package).
 permissions:
@@ -44,7 +44,7 @@ permissions:
 skills:
   dirs:
     - .claude/skills
-# Supply-chain policy (pnpm 12.19.0). minimumReleaseAge is in minutes (1440 = 1 day, the built-in
+# Supply-chain policy (pnpm 12.20.0). minimumReleaseAge is in minutes (1440 = 1 day, the built-in
 # default, written out so the policy is visible). minimumReleaseAgeStrict: true fails resolution when
 # no version in the requested range meets minimumReleaseAge instead of falling back to a younger one
 # (pnpm.io/settings: it defaults to true only when minimumReleaseAge is set explicitly; written out
@@ -62,31 +62,64 @@ trustPolicyExclude:
   - lefthook@2.2.2
   - semver@5.7.2
   - semver@6.3.1
-# Exact versions published less than minimumReleaseAge before the 2026-11-11 sweep install (pruned 2026-11-11 09:11 UTC: the pnpm 12.19.0,
-# canary.46, playwright 2026-11-10, typescript 20261109.1, react 4ae637b6, vite 8.3.7, user-event 14.6.9 and rolldown 1.2.18 entries, all past 24 h);
-# pnpm 12.19.0 refuses them otherwise. Entries age out of need after a day.
+# Exact versions published less than minimumReleaseAge before the 2026-11-12 sweep install (pruned 2026-11-12 06:45 UTC: the pnpm 12.19.0,
+# canary.47, playwright 2026-11-11, react b05c0b75, vite 8.3.8, user-event 14.6.9 and web-features 20261110231328 entries, all past 24 h or replaced);
+# pnpm 12.20.0 refuses them otherwise. Entries age out of need after a day.
 minimumReleaseAgeExclude:
-  # next@16.5.0-canary.47 (the root devDependency for the docs-samples gate, TEB-84 and D57, and the tests/consumers/next-app pin) was
-  # published 2026-11-10T23:54:06Z (its @next/env 23:42:09Z and platform binaries 23:44-23:5xZ), under the 24 h minimumReleaseAge at the
-  # 2026-11-11 bump from canary.46; with its @next/env and platform binaries. Drop after a day.
-  - next@16.5.0-canary.47
-  - '@next/env@16.5.0-canary.47'
-  - '@next/swc-darwin-arm64@16.5.0-canary.47'
-  - '@next/swc-darwin-x64@16.5.0-canary.47'
-  - '@next/swc-linux-arm64-gnu@16.5.0-canary.47'
-  - '@next/swc-linux-arm64-musl@16.5.0-canary.47'
-  - '@next/swc-linux-x64-gnu@16.5.0-canary.47'
-  - '@next/swc-linux-x64-musl@16.5.0-canary.47'
-  - '@next/swc-win32-arm64-msvc@16.5.0-canary.47'
-  - '@next/swc-win32-x64-msvc@16.5.0-canary.47'
-  # @playwright/test, playwright and playwright-core 1.66.0-alpha-2026-11-11 (dist-tag next on all three; published 2026-11-11T05:18:26Z,
-  # 05:17:21Z and 06:10:56Z) were under the 24 h minimumReleaseAge at the 2026-11-11 bump from 1.66.0-alpha-2026-11-10 (the lockfile
-  # re-resolves playwright and playwright-core to the same build). Drop after a day.
-  - '@playwright/test@1.66.0-alpha-2026-11-11'
-  - playwright@1.66.0-alpha-2026-11-11
-  - playwright-core@1.66.0-alpha-2026-11-11
+  # @biomejs/biome@2.6.7 (latest; published 2026-11-11T21:44:33Z) and its ten @biomejs/cli-<platform> binaries (21:45-21:50Z) were
+  # under the 24 h minimumReleaseAge at the 2026-11-12 bump from 2.6.6. Drop after a day.
+  - '@biomejs/biome@2.6.7'
+  - '@biomejs/cli-android-arm64@2.6.7'
+  - '@biomejs/cli-android-x64@2.6.7'
+  - '@biomejs/cli-darwin-arm64@2.6.7'
+  - '@biomejs/cli-darwin-x64@2.6.7'
+  - '@biomejs/cli-linux-arm64-musl@2.6.7'
+  - '@biomejs/cli-linux-arm64@2.6.7'
+  - '@biomejs/cli-linux-x64-musl@2.6.7'
+  - '@biomejs/cli-linux-x64@2.6.7'
+  - '@biomejs/cli-win32-arm64@2.6.7'
+  - '@biomejs/cli-win32-x64@2.6.7'
+  # next@16.5.0-canary.48 (the root devDependency for the docs-samples gate, TEB-84 and D57, and the tests/consumers/next-app pin) was
+  # published 2026-11-11T23:56:33Z (its platform binaries 23:44-23:49Z), under the 24 h minimumReleaseAge at the
+  # 2026-11-12 bump from canary.47; with its @next/env and platform binaries. Drop after a day.
+  - next@16.5.0-canary.48
+  - '@next/env@16.5.0-canary.48'
+  - '@next/swc-darwin-arm64@16.5.0-canary.48'
+  - '@next/swc-darwin-x64@16.5.0-canary.48'
+  - '@next/swc-linux-arm64-gnu@16.5.0-canary.48'
+  - '@next/swc-linux-arm64-musl@16.5.0-canary.48'
+  - '@next/swc-linux-x64-gnu@16.5.0-canary.48'
+  - '@next/swc-linux-x64-musl@16.5.0-canary.48'
+  - '@next/swc-win32-arm64-msvc@16.5.0-canary.48'
+  - '@next/swc-win32-x64-msvc@16.5.0-canary.48'
+  # pnpm@12.20.0 (next-12, published 2026-11-12T00:23:01Z) and its fifteen @pnpm/exe platform packages (00:21:58-00:23:05Z),
+  # under the 24 h minimumReleaseAge when packageManager moved to it on 2026-11-12. Drop after a day.
+  - pnpm@12.20.0
+  - '@pnpm/exe.android-arm64@12.20.0'
+  - '@pnpm/exe.android-x64@12.20.0'
+  - '@pnpm/exe.darwin-arm64@12.20.0'
+  - '@pnpm/exe.darwin-x64@12.20.0'
+  - '@pnpm/exe.freebsd-x64@12.20.0'
+  - '@pnpm/exe.linux-arm64-musl@12.20.0'
+  - '@pnpm/exe.linux-arm64@12.20.0'
+  - '@pnpm/exe.linux-ppc64@12.20.0'
+  - '@pnpm/exe.linux-riscv64@12.20.0'
+  - '@pnpm/exe.linux-s390x@12.20.0'
+  - '@pnpm/exe.linux-x64-musl@12.20.0'
+  - '@pnpm/exe.linux-x64@12.20.0'
+  - '@pnpm/exe.netbsd-x64@12.20.0'
+  - '@pnpm/exe.win32-arm64@12.20.0'
+  - '@pnpm/exe.win32-x64@12.20.0'
+  # @playwright/test, playwright and playwright-core 1.66.0-alpha-2026-11-12 (dist-tag next-pending; @playwright/test published
+  # 2026-11-12T05:21:58Z, playwright 05:19:51Z, playwright-core 06:41:55Z) were under the 24 h minimumReleaseAge at the 2026-11-12 bump from
+  # 1.66.0-alpha-2026-11-11 (the lockfile re-resolves playwright and playwright-core to the same build). Drop after a day.
+  - '@playwright/test@1.66.0-alpha-2026-11-12'
+  - playwright@1.66.0-alpha-2026-11-12
+  - playwright-core@1.66.0-alpha-2026-11-12
+  # @testing-library/user-event@14.6.10 (latest; published 2026-11-12T04:41:23Z) was under the 24 h minimumReleaseAge at the 2026-11-12 bump. Drop after a day.
+  - '@testing-library/user-event@14.6.10'
   # typescript@7.1.0-dev.20261111.1 (next; published 2026-11-11T08:45:28Z) and its seven @typescript/typescript-<platform> binaries
-  # (about 08:37Z) were under the 24 h minimumReleaseAge at the 2026-11-11 bump from the previous day's dev build. Drop after a day.
+  # (08:36-08:47Z) were still under the 24 h minimumReleaseAge when the 2026-11-12 sweep installed (kept from the 2026-11-11 sweep). Drop after a day.
   - '@typescript/typescript-darwin-arm64@7.1.0-dev.20261111.1'
   - '@typescript/typescript-darwin-x64@7.1.0-dev.20261111.1'
   - '@typescript/typescript-linux-arm64@7.1.0-dev.20261111.1'
@@ -95,12 +128,11 @@ minimumReleaseAgeExclude:
   - '@typescript/typescript-win32-arm64@7.1.0-dev.20261111.1'
   - '@typescript/typescript-win32-x64@7.1.0-dev.20261111.1'
   - typescript@7.1.0-dev.20261111.1
-  # react, react-dom and scheduler 0.0.0-experimental-b05c0b75-20261109 (dist-tag experimental; published 2026-11-10T16:20:24Z, 16:22:31Z and
-  # 16:21:45Z) and vite@8.3.8 (latest; 2026-11-11T02:49:46Z) were under the 24 h minimumReleaseAge at the 2026-11-11 bump. Drop after a day.
-  - react@0.0.0-experimental-b05c0b75-20261109
-  - react-dom@0.0.0-experimental-b05c0b75-20261109
-  - scheduler@0.0.0-experimental-b05c0b75-20261109
-  - vite@8.3.8
-  # web-features@3.45.0-dev-20261110231328-ed6bd69 (next; published 2026-11-10T23:15:42Z) was under the 24 h minimumReleaseAge at the
-  # 2026-11-11 bump from the 2026-11-03 dev build. Drop after a day.
-  - web-features@3.45.0-dev-20261110231328-ed6bd69
+  # react, react-dom and scheduler 0.0.0-experimental-1620f7b9-20261111 (dist-tag experimental; published 2026-11-11T16:21:39Z, 16:22:01Z and
+  # 16:21:54Z) were under the 24 h minimumReleaseAge at the 2026-11-12 bump. Drop after a day.
+  - react@0.0.0-experimental-1620f7b9-20261111
+  - react-dom@0.0.0-experimental-1620f7b9-20261111
+  - scheduler@0.0.0-experimental-1620f7b9-20261111
+  # web-features@3.45.0-dev-20261111122710-51d7b6c (next; published 2026-11-11T12:31:27Z) was under the 24 h minimumReleaseAge at the
+  # 2026-11-12 bump from the 2026-11-10 dev build. Drop after a day.
+  - web-features@3.45.0-dev-20261111122710-51d7b6c

@@ -56,7 +56,7 @@ The machine does what its documentation says: disabled items stay listed but can
 **Styles**
 
 - `user-select` carries its `-webkit-user-select` twin: Safari has no unprefixed support at the 18.4 floor (RA-76).
-- The scroll-driven wiring, `scroll-timeline` on the list, the fade edges and the scroll progress bar, sits inside `@supports (animation-timeline: scroll())` (RA-77). `scroll-driven-animations` is supported from Safari 26 and Firefox 159 (Chrome 115; web-features 3.45.0-dev-20261110231328-ed6bd69, published 2026-11-10). At the Safari 18.4 and Firefox 131 floor the effects do not run: the fade edges and the progress bar stay static.
+- The scroll-driven wiring, `scroll-timeline` on the list, the fade edges and the scroll progress bar, sits inside `@supports (animation-timeline: scroll())` (RA-77). `scroll-driven-animations` is supported from Safari 26 and Firefox 159 (Chrome 115; web-features 3.45.0-dev-20261111122710-51d7b6c, published 2026-11-10). At the Safari 18.4 and Firefox 131 floor the effects do not run: the fade edges and the progress bar stay static.
 
 **Size**
 
@@ -64,7 +64,7 @@ The machine does what its documentation says: disabled items stay listed but can
 
 **Browser floor**
 
-- The JavaScript of the core and React entries needs Chrome and Edge 122, Firefox 131 and Safari 18.4 (the same numbers on Android and iOS), from `tests/unit/browser-floor.json`: web-features 3.45.0-dev-20261110231328-ed6bd69, published 2026-11-10; the binding feature is `iterator-methods`. A test checks the built entries against that list (CE-29).
+- The JavaScript of the core and React entries needs Chrome and Edge 122, Firefox 131 and Safari 18.4 (the same numbers on Android and iOS), from `tests/unit/browser-floor.json`: web-features 3.45.0-dev-20261111122710-51d7b6c, published 2026-11-10; the binding feature is `iterator-methods`. A test checks the built entries against that list (CE-29).
 
 **Codemod bin (deprecated)**
 

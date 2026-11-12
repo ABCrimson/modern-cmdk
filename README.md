@@ -11,7 +11,7 @@
   <a href="https://www.npmjs.com/package/modern-cmdk"><img alt="npm version" src="https://img.shields.io/npm/v/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
   <a href="https://github.com/ABCrimson/modern-cmdk/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ABCrimson/modern-cmdk/ci.yml?style=flat-square&color=dc2626&labelColor=0a0e27&label=CI"/></a>
   <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7.1.0--dev.20261111.1-dc2626?style=flat-square&labelColor=0a0e27"/></a>
-  <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-experimental--b05c0b75-dc2626?style=flat-square&labelColor=0a0e27"/></a>
+  <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-experimental--1620f7b9-dc2626?style=flat-square&labelColor=0a0e27"/></a>
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/npm/l/modern-cmdk?style=flat-square&color=dc2626&labelColor=0a0e27"/></a>
 </p>
 
@@ -51,7 +51,7 @@ git clone https://github.com/ABCrimson/modern-cmdk.git && cd modern-cmdk
 pnpm install --frozen-lockfile && pnpm build && pnpm test
 ```
 
-Development uses the Node version in `.nvmrc` (Node 28 nightly 28.0.0-nightly20261109768315cf71) and the `engines` floor of the root `package.json`, with pnpm 12.
+Development uses the Node version in `.nvmrc` (Node 28 nightly 28.0.0-nightly20261111e8c1160d20) and the `engines` floor of the root `package.json`, with pnpm 12.
 
 | Command | Description |
 |---|---|

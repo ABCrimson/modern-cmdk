@@ -9,8 +9,8 @@
 //       vite:
 //         specifier: 8.3.8
 //         version: 8.3.8
-// react and react-dom are absent from it: pnpm 12.19.0 resolves them through the `overrides` entry, which the
-// lockfile records resolved (top-level `overrides:`, react: 0.0.0-experimental-b05c0b75-20261109), so their
+// react and react-dom are absent from it: pnpm 12.20.0 resolves them through the `overrides` entry, which the
+// lockfile records resolved (top-level `overrides:`, react: 0.0.0-experimental-1620f7b9-20261111), so their
 // importer specifier lines keep the exact string while the other four read `specifier: 'catalog:'`.
 // Only the two-space-indented mapping shape is read here (no flow mappings, no anchors), like the
 // freshness sweep's own reader (dep-freshness-catalog.mjs).

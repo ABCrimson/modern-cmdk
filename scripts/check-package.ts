@@ -27,7 +27,7 @@
 //      after blankNonCode has blanked string and template contents and comments, so text that only
 //      mentions an import never counts and a real call after such text always does;
 //   7. every bin target exists in the tarball, starts with #!/usr/bin/env node and has the execute bits (0o111)
-//      in its tar header. pnpm pack writes 0o755 for every bin target whatever its mode on disk (pnpm 12.19.0,
+//      in its tar header. pnpm pack writes 0o755 for every bin target whatever its mode on disk (pnpm 12.20.0,
 //      on Linux and win32), so this guards the published tarball, including a --tarball packed by another tool.
 //      The extracted dist's own modes are checked by tests/dist/manifest.test.ts;
 //   8. 'use client': every modern-cmdk dist/react/*.mjs starts with the directive, no modern-cmdk

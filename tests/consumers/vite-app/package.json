@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "radix-ui": "1.8.2-rc.1791984254107",
-    "react": "0.0.0-experimental-b05c0b75-20261109",
-    "react-dom": "0.0.0-experimental-b05c0b75-20261109"
+    "react": "0.0.0-experimental-1620f7b9-20261111",
+    "react-dom": "0.0.0-experimental-1620f7b9-20261111"
   },
   "devDependencies": {
     "@types/react": "19.3.0",

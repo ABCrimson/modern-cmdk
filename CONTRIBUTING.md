@@ -33,7 +33,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261109768315cf71) | Iterator Helpers (ES2025) and `Symbol.dispose` / `using` (ESNext explicit resource management) run natively |
+| Node.js | >= 26.4.0 (`.nvmrc`: Node 28 nightly 28.0.0-nightly20261111e8c1160d20) | Iterator Helpers (ES2025) and `Symbol.dispose` / `using` (ESNext explicit resource management) run natively |
 | pnpm | >= 12.0.0 | Workspace protocol, `pnpm-workspace.yaml` |
 | TypeScript | 7.1.0-dev.20261111.1 | Pinned once in the `catalog:` of `pnpm-workspace.yaml` (with react, react-dom, @types/react, @types/react-dom and vite; D54); the root, create-modern-cmdk and playground manifests reference it as `catalog:`, while apps/docs keeps its own `typescript` 6.0.3 pin for vue-tsc (the scoped hold the catalog comment records). Do not install globally |
 | Rust + wasm-pack | Pinned nightly (`rust-toolchain.toml`) + wasm-pack 0.15.1 | Only needed if working on `command-search-wasm` |
@@ -320,7 +320,7 @@ pnpm --filter modern-cmdk-search-wasm run build:wasm
 
 ## Code Style
 
-This project uses **Biome 2.6.6** for both linting and formatting. There is no ESLint or Prettier.
+This project uses **Biome 2.6.7** for both linting and formatting. There is no ESLint or Prettier.
 
 ### Formatter settings
 
@@ -669,7 +669,7 @@ fix(react): prevent stale activeId after unmount
 perf(core): use Set.difference for bulk item removal
 docs(architecture): add search pipeline diagram
 test(core): add frecency decay edge cases
-chore: bump Biome to 2.6.6
+chore: bump Biome to 2.6.7
 ```
 
 ### Pull request process
@@ -823,7 +823,7 @@ Management (`Symbol.dispose` / `using`) and `Promise.withResolvers` natively -- 
 Node.js 26.4.0+ ships all of them. If you hit one of these errors, your Node.js is too old:
 
 ```bash
-node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly20261109768315cf71
+node --version  # Must be >= 26.4.0; .nvmrc pins Node 28 nightly 28.0.0-nightly20261111e8c1160d20
 ```
 
 > [!NOTE]
@@ -846,7 +846,7 @@ import { CommandState } from './types.js';
 Make sure you have the correct Biome version. It is installed as a devDependency -- do not install it globally:
 
 ```bash
-pnpm biome --version  # Should output 2.6.6
+pnpm biome --version  # Should output 2.6.7
 ```
 
 If hooks are not running, reinstall Lefthook:

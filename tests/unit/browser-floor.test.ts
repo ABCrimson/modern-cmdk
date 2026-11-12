@@ -892,7 +892,7 @@ function stylesheetOverride(config: BiomeConfig): BiomeOverride {
 
 /**
  * Runs the installed Biome (no shell) over `css` placed at the stylesheet's repository path in a scratch tree that holds a copy
- * of biome.json, so the real override applies to it; `biome lint --stdin-file-path` reports no diagnostics at all in Biome 2.6.6
+ * of biome.json, so the real override applies to it; `biome lint --stdin-file-path` reports no diagnostics at all in Biome 2.6.7
  * (it answers "The contents aren't fixed" for every input, even `debugger;` in a .js file), and the stylesheet's path is
  * CORE's file, not written here. --vcs-use-ignore-file=false because the scratch tree has no ignore file.
  */
