@@ -43,19 +43,19 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
     "@axe-core/playwright": "4.14.1-b609be2.0.sha-b609be2",
-    "@biomejs/biome": "2.6.6",
+    "@biomejs/biome": "2.6.8",
     "@changesets/changelog-github": "1.0.1",
     "@changesets/cli": "3.0.3",
     "@js-temporal/polyfill": "0.5.1",
     "@playwright/test": "1.66.0-alpha-2026-11-08",
     "@size-limit/preset-small-lib": "14.3.0",
     "@testing-library/react": "16.3.3",
-    "@testing-library/user-event": "14.6.8",
+    "@testing-library/user-event": "14.6.13",
     "@types/jscodeshift": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@vitest/coverage-v8": "5.1.0",
+    "@vitest/coverage-v8": "5.1.1",
     "cmdk": "1.1.1",
     "fake-indexeddb": "6.2.8",
     "happy-dom": "21.0.4",
@@ -67,10 +67,10 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "size-limit": "14.3.0",
-    "tinybench": "6.2.3",
+    "tinybench": "6.2.4",
     "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vitest": "5.1.0",
-    "web-features": "3.45.0-dev-20261103105955-64427e2"
+    "vitest": "5.1.1",
+    "web-features": "3.47.0"
   }
 }
